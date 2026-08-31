@@ -38,6 +38,19 @@ test('安装目录不可写时才回退到用户数据目录', () => {
   )
 })
 
+test('便携模式把运行时固定到便携根目录，盘符由每次启动重新传入', () => {
+  assert.equal(
+    resolveDesktopRuntimeDir('C:\\ignored', {
+      isPackaged: true,
+      execPath: 'C:\\temporary-extraction\\DSH Codex Desktop.exe',
+      platform: 'win32',
+      portableRoot: 'G:\\DSH-3-Portable',
+      canWrite: () => false,
+    }),
+    win32.join('G:\\DSH-3-Portable', 'Data', 'Runtime', 'dsh-runtime'),
+  )
+})
+
 test('macOS 打包态始终把可变运行时写到 userData，避免修改签名应用包', () => {
   const userData = '/Users/demo/Library/Application Support/DSH Codex Desktop'
   assert.equal(

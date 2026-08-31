@@ -15,4 +15,13 @@ runtime-dsh.tgz
 runtime-dsh.tgz.sha256
 .codegraph/
 _tmp*
+
+# 便携版部署目录：只保留脚本和说明，应用、用户数据、工具链及工作区不提交。
+App/
+Data/
+Tools/
+Workspace/*
+!Workspace/README.md
+Customize/App-Overlay/*
+!Customize/App-Overlay/.gitkeep
 System.Management.Automation.Internal.Host.InternalHost

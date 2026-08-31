@@ -31,6 +31,13 @@ import { DEFAULT_NOTIFICATION_PREFERENCES, buildWindowsReplyToastXml, loadNotifi
 import { watchProfileActivation } from './profile-watch.js'
 import updater from 'electron-updater'
 import { DEFAULT_UPDATE_PREFERENCES, STARTUP_UPDATE_CHECK_DELAY_MS, buildDesktopTrayItems, desktopUpdateChannel, desktopUpdatePrompt, formatDesktopReleaseNotes, loadUpdatePreferences, publicDesktopUpdateError, saveUpdatePreferences, shouldCheckForUpdatesOnStartup, shouldDownloadUpdateAutomatically, type DesktopUpdateAction, type DesktopUpdatePreferences, type DesktopUpdateSnapshot, type DesktopUpdateStatus } from './desktop-updater.js'
+import { applyPortableEnvironment, ensurePortableDirectories, resolvePortablePaths } from './portable-paths.js'
+
+const portablePaths = resolvePortablePaths(process.env.DSH_PORTABLE_ROOT)
+if (portablePaths !== undefined) {
+  ensurePortableDirectories(portablePaths)
+  applyPortableEnvironment(portablePaths)
+}
 
 interface DshProcessModule {
   isApplyPluginUpdatesIpc: (message: unknown) => boolean
@@ -88,7 +95,16 @@ process.on('unhandledRejection', handleUnexpectedMainError)
 app.setName(DESKTOP_APP_NAME)
 app.setAppUserModelId(DESKTOP_APP_USER_MODEL_ID)
 if (process.platform === 'win32') app.setToastActivatorCLSID(DESKTOP_TOAST_ACTIVATOR_CLSID)
-if (!process.argv.some(argument => argument.startsWith('--user-data-dir='))) {
+if (portablePaths !== undefined) {
+  app.setPath('home', portablePaths.home)
+  app.setPath('appData', portablePaths.appData)
+  app.setPath('userData', portablePaths.userData)
+  app.setPath('sessionData', portablePaths.sessionData)
+  app.setPath('cache', portablePaths.cache)
+  app.setPath('temp', portablePaths.temp)
+  app.setPath('logs', portablePaths.logs)
+  app.setPath('crashDumps', portablePaths.crashDumps)
+} else if (!process.argv.some(argument => argument.startsWith('--user-data-dir='))) {
   app.setPath('userData', resolveDesktopUserDataDir(app.getPath('appData')))
 }
 protocol.registerSchemesAsPrivileged([
@@ -159,6 +175,7 @@ async function startApplication(): Promise<void> {
     const desktopRuntimeDir = resolveDesktopRuntimeDir(app.getPath('userData'), {
       isPackaged: app.isPackaged,
       execPath: process.execPath,
+      ...(portablePaths === undefined ? {} : { portableRoot: portablePaths.root }),
     })
     const extractedStoreDir = app.isPackaged ? join(dirname(desktopRuntimeDir), 'plugins', 'store') : undefined
     const nodeExecutable = resolveNodeExecutable(runtimeOptions)

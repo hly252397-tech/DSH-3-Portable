@@ -15,9 +15,14 @@ export function resolveDesktopRuntimeDir(userDataDir: string, options: {
   isPackaged: boolean
   execPath: string
   platform?: NodeJS.Platform
+  portableRoot?: string
   canWrite?: (dir: string) => boolean
 }): string {
   const platform = options.platform ?? process.platform
+  if (options.portableRoot !== undefined) {
+    const path = platform === 'win32' ? win32 : { dirname, join }
+    return path.join(options.portableRoot, 'Data', 'Runtime', 'dsh-runtime')
+  }
   if (options.isPackaged && platform !== 'darwin') {
     const path = platform === 'win32' ? win32 : { dirname, join }
     const installDir = path.dirname(options.execPath)

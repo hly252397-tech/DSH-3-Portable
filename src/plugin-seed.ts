@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 
 import { writeTextFileAtomic, writeTextFileAtomicSync } from './atomic-file.js'
 import {
@@ -94,13 +94,73 @@ export function shouldUsePackagedStore(targetDir: string): boolean {
 
 export function resolvePnpmStoreDir(targetDir: string, fallback?: string): string | undefined {
   try {
-    const modulesState = readFileSync(join(targetDir, 'node_modules', '.modules.yaml'), 'utf8')
-    const value = /^storeDir:\s*(.+?)\s*$/m.exec(modulesState)?.[1]?.replace(/^['"]|['"]$/g, '')
-    if (value) return value
+    const modulesStatePath = join(targetDir, 'node_modules', '.modules.yaml')
+    let modulesState = readFileSync(modulesStatePath, 'utf8')
+    let value = declaredPnpmStoreDir(modulesState)
+    if (value) {
+      const portableRoot = process.env.DSH_PORTABLE_ROOT
+      if (portableRoot !== undefined && fallback !== undefined && isPathWithin(portableRoot, targetDir) && isPathWithin(portableRoot, fallback)) {
+        const rebased = rebasePortablePnpmState(modulesState, portableRoot)
+        if (rebased !== modulesState) {
+          writeTextFileAtomicSync(modulesStatePath, rebased)
+          modulesState = rebased
+          value = declaredPnpmStoreDir(modulesState)
+        }
+      }
+      return value
+    }
   } catch {
     // 首次安装还没有 pnpm 状态文件。
   }
   return shouldUsePackagedStore(targetDir) && fallback ? fallback : undefined
+}
+
+/** pnpm 状态含绝对 store/virtualStore 路径，U 盘换盘符后统一重定位。 */
+export function rebasePortablePnpmState(state: string, portableRoot: string): string {
+  const declared = declaredPnpmStoreDir(state)
+  if (declared === undefined) return state
+  const normalizedDeclared = declared.replaceAll('\\', '/')
+  const dataIndex = normalizedDeclared.toLocaleLowerCase().indexOf('/data/')
+  const appIndex = normalizedDeclared.toLocaleLowerCase().indexOf('/app/')
+  const layoutIndex = dataIndex >= 0 ? dataIndex : appIndex
+  if (layoutIndex < 0) return state
+  const oldRoot = normalizedDeclared.slice(0, layoutIndex).replace(/\/$/, '')
+  const newRoot = portableRoot.replaceAll('\\', '/').replace(/\/$/, '')
+  if (oldRoot.toLocaleLowerCase() === newRoot.toLocaleLowerCase()) return state
+  try {
+    const parsed = JSON.parse(state) as { storeDir?: unknown, virtualStoreDir?: unknown }
+    for (const key of ['storeDir', 'virtualStoreDir'] as const) {
+      const value = parsed[key]
+      if (typeof value === 'string') parsed[key] = replacePathRoot(value, oldRoot, newRoot)
+    }
+    return JSON.stringify(parsed, undefined, 2) + '\n'
+  } catch {
+    // pnpm 旧版本写 YAML；保留原格式，仅替换绝对根目录。
+  }
+  const escaped = oldRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return state.replace(new RegExp(escaped, 'gi'), newRoot)
+}
+
+function declaredPnpmStoreDir(state: string): string | undefined {
+  try {
+    const value = (JSON.parse(state) as { storeDir?: unknown }).storeDir
+    if (typeof value === 'string' && value !== '') return value
+  } catch {
+    // 兼容 pnpm 旧版 YAML 状态。
+  }
+  return /^storeDir:\s*(.+?)\s*$/m.exec(state)?.[1]?.replace(/^['"]|['"]$/g, '')
+}
+
+function replacePathRoot(value: string, oldRoot: string, newRoot: string): string {
+  const normalized = value.replaceAll('\\', '/')
+  if (!normalized.toLocaleLowerCase().startsWith(oldRoot.toLocaleLowerCase() + '/')) return value
+  const replaced = newRoot + normalized.slice(oldRoot.length)
+  return value.includes('\\') ? replaced.replaceAll('/', '\\') : replaced
+}
+
+function isPathWithin(parent: string, child: string): boolean {
+  const path = relative(resolve(parent), resolve(child))
+  return path === '' || (path !== '..' && !path.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`))
 }
 
 export function buildSeedRemoveArgs(packageNames: readonly string[], targetDir: string, options: SeedPnpmOptions = {}): string[] {

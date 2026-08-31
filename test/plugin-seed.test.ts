@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 import { OFFICIAL_DSH_VERSION, OFFICIAL_LAUNCH_PEERS, OFFICIAL_RUNTIME, SUITE_PACKAGE, officialDshVersionOverrides } from '../src/bundled-plugins.js'
-import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
+import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, rebasePortablePnpmState, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
 
 const catalog = [
   { packageName: '@michengai/dsh-codex-ui', version: '0.2.58' },
@@ -135,6 +135,20 @@ test('后续 pnpm 操作沿用 node_modules 记录的 store 目录', async () =>
   } finally {
     await rm(root, { recursive: true, force: true })
   }
+})
+
+test('便携盘换盘符后重定位 pnpm store 和 virtual store', () => {
+  const state = JSON.stringify({
+    storeDir: 'G:\\DSH-3-Portable\\Data\\Runtime\\plugins\\store\\v11',
+    virtualStoreDir: 'G:\\DSH-3-Portable\\Data\\DSH\\profiles\\web\\node_modules\\.pnpm',
+  }, undefined, 2) + '\n'
+  assert.equal(
+    rebasePortablePnpmState(state, 'P:\\DSH-3-Portable'),
+    JSON.stringify({
+      storeDir: 'P:\\DSH-3-Portable\\Data\\Runtime\\plugins\\store\\v11',
+      virtualStoreDir: 'P:\\DSH-3-Portable\\Data\\DSH\\profiles\\web\\node_modules\\.pnpm',
+    }, undefined, 2) + '\n',
+  )
 })
 
 test('替换旧套件时先安装子插件，安装失败不会先卸载套件', async () => {
