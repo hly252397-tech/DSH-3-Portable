@@ -17,6 +17,9 @@ if (-not (Test-Path -LiteralPath $application -PathType Leaf)) {
 $launchArguments = @(
   '--user-data-dir="' + $portablePaths.UserData + '"'
   '--disk-cache-dir="' + $portablePaths.Cache + '"'
-) + $ApplicationArguments
+)
+foreach ($argument in $ApplicationArguments) {
+  if (-not [string]::IsNullOrEmpty($argument)) { $launchArguments += $argument }
+}
 
 Start-Process -FilePath $application -ArgumentList $launchArguments -WorkingDirectory $portablePaths.Workspace
