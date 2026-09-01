@@ -539,7 +539,8 @@ function scheduleAppRelaunch(): boolean {
   }
 }
 
-/** 完全关闭并重启：安排新实例 → 走既有优雅关停（托盘/服务/配置落盘）。确认交互由调用方 UI 承担（工具栏按钮弹主题化模态；菜单与「退出」同级直接执行）。 */
+/** 完全关闭并重启：安排新实例 → 走既有优雅关停（托盘/服务/配置落盘）。
+ *  防误触由外壳按钮的两步确认承担（同旧版空间板块外壳：首次点击红底确认态，5s/Esc 取消）。 */
 async function requestAppRestart(): Promise<void> {
   if (!scheduleAppRelaunch()) {
     const zh = desktopDialogLocale() === 'zh'
