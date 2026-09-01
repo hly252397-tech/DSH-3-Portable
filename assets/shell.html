@@ -70,6 +70,27 @@
     :root[data-color-scheme="light"] .menu:hover,:root[data-color-scheme="light"] .menu[aria-expanded="true"]{color:#0f1115}
     @media(max-width:720px){.status{display:none}.bar{padding-right:144px}.menu{padding:0 7px}}
     @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+    .confirm-overlay{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(0,0,0,.45)}
+    .confirm-overlay[hidden]{display:none}
+    .confirm-card{width:min(360px,calc(100vw - 48px));background:#1f2121;border:1px solid #292c2b;border-radius:12px;padding:18px 20px;box-shadow:0 12px 32px rgba(0,0,0,.4);animation:confirm-in .12s ease-out}
+    @keyframes confirm-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+    .confirm-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+    .confirm-icon{width:15px;height:15px;filter:invert(91%) sepia(5%) saturate(80%) hue-rotate(80deg)}
+    .confirm-title{margin:0;font-size:14px;font-weight:600;color:#e7eae8}
+    .confirm-text{margin:0 0 16px;font-size:12.5px;line-height:1.6;color:#8f9492}
+    .confirm-actions{display:flex;justify-content:flex-end;gap:8px}
+    .confirm-btn{padding:6px 16px;border-radius:7px;font-size:13px;border:1px solid #363938;background:transparent;color:#d7d9d8;cursor:pointer;transition:background .12s}
+    .confirm-btn:hover{background:#2b2e2d}
+    .confirm-btn.primary{background:#0961F6;border-color:#0961F6;color:#fff}
+    .confirm-btn.primary:hover{background:#0a55d8}
+    .confirm-btn:focus-visible{outline:none;box-shadow:0 0 0 2px var(--focus-ring,#e7eae8)}
+    :root[data-color-scheme="light"] .confirm-overlay{background:rgba(15,17,21,.32)}
+    :root[data-color-scheme="light"] .confirm-card{background:#fff;border-color:#00000014;box-shadow:0 12px 32px rgba(15,17,21,.16)}
+    :root[data-color-scheme="light"] .confirm-title{color:#0f1115}
+    :root[data-color-scheme="light"] .confirm-text{color:#61666b}
+    :root[data-color-scheme="light"] .confirm-btn{border-color:#0000001f;color:#0f1115}
+    :root[data-color-scheme="light"] .confirm-btn:hover{background:rgba(38,49,72,.06)}
+    :root[data-color-scheme="light"] .confirm-icon{filter:brightness(0);opacity:.72}
   </style>
 </head>
 <body>
@@ -78,7 +99,7 @@
     <button id="forward" class="nav" data-action="forward" title="前进" aria-label="前进"><img src="shell-icons/arrow-right.svg" alt=""></button>
     <button id="home-btn" class="nav" data-action="home" title="主页" aria-label="主页"><img src="shell-icons/home.svg" alt=""></button>
     <button id="browser-toggle-btn" class="nav" data-action="browser-toggle" title="浏览器" aria-label="浏览器" aria-pressed="false"><img src="shell-icons/panel-right.svg" alt=""></button>
-    <button id="restart-btn" class="nav" data-action="app-restart" title="重启应用" aria-label="重启应用"><img src="shell-icons/rotate-right.svg" alt=""></button>
+    <button id="restart-btn" class="nav" title="重启应用" aria-label="重启应用" aria-haspopup="dialog"><img src="shell-icons/rotate-right.svg" alt=""></button>
     <span class="divider" aria-hidden="true"></span>
     <nav id="menus" aria-label="应用菜单"></nav>
     <span id="status" class="status" role="status"></span>
@@ -101,7 +122,7 @@
     const menuHost=document.getElementById('menus');const status=document.getElementById('status');
     function shellZh(){return bootstrap?.locale?.startsWith('zh')??navigator.language.toLowerCase().startsWith('zh')}
     function applyState(next){state=next;document.getElementById('back').disabled=!next.canBack;document.getElementById('forward').disabled=!next.canForward;const zh=shellZh();status.textContent=next.reloading?(zh?'正在重新加载…':'Reloading…'):(next.zoomPercent&&next.zoomPercent!==100?next.zoomPercent+'%':'');renderBrowser(next.browser)}
-    function applyBootstrap(value){bootstrap=value;document.documentElement.lang=value.locale;document.documentElement.dataset.colorScheme=value.colorScheme;document.documentElement.style.colorScheme=value.colorScheme;const zh=value.locale.startsWith('zh');const back=document.getElementById('back');const forward=document.getElementById('forward');const homeBtn=document.getElementById('home-btn');const browserToggleBtn=document.getElementById('browser-toggle-btn');const restartBtn=document.getElementById('restart-btn');back.title=back.ariaLabel=zh?'返回':'Back';forward.title=forward.ariaLabel=zh?'前进':'Forward';homeBtn.title=homeBtn.ariaLabel=zh?'主页':'Home';browserToggleBtn.title=browserToggleBtn.ariaLabel=zh?'浏览器':'Browser';restartBtn.title=restartBtn.ariaLabel=zh?'重启应用':'Restart App';document.getElementById('browser-address').placeholder=zh?'输入网址…':'Enter address…';menuHost.setAttribute('aria-label',zh?'应用菜单':'Application menu');menuHost.replaceChildren();for(const menu of value.menus){const button=document.createElement('button');button.className='menu';button.textContent=menu.label;button.setAttribute('aria-haspopup','menu');button.setAttribute('aria-expanded','false');button.addEventListener('click',()=>showMenu(button,menu.id));menuHost.append(button)}applyState(state??value.state)}
+    function applyBootstrap(value){bootstrap=value;document.documentElement.lang=value.locale;document.documentElement.dataset.colorScheme=value.colorScheme;document.documentElement.style.colorScheme=value.colorScheme;const zh=value.locale.startsWith('zh');const back=document.getElementById('back');const forward=document.getElementById('forward');const homeBtn=document.getElementById('home-btn');const browserToggleBtn=document.getElementById('browser-toggle-btn');const restartBtn=document.getElementById('restart-btn');back.title=back.ariaLabel=zh?'返回':'Back';forward.title=forward.ariaLabel=zh?'前进':'Forward';homeBtn.title=homeBtn.ariaLabel=zh?'主页':'Home';browserToggleBtn.title=browserToggleBtn.ariaLabel=zh?'浏览器':'Browser';restartBtn.title=restartBtn.ariaLabel=zh?'重启应用':'Restart App';document.getElementById('restart-confirm-title').textContent=zh?'重启应用':'Restart App';document.getElementById('restart-confirm-text').textContent=zh?'完全关闭并重启 DSH Codex Desktop？所有窗口将关闭，正在运行的任务会被中断；会话与配置保留在磁盘上，重启后可继续。':'Fully quit and restart DSH Codex Desktop? All windows will close and running tasks are interrupted. Sessions and settings are preserved on disk and resume after restart.';document.getElementById('restart-cancel').textContent=zh?'取消':'Cancel';document.getElementById('restart-ok').textContent=zh?'重启':'Restart';document.getElementById('browser-address').placeholder=zh?'输入网址…':'Enter address…';menuHost.setAttribute('aria-label',zh?'应用菜单':'Application menu');menuHost.replaceChildren();for(const menu of value.menus){const button=document.createElement('button');button.className='menu';button.textContent=menu.label;button.setAttribute('aria-haspopup','menu');button.setAttribute('aria-expanded','false');button.addEventListener('click',()=>showMenu(button,menu.id));menuHost.append(button)}applyState(state??value.state)}
     function renderBrowser(browser){
       const host=document.getElementById('browser');
       const toggleBtn=document.getElementById('browser-toggle-btn');
@@ -158,6 +179,18 @@
     // click is subsequently delivered to the shell, clear immediately too.
     document.addEventListener('pointerdown',event=>{if(openMenu&&event.target!==openMenu)clearOpenMenu()},true);window.addEventListener('blur',()=>clearOpenMenu());
     document.querySelectorAll('[data-action]').forEach(button=>button.addEventListener('click',()=>api.action(button.dataset.action)));
+    // 重启确认：主题化模态（唯一确认层），避免突兀的系统原生对话框
+    const restartConfirm=document.getElementById('restart-confirm');
+    const restartOk=document.getElementById('restart-ok');
+    const restartCancel=document.getElementById('restart-cancel');
+    let confirmOpener=null;
+    function openRestartConfirm(){confirmOpener=document.activeElement;restartConfirm.hidden=false;restartCancel.focus()}
+    function closeRestartConfirm(){if(restartConfirm.hidden)return;restartConfirm.hidden=true;if(confirmOpener instanceof HTMLElement)confirmOpener.focus();confirmOpener=null}
+    document.getElementById('restart-btn').addEventListener('click',openRestartConfirm);
+    restartCancel.addEventListener('click',closeRestartConfirm);
+    restartOk.addEventListener('click',()=>{closeRestartConfirm();api.action('app-restart')});
+    restartConfirm.addEventListener('click',event=>{if(event.target===restartConfirm)closeRestartConfirm()});
+    window.addEventListener('keydown',event=>{if(event.key==='Escape'&&!restartConfirm.hidden){event.stopPropagation();closeRestartConfirm()}});
     document.querySelectorAll('[data-browser]').forEach(button=>button.addEventListener('click',()=>{
       const action=button.dataset.browser;
       if(action==='back')api.browser.back();
@@ -174,5 +207,18 @@
     api.getBootstrap().then(value=>{document.documentElement.dataset.platform=value.platform;applyBootstrap(value)});api.onBootstrap(applyBootstrap);
     api.onState(applyState);
   </script>
+  <div id="restart-confirm" class="confirm-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="restart-confirm-title" aria-describedby="restart-confirm-text">
+    <div class="confirm-card">
+      <div class="confirm-head">
+        <img src="shell-icons/rotate-right.svg" alt="" class="confirm-icon">
+        <h2 id="restart-confirm-title" class="confirm-title">重启应用</h2>
+      </div>
+      <p id="restart-confirm-text" class="confirm-text">完全关闭并重启 DSH Codex Desktop？所有窗口将关闭，正在运行的任务会被中断；会话与配置保留在磁盘上，重启后可继续。</p>
+      <div class="confirm-actions">
+        <button type="button" id="restart-cancel" class="confirm-btn">取消</button>
+        <button type="button" id="restart-ok" class="confirm-btn primary">重启</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

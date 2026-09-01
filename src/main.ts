@@ -539,23 +539,10 @@ function scheduleAppRelaunch(): boolean {
   }
 }
 
-/** 完全关闭并重启：确认对话框 → 安排新实例 → 走既有优雅关停（托盘/服务/配置落盘）。 */
+/** 完全关闭并重启：安排新实例 → 走既有优雅关停（托盘/服务/配置落盘）。确认交互由调用方 UI 承担（工具栏按钮弹主题化模态；菜单与「退出」同级直接执行）。 */
 async function requestAppRestart(): Promise<void> {
-  const zh = desktopDialogLocale() === 'zh'
-  const confirmed = await dialog.showMessageBox({
-    type: 'warning',
-    buttons: zh ? ['取消', '重启'] : ['Cancel', 'Restart'],
-    defaultId: 0,
-    cancelId: 0,
-    noLink: true,
-    title: zh ? '重启应用' : 'Restart App',
-    message: zh ? '完全关闭并重启 DSH Codex Desktop？' : 'Fully quit and restart DSH Codex Desktop?',
-    detail: zh
-      ? '所有窗口将关闭，正在运行的任务会被中断；会话与配置保留在磁盘上，重启后可继续。'
-      : 'All windows will close and running tasks are interrupted. Sessions and settings are preserved on disk and resume after restart.',
-  })
-  if (confirmed.response !== 1) return
   if (!scheduleAppRelaunch()) {
+    const zh = desktopDialogLocale() === 'zh'
     await dialog.showMessageBox({
       type: 'error',
       buttons: ['OK'],
