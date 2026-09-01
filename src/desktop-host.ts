@@ -258,6 +258,8 @@ export const DESKTOP_BRIDGE_FILES = [
   'dsh-process.js',
   'plugin-seed.js',
   'plugin-toolchain.js',
+  'profile-bundle-health.js',
+  'profile-quarantine.js',
   'profile-updates.js',
   'process-control.js',
   'readiness.js',

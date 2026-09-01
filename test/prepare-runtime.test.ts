@@ -203,11 +203,11 @@ test('官方运行时使用 npm 安装以兼容预发布 peer 依赖', () => {
     '--no-fund',
     '--allow-scripts=@deepseek-ai/dsh-subprocess-local,@google/genai,koffi,node-pty,protobufjs',
     '--registry=https://registry.npmjs.org/',
-    '@deepseek-ai/dsh@0.1.2-alpha.2',
+    '@deepseek-ai/dsh@0.1.2-alpha.3',
     '@deepseek-ai/cordis-plugin-group@1.0.2',
-    '@deepseek-ai/dsh-scope@0.1.2-alpha.2',
-    '@deepseek-ai/dsh-timeout@0.1.2-alpha.2',
-    '@deepseek-ai/dsh-invariants@0.1.2-alpha.2',
+    '@deepseek-ai/dsh-scope@0.1.2-alpha.3',
+    '@deepseek-ai/dsh-timeout@0.1.2-alpha.3',
+    '@deepseek-ai/dsh-invariants@0.1.2-alpha.3',
   ])
 })
 
@@ -218,11 +218,11 @@ test('npm 全局安装目录按平台归一化', () => {
 
 test('官方运行时把 DSH 和启动 peer 一起装成 npm 顶层依赖', () => {
   assert.deepEqual(officialRuntimeNpmDependencies(), {
-    '@deepseek-ai/dsh': '0.1.2-alpha.2',
+    '@deepseek-ai/dsh': '0.1.2-alpha.3',
     '@deepseek-ai/cordis-plugin-group': '1.0.2',
-    '@deepseek-ai/dsh-scope': '0.1.2-alpha.2',
-    '@deepseek-ai/dsh-timeout': '0.1.2-alpha.2',
-    '@deepseek-ai/dsh-invariants': '0.1.2-alpha.2',
+    '@deepseek-ai/dsh-scope': '0.1.2-alpha.3',
+    '@deepseek-ai/dsh-timeout': '0.1.2-alpha.3',
+    '@deepseek-ai/dsh-invariants': '0.1.2-alpha.3',
   })
 })
 
@@ -250,7 +250,7 @@ test('打包校验拒绝只嵌套在 DSH 内部的启动 peer', async () => {
   }
 })
 
-test('alpha.2 已内置权限本地化，不再应用旧 rc.2 桌面补丁', async () => {
+test('alpha.2+ 已内置权限本地化，不再应用旧 rc.2 桌面补丁', async () => {
   const prepare = await readFile(new URL('../../scripts/prepare-runtime.ts', import.meta.url), 'utf8')
   assert.doesNotMatch(prepare, /applyOfficialRuntimePatch/)
   assert.equal(existsSync(new URL('../../patches/dsh-0.1.1-rc.2-permission-localization.patch', import.meta.url)), false)
@@ -258,17 +258,23 @@ test('alpha.2 已内置权限本地化，不再应用旧 rc.2 桌面补丁', asy
 
 test('Windows 冒烟保留便携版冷启动路径并检查窗口响应', async () => {
   const script = await readFile(new URL('../../scripts/smoke-package.ps1', import.meta.url), 'utf8')
+  const verifier = await readFile(new URL('../../scripts/smoke-packaged-plugins.mts', import.meta.url), 'utf8')
   const main = await readFile(new URL('../../src/main.ts', import.meta.url), 'utf8')
   assert.doesNotMatch(script, /extract-runtime\.mjs/)
   assert.match(script, /\.Responding/)
   assert.match(script, /连续 10 秒未响应/)
   assert.match(script, /startupTimeoutSeconds = 180/)
   assert.match(script, /npm_config_offline = 'true'/)
-  assert.match(script, /强制离线首启缺少插件/)
-  assert.match(script, /@michengai\/dsh-codex-ui/)
-  assert.match(script, /dshmarket/)
+  assert.match(script, /smoke-packaged-plugins\.mjs/)
+  assert.doesNotMatch(script, /expectedPlugins/)
+  assert.doesNotMatch(script, /@michengai\/dsh-codex-ui/)
+  assert.match(verifier, /BUNDLED_PLUGINS/)
+  assert.match(verifier, /强制离线首启缺少插件/)
   assert.match(script, /--user-data-dir=/)
-  assert.match(main, /await extractPackagedRuntimesInChild/)
+  assert.match(main, /const extraction = extractPackagedRuntimesInChild/)
+  assert.match(main, /signal: controller\.signal/)
+  assert.match(main, /await extraction/)
+  assert.match(main, /runtimeExtractionAbortController\?\.abort\(\)/)
   assert.doesNotMatch(main, /\bextractPackagedRuntimes\(/)
   assert.match(main, /--user-data-dir=/)
 })
@@ -281,13 +287,17 @@ test('首启页面会向辅助技术播报初始化阶段', async () => {
   assert.match(startup, /<h1>DSH Codex Desktop<\/h1>/)
 })
 
-test('Windows 冒烟兼容 alpha.2 启动 token 鉴权', async () => {
+test('Windows 冒烟兼容 alpha.2+ 启动 token 鉴权', async () => {
   const script = await readFile(new URL('../../scripts/smoke-package.ps1', import.meta.url), 'utf8')
   assert.match(script, /SkipHttpErrorCheck/)
   assert.match(script, /dsh web authentication required/)
   assert.match(script, /startup-error\.log/)
   assert.match(script, /DSH_DESKTOP_SMOKE_READY_FILE/)
   assert.match(script, /startup-ready/)
+  const httpSuccessBranch = script.indexOf("if ($page.StatusCode -ne 200)")
+  const readyWait = script.indexOf('while ((Get-Date) -lt $deadline -and -not (Test-Path -LiteralPath $smokeReadyFile))', httpSuccessBranch)
+  const pluginVerification = script.indexOf('smoke-packaged-plugins.mjs')
+  assert.ok(httpSuccessBranch >= 0 && readyWait > httpSuccessBranch && pluginVerification > readyWait)
   assert.match(script, /foreach \(\$listener in \$listeners\)/)
   assert.match(script, /\$candidate\.StatusCode -eq 200 -or \(\$candidate\.StatusCode -eq 401/)
   assert.doesNotMatch(script, /Select-Object -First 1\s*\r?\n\s*if \(\$null -ne \$listener\)/)
@@ -324,14 +334,40 @@ test('打包态从 desktop-bridge 加载 DSH 主进程模块', async () => {
   assert.doesNotMatch(host, /from '\.\/dsh-process\.js'/)
 })
 
+function extractionScriptExtraResources(manifest: {
+  build?: { extraResources?: Array<{ from?: string; to?: string; filter?: string[] }> }
+}): Array<{ from: string; to: string }> {
+  return (manifest.build?.extraResources ?? []).flatMap((item) => {
+    if (typeof item.from !== 'string' || typeof item.to !== 'string' || item.filter !== undefined) return []
+    if (!item.from.startsWith('dist/src/')) return []
+    return [{ from: item.from, to: item.to }]
+  })
+}
+
 test('安装阶段解压脚本带上自己的运行依赖', async () => {
   const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as {
-    build?: { extraResources?: { from?: string; to?: string }[] }
+    build?: { extraResources?: Array<{ from?: string; to?: string; filter?: string[] }> }
   }
-  assert.equal(
-    manifest.build?.extraResources?.some(item => item.from === 'dist/src/runtime-archive.js' && item.to === 'runtime-archive.js'),
-    true,
-  )
+  const extra = extractionScriptExtraResources(manifest)
+  assert.equal(extra.some(item => item.from === 'dist/src/extract-runtime.js' && item.to === 'extract-runtime.mjs'), true)
+  assert.equal(extra.some(item => item.from === 'dist/src/runtime-archive.js' && item.to === 'runtime-archive.js'), true)
+  assert.equal(extra.some(item => item.from === 'dist/src/process-control.js' && item.to === 'process-control.js'), true)
+})
+
+test('安装阶段解压脚本独立目录可以完成 ESM 导入', async () => {
+  const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as {
+    build?: { extraResources?: Array<{ from?: string; to?: string; filter?: string[] }> }
+  }
+  const extra = extractionScriptExtraResources(manifest)
+  const root = await mkdtemp(join(tmpdir(), 'dsh-extract-import-'))
+  try {
+    for (const item of extra) {
+      await copyFile(new URL(`../../${item.from}`, import.meta.url), join(root, item.to))
+    }
+    await import(`${pathToFileURL(join(root, 'extract-runtime.mjs')).href}?test=${Date.now()}`)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })
 
 test('desktop-bridge 资源清单包含完整运行依赖闭包', async () => {

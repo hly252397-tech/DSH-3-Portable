@@ -52,7 +52,7 @@ interface DesktopShellBridge {
   onOpenSession(listener: (id: string) => void): () => void
   onNotificationReply(listener: (value: { sessionId: string; text: string }) => void): () => void
   reportNotification(event: {
-    type: 'notify' | 'dismiss' | 'badge' | 'reply-error'
+    type: 'notify' | 'dismiss' | 'badge' | 'reply-error' | 'activity'
     count?: number
     body?: string
     kind?: 'turn-complete' | 'approval' | 'question'
@@ -94,6 +94,7 @@ export function desktopBridgeClientFactory(): { apply(ctx: ClientContext): void;
       let selectedForDismiss: string | undefined
       const unreadCompletions = new Set<string>()
       let reportedBadgeCount: number | undefined
+      let reportedActivityCount: number | undefined
 
       const notificationKindForInteraction = (value: string | undefined): 'approval' | 'question' | undefined => {
         if (value === undefined) return undefined
@@ -154,12 +155,14 @@ export function desktopBridgeClientFactory(): { apply(ctx: ClientContext): void;
           }
         }
         const nextBaseline = new Map<string, { pendingInteraction?: string; running: boolean }>()
+        let activityCount = 0
         for (const id of [...unreadCompletions]) {
           if (nextSnapshot.byId[id] === undefined) unreadCompletions.delete(id)
         }
         for (const id of nextSnapshot.ids) {
           const row = nextSnapshot.byId[id]
           if (row === undefined) continue
+          if (row.running || row.pendingInteraction !== undefined) activityCount += 1
           if (row.completed === true) unreadCompletions.add(id)
           const previous = notificationBaseline?.get(id)
           nextBaseline.set(id, { running: row.running, ...(row.pendingInteraction === undefined ? {} : { pendingInteraction: row.pendingInteraction }) })
@@ -186,6 +189,10 @@ export function desktopBridgeClientFactory(): { apply(ctx: ClientContext): void;
         }
         if (current !== undefined && document.hasFocus()) unreadCompletions.delete(current)
         notificationBaseline = nextBaseline
+        if (reportedActivityCount !== activityCount) {
+          reportedActivityCount = activityCount
+          bridge.reportNotification({ type: 'activity', count: activityCount })
+        }
         reportBadge()
         queueMicrotask(report)
       }

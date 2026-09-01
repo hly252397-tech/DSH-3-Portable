@@ -5,6 +5,8 @@ import { join } from 'node:path'
 import { writeTextFileAtomic } from './atomic-file.js'
 import { OFFICIAL_PROFILE_BUNDLES } from './bundled-plugins.js'
 import { ensureDesktopBridgePatch } from './desktop-host.js'
+import { inspectProfileBundle } from './profile-bundle-health.js'
+import { quarantineProfileBundle } from './profile-quarantine.js'
 import {
   ensureAutoInstallPeersDisabled,
   finalizeProfileBundlesAfterInstall,
@@ -12,7 +14,9 @@ import {
 } from './plugin-seed.js'
 
 export function parseUnresolvedBundleError(message: string): string | undefined {
-  return /cannot resolve profile bundle "([^"]+)"/.exec(message)?.[1]
+  const packageName = /cannot resolve profile bundle "([^"]+)"/.exec(message)?.[1]
+    ?? /failed to import loader entry [^(\r\n]+\(([^)\r\n]+)\)/.exec(message)?.[1]
+  return packageName !== undefined && isValidPackageName(packageName) ? packageName : undefined
 }
 
 export function isSelfRepairableBundle(packageName: string): boolean {
@@ -47,7 +51,15 @@ export async function repairBrokenProfile(profileDir: string, extraDirs: readonl
   ensureAutoInstallPeersDisabled(profileDir)
   ensureDesktopBridgePatch(profileDir)
   const finalized = await finalizeProfileBundlesAfterInstall(profileDir, extraDirs)
-  return finalized.removed
+  const repaired = [...finalized.removed]
+  const manifest = JSON.parse(await readFile(join(profileDir, 'package.json'), 'utf8')) as { dsh?: { profile?: { bundles?: string[] } } }
+  for (const packageName of manifest.dsh?.profile?.bundles ?? []) {
+    if (!isSelfRepairableBundle(packageName)) continue
+    const health = inspectProfileBundle(profileDir, packageName)
+    if (health.loadable) continue
+    if (await quarantineProfileBundle(profileDir, packageName, health.reason ?? '插件入口预检失败。', 'preflight')) repaired.push(packageName)
+  }
+  return repaired
 }
 
 export async function startWithProfileSelfRepair<T>(options: {
@@ -67,10 +79,19 @@ export async function startWithProfileSelfRepair<T>(options: {
       lastError = error
       const missing = parseUnresolvedBundleError(error instanceof Error ? error.message : String(error))
       if (missing === undefined || !isSelfRepairableBundle(missing)) throw error
-      const removed = await removeProfileBundle(options.profileDir, missing)
+      const removed = await quarantineProfileBundle(
+        options.profileDir,
+        missing,
+        error instanceof Error ? error.message : String(error),
+        'startup',
+      )
       if (!removed) throw error
       repaired.push(missing)
     }
   }
   throw lastError instanceof Error ? lastError : new Error('自我修复后仍无法启动 DSH。')
+}
+
+function isValidPackageName(value: string): boolean {
+  return /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/i.test(value)
 }

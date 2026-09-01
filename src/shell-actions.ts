@@ -14,10 +14,13 @@ export type ShellActionId =
   | 'select-all'
   | 'desktop-settings'
   | 'settings'
+  | 'app-restart'
   | 'toggle-sidebar'
   | 'find'
   | 'previous-chat'
   | 'next-chat'
+  | 'home'
+  | 'browser-toggle'
   | 'back'
   | 'forward'
   | 'zoom-in'
@@ -71,6 +74,7 @@ export const SHELL_ACTIONS: readonly ShellActionDefinition[] = [
   { id: 'new-chat', menu: 'file', group: 0, label: text('新聊天', 'New Chat'), accelerator: 'CmdOrCtrl+N', globalShortcut: true, keywords: text('新建任务 会话', 'new task session') },
   { id: 'open-folder', menu: 'file', group: 0, label: text('打开文件夹…', 'Open Folder…'), accelerator: 'CmdOrCtrl+O', globalShortcut: true, keywords: text('新建项目 工作区 目录', 'new project workspace directory') },
   { id: 'close-window', menu: 'file', group: 1, label: text('关闭', 'Close'), accelerator: 'CmdOrCtrl+W', globalShortcut: true, keywords: text('最小化 托盘 隐藏', 'minimize tray hide') },
+  { id: 'app-restart', menu: 'file', group: 2, label: text('重启应用', 'Restart App'), keywords: text('完全关闭 重启', 'full quit restart') },
   { id: 'quit', menu: 'file', group: 2, label: text('退出', 'Quit'), accelerator: 'CmdOrCtrl+Q', globalShortcut: true, keywords: text('彻底退出 关闭软件', 'exit application') },
 
   { id: 'undo', menu: 'edit', group: 0, label: text('撤销', 'Undo'), accelerator: 'CmdOrCtrl+Z' },
@@ -87,6 +91,8 @@ export const SHELL_ACTIONS: readonly ShellActionDefinition[] = [
   { id: 'find', menu: 'view', group: 1, label: text('查找', 'Find'), accelerator: 'CmdOrCtrl+F', globalShortcut: true, keywords: text('搜索会话', 'search sessions') },
   { id: 'previous-chat', menu: 'view', group: 2, label: text('上一个聊天', 'Previous Chat'), accelerator: 'CmdOrCtrl+Shift+[', globalShortcut: true },
   { id: 'next-chat', menu: 'view', group: 2, label: text('下一个聊天', 'Next Chat'), accelerator: 'CmdOrCtrl+Shift+]', globalShortcut: true },
+  { id: 'home', menu: 'view', group: 2, label: text('主页', 'Home'), accelerator: 'Alt+Home', globalShortcut: true, keywords: text('deepseek 首页', 'deepseek homepage') },
+  { id: 'browser-toggle', menu: 'view', group: 2, label: text('切换浏览器', 'Toggle Browser'), accelerator: 'CmdOrCtrl+Shift+B', globalShortcut: true, keywords: text('内置浏览器 面板 标签页', 'built-in browser panel tabs') },
   { id: 'back', menu: 'view', group: 2, label: text('返回', 'Back'), accelerator: 'CmdOrCtrl+[', globalShortcut: true },
   { id: 'forward', menu: 'view', group: 2, label: text('前进', 'Forward'), accelerator: 'CmdOrCtrl+]', globalShortcut: true },
   { id: 'zoom-in', menu: 'view', group: 3, label: text('放大', 'Zoom In'), accelerator: 'CmdOrCtrl+Shift+Plus', globalShortcut: true },

@@ -75,6 +75,8 @@ test('bridge 通知事件拒绝未知类型并裁剪标题', () => {
   })
   assert.deepEqual(parseDesktopNotificationBridgeEvent({ type: 'badge', count: 12 }), { type: 'badge', count: 12 })
   assert.equal(parseDesktopNotificationBridgeEvent({ type: 'badge', count: -1 }), undefined)
+  assert.deepEqual(parseDesktopNotificationBridgeEvent({ type: 'activity', count: 2 }), { type: 'activity', count: 2 })
+  assert.equal(parseDesktopNotificationBridgeEvent({ type: 'activity', count: 10_001 }), undefined)
   assert.deepEqual(parseDesktopNotificationBridgeEvent({ type: 'reply-error', sessionId: ' session-2 ' }), {
     type: 'reply-error', sessionId: 'session-2',
   })

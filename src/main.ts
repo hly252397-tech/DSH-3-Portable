@@ -1,7 +1,9 @@
-import { app, BrowserWindow, Menu, Notification, Tray, WebContentsView, dialog, ipcMain, nativeImage, nativeTheme, net, protocol, session, shell, type Input, type MenuItemConstructorOptions, type WebContents } from 'electron'
-import { existsSync } from 'node:fs'
+import { app, BrowserWindow, Menu, Notification, Tray, WebContentsView, dialog, ipcMain, nativeImage, nativeTheme, net, protocol, safeStorage, session, shell, type Input, type MenuItemConstructorOptions, type WebContents } from 'electron'
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { writeFile as writeTextFile } from 'node:fs/promises'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
+import { spawn } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -13,20 +15,25 @@ import { quitDesktopApp, shouldHideInsteadOfClose } from './app-lifecycle.js'
 import type { DshServer, StartDshOptions } from './dsh-process.js'
 import { isExternalOpenUrl, isSameOrigin } from './navigation.js'
 import { applyPendingProfileUpdates, resolvePnpmStoreDir, seedBundledPlugins, resolveWebProfileDir } from './plugin-seed.js'
-import { parseUnresolvedBundleError, removeProfileBundle, startWithProfileSelfRepair } from './profile-repair.js'
+import { parseUnresolvedBundleError, startWithProfileSelfRepair } from './profile-repair.js'
+import { quarantineProfileBundle } from './profile-quarantine.js'
 import { resolveBundledPluginStore, resolvePluginBinDir } from './plugin-toolchain.js'
 import { resolveDshBootstrap, resolveDshRuntime, resolveNodeExecutable } from './runtime.js'
 import { extractPackagedRuntimesInChild, packagedRuntimesNeedExtraction, type RuntimeExtractionProgress } from './extract-runtime.js'
 import { resolvePrebuiltOfficialRuntime } from './runtime-prebuilt.js'
+import { activateRuntimeSlot, commitRuntimeSlot, readRuntimeSlotPointer, recoverInterruptedRuntimeSwitch, resolveActiveRuntimeDir, rollbackRuntimeSlot, runtimeSlotVersion } from './runtime-slots.js'
+import { buildHarnessRuntimeCandidate, type HarnessRuntimeCandidate } from './harness-runtime-candidate.js'
+import { validateHarnessShadowStart } from './harness-shadow.js'
+import { DEFAULT_HARNESS_UPDATE_POLICY, acquireHarnessUpdateLock, appendHarnessUpdateEvent, checkHarnessUpdate, harnessUpdatePolicyPath, harnessUpdateRoot, harnessUpdateStatePath, loadHarnessUpdatePolicy, loadHarnessUpdateState, saveHarnessUpdatePolicy, saveHarnessUpdateState, type HarnessReleaseCandidate, type HarnessUpdatePolicy, type HarnessUpdateState } from './harness-update.js'
 import { applyInitialWindowState } from './window-state.js'
 import { WindowNavigationCoordinator } from './window-navigation.js'
 import { escapeRoute } from './escape-routing.js'
 import { installDesktopBridge, resolveDesktopBridgeDir } from './desktop-host.js'
 import { isChineseLocale, localizedShellActions, localizedShellMenus, normalizeShellLocale, shellActionForShortcut, SHELL_ACTIONS, type ShellActionId, type ShellMenuId } from './shell-actions.js'
-import { SHELL_BAR_HEIGHT, SHELL_IPC, type DshNavigationState, type DshShellActionId, type ShellBootstrap, type ShellMenuPopupRequest, type ShellState } from './shell-contract.js'
-import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeShellAction, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility, type ShellRendererKind } from './shell-ipc-policy.js'
+import { SHELL_BAR_HEIGHT, SHELL_IPC, type BrowserShellState, type BrowserTabState, type DshNavigationState, type DshShellActionId, type ShellBootstrap, type ShellMenuPopupRequest, type ShellState } from './shell-contract.js'
+import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeBrowserIpc, mayInvokeShellAction, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility, type ShellRendererKind } from './shell-ipc-policy.js'
 import { DESKTOP_THEME_PALETTES, normalizeDesktopThemeSnapshot, type DesktopColorScheme, type DesktopThemePreference } from './desktop-theme.js'
-import { DSH_MARKET_STATUS_PATH, waitForDshMarketBatchToSettle } from './dshmarket-batch.js'
+import { DSH_MARKET_STATUS_PATH, isDshMarketOperationBusy, waitForDshMarketBatchToSettle } from './dshmarket-batch.js'
 import { DEFAULT_NOTIFICATION_PREFERENCES, buildWindowsReplyToastXml, loadNotificationPreferences, parseDesktopNotificationBridgeEvent, parseWindowsNotificationReplyActivation, saveNotificationPreferences, shouldShowDesktopNotification, windowsNotificationReplyArguments, type DesktopNotificationEvent, type DesktopNotificationPreferences } from './desktop-notifications.js'
 import { watchProfileActivation } from './profile-watch.js'
 import updater from 'electron-updater'
@@ -58,6 +65,8 @@ let server: DshServer | undefined
 let tray: Tray | undefined
 let isQuitting = false
 let isRecycling = false
+let runtimeExtractionAbortController: AbortController | undefined
+let runtimeExtractionTask: Promise<void> | undefined
 let lastStartOptions: Omit<StartDshOptions, 'onUnexpectedExit' | 'onIpcMessage'> | undefined
 let lastSeedOptions: Parameters<typeof applyPendingProfileUpdates>[0] | undefined
 let profileWatcher: { stop: () => void; sync: () => void } | undefined
@@ -68,6 +77,10 @@ let updateStatus: DesktopUpdateStatus = { kind: 'idle' }
 let updatePreferences: DesktopUpdatePreferences = DEFAULT_UPDATE_PREFERENCES
 let lastUpdateCheckAt: string | undefined
 let startupUpdateTimer: NodeJS.Timeout | undefined
+let harnessUpdateTimer: NodeJS.Timeout | undefined
+let harnessUpdateTask: Promise<void> | undefined
+let harnessUpdatePolicy: HarnessUpdatePolicy = DEFAULT_HARNESS_UPDATE_POLICY
+let harnessUpdateState: HarnessUpdateState | undefined
 const { autoUpdater } = updater
 let isReportingUnexpectedError = false
 const windowNavigation = new WindowNavigationCoordinator()
@@ -79,7 +92,378 @@ let activeDshLocale: 'zh' | 'en' | undefined
 let activeDshColorScheme: DesktopColorScheme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
 let activeDshThemePreference: DesktopThemePreference = 'system'
 let dshSettingsDialogVisible = false
+let activeDshWorkCount = 0
+let activeDshWorkChangedAt = Date.now()
 const shellActionIds = new Set<string>(SHELL_ACTIONS.map(action => action.id))
+
+interface HarnessUpdaterContext {
+  readonly appPath: string
+  readonly bootstrapPath: string
+  readonly isPackaged: boolean
+  readonly legacyRuntimeDir: string
+  readonly nodeExecutable: string
+  readonly pathPrefix?: string
+  readonly pnpmEntry: string
+  readonly profileDir: string
+  readonly resourcesPath: string
+  readonly updateRoot: string
+}
+
+let harnessUpdaterContext: HarnessUpdaterContext | undefined
+
+// ---------------------------------------------------------------------------
+// 内置浏览器（移植自 G:\DSH-Portable 空间板块浏览器，主页固定为 deepseek.com）
+// ---------------------------------------------------------------------------
+const BROWSER_DEFAULT_HOMEPAGES: readonly string[] = ['https://www.deepseek.com/en/']
+const BROWSER_TABS_BAR_HEIGHT = 38
+const BROWSER_NAV_BAR_HEIGHT = 36
+const BROWSER_MAXIMUM_TABS = 12
+const BROWSER_DEFAULT_WIDTH_RATIO = 0.36
+const BROWSER_PARTITION = 'persist:dsh-browser'
+
+interface BrowserTab {
+  readonly id: string
+  title: string
+  url: string
+  favicon: string
+  crashed: boolean
+  lastRecordedUrl?: string
+  readonly view: WebContentsView
+}
+
+interface BrowserLibraryModule {
+  publicSnapshot(): { settings?: { homepages?: string[] } }
+  recordHistory(url: string, title: string, favicon?: string): void
+  setSettings(patch: { homepages: string[] }): { homepages: string[] }
+}
+
+interface BrowserWorkspaceFile {
+  version: number
+  browserVisible: boolean
+  browserWidthRatio: number
+  activeTabId: string | null
+  tabs: { id: string; title: string; url: string }[]
+}
+
+// 库延迟到首次使用时初始化：app.setPath('userData') 的便携重定向发生在此模块顶层之后，
+// 过早调用 createBrowserLibrary 会把历史/凭据写到错误的系统目录（B-1）。
+const browserLibraryFallback: BrowserLibraryModule = {
+  publicSnapshot: () => ({ settings: { homepages: [...BROWSER_DEFAULT_HOMEPAGES] } }),
+  recordHistory: () => undefined,
+  setSettings: patch => ({ homepages: patch.homepages }),
+}
+
+let browserLibraryModule: { createBrowserLibrary(options: { safeStorage: Electron.SafeStorage; browserDataRoot: string; stateRoot: string; appendLog: (message: string) => void }): BrowserLibraryModule } | undefined
+try {
+  const browserRequire = createRequire(import.meta.url)
+  browserLibraryModule = browserRequire(join(app.getAppPath(), 'browser-library.cjs')) as typeof browserLibraryModule
+} catch (error) {
+  console.error('browser-library.cjs 加载失败，内置浏览器降级为无历史记录模式：', error)
+}
+
+let browserDataInstance: BrowserLibraryModule | undefined
+
+function browserData(): BrowserLibraryModule {
+  if (browserDataInstance === undefined) {
+    browserDataInstance = browserLibraryModule === undefined
+      ? browserLibraryFallback
+      : browserLibraryModule.createBrowserLibrary({
+        safeStorage,
+        browserDataRoot: join(app.getPath('userData'), 'browser'),
+        stateRoot: join(app.getPath('userData'), 'state'),
+        appendLog: (message: string) => console.log(`[browser] ${message}`),
+      })
+  }
+  return browserDataInstance
+}
+
+const browserTabs: BrowserTab[] = []
+let activeBrowserTabId: string | null = null
+let browserVisible = false
+let browserWidthRatio = BROWSER_DEFAULT_WIDTH_RATIO
+let browserWorkspaceSaveTimer: NodeJS.Timeout | undefined
+
+function browserWorkspacePath(): string {
+  return join(app.getPath('userData'), 'shell', 'browser-workspace.json')
+}
+
+function loadBrowserWorkspace(): BrowserWorkspaceFile | null {
+  try {
+    const parsed = JSON.parse(readFileSync(browserWorkspacePath(), 'utf8')) as BrowserWorkspaceFile
+    if (!Array.isArray(parsed.tabs)) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function scheduleBrowserWorkspaceSave(): void {
+  if (browserWorkspaceSaveTimer !== undefined) clearTimeout(browserWorkspaceSaveTimer)
+  browserWorkspaceSaveTimer = setTimeout(() => {
+    browserWorkspaceSaveTimer = undefined
+    saveBrowserWorkspace()
+  }, 300)
+}
+
+function saveBrowserWorkspace(): void {
+  // 同步 + 临时文件原子替换：退出路径（app.exit）不等微任务，异步写会丢数据（H-2）；
+  // 直接覆盖可能与防抖写交错产生半截 JSON（M-1）。
+  if (browserWorkspaceSaveTimer !== undefined) {
+    clearTimeout(browserWorkspaceSaveTimer)
+    browserWorkspaceSaveTimer = undefined
+  }
+  const state: BrowserWorkspaceFile = {
+    version: 1,
+    browserVisible,
+    browserWidthRatio,
+    activeTabId: activeBrowserTabId,
+    tabs: browserTabs.map(tab => ({ id: tab.id, title: tab.title, url: tab.url })),
+  }
+  try {
+    const target = browserWorkspacePath()
+    mkdirSync(dirname(target), { recursive: true })
+    const temporary = `${target}.tmp`
+    writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, 'utf8')
+    renameSync(temporary, target)
+  } catch (error) {
+    console.error('浏览器工作区保存失败：', error)
+  }
+}
+
+// 首页固定（用户要求）：不读取/不覆写 library 持久化设置，恒返回固定主页。
+function configuredBrowserHomepages(): readonly string[] {
+  return BROWSER_DEFAULT_HOMEPAGES
+}
+
+// 历史记录防抖：recordHistory 内部是全量同步写盘，逐次触发会卡主进程（M-3）。
+const browserHistoryQueue: { url: string; title: string; favicon: string }[] = []
+let browserHistoryTimer: NodeJS.Timeout | undefined
+
+function queueBrowserHistory(url: string, title: string, favicon: string): void {
+  browserHistoryQueue.push({ url, title, favicon })
+  if (browserHistoryTimer !== undefined) return
+  browserHistoryTimer = setTimeout(() => {
+    browserHistoryTimer = undefined
+    const entries = browserHistoryQueue.splice(0)
+    for (const entry of entries) browserData().recordHistory(entry.url, entry.title, entry.favicon)
+  }, 2000)
+}
+
+function primaryBrowserHomepage(): string {
+  return configuredBrowserHomepages()[0] ?? BROWSER_DEFAULT_HOMEPAGES[0]
+}
+
+function isAllowedBrowserUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+function normalizeBrowserAddress(value: string): string {
+  const trimmed = String(value || '').trim()
+  if (trimmed === '') return primaryBrowserHomepage()
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+}
+
+function updateBrowserTabFromContents(tab: BrowserTab, persist = false): void {
+  const contents = tab.view.webContents
+  if (contents.isDestroyed()) return
+  tab.url = contents.getURL() || tab.url
+  tab.title = contents.getTitle() || tab.title || '新标签页'
+  tab.crashed = false
+  if (persist) scheduleBrowserWorkspaceSave()
+  broadcastShellState()
+}
+
+function createBrowserTab(url: string = primaryBrowserHomepage(), requestedId?: string): BrowserTab {
+  if (browserTabs.length >= BROWSER_MAXIMUM_TABS) {
+    // 达到上限时不再静默丢弃 URL，改为在当前活动标签中打开（L-1）
+    const existing = getActiveBrowserTab() ?? browserTabs[0]
+    if (existing !== undefined) {
+      const fallbackUrl = isAllowedBrowserUrl(url) ? url : normalizeBrowserAddress(url)
+      existing.url = fallbackUrl
+      void existing.view.webContents.loadURL(fallbackUrl).catch((error: Error) => console.error(`浏览器加载失败：${error.message}`))
+      relayout()
+    }
+    return existing
+  }
+  const id = requestedId || randomUUID()
+  const targetUrl = isAllowedBrowserUrl(url) ? url : normalizeBrowserAddress(url)
+  const view = new WebContentsView({
+    webPreferences: {
+      partition: BROWSER_PARTITION,
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      safeDialogs: true,
+      spellcheck: true,
+    },
+  })
+  const tab: BrowserTab = { id, title: targetUrl, url: targetUrl, favicon: '', crashed: false, view }
+  browserTabs.push(tab)
+  if (mainWindow !== undefined && !mainWindow.isDestroyed()) mainWindow.contentView.addChildView(view)
+  view.setVisible(false)
+  view.webContents.setWindowOpenHandler(({ url: popupUrl }) => {
+    // 回调内避免同步做创建视图的重活（L-5）
+    if (isAllowedBrowserUrl(popupUrl)) queueMicrotask(() => { openBrowser(popupUrl, true) })
+    return { action: 'deny' }
+  })
+  view.webContents.on('will-navigate', (event, targetUrl) => {
+    if (!isAllowedBrowserUrl(targetUrl)) event.preventDefault()
+  })
+  view.webContents.on('did-start-loading', () => updateBrowserTabFromContents(tab))
+  view.webContents.on('did-stop-loading', () => {
+    updateBrowserTabFromContents(tab)
+    if (tab.url !== '' && tab.lastRecordedUrl !== tab.url) {
+      tab.lastRecordedUrl = tab.url
+      queueBrowserHistory(tab.url, tab.title, tab.favicon)
+    }
+  })
+  view.webContents.on('did-navigate', () => updateBrowserTabFromContents(tab, true))
+  view.webContents.on('did-navigate-in-page', () => updateBrowserTabFromContents(tab, true))
+  view.webContents.on('did-fail-load', (_event, code, description, failedUrl, isMainFrame) => {
+    if (!isMainFrame || !isAllowedBrowserUrl(failedUrl)) return
+    tab.url = failedUrl
+    tab.title = failedUrl
+    scheduleBrowserWorkspaceSave()
+    broadcastShellState()
+  })
+  view.webContents.on('page-title-updated', (_event, title) => {
+    tab.title = String(title || '新标签页').trim()
+    updateBrowserTabFromContents(tab, true)
+  })
+  view.webContents.on('page-favicon-updated', (_event, favicons) => {
+    tab.favicon = favicons.find(favicon => /^https?:\/\//i.test(favicon)) || ''
+    broadcastShellState()
+  })
+  view.webContents.on('render-process-gone', (_event, details) => {
+    tab.crashed = true
+    console.error(`浏览器标签渲染进程停止 ${tab.url} ${JSON.stringify(details)}`)
+    broadcastShellState()
+  })
+  activeBrowserTabId = id
+  tab.crashed = false
+  void view.webContents.loadURL(targetUrl).catch((error: Error) => console.error(`浏览器加载失败：${error.message}`))
+  scheduleBrowserWorkspaceSave()
+  relayout()
+  return tab
+}
+
+function getActiveBrowserTab(): BrowserTab | null {
+  return browserTabs.find(tab => tab.id === activeBrowserTabId) ?? browserTabs[0] ?? null
+}
+
+function activateBrowserTab(id: string): void {
+  if (!browserTabs.some(tab => tab.id === id)) return
+  activeBrowserTabId = id
+  browserVisible = true
+  relayout()
+  focusActiveBrowserTab()
+  scheduleBrowserWorkspaceSave()
+}
+
+function closeBrowserTab(id: string): void {
+  const index = browserTabs.findIndex(tab => tab.id === id)
+  if (index < 0) return
+  const [tab] = browserTabs.splice(index, 1)
+  try {
+    mainWindow?.contentView.removeChildView(tab.view)
+    if (!tab.view.webContents.isDestroyed()) tab.view.webContents.close()
+  } catch {
+    // 视图已随窗口销毁
+  }
+  if (activeBrowserTabId === id) {
+    activeBrowserTabId = browserTabs[Math.min(index, browserTabs.length - 1)]?.id ?? null
+  }
+  if (browserTabs.length === 0) createHomepageTabs()
+  relayout()
+  scheduleBrowserWorkspaceSave()
+}
+
+function openBrowser(url?: string, newTab = false): BrowserTab {
+  browserVisible = true
+  let tab = getActiveBrowserTab()
+  if (tab === null || newTab) tab = createBrowserTab(url || primaryBrowserHomepage())
+  else if (url) void tab.view.webContents.loadURL(normalizeBrowserAddress(url)).catch((error: Error) => console.error(`浏览器加载失败：${error.message}`))
+  activeBrowserTabId = tab.id
+  relayout()
+  focusActiveBrowserTab()
+  scheduleBrowserWorkspaceSave()
+  return tab
+}
+
+function focusActiveBrowserTab(): void {
+  // 面板可见时把键盘焦点交给页面，用户无需先点一下才能打字（L-3）
+  if (!browserVisible) return
+  const contents = getActiveBrowserTab()?.view.webContents
+  if (contents !== undefined && !contents.isDestroyed()) contents.focus()
+}
+
+function createHomepageTabs(): void {
+  for (const url of configuredBrowserHomepages()) createBrowserTab(url)
+}
+
+function openHomepageGroup(): void {
+  browserVisible = true
+  const homepages = configuredBrowserHomepages()
+  let firstTab = getActiveBrowserTab()
+  if (firstTab === null) {
+    firstTab = createBrowserTab(homepages[0])
+  } else {
+    firstTab.url = homepages[0]
+    firstTab.title = homepages[0]
+    void firstTab.view.webContents.loadURL(homepages[0]).catch(() => undefined)
+  }
+  activeBrowserTabId = firstTab.id
+  const homepageTabs = new Set<string>([firstTab.id])
+  for (const url of homepages.slice(1)) {
+    const existing = browserTabs.find(tab => !homepageTabs.has(tab.id) && tab.url === url)
+    const tab = existing ?? createBrowserTab(url)
+    homepageTabs.add(tab.id)
+  }
+  relayout()
+  scheduleBrowserWorkspaceSave()
+}
+
+function restoreBrowserWorkspace(): void {
+  // 首页固定在 configuredBrowserHomepages()（恒返回 deepseek.com/en），不覆写库配置（M-2）
+  const saved = loadBrowserWorkspace()
+  if (saved !== null) {
+    browserVisible = saved.browserVisible === true
+    if (typeof saved.browserWidthRatio === 'number' && saved.browserWidthRatio > 0.15 && saved.browserWidthRatio < 0.8) {
+      browserWidthRatio = saved.browserWidthRatio
+    }
+    for (const savedTab of saved.tabs.slice(0, BROWSER_MAXIMUM_TABS)) {
+      if (isAllowedBrowserUrl(savedTab.url)) createBrowserTab(savedTab.url, savedTab.id)
+    }
+    if (saved.activeTabId !== null && browserTabs.some(tab => tab.id === saved.activeTabId)) activeBrowserTabId = saved.activeTabId
+  }
+  if (browserTabs.length === 0) createHomepageTabs()
+  relayout()
+  broadcastShellState()
+}
+
+function browserShellState(): BrowserShellState {
+  const active = getActiveBrowserTab()
+  const contents = active?.view.webContents
+  return {
+    visible: browserVisible,
+    tabs: browserTabs.map((tab): BrowserTabState => ({ id: tab.id, title: tab.title, url: tab.url, favicon: tab.favicon, crashed: tab.crashed })),
+    activeId: activeBrowserTabId,
+    canBack: contents?.navigationHistory.canGoBack() ?? false,
+    canForward: contents?.navigationHistory.canGoForward() ?? false,
+    loading: contents?.isLoading() ?? false,
+    widthRatio: browserWidthRatio,
+    homepages: [...configuredBrowserHomepages()],
+  }
+}
+
+function relayout(): void {
+  if (mainWindow !== undefined && !mainWindow.isDestroyed()) layoutDshView(mainWindow)
+}
 
 function desktopLocale(): string {
   return activeDshLocale ?? app.getLocale()
@@ -129,6 +513,58 @@ async function requestQuit(): Promise<void> {
   await shutdownDesktop(() => app.exit())
 }
 
+function desktopDialogLocale(): 'zh' | 'en' {
+  return isChineseLocale(activeDshLocale ?? app.getLocale()) ? 'zh' : 'en'
+}
+
+/**
+ * 安排重启：优先 Electron 官方 relaunch；失败时降级为分离子进程拉起新实例。
+ * 返回是否成功安排。注意必须在应用退出前调用。
+ */
+function scheduleAppRelaunch(): boolean {
+  try {
+    app.relaunch({ execPath: process.execPath, args: process.argv.slice(1) })
+    return true
+  } catch {
+    // 降级：detached 子进程重启
+  }
+  try {
+    const child = spawn(process.execPath, process.argv.slice(1), { detached: true, stdio: 'ignore' })
+    child.unref()
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** 完全关闭并重启：确认对话框 → 安排新实例 → 走既有优雅关停（托盘/服务/配置落盘）。 */
+async function requestAppRestart(): Promise<void> {
+  const zh = desktopDialogLocale() === 'zh'
+  const confirmed = await dialog.showMessageBox({
+    type: 'warning',
+    buttons: zh ? ['取消', '重启'] : ['Cancel', 'Restart'],
+    defaultId: 0,
+    cancelId: 0,
+    noLink: true,
+    title: zh ? '重启应用' : 'Restart App',
+    message: zh ? '完全关闭并重启 DSH Codex Desktop？' : 'Fully quit and restart DSH Codex Desktop?',
+    detail: zh
+      ? '所有窗口将关闭，正在运行的任务会被中断；会话与配置保留在磁盘上，重启后可继续。'
+      : 'All windows will close and running tasks are interrupted. Sessions and settings are preserved on disk and resume after restart.',
+  })
+  if (confirmed.response !== 1) return
+  if (!scheduleAppRelaunch()) {
+    await dialog.showMessageBox({
+      type: 'error',
+      buttons: ['OK'],
+      title: zh ? '重启失败' : 'Restart failed',
+      message: zh ? '无法安排重启，请从托盘退出后手动启动应用。' : 'Could not schedule a restart. Quit from the tray and start the app manually.',
+    })
+    return
+  }
+  await shutdownDesktop(() => app.exit(0))
+}
+
 async function shutdownDesktop(exit: () => void): Promise<void> {
   await quitDesktopApp({
     isQuitting,
@@ -136,12 +572,17 @@ async function shutdownDesktop(exit: () => void): Promise<void> {
     destroyTray: () => {
       if (startupUpdateTimer !== undefined) clearTimeout(startupUpdateTimer)
       startupUpdateTimer = undefined
+      if (harnessUpdateTimer !== undefined) clearTimeout(harnessUpdateTimer)
+      harnessUpdateTimer = undefined
       tray?.destroy()
       tray = undefined
       profileWatcher?.stop()
       profileWatcher = undefined
     },
     stopServer: async () => {
+      const extraction = runtimeExtractionTask
+      runtimeExtractionAbortController?.abort()
+      await extraction?.catch(() => undefined)
       const current = server
       server = undefined
       await current?.stop()
@@ -172,30 +613,46 @@ async function startApplication(): Promise<void> {
     const pathPrefix = resolvePluginBinDir(runtimeOptions)
     const pnpmEntry = pathPrefix === undefined ? process.env.npm_execpath : join(pathPrefix, 'pnpm-package', 'bin', 'pnpm.cjs')
     const profileDir = resolveWebProfileDir()
-    const desktopRuntimeDir = resolveDesktopRuntimeDir(app.getPath('userData'), {
+    const legacyDesktopRuntimeDir = resolveDesktopRuntimeDir(app.getPath('userData'), {
       isPackaged: app.isPackaged,
       execPath: process.execPath,
       ...(portablePaths === undefined ? {} : { portableRoot: portablePaths.root }),
     })
-    const extractedStoreDir = app.isPackaged ? join(dirname(desktopRuntimeDir), 'plugins', 'store') : undefined
+    const extractedStoreDir = app.isPackaged ? join(dirname(legacyDesktopRuntimeDir), 'plugins', 'store') : undefined
     const nodeExecutable = resolveNodeExecutable(runtimeOptions)
     if (app.isPackaged) {
-      const firstInitialization = packagedRuntimesNeedExtraction(process.resourcesPath, desktopRuntimeDir, extractedStoreDir!)
+      const firstInitialization = packagedRuntimesNeedExtraction(process.resourcesPath, legacyDesktopRuntimeDir, extractedStoreDir!)
       if (firstInitialization) {
         await updateStartupMessage(firstInitializationMessage())
-        await extractPackagedRuntimesInChild({
+        const controller = new AbortController()
+        runtimeExtractionAbortController = controller
+        const extraction = extractPackagedRuntimesInChild({
           nodeExecutable,
           scriptPath: join(process.resourcesPath, 'extract-runtime.mjs'),
-          installDir: dirname(desktopRuntimeDir),
+          installDir: dirname(legacyDesktopRuntimeDir),
           resourcesDir: process.resourcesPath,
+          signal: controller.signal,
           onProgress: progress => { void updateStartupMessage(runtimeExtractionMessage(progress)) },
         })
+        runtimeExtractionTask = extraction
+        try {
+          await extraction
+        } finally {
+          if (runtimeExtractionTask === extraction) runtimeExtractionTask = undefined
+          if (runtimeExtractionAbortController === controller) runtimeExtractionAbortController = undefined
+        }
         await updateStartupMessage(desktopText(
           '正在初始化插件和工作区…\n首次启动可能需要 1–3 分钟，请勿关闭应用。',
           'Initializing plugins and workspace…\nThe first launch may take 1–3 minutes. Please keep the app open.',
         ))
       }
     }
+    const interruptedPointer = readRuntimeSlotPointer(legacyDesktopRuntimeDir)
+    if (interruptedPointer?.pendingTransactionId !== undefined) {
+      recoverInterruptedRuntimeSwitch(legacyDesktopRuntimeDir)
+      console.warn('检测到上次未完成的 DSH 运行时观察事务，已恢复上一已知可用槽。')
+    }
+    const desktopRuntimeDir = resolveActiveRuntimeDir(legacyDesktopRuntimeDir)
     const pluginStoreDir = resolveBundledPluginStore({
       ...runtimeOptions,
       ...(extractedStoreDir === undefined ? {} : { extractedStoreDir }),
@@ -262,8 +719,20 @@ async function startApplication(): Promise<void> {
       await writeTextFile(smokeReadyFile, 'ready\n', 'utf8')
     }
     scheduleStartupUpdateCheck()
+    if (portablePaths !== undefined && pnpmEntry !== undefined) {
+      await configureHarnessUpdater({
+        ...runtimeOptions,
+        bootstrapPath: startOptions.bootstrapPath,
+        legacyRuntimeDir: legacyDesktopRuntimeDir,
+        nodeExecutable,
+        ...(pathPrefix === undefined ? {} : { pathPrefix }),
+        pnpmEntry,
+        profileDir,
+        updateRoot: harnessUpdateRoot(portablePaths.root),
+      })
+    }
   } catch (error) {
-    await reportStartupFailure(error)
+    if (!isQuitting) await reportStartupFailure(error)
   }
 }
 
@@ -368,6 +837,13 @@ async function createMainWindow(serverUrl: string): Promise<void> {
   mainWindow ??= createWindow()
   const view = requireDshView()
   await windowNavigation.navigate(view, () => view.webContents.loadURL(serverUrl))
+  // 仅在首次启动（标签页为空）时恢复浏览器工作区；插件热更新回收时保留现有标签页
+  if (browserTabs.length === 0) {
+    restoreBrowserWorkspace()
+  } else {
+    relayout()
+  }
+  broadcastShellState()
 }
 
 async function reportStartupFailure(error: unknown): Promise<void> {
@@ -488,7 +964,7 @@ function handleUnexpectedDshExit(message: string): void {
   server = undefined
   const missing = parseUnresolvedBundleError(message)
   if (missing !== undefined && lastSeedOptions !== undefined) {
-    runMainTask(removeProfileBundle(lastSeedOptions.profileDir, missing).then((removed) => {
+    runMainTask(quarantineProfileBundle(lastSeedOptions.profileDir, missing, message, 'runtime').then((removed) => {
       if (removed) runMainTask(recycleDshForPluginUpdate())
     }))
     return
@@ -521,7 +997,21 @@ function requireDshView(): WebContentsView {
 
 function layoutDshView(window: BrowserWindow): void {
   const bounds = window.getContentBounds()
-  dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: bounds.width, height: Math.max(0, bounds.height - SHELL_BAR_HEIGHT) })
+  const panelWidth = browserVisible ? Math.round(bounds.width * browserWidthRatio) : 0
+  const browserX = bounds.width - panelWidth
+  dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: Math.max(0, browserX), height: Math.max(0, bounds.height - SHELL_BAR_HEIGHT) })
+  if (browserVisible) {
+    const browserY = SHELL_BAR_HEIGHT + BROWSER_TABS_BAR_HEIGHT + BROWSER_NAV_BAR_HEIGHT
+    const browserHeight = Math.max(0, bounds.height - browserY)
+    for (const tab of browserTabs) {
+      const visible = tab.id === activeBrowserTabId
+      tab.view.setVisible(visible)
+      if (visible) tab.view.setBounds({ x: browserX, y: browserY, width: panelWidth, height: browserHeight })
+    }
+  } else {
+    for (const tab of browserTabs) tab.view.setVisible(false)
+  }
+  broadcastShellState()
 }
 
 function createWindow(): BrowserWindow {
@@ -587,6 +1077,7 @@ function createWindow(): BrowserWindow {
   window.on('enter-full-screen', broadcastShellState)
   window.on('leave-full-screen', broadcastShellState)
   window.on('close', event => {
+    saveBrowserWorkspace()
     if (!shouldHideInsteadOfClose(isQuitting)) return
     event.preventDefault()
     window.hide()
@@ -596,6 +1087,8 @@ function createWindow(): BrowserWindow {
       mainWindow = undefined
       dshView = undefined
       dshSettingsDialogVisible = false
+      browserTabs.splice(0)
+      activeBrowserTabId = null
     }
   })
   return window
@@ -609,6 +1102,7 @@ function currentShellState(): ShellState {
     fullscreen: window?.isFullScreen() ?? false,
     reloading: isRecycling,
     zoomPercent: Math.round(zoomFactor * 100),
+    browser: browserShellState(),
   }
 }
 
@@ -675,6 +1169,21 @@ function broadcastDesktopUpdateState(): void {
   }
 }
 
+function harnessUpdateSnapshot(): { available: boolean; policy: HarnessUpdatePolicy; state?: HarnessUpdateState; running: boolean } {
+  return {
+    available: harnessUpdaterContext !== undefined,
+    policy: harnessUpdatePolicy,
+    ...(harnessUpdateState === undefined ? {} : { state: harnessUpdateState }),
+    running: harnessUpdateTask !== undefined,
+  }
+}
+
+function broadcastHarnessUpdateState(): void {
+  if (settingsWindow !== undefined && !settingsWindow.isDestroyed()) {
+    settingsWindow.webContents.send(SHELL_IPC.harnessUpdateState, harnessUpdateSnapshot())
+  }
+}
+
 function setDesktopUpdateStatus(status: DesktopUpdateStatus, checked = false): void {
   updateStatus = status
   if (checked) lastUpdateCheckAt = new Date().toISOString()
@@ -692,6 +1201,9 @@ function installShellIpc(): void {
   ipcMain.removeHandler(SHELL_IPC.updateUpdatePreferences)
   ipcMain.removeHandler(SHELL_IPC.getDesktopUpdateState)
   ipcMain.removeHandler(SHELL_IPC.desktopUpdateAction)
+  ipcMain.removeHandler(SHELL_IPC.getHarnessUpdateState)
+  ipcMain.removeHandler(SHELL_IPC.updateHarnessUpdatePolicy)
+  ipcMain.removeHandler(SHELL_IPC.harnessUpdateAction)
   ipcMain.removeHandler(SHELL_IPC.closeDesktopSettings)
   ipcMain.handle(SHELL_IPC.getBootstrap, event => {
     if (!mayGetShellBootstrap(shellRendererKind(event.sender))) return
@@ -738,9 +1250,89 @@ function installShellIpc(): void {
     await handleDesktopUpdateSettingsAction(value)
     return desktopUpdateSnapshot()
   })
+  ipcMain.handle(SHELL_IPC.getHarnessUpdateState, event => {
+    if (!mayAccessDesktopUpdates(shellRendererKind(event.sender))) return
+    return harnessUpdateSnapshot()
+  })
+  ipcMain.handle(SHELL_IPC.updateHarnessUpdatePolicy, async (event, value: unknown) => {
+    if (!mayAccessDesktopUpdates(shellRendererKind(event.sender)) || harnessUpdaterContext === undefined) return harnessUpdateSnapshot()
+    harnessUpdatePolicy = await saveHarnessUpdatePolicy(harnessUpdatePolicyPath(harnessUpdaterContext.updateRoot), value)
+    if (harnessUpdateTimer !== undefined) clearTimeout(harnessUpdateTimer)
+    harnessUpdateTimer = undefined
+    if (harnessUpdatePolicy.mode !== 'manual') scheduleHarnessUpdateCheck(0)
+    broadcastHarnessUpdateState()
+    return harnessUpdateSnapshot()
+  })
+  ipcMain.handle(SHELL_IPC.harnessUpdateAction, async (event, value: unknown) => {
+    if (!mayAccessDesktopUpdates(shellRendererKind(event.sender)) || value !== 'check' || harnessUpdaterContext === undefined) return harnessUpdateSnapshot()
+    if (harnessUpdateTask === undefined) {
+      if (harnessUpdateTimer !== undefined) clearTimeout(harnessUpdateTimer)
+      harnessUpdateTimer = undefined
+      const task = runHarnessUpdateCycle(harnessUpdaterContext, true)
+      harnessUpdateTask = task
+      broadcastHarnessUpdateState()
+      await task.finally(() => {
+        harnessUpdateTask = undefined
+        broadcastHarnessUpdateState()
+        if (!isQuitting && harnessUpdatePolicy.mode !== 'manual') scheduleHarnessUpdateCheck(harnessUpdatePolicy.checkIntervalHours * 60 * 60_000)
+      })
+    }
+    return harnessUpdateSnapshot()
+  })
   ipcMain.handle(SHELL_IPC.closeDesktopSettings, event => {
     if (!mayCloseDesktopSettings(shellRendererKind(event.sender))) return
     settingsWindow?.close()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserToggle)
+  ipcMain.handle(SHELL_IPC.browserToggle, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    browserVisible = !browserVisible
+    relayout()
+    scheduleBrowserWorkspaceSave()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserNewTab)
+  ipcMain.handle(SHELL_IPC.browserNewTab, (event, url: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    openBrowser(typeof url === 'string' && url !== '' ? url : undefined, true)
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserOpenHomepages)
+  ipcMain.handle(SHELL_IPC.browserOpenHomepages, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    openHomepageGroup()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserActivateTab)
+  ipcMain.handle(SHELL_IPC.browserActivateTab, (event, id: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    if (typeof id === 'string') activateBrowserTab(id)
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserCloseTab)
+  ipcMain.handle(SHELL_IPC.browserCloseTab, (event, id: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    if (typeof id === 'string') closeBrowserTab(id)
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserNavigate)
+  ipcMain.handle(SHELL_IPC.browserNavigate, (event, value: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    if (typeof value !== 'string' || value.trim() === '') return
+    const tab = getActiveBrowserTab()
+    if (tab !== null) void tab.view.webContents.loadURL(normalizeBrowserAddress(value)).catch((error: Error) => console.error(`浏览器加载失败：${error.message}`))
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserBack)
+  ipcMain.handle(SHELL_IPC.browserBack, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    const contents = getActiveBrowserTab()?.view.webContents
+    if (contents !== undefined && !contents.isDestroyed() && contents.navigationHistory.canGoBack()) contents.navigationHistory.goBack()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserForward)
+  ipcMain.handle(SHELL_IPC.browserForward, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    const contents = getActiveBrowserTab()?.view.webContents
+    if (contents !== undefined && !contents.isDestroyed() && contents.navigationHistory.canGoForward()) contents.navigationHistory.goForward()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserReload)
+  ipcMain.handle(SHELL_IPC.browserReload, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    getActiveBrowserTab()?.view.webContents.reload()
   })
   ipcMain.removeAllListeners(SHELL_IPC.dshState)
   ipcMain.on(SHELL_IPC.dshState, (event, state: Partial<DshNavigationState>) => {
@@ -786,6 +1378,13 @@ function installShellIpc(): void {
     if (notificationEvent === undefined) return
     if (notificationEvent.type === 'badge') {
       updateUnreadCompletionBadge(notificationEvent.count)
+      return
+    }
+    if (notificationEvent.type === 'activity') {
+      if (notificationEvent.count !== activeDshWorkCount) {
+        activeDshWorkCount = notificationEvent.count
+        activeDshWorkChangedAt = Date.now()
+      }
       return
     }
     if (notificationEvent.type === 'dismiss') {
@@ -928,6 +1527,14 @@ async function executeShellAction(id: ShellActionId): Promise<void> {
   if (id === 'close-window') { mainWindow?.hide(); return }
   if (id === 'desktop-settings') { showDesktopSettingsWindow(); return }
   if (id === 'quit') { await requestQuit(); return }
+  if (id === 'app-restart') { await requestAppRestart(); return }
+  if (id === 'home') { openHomepageGroup(); return }
+  if (id === 'browser-toggle') {
+    browserVisible = !browserVisible
+    relayout()
+    scheduleBrowserWorkspaceSave()
+    return
+  }
   if (contents === undefined) return
   if (id === 'undo') contents.undo()
   else if (id === 'redo') contents.redo()
@@ -1276,6 +1883,327 @@ function scheduleStartupUpdateCheck(): void {
       runMainTask(checkDesktopUpdate('background'))
     }
   }, STARTUP_UPDATE_CHECK_DELAY_MS)
+}
+
+const HARNESS_INITIAL_CHECK_DELAY_MS = 15_000
+const HARNESS_IDLE_POLL_MS = 1_000
+const HARNESS_IDLE_MAX_WAIT_MS = 10 * 60_000
+
+async function configureHarnessUpdater(context: HarnessUpdaterContext): Promise<void> {
+  harnessUpdaterContext = context
+  const currentVersion = runtimeSlotVersion(resolveActiveRuntimeDir(context.legacyRuntimeDir)) ?? OFFICIAL_DSH_VERSION
+  harnessUpdatePolicy = await loadHarnessUpdatePolicy(harnessUpdatePolicyPath(context.updateRoot))
+  harnessUpdateState = await loadHarnessUpdateState(harnessUpdateStatePath(context.updateRoot), currentVersion)
+  scheduleHarnessUpdateCheck(HARNESS_INITIAL_CHECK_DELAY_MS)
+}
+
+function scheduleHarnessUpdateCheck(delayMs: number): void {
+  if (harnessUpdaterContext === undefined || harnessUpdateTimer !== undefined || harnessUpdateTask !== undefined || harnessUpdatePolicy.mode === 'manual') return
+  harnessUpdateTimer = setTimeout(() => {
+    harnessUpdateTimer = undefined
+    if (isQuitting || harnessUpdaterContext === undefined) return
+    if (harnessUpdateTask !== undefined) {
+      scheduleHarnessUpdateCheck(harnessUpdatePolicy.checkIntervalHours * 60 * 60_000)
+      return
+    }
+    const task = runHarnessUpdateCycle(harnessUpdaterContext)
+    harnessUpdateTask = task
+    void task.catch(handleUnexpectedMainError).finally(() => {
+      harnessUpdateTask = undefined
+      if (!isQuitting) scheduleHarnessUpdateCheck(harnessUpdatePolicy.checkIntervalHours * 60 * 60_000)
+    })
+  }, delayMs)
+  harnessUpdateTimer.unref?.()
+}
+
+async function setHarnessUpdateState(
+  context: HarnessUpdaterContext,
+  phase: HarnessUpdateState['phase'],
+  patch: Partial<Omit<HarnessUpdateState, 'schema' | 'phase' | 'updatedAt'>> = {},
+): Promise<void> {
+  const currentVersion = runtimeSlotVersion(resolveActiveRuntimeDir(context.legacyRuntimeDir)) ?? OFFICIAL_DSH_VERSION
+  harnessUpdateState = await saveHarnessUpdateState(harnessUpdateStatePath(context.updateRoot), {
+    ...harnessUpdateState,
+    ...patch,
+    schema: 1,
+    phase,
+    currentVersion,
+    updatedAt: new Date().toISOString(),
+  }, currentVersion)
+  broadcastHarnessUpdateState()
+}
+
+async function runHarnessUpdateCycle(context: HarnessUpdaterContext, interactive = false): Promise<void> {
+  const checkTransactionId = randomUUID()
+  const startedAt = Date.now()
+  const currentVersion = runtimeSlotVersion(resolveActiveRuntimeDir(context.legacyRuntimeDir)) ?? OFFICIAL_DSH_VERSION
+  try {
+    await setHarnessUpdateState(context, 'checking', { transactionId: checkTransactionId, detail: '正在核对 npm、GitHub 标签和受信发布清单。' })
+    await appendHarnessUpdateEvent(context.updateRoot, {
+      transactionId: checkTransactionId,
+      phase: 'check',
+      outcome: 'start',
+      timestamp: new Date().toISOString(),
+      currentVersion,
+    })
+    const checked = await checkHarnessUpdate({ currentVersion, policy: harnessUpdatePolicy })
+    if (!checked.updateAvailable || checked.candidate === undefined) {
+      await setHarnessUpdateState(context, 'idle', { lastCheckedAt: checked.checkedAt, detail: '当前已是受检通道的最新版本。' })
+      await appendHarnessUpdateEvent(context.updateRoot, {
+        transactionId: checkTransactionId,
+        phase: 'check',
+        outcome: 'success',
+        timestamp: new Date().toISOString(),
+        currentVersion,
+        durationMs: Date.now() - startedAt,
+        detail: '没有可用更新。',
+      })
+      return
+    }
+    const candidate = checked.candidate
+    if (!candidate.automaticEligible || (!interactive && harnessUpdatePolicy.mode !== 'safe-auto' && harnessUpdatePolicy.mode !== 'maintenance-auto')) {
+      const detail = candidate.automaticBlockReason ?? '策略要求仅通知，不自动部署。'
+      await setHarnessUpdateState(context, candidate.automaticEligible ? 'available' : 'blocked', {
+        lastCheckedAt: checked.checkedAt,
+        targetVersion: candidate.version,
+        detail,
+      })
+      await appendHarnessUpdateEvent(context.updateRoot, {
+        transactionId: checkTransactionId,
+        phase: 'trust-gate',
+        outcome: 'blocked',
+        timestamp: new Date().toISOString(),
+        currentVersion,
+        targetVersion: candidate.version,
+        detail,
+      })
+      return
+    }
+    await deployHarnessCandidate(context, candidate, checked.checkedAt)
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : '未知 DSH 运行时更新错误。'
+    await setHarnessUpdateState(context, 'failed', { transactionId: checkTransactionId, detail }).catch(() => undefined)
+    await appendHarnessUpdateEvent(context.updateRoot, {
+      transactionId: checkTransactionId,
+      phase: 'cycle',
+      outcome: 'failure',
+      timestamp: new Date().toISOString(),
+      currentVersion,
+      durationMs: Date.now() - startedAt,
+      detail,
+    }).catch(() => undefined)
+    console.error(`DSH 运行时后台更新失败：${detail}`)
+  }
+}
+
+async function deployHarnessCandidate(context: HarnessUpdaterContext, release: HarnessReleaseCandidate, checkedAt: string): Promise<void> {
+  const lock = await acquireHarnessUpdateLock(context.updateRoot)
+  const transactionId = lock.transactionId
+  const currentVersion = runtimeSlotVersion(resolveActiveRuntimeDir(context.legacyRuntimeDir)) ?? OFFICIAL_DSH_VERSION
+  const event = async (phase: string, outcome: 'start' | 'success' | 'failure' | 'blocked' | 'info', detail?: string): Promise<void> => {
+    await appendHarnessUpdateEvent(context.updateRoot, {
+      transactionId,
+      phase,
+      outcome,
+      timestamp: new Date().toISOString(),
+      currentVersion,
+      targetVersion: release.version,
+      ...(detail === undefined ? {} : { detail }),
+    })
+  }
+  try {
+    await setHarnessUpdateState(context, 'building', { transactionId, targetVersion: release.version, lastCheckedAt: checkedAt, detail: '正在独立槽装配候选运行时。' })
+    await event('build', 'start')
+    const candidate = await buildCandidateWithRetries(context, release)
+    await event('build', 'success', `候选指纹 ${candidate.fingerprint}，官方包 ${candidate.packageCount} 个。`)
+
+    await setHarnessUpdateState(context, 'shadow-validating', { transactionId, targetVersion: release.version, detail: '正在使用一次性 profile 做真实启动和 HTTP readiness 验证。' })
+    await event('shadow-start', 'start')
+    await validateHarnessShadowStart({
+      updateRoot: context.updateRoot,
+      start: profile => startDsh({
+        bootstrapPath: context.bootstrapPath,
+        nodeExecutable: context.nodeExecutable,
+        ...(context.pathPrefix === undefined ? {} : { pathPrefix: context.pathPrefix }),
+        runtime: resolveDshRuntime({ ...context, profileDir: profile.profile, desktopRuntimeDir: candidate.directory }),
+        startupTimeoutMs: harnessUpdatePolicy.shadowStartupTimeoutSeconds * 1_000,
+        environment: {
+          DSH_HOME: profile.home,
+          DSH_PROFILE_DIR: profile.profile,
+          DSH_PROFILE_NAME: 'web',
+          DSH_RUNTIME_DIR: candidate.directory,
+          DSH_PNPM_ENTRY: context.pnpmEntry,
+          DSH_PNPM_STORE_DIR: join(context.updateRoot, 'pnpm-store'),
+        },
+      }),
+    })
+    await event('shadow-start', 'success')
+
+    await setHarnessUpdateState(context, 'waiting-idle', { transactionId, targetVersion: release.version, detail: `等待连续 ${harnessUpdatePolicy.idleQuietSeconds} 秒无运行或待审批任务。` })
+    if (!await waitForHarnessIdle(harnessUpdatePolicy.idleQuietSeconds * 1_000, HARNESS_IDLE_MAX_WAIT_MS)) {
+      await setHarnessUpdateState(context, 'blocked', { transactionId, targetVersion: release.version, detail: '用户任务持续繁忙，本轮不切换；候选槽已保留供下次复用。' })
+      await event('idle-gate', 'blocked', '空闲等待超过上限，未中断用户任务。')
+      return
+    }
+    await switchHarnessRuntime(context, candidate, transactionId)
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : '候选部署失败。'
+    await setHarnessUpdateState(context, 'failed', { transactionId, targetVersion: release.version, detail }).catch(() => undefined)
+    await event('deploy', 'failure', detail).catch(() => undefined)
+    throw error
+  } finally {
+    await lock.release()
+  }
+}
+
+async function buildCandidateWithRetries(context: HarnessUpdaterContext, release: HarnessReleaseCandidate): Promise<HarnessRuntimeCandidate> {
+  let lastError: unknown
+  for (let attempt = 0; attempt <= harnessUpdatePolicy.maxDownloadRetries; attempt += 1) {
+    try {
+      return await buildHarnessRuntimeCandidate({
+        legacyRuntimeDir: context.legacyRuntimeDir,
+        version: release.version,
+        expectedNpmIntegrity: release.npmIntegrity,
+        nodeExecutable: context.nodeExecutable,
+        pnpmEntry: context.pnpmEntry,
+        storeDir: join(context.updateRoot, 'pnpm-store'),
+      })
+    } catch (error) {
+      lastError = error
+      if (attempt >= harnessUpdatePolicy.maxDownloadRetries) break
+      await new Promise(resolve => setTimeout(resolve, Math.min(30_000, 1_000 * 2 ** attempt)))
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('候选运行时装配失败。')
+}
+
+async function waitForHarnessIdle(quietMs: number, maxWaitMs: number): Promise<boolean> {
+  const deadline = Date.now() + maxWaitMs
+  let quietSince = Date.now()
+  while (!isQuitting && Date.now() < deadline) {
+    const marketBusy = isDshMarketOperationBusy(await dshMarketOperationStatus())
+    const busy = activeDshWorkCount > 0 || isRecycling || profileActivationRecyclePending || profileActivationRecycleTask !== undefined || marketBusy
+    if (busy) quietSince = Date.now()
+    else if (Date.now() - Math.max(quietSince, activeDshWorkChangedAt) >= quietMs) return true
+    await new Promise(resolve => setTimeout(resolve, HARNESS_IDLE_POLL_MS))
+  }
+  return false
+}
+
+async function switchHarnessRuntime(context: HarnessUpdaterContext, candidate: HarnessRuntimeCandidate, transactionId: string): Promise<void> {
+  if (lastStartOptions === undefined || lastSeedOptions === undefined || server === undefined) throw new Error('当前 DSH 服务上下文不完整，不能安全切换。')
+  if (activeDshWorkCount > 0 || isRecycling || profileActivationRecyclePending || isDshMarketOperationBusy(await dshMarketOperationStatus())) {
+    throw new Error('空闲门禁后检测到新任务，已取消本轮切换。')
+  }
+  const previousStartOptions = lastStartOptions
+  const previousSeedOptions = lastSeedOptions
+  const nextStartOptions: Omit<StartDshOptions, 'onUnexpectedExit' | 'onIpcMessage'> = {
+    ...previousStartOptions,
+    runtime: resolveDshRuntime({ ...context, profileDir: context.profileDir, desktopRuntimeDir: candidate.directory }),
+    startupTimeoutMs: harnessUpdatePolicy.liveStartupTimeoutSeconds * 1_000,
+    environment: {
+      ...previousStartOptions.environment,
+      DSH_RUNTIME_DIR: candidate.directory,
+    },
+  }
+  let activated = false
+  let observing = true
+  let observationReject: ((error: Error) => void) | undefined
+  const observationFailure = new Promise<never>((_resolve, reject) => { observationReject = reject })
+  isRecycling = true
+  broadcastShellState()
+  try {
+    await setHarnessUpdateState(context, 'switching', { transactionId, targetVersion: candidate.version, detail: '已通过空闲门禁，正在切换 DSH 子服务。' })
+    await showStartupWindow(desktopText('正在安全更新 DSH 运行环境…', 'Safely updating the DSH runtime…'))
+    activateRuntimeSlot({
+      legacyRuntimeDir: context.legacyRuntimeDir,
+      candidateDir: candidate.directory,
+      version: candidate.version,
+      fingerprint: candidate.fingerprint,
+      transactionId,
+    })
+    activated = true
+    const previousServer = server
+    server = undefined
+    await previousServer.stop()
+    const nextServer = await startDsh({
+      ...nextStartOptions,
+      onUnexpectedExit: message => {
+        if (observing) observationReject?.(new Error(message))
+        else handleUnexpectedDshExit(message)
+      },
+      onIpcMessage: handleDshIpc,
+    })
+    server = nextServer
+    lastStartOptions = nextStartOptions
+    lastSeedOptions = { ...previousSeedOptions, desktopRuntimeDir: candidate.directory }
+    await createMainWindow(nextServer.url)
+    isRecycling = false
+    broadcastShellState()
+
+    await setHarnessUpdateState(context, 'observing', { transactionId, targetVersion: candidate.version, detail: `候选已上线，观察 ${harnessUpdatePolicy.observationMinutes} 分钟后提交。` })
+    await Promise.race([
+      observationFailure,
+      waitHarnessObservation(harnessUpdatePolicy.observationMinutes * 60_000),
+    ])
+    observing = false
+    commitRuntimeSlot(context.legacyRuntimeDir, transactionId)
+    const completedAt = new Date().toISOString()
+    await setHarnessUpdateState(context, 'succeeded', { transactionId, targetVersion: candidate.version, lastSucceededAt: completedAt, detail: 'readiness 与在线观察均通过，A/B 指针已提交。' })
+    await appendHarnessUpdateEvent(context.updateRoot, {
+      transactionId,
+      phase: 'commit',
+      outcome: 'success',
+      timestamp: completedAt,
+      currentVersion: candidate.version,
+      targetVersion: candidate.version,
+      detail: `已提交候选指纹 ${candidate.fingerprint}。`,
+    })
+  } catch (error) {
+    observing = false
+    const detail = error instanceof Error ? error.message : '候选在线验证失败。'
+    // 退出流程不再拉起任何新子进程；未提交指针会在下次启动时自动回滚。
+    if (isQuitting) return
+    isRecycling = true
+    broadcastShellState()
+    const failedServer = server
+    server = undefined
+    await failedServer?.stop().catch(() => undefined)
+    if (activated) rollbackRuntimeSlot(context.legacyRuntimeDir, transactionId, detail)
+    lastStartOptions = previousStartOptions
+    lastSeedOptions = previousSeedOptions
+    const restored = await startDsh({
+      ...previousStartOptions,
+      startupTimeoutMs: harnessUpdatePolicy.rollbackTimeoutSeconds * 1_000,
+      onUnexpectedExit: handleUnexpectedDshExit,
+      onIpcMessage: handleDshIpc,
+    })
+    server = restored
+    await createMainWindow(restored.url)
+    await setHarnessUpdateState(context, 'rolled-back', { transactionId, targetVersion: candidate.version, detail: `候选失败，已自动恢复上一运行时：${detail}` })
+    await appendHarnessUpdateEvent(context.updateRoot, {
+      transactionId,
+      phase: 'rollback',
+      outcome: 'success',
+      timestamp: new Date().toISOString(),
+      currentVersion: runtimeSlotVersion(resolveActiveRuntimeDir(context.legacyRuntimeDir)) ?? OFFICIAL_DSH_VERSION,
+      targetVersion: candidate.version,
+      detail,
+    })
+  } finally {
+    observing = false
+    isRecycling = false
+    profileWatcher?.sync()
+    broadcastShellState()
+  }
+}
+
+async function waitHarnessObservation(durationMs: number): Promise<void> {
+  const deadline = Date.now() + durationMs
+  while (!isQuitting && Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, Math.min(1_000, Math.max(1, deadline - Date.now()))))
+  }
+  if (isQuitting) throw new Error('应用退出，在线观察未完成。')
 }
 
 function createTray(): void {

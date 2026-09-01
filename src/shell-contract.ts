@@ -23,8 +23,21 @@ export const SHELL_IPC = {
   getDesktopUpdateState: 'dsh-shell:get-desktop-update-state',
   desktopUpdateAction: 'dsh-shell:desktop-update-action',
   desktopUpdateState: 'dsh-shell:desktop-update-state',
+  getHarnessUpdateState: 'dsh-shell:get-harness-update-state',
+  updateHarnessUpdatePolicy: 'dsh-shell:update-harness-update-policy',
+  harnessUpdateAction: 'dsh-shell:harness-update-action',
+  harnessUpdateState: 'dsh-shell:harness-update-state',
   settingsSection: 'dsh-shell:settings-section',
   closeDesktopSettings: 'dsh-shell:close-desktop-settings',
+  browserToggle: 'dsh-shell:browser-toggle',
+  browserNewTab: 'dsh-shell:browser-new-tab',
+  browserOpenHomepages: 'dsh-shell:browser-open-homepages',
+  browserActivateTab: 'dsh-shell:browser-activate-tab',
+  browserCloseTab: 'dsh-shell:browser-close-tab',
+  browserNavigate: 'dsh-shell:browser-navigate',
+  browserBack: 'dsh-shell:browser-back',
+  browserForward: 'dsh-shell:browser-forward',
+  browserReload: 'dsh-shell:browser-reload',
 } as const
 
 export interface DshNavigationState {
@@ -34,10 +47,30 @@ export interface DshNavigationState {
   readonly canPreviousChat: boolean
 }
 
+export interface BrowserTabState {
+  readonly id: string
+  readonly title: string
+  readonly url: string
+  readonly favicon: string
+  readonly crashed: boolean
+}
+
+export interface BrowserShellState {
+  readonly visible: boolean
+  readonly tabs: readonly BrowserTabState[]
+  readonly activeId: string | null
+  readonly canBack: boolean
+  readonly canForward: boolean
+  readonly loading: boolean
+  readonly widthRatio: number
+  readonly homepages: readonly string[]
+}
+
 export interface ShellState extends DshNavigationState {
   readonly fullscreen: boolean
   readonly reloading: boolean
   readonly zoomPercent: number
+  readonly browser: BrowserShellState
 }
 
 export interface ShellBootstrap {

@@ -24,4 +24,6 @@ Workspace/*
 !Workspace/README.md
 Customize/App-Overlay/*
 !Customize/App-Overlay/.gitkeep
-System.Management.Automation.Internal.Host.InternalHost
+
+# 用户工作区（中文名）不提交。
+工作空间/

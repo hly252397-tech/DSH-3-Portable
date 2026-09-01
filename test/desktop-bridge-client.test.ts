@@ -225,6 +225,7 @@ test('审批、计划审核和问题产生对应通知，阻塞边沿不误报�
   snapshot = { ...snapshot, byId: { 'session-1': { displayTitle: '发布任务', running: false, pendingInteraction: 'question' } } }
   listListener()
   assert.deepEqual(client.notifications.filter(event => event.type === 'notify').map(event => event.kind), ['approval', 'question'])
+  assert.deepEqual(client.notifications.filter(event => event.type === 'activity').map(event => event.count), [1])
 })
 
 test('清空选择后重新打开同一会话仍会关闭该会话通知', () => {
@@ -269,6 +270,7 @@ test('未聚焦会话完成时上报未读标记，窗口重新聚焦后清除',
   assert.ok(listListener)
   listListener()
   assert.deepEqual(client.notifications.filter(event => event.type === 'badge').map(event => event.count), [0, 1])
+  assert.deepEqual(client.notifications.filter(event => event.type === 'activity').map(event => event.count), [1, 0])
   client.focusWindow()
   assert.deepEqual(client.notifications.filter(event => event.type === 'badge').map(event => event.count), [0, 1, 0])
 })

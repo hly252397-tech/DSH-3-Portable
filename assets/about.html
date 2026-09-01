@@ -4,11 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>关于 DSH Codex Desktop</title>
-  <script>document.documentElement.dataset.colorScheme=new URLSearchParams(location.search).get('theme')==='light'?'light':'dark'</script>
+  <script>const __theme=new URLSearchParams(location.search).get('theme');document.documentElement.dataset.colorScheme=__theme?__theme:(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')</script>
+  <script src="theme.js"></script>
   <style>
     :root{color-scheme:dark;font-family:Inter,"Segoe UI","Microsoft YaHei UI",sans-serif;background:#202322;color:#eef0ef}
     *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#202322}body{border:1px solid #343836}
-    .titlebar{-webkit-app-region:drag;height:36px;display:flex;align-items:center;padding-left:12px;border-bottom:1px solid #303432;color:#c8cdca;font-size:12px;user-select:none}.titlebar-title{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.titlebar-close{-webkit-app-region:no-drag;margin-left:auto;width:46px;height:35px;border:0;background:transparent;display:grid;place-items:center;cursor:pointer}.titlebar-close:hover{background:#c42b1c}.titlebar-close img{width:13px;height:13px;filter:invert(90%)}
+    .titlebar{-webkit-app-region:drag;height:36px;display:flex;align-items:center;padding-left:12px;border-bottom:1px solid #303432;color:#c8cdca;font-size:12px;user-select:none}.titlebar-title{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.titlebar-close{-webkit-app-region:no-drag;margin-left:auto;width:46px;height:35px;border:0;background:transparent;display:grid;place-items:center;cursor:pointer}.titlebar-close:hover{background:#c42b1c}.titlebar-close:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus-ring,#e7eae8)}.titlebar-close img{width:13px;height:13px;filter:invert(90%)}
     main{max-width:496px;margin:0 auto;padding:20px 0 24px}
     .hero{display:flex;gap:20px;align-items:center;margin-bottom:20px}.icon{width:76px;height:76px;border-radius:18px;box-shadow:0 8px 24px #0007}
     h1{font-size:24px;line-height:1.25;margin:0 0 7px;letter-spacing:-.02em}.tagline{margin:0;color:#aeb4b1;font-size:14px;line-height:1.55}
@@ -16,7 +17,7 @@
     .meta{display:grid;grid-template-columns:1fr auto;gap:12px 20px;font-size:13px}.meta dt{color:#aeb4b1}.meta dd{margin:0;color:#f3f5f4;font-variant-numeric:tabular-nums}
     h2{font-size:14px;margin:0 0 10px;color:#f3f5f4}.copy{font-size:13px;color:#c8cdca;line-height:1.7;margin:0}
     ul{margin:12px 0 0;padding-left:19px;color:#c8cdca;font-size:13px;line-height:1.7}
-    .actions{display:flex;gap:10px;margin-top:16px}.actions button{height:38px;border-radius:9px;padding:0 16px;font:inherit;font-size:13px;color:#eef0ef;border:1px solid #464b48;background:#303432;cursor:pointer}.actions button.primary{background:#e7eae8;color:#171918;border-color:#e7eae8;font-weight:600}.actions button:hover{filter:brightness(1.08)}
+    .actions{display:flex;gap:10px;margin-top:16px}.actions button{height:38px;border-radius:9px;padding:0 16px;font:inherit;font-size:13px;color:#eef0ef;border:1px solid #464b48;background:#303432;cursor:pointer}.actions button.primary{background:var(--cta-bg,#e7eae8);color:var(--cta-fg,#171918);border-color:var(--cta-bg,#e7eae8);font-weight:600}.actions button:hover{background:#3a3f3c;filter:none}.actions button:active{background:var(--active-bg,#454a47)}.actions button:focus-visible{outline:none;box-shadow:0 0 0 2px var(--focus-ring,#e7eae8)}.actions button.primary:hover{background:var(--cta-hover,#fff)}.actions button.primary:active{background:var(--active-bg,#d3d7d5)}
     footer{margin-top:16px;padding-top:14px;border-top:1px solid #353937;color:#898f8c;font-size:12px;line-height:1.55}
     :root[data-color-scheme="light"]{color-scheme:light;background:#fff;color:#0f1115}
     :root[data-color-scheme="light"] body{border-color:#0000001a;background:#fff}
@@ -29,8 +30,8 @@
     :root[data-color-scheme="light"] .meta dd,:root[data-color-scheme="light"] h2{color:#0f1115}
     :root[data-color-scheme="light"] .copy,:root[data-color-scheme="light"] ul{color:#43454a}
     :root[data-color-scheme="light"] .actions button{border-color:#00000029;background:#fff;color:#0f1115}
-    :root[data-color-scheme="light"] .actions button.primary{border-color:#0f1115;background:#0f1115;color:#fff}
-    :root[data-color-scheme="light"] footer{border-top-color:#0000001a;color:#81858c}
+    :root[data-color-scheme="light"] .actions button.primary{border-color:var(--cta-bg,#0f1115);background:var(--cta-bg,#0f1115);color:var(--cta-fg,#fff)}
+    :root[data-color-scheme="light"] footer{border-top-color:#0000001a;color:#61666b}
   </style>
 </head>
 <body>
@@ -64,6 +65,7 @@
     function applyBootstrap(value){const zh=value.locale.startsWith('zh');document.documentElement.lang=value.locale;document.documentElement.dataset.colorScheme=value.colorScheme;document.documentElement.style.colorScheme=value.colorScheme;document.title=zh?'关于 DSH Codex Desktop':'About DSH Codex Desktop';document.getElementById('windowTitle').textContent=document.title;document.getElementById('close').setAttribute('aria-label',zh?'关闭':'Close');document.getElementById('desktopVersion').textContent=`v${value.version}`;document.getElementById('runtimeVersion').textContent=value.runtimeVersion;document.getElementById('platform').textContent=value.platform;document.getElementById('tagline').textContent=zh?'面向 DeepSeek Harness 的跨平台桌面客户端':'A cross-platform desktop client for DeepSeek Harness';document.getElementById('desktopLabel').textContent=zh?'桌面版本':'Desktop version';document.getElementById('runtimeLabel').textContent=zh?'DSH 运行时':'DSH runtime';document.getElementById('platformLabel').textContent=zh?'运行平台':'Platform';document.getElementById('aboutTitle').textContent=zh?'关于这个项目':'About this project';document.getElementById('aboutCopy').textContent=zh?'把本地项目、会话、插件、自动化与智能体工作流集中在一个原生桌面窗口中，同时保留 DeepSeek Harness 的开放插件能力。':'Bring local projects, chats, plugins, automations, and agent workflows into one native desktop window while preserving the open DeepSeek Harness plugin model.';document.getElementById('features').innerHTML=zh?'<li>按项目管理聊天和工作区</li><li>原生菜单、托盘、快捷键与安全重载</li><li>由 MichengAI 维护的开源桌面应用</li>':'<li>Project-based chats and workspaces</li><li>Native menus, tray, shortcuts, and safe reload</li><li>Open-source desktop app maintained by MichengAI</li>';document.getElementById('releases').textContent=zh?'查看新功能':"What's new";document.getElementById('feedback').textContent=zh?'问题反馈':'Send feedback';document.getElementById('footer').textContent=zh?'Apache-2.0 开源许可 · DSH Codex Desktop 不存储你的模型凭据。':'Apache-2.0 licensed · DSH Codex Desktop does not store your model credentials.'}
     api.getBootstrap().then(applyBootstrap);api.onBootstrap(applyBootstrap);
     document.getElementById('close').addEventListener('click',()=>window.close());
+    document.addEventListener('keydown',event=>{if(event.key==='Escape')window.close()});
     document.getElementById('releases').addEventListener('click',()=>api.action('whats-new'));
     document.getElementById('feedback').addEventListener('click',()=>api.action('feedback'));
   </script>

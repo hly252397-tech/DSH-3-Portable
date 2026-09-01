@@ -1,6 +1,8 @@
 import { existsSync, readFileSync, watch } from 'node:fs'
 import { join } from 'node:path'
 
+export const PROFILE_RELOAD_REQUEST_FILE = '.dsh-reload-request'
+
 export function profileActivationFingerprint(source: string, isInstalled?: (packageName: string) => boolean): string {
   try {
     const manifest = JSON.parse(source) as {
@@ -48,7 +50,16 @@ export function watchProfileActivation(
   let current = readFingerprint()
   let timer: ReturnType<typeof setTimeout> | undefined
   let retries = 0
+  let forceReload = false
   const check = (): void => {
+    if (forceReload) {
+      forceReload = false
+      const next = readFingerprint()
+      if (next !== '') current = next
+      retries = 0
+      onChange()
+      return
+    }
     const next = readFingerprint()
     if (shouldRecycleForProfileFingerprint(current, next)) {
       current = next
@@ -63,7 +74,8 @@ export function watchProfileActivation(
   }
   const watcher = (options.watch ?? watch)(profileDir, (_event, filename) => {
     const name = typeof filename === 'string' ? filename : filename?.toString()
-    if (name !== undefined && name !== 'package.json' && name !== 'node_modules') return
+    if (name !== undefined && name !== 'package.json' && name !== 'node_modules' && name !== PROFILE_RELOAD_REQUEST_FILE) return
+    if (name === PROFILE_RELOAD_REQUEST_FILE) forceReload = true
     clearTimeout(timer)
     retries = 0
     timer = setTimeout(check, debounceMs)

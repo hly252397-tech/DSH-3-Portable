@@ -1,6 +1,6 @@
 {
   "name": "deepseek-harness-desktop",
-  "version": "1.0.41",
+  "version": "1.0.43",
   "description": "DeepSeek Harness 原生桌面启动器",
   "author": "MichengAI",
   "desktopName": "DSH Codex Desktop",
@@ -21,7 +21,7 @@
       "linux-arm64": "23A5637C2470FDE09FCC1ACC77C1B92E04E3D7E3E6E80FF7DF6F5831958D1477",
       "linux-x64": "89AF8424DD53E560B1933F87BA650D8BF57C83CA5A04600EEFB31F416AABBAE7"
     },
-    "bundledDshVersion": "0.1.2-alpha.2"
+    "bundledDshVersion": "0.1.2-alpha.3"
   },
   "main": "dist/src/main.js",
   "scripts": {
@@ -60,7 +60,8 @@
           "**/*"
         ]
       },
-      "package.json"
+      "package.json",
+      "browser-library.cjs"
     ],
     "extraResources": [
       {
@@ -81,6 +82,10 @@
       {
         "from": "dist/src/runtime-archive.js",
         "to": "runtime-archive.js"
+      },
+      {
+        "from": "dist/src/process-control.js",
+        "to": "process-control.js"
       },
       {
         "from": "runtime-plugins/store.tgz",
@@ -117,6 +122,10 @@
       {
         "from": "assets/shell.html",
         "to": "shell.html"
+      },
+      {
+        "from": "assets/theme.js",
+        "to": "theme.js"
       },
       {
         "from": "assets/shortcuts.html",
@@ -156,6 +165,8 @@
           "dsh-process.js",
           "plugin-seed.js",
           "plugin-toolchain.js",
+          "profile-bundle-health.js",
+          "profile-quarantine.js",
           "profile-updates.js",
           "process-control.js",
           "readiness.js",

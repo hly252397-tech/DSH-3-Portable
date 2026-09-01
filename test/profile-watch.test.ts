@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events'
 import { join } from 'node:path'
 import test from 'node:test'
 
-import { profileActivationFingerprint, shouldRecycleForProfileFingerprint, watchProfileActivation } from '../src/profile-watch.js'
+import { PROFILE_RELOAD_REQUEST_FILE, profileActivationFingerprint, shouldRecycleForProfileFingerprint, watchProfileActivation } from '../src/profile-watch.js'
 
 async function waitFor(predicate: () => boolean, timeoutMs = 1_000): Promise<void> {
   const deadline = Date.now() + timeoutMs
@@ -104,5 +104,29 @@ test('清单先写、包后落盘时会重试指纹并触发热重启，watcher 
   const expected = new Error('目录已删除')
   emitter.emit('error', expected)
   assert.equal(watchError, expected)
+  handle.stop()
+})
+
+test('安装器写入显式请求时，即使清单指纹相同也只热重启 DSH 一次', async () => {
+  let listener: ((event: string, filename: string) => void) | undefined
+  let fired = 0
+  const source = JSON.stringify({
+    dependencies: { 'dsh-sidebar-spaces': 'file:./local/dsh-sidebar-spaces' },
+    dsh: { profile: { bundles: ['dsh-sidebar-spaces'] } },
+  })
+  const handle = watchProfileActivation('D:\\profile\\web', () => { fired += 1 }, {
+    debounceMs: 10,
+    retryMs: 10,
+    read: () => source,
+    isInstalled: () => true,
+    watch: (_path, next) => {
+      listener = next
+      return { close: () => undefined }
+    },
+  })
+  listener?.('change', PROFILE_RELOAD_REQUEST_FILE)
+  listener?.('change', PROFILE_RELOAD_REQUEST_FILE)
+  await waitFor(() => fired === 1)
+  assert.equal(fired, 1)
   handle.stop()
 })

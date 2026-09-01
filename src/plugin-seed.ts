@@ -22,6 +22,7 @@ import { prependPath } from './plugin-toolchain.js'
 import { terminateProcessTree } from './process-control.js'
 import { mergeProfileUpdates, officialRuntimeUpdateVersion, parsePendingUpdates, partitionPackageUpdates, resolvePendingUpdatesPath, type ProfilePackageUpdate } from './profile-updates.js'
 import { copyPrebuiltOfficialRuntime } from './runtime-prebuilt.js'
+import { activeQuarantinedProfileBundles } from './profile-quarantine.js'
 
 export type SeedSkipReason = 'already-installed' | 'missing-store'
 
@@ -54,6 +55,11 @@ interface SeedOptions {
   catalog?: readonly BundledPlugin[]
   runner?: (args: readonly string[]) => Promise<void>
   timeoutMs?: number
+  /**
+   * 仅供旧版迁移/显式维修使用。正常桌面启动必须保持 false，官方运行时
+   * 由 A/B 候选槽更新器处理，禁止在正在使用的目录中执行 pnpm install。
+   */
+  allowOfficialRuntimeUpdate?: boolean
 }
 
 export interface SeedResult {
@@ -355,7 +361,7 @@ export async function applyPendingProfileUpdates(options: SeedOptions): Promise<
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
   }
-  const { community } = partitionPackageUpdates(pending)
+  const { official, community } = partitionPackageUpdates(pending)
   const declared = await readDeclaredPackageVersions(options.profileDir)
   const installed = await readInstalledPackageVersions(options.profileDir, [...new Set([
     ...declared.map((item) => item.packageName),
@@ -370,10 +376,16 @@ export async function applyPendingProfileUpdates(options: SeedOptions): Promise<
     applied.push(...updates.map((item) => item.packageName))
   }
   const officialVersion = officialRuntimeUpdateVersion(pending)
-  if (officialVersion !== undefined && options.desktopRuntimeDir !== undefined) {
+  let retained = official
+  if (officialVersion !== undefined && options.desktopRuntimeDir !== undefined && options.allowOfficialRuntimeUpdate === true) {
     applied.push(await applyOfficialRuntimeVersion(options, officialVersion))
+    retained = []
   }
-  if (existsSync(pendingPath)) await rm(pendingPath, { force: true })
+  if (retained.length > 0) {
+    await writeTextFileAtomic(pendingPath, `${JSON.stringify({ packages: retained }, undefined, 2)}\n`)
+  } else if (existsSync(pendingPath)) {
+    await rm(pendingPath, { force: true })
+  }
   return applied
 }
 
@@ -423,6 +435,12 @@ export async function seedBundledPlugins(options: SeedOptions): Promise<SeedResu
 async function seedOfficialRuntime(options: SeedOptions): Promise<readonly string[]> {
   const runtimeDir = options.desktopRuntimeDir
   if (runtimeDir === undefined) return []
+  // A/B 候选槽一旦通过校验就视为不可变制品。启动补种不得再修改它；
+  // 损坏时由运行时指针回退到上一槽，而不是在故障槽内现场修包。
+  if (existsSync(join(runtimeDir, '.dsh-runtime-fingerprint'))) {
+    if (!isOfficialRuntimeLaunchable(runtimeDir)) throw new Error('不可变 DSH 运行时槽校验失败，拒绝原地维修。')
+    return []
+  }
   const seeded: string[] = []
   ensureAutoInstallPeersEnabled(runtimeDir)
   if (options.prebuiltRuntimeDir !== undefined && copyPrebuiltOfficialRuntime(options.prebuiltRuntimeDir, runtimeDir) === 'copied') {
@@ -555,12 +573,14 @@ export async function reconcileProfileBundles(profileDir: string, packageNames?:
     return (OFFICIAL_PROFILE_BUNDLES as readonly string[]).includes(name)
   })
   const marketDisabled = readMarketDisabledPackages(profileDir)
+  const quarantined = await activeQuarantinedProfileBundles(profileDir)
   let changed = false
   const allowed = packageNames === undefined ? undefined : new Set(packageNames)
   for (const packageName of Object.keys(manifest.dependencies ?? {})) {
     if (allowed !== undefined && !allowed.has(packageName)) continue
     if (isOfficialProfileDependency(packageName) || packageName === SUITE_PACKAGE) continue
     if (marketDisabled.has(packageName)) continue
+    if (quarantined.has(packageName)) continue
     if (!hasBundleManifest(profileDir, packageName) || bundles.includes(packageName)) continue
     bundles.push(packageName)
     changed = true

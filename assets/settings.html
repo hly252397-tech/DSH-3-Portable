@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>桌面端设置</title>
-  <script>document.documentElement.dataset.colorScheme=new URLSearchParams(location.search).get('theme')==='light'?'light':'dark'</script>
+  <script>const __theme=new URLSearchParams(location.search).get('theme');document.documentElement.dataset.colorScheme=__theme?__theme:(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')</script>
+  <script src="theme.js"></script>
   <style>
     :root{color-scheme:dark;font-family:Inter,"Segoe UI","Microsoft YaHei UI",sans-serif;background:#202322;color:#eef0ef}
     *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#202322}
@@ -13,37 +14,38 @@
     aside{padding:26px 12px;border-right:1px solid #343735;background:#1c1f1e}
     .eyebrow{margin:0 10px 18px;color:#888e8b;font-size:11px;font-weight:650;letter-spacing:.08em;text-transform:uppercase}
     .nav-item{width:100%;height:36px;border:0;border-radius:8px;padding:0 12px;text-align:left;background:transparent;color:#a8aeab;font-size:13px;font-weight:600;cursor:pointer;outline:none;transition:background .14s,color .14s}
-    .nav-item:hover{background:#292c2b;color:#eef0ef}.nav-item:focus-visible{box-shadow:inset 0 0 0 2px #a1a7a455}.nav-item[aria-current="page"]{background:#303331;color:#f0f2f1;cursor:default}
+    .nav-item:hover{background:#292c2b;color:#eef0ef}.nav-item:active{background:var(--active-bg,#2d302e)}.nav-item:focus-visible{box-shadow:0 0 0 2px var(--focus-ring,#e7eae8)}.nav-item[aria-current="page"]{background:var(--tint,#303331);color:#f0f2f1;cursor:default}
     main{overflow:auto;padding:36px 44px 48px;scrollbar-color:#505552 transparent}
     .content{max-width:560px;margin:0 auto}
-    h1{margin:0 0 28px;font-size:24px;line-height:1.2;font-weight:650;letter-spacing:-.02em}
+    h1{margin:0 0 28px;font-size:24px;line-height:1.2;font-weight:650;letter-spacing:-.02em}.subheading{margin:30px 0 12px;font-size:15px;line-height:1.3;font-weight:650}
     .page[hidden]{display:none}.group{border-top:1px solid #383c3a}
     .row{min-height:78px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:28px;padding:17px 0;border-bottom:1px solid #343836}
     .label{display:block;margin-bottom:5px;color:#f0f2f1;font-size:14px;font-weight:540}
     .description{display:block;margin:0;max-width:390px;color:#979d9a;font-size:12.5px;line-height:1.5}
     .select-wrap{position:relative;width:198px}
     .select-trigger{width:100%;min-height:36px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #4a4f4c;border-radius:8px;padding:7px 10px 7px 12px;background:#2b2e2d;color:#eef0ef;font-size:12.5px;font-weight:600;line-height:1.3;text-align:left;outline:none;cursor:pointer;transition:border-color .14s,background .14s,box-shadow .14s}
-    .select-trigger:hover,.select-trigger[aria-expanded="true"]{border-color:#676d6a;background:#303332}.select-trigger:focus-visible{border-color:#9ba19e;box-shadow:0 0 0 2px #9ba19e28}
+    .select-trigger:hover,.select-trigger[aria-expanded="true"]{border-color:#676d6a;background:#303332}.select-trigger:focus-visible{border-color:#9ba19e;box-shadow:0 0 0 2px var(--focus-ring,#dfe2e0)}
     .select-trigger img{width:11px;height:11px;filter:brightness(0) invert(89%);opacity:.78;transition:transform .14s}.select-trigger[aria-expanded="true"] img{transform:rotate(180deg)}
     .select-menu{position:absolute;z-index:10;top:calc(100% + 5px);right:0;width:100%;margin:0;padding:5px;border:1px solid #4a4f4c;border-radius:9px;background:#252827;box-shadow:0 14px 34px #0008,0 2px 8px #0006}
     .select-menu[hidden]{display:none}.select-option{width:100%;min-height:34px;display:flex;align-items:center;border:0;border-radius:6px;padding:6px 9px;background:transparent;color:#dfe2e0;font-size:12.5px;line-height:1.3;text-align:left;cursor:pointer;outline:none}.select-option:hover,.select-option:focus-visible{background:#353937;color:#fff}.select-option[aria-selected="true"]{background:#3b403d;color:#fff;font-weight:650}
     .switch{position:relative;width:38px;height:22px;display:inline-block}.switch input{position:absolute;opacity:0;pointer-events:none}
     .track{position:absolute;inset:0;border-radius:999px;background:#474c49;border:1px solid #5a605d;transition:background .14s,border-color .14s}.track::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#d8dbd9;box-shadow:0 1px 2px #0006;transition:transform .14s,background .14s}
-    .switch input:checked+.track{background:#e7eae8;border-color:#e7eae8}.switch input:checked+.track::after{background:#202322;transform:translateX(16px)}.switch input:focus-visible+.track{box-shadow:0 0 0 2px #9ba19e55}
+    .switch input:checked+.track{background:var(--cta-bg,#e7eae8);border-color:var(--cta-bg,#e7eae8)}.switch input:checked+.track::after{background:var(--knob,#202322);transform:translateX(16px)}.switch input:focus-visible+.track{box-shadow:0 0 0 2px var(--focus-ring,#dfe2e0)}
     .status-line{height:18px;margin-top:14px;color:#858b88;font-size:12px;text-align:right;opacity:0;transition:opacity .15s}.status-line.visible{opacity:1}
     .version-block{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0;border-bottom:1px solid #343836}
     .version{font-size:13px;color:#cfd3d1}.badge{display:inline-flex;align-items:center;min-height:23px;border:1px solid #474c49;border-radius:999px;padding:2px 9px;color:#b9bfbc;background:#292c2b;font-size:11.5px;font-weight:600}
     .badge.available,.badge.ready{border-color:#52685d;background:#27352e;color:#bce1cc}.badge.error{border-color:#6b4c4c;background:#372929;color:#e1bcbc}
-    .update-action{min-width:132px;min-height:36px;border:1px solid #555b58;border-radius:8px;padding:7px 14px;background:#e7eae8;color:#202322;font-size:12.5px;font-weight:650;cursor:pointer;outline:none;transition:background .14s,box-shadow .14s}.update-action:hover{background:#fff}.update-action:focus-visible{box-shadow:0 0 0 3px #aeb4b150}.update-action:disabled{border-color:#454946;background:#343735;color:#7e8481;cursor:default}
+    .badge.downloading{position:relative;overflow:hidden}.badge.downloading::before{content:"";position:absolute;inset:0;background:var(--tint,#27352e);transform:scaleX(var(--progress,0));transform-origin:left;transition:transform .2s}.badge.downloading>span{position:relative}
+    .update-action{min-width:132px;min-height:36px;border:1px solid var(--cta-bg,#555b58);border-radius:8px;padding:7px 14px;background:var(--cta-bg,#e7eae8);color:var(--cta-fg,#202322);font-size:12.5px;font-weight:650;cursor:pointer;outline:none;transition:background .14s,box-shadow .14s}.update-action:hover{background:var(--cta-hover,#fff)}.update-action:active{background:var(--active-bg,#d3d7d5)}.update-action:focus-visible{box-shadow:0 0 0 3px var(--focus-ring,#dfe2e0)}.update-action:disabled{border-color:#454946;background:#343735;color:#7e8481;cursor:default}
     .notes{margin-top:18px;padding:14px 16px;border:1px solid #363a38;border-radius:9px;background:#1d201f}.notes[hidden]{display:none}.notes-title{margin:0 0 8px;color:#cfd3d1;font-size:12px;font-weight:650}.notes-body{max-height:150px;margin:0;overflow:auto;white-space:pre-wrap;color:#969c99;font:12px/1.55 "Segoe UI",sans-serif;scrollbar-color:#505552 transparent}
     .update-feedback{min-height:20px;margin:14px 0 0;color:#979d9a;font-size:12px;line-height:1.5}.update-feedback.error{color:#e1bcbc}
     :root[data-color-scheme="light"]{color-scheme:light;background:#fff;color:#0f1115}
     :root[data-color-scheme="light"] body{background:#fff}
     :root[data-color-scheme="light"] aside{border-right-color:#0000001a;background:#f9fafb}
-    :root[data-color-scheme="light"] .eyebrow,:root[data-color-scheme="light"] .status-line{color:#81858c}
+    :root[data-color-scheme="light"] .eyebrow,:root[data-color-scheme="light"] .status-line{color:#61666b}
     :root[data-color-scheme="light"] .nav-item{color:#61666b}
     :root[data-color-scheme="light"] .nav-item:hover{background:#2631480f;color:#0f1115}
-    :root[data-color-scheme="light"] .nav-item[aria-current="page"]{background:#ebeef2;color:#0f1115}
+    :root[data-color-scheme="light"] .nav-item[aria-current="page"]{background:var(--tint,#ebeef2);color:#0f1115}
     :root[data-color-scheme="light"] main{scrollbar-color:#d4d4d4 transparent}
     :root[data-color-scheme="light"] .group{border-top-color:#0000001a}
     :root[data-color-scheme="light"] .row,:root[data-color-scheme="light"] .version-block{border-bottom-color:#0000001a}
@@ -58,18 +60,39 @@
     :root[data-color-scheme="light"] .select-option[aria-selected="true"]{background:#ebeef2;color:#0f1115}
     :root[data-color-scheme="light"] .track{border-color:#adb2b8;background:#e1e5ee}
     :root[data-color-scheme="light"] .track::after{background:#fff;box-shadow:0 1px 2px #0003}
-    :root[data-color-scheme="light"] .switch input:checked+.track{border-color:#0f1115;background:#0f1115}
-    :root[data-color-scheme="light"] .switch input:checked+.track::after{background:#fff}
     :root[data-color-scheme="light"] .badge{border-color:#0000001a;background:#f5f6f7;color:#61666b}
     :root[data-color-scheme="light"] .badge.available,:root[data-color-scheme="light"] .badge.ready{border-color:#b7dec5;background:#eefaf2;color:#24613b}
     :root[data-color-scheme="light"] .badge.error{border-color:#f2b8b8;background:#fff1f1;color:#a52b2b}
-    :root[data-color-scheme="light"] .update-action{border-color:#0f1115;background:#0f1115;color:#fff}
-    :root[data-color-scheme="light"] .update-action:hover{background:#353638}
-    :root[data-color-scheme="light"] .update-action:disabled{border-color:#e1e5ee;background:#f1f3f5;color:#adb2b8}
+    :root[data-color-scheme="light"] .update-action:disabled{border-color:#e1e5ee;background:#f1f3f5;color:#8a9096}
     :root[data-color-scheme="light"] .notes{border-color:#0000001a;background:#f9fafb}
     :root[data-color-scheme="light"] .notes-body{color:#61666b;scrollbar-color:#d4d4d4 transparent}
     :root[data-color-scheme="light"] .update-feedback.error{color:#a52b2b}
     @media(max-width:720px){body{grid-template-columns:150px minmax(0,1fr)}main{padding:30px 28px}.row{gap:18px}.select-wrap{width:176px}}
+    @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+    .settings-close{position:absolute;top:12px;right:16px;width:30px;height:30px;border:0;border-radius:8px;background:transparent;display:grid;place-items:center;cursor:pointer}
+    .settings-close:hover{background:#393c3b}.settings-close:active{background:var(--active-bg,#454847)}.settings-close:focus-visible{outline:none;box-shadow:0 0 0 2px var(--focus-ring,#e7eae8)}
+    :root[data-color-scheme="light"] .settings-close:hover{background:#ebeef2}
+    :root[data-color-scheme="light"] .settings-close:active{background:#dfe3e7}
+    .settings-close img{width:13px;height:13px;filter:invert(90%)}
+    :root[data-color-scheme="light"] .settings-close img{filter:brightness(0);opacity:.72}
+    main{position:relative}
+    .theme-wrap{padding:2px 0 22px;border-bottom:1px solid #343836}
+    .theme-grid{display:flex;flex-wrap:wrap;gap:8px;padding:16px 0 2px}
+    .theme-option{display:inline-flex;align-items:center;gap:8px;min-height:34px;border:1px solid #4a4f4c;border-radius:8px;padding:0 12px;background:#2b2e2d;color:#eef0ef;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .14s,border-color .14s,box-shadow .14s}
+    .theme-option:hover{background:#303332}
+    .theme-option:active{background:var(--active-bg,#353937)}
+    .theme-option:focus-visible{outline:2px solid var(--focus-ring,#e7eae8);outline-offset:1px;box-shadow:none}
+    .theme-option[aria-checked="true"]{border-color:var(--accent,#6ea8ff);background:var(--tint,#232a2e);box-shadow:0 0 0 3px var(--accent,#6ea8ff)}
+    .theme-option[aria-checked="true"]:focus-visible{box-shadow:none}
+    .theme-dot{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+    .theme-hex{color:#979d9a;font-weight:500;font-variant-numeric:tabular-nums}
+    :root[data-color-scheme="light"] .theme-wrap{border-bottom-color:#0000001a}
+    :root[data-color-scheme="light"] .theme-option{border-color:#00000029;background:#fff;color:#0f1115}
+    :root[data-color-scheme="light"] .theme-option:hover{background:#f1f3f5}
+    :root[data-color-scheme="light"] .theme-option:focus-visible{outline-color:var(--focus-ring,#0f1115)}
+    :root[data-color-scheme="light"] .theme-option[aria-checked="true"]{background:var(--tint,#dce7fc)}
+    :root[data-color-scheme="light"] .theme-dot{box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
+    :root[data-color-scheme="light"] .theme-hex{color:#61666b}
   </style>
 </head>
 <body>
@@ -77,8 +100,10 @@
     <p id="desktopLabel" class="eyebrow">桌面端</p>
     <button id="notificationsNav" class="nav-item" type="button" aria-current="page">通知</button>
     <button id="updatesNav" class="nav-item" type="button">更新</button>
+    <button id="appearanceNav" class="nav-item" type="button">外观</button>
   </aside>
   <main>
+    <button id="settingsClose" class="settings-close" type="button" aria-label="关闭"><img src="./shell-icons/xmark.svg" alt=""></button>
     <div class="content">
       <section id="notificationsPage" class="page" aria-labelledby="notificationsTitle">
         <h1 id="notificationsTitle">通知</h1>
@@ -137,23 +162,67 @@
             <button id="updateAction" class="update-action" type="button">检查更新</button>
           </div>
         </div>
+        <h2 id="harnessTitle" class="subheading">DeepSeek Harness 运行环境</h2>
+        <div class="group">
+          <div class="row">
+            <span><span id="harnessPolicyLabel" class="label">运行环境更新策略</span><span id="harnessPolicyDescription" class="description">受信候选在隔离槽验证后，仅在任务空闲时切换；失败自动回滚。</span></span>
+            <div class="select-wrap">
+              <button id="harnessPolicyButton" class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="harnessPolicyList">
+                <span id="harnessPolicyValue">安全自动更新</span><img src="./shell-icons/chevron-down.svg" alt="">
+              </button>
+              <div id="harnessPolicyList" class="select-menu" role="listbox" aria-labelledby="harnessPolicyLabel" hidden>
+                <button class="select-option" type="button" role="option" data-value="safe-auto" aria-selected="true">安全自动更新</button>
+                <button class="select-option" type="button" role="option" data-value="notify" aria-selected="false">仅检测并通知</button>
+                <button class="select-option" type="button" role="option" data-value="manual" aria-selected="false">仅手动检查</button>
+              </div>
+            </div>
+          </div>
+          <div class="version-block">
+            <div>
+              <span id="harnessVersionLabel" class="label">当前 Harness</span>
+              <span id="harnessVersion" class="version">—</span>
+              <span id="harnessLastChecked" class="description">尚未检查</span>
+            </div>
+            <span id="harnessBadge" class="badge">准备就绪</span>
+          </div>
+          <div class="row">
+            <span><span id="harnessActionLabel" class="label">官方运行环境</span><span id="harnessActionDescription" class="description">交叉核验 npm 与 GitHub，不修改正在运行的槽，也不会退出桌面应用。</span></span>
+            <button id="harnessAction" class="update-action" type="button">检查并安全更新</button>
+          </div>
+        </div>
+        <p id="harnessFeedback" class="update-feedback" role="status" aria-live="polite"></p>
         <div id="releaseNotes" class="notes" hidden>
           <p id="releaseNotesTitle" class="notes-title">版本说明</p>
           <pre id="releaseNotesBody" class="notes-body"></pre>
         </div>
         <p id="updateFeedback" class="update-feedback" role="status" aria-live="polite"></p>
       </section>
+
+      <section id="appearancePage" class="page" aria-labelledby="appearanceTitle" hidden>
+        <h1 id="appearanceTitle">外观</h1>
+        <div class="group">
+          <div class="row" style="border-bottom:0">
+            <span><span id="themeLabel" class="label">主题配色</span><span id="themeDescription" class="description">选择外壳强调色。立即应用到当前窗口并保存；其他已打开的窗口通常会即时同步，未同步的窗口在下次打开时使用所选主题。</span></span>
+          </div>
+          <div class="theme-wrap">
+            <div id="themeGrid" class="theme-grid" role="radiogroup" aria-labelledby="themeLabel"></div>
+            <p id="themeStatus" class="update-feedback" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
     </div>
   </main>
   <script>
     const api=window.dshShell;
     const byId=id=>document.getElementById(id);
-    const notificationsNav=byId('notificationsNav'),updatesNav=byId('updatesNav');
-    const notificationsPage=byId('notificationsPage'),updatesPage=byId('updatesPage');
+    const notificationsNav=byId('notificationsNav'),updatesNav=byId('updatesNav'),appearanceNav=byId('appearanceNav');
+    const notificationsPage=byId('notificationsPage'),updatesPage=byId('updatesPage'),appearancePage=byId('appearancePage');
+    const themeGrid=byId('themeGrid');
     const approvals=byId('approvalsEnabled'),questions=byId('questionsEnabled'),saved=byId('notificationSaved');
     const updateAction=byId('updateAction'),updateBadge=byId('updateBadge'),updateFeedback=byId('updateFeedback');
+    const harnessAction=byId('harnessAction'),harnessBadge=byId('harnessBadge'),harnessFeedback=byId('harnessFeedback');
     const releaseNotes=byId('releaseNotes'),releaseNotesBody=byId('releaseNotesBody');
-    let locale='zh-CN',currentTurnMode='unfocused',currentPolicy='notify',updateState={currentVersion:'—',packaged:false,status:{kind:'idle'}},savedTimer;
+    let locale='zh-CN',currentTurnMode='unfocused',currentPolicy='notify',currentHarnessPolicy='safe-auto',updateState={currentVersion:'—',packaged:false,status:{kind:'idle'}},harnessState={available:false,policy:{mode:'safe-auto'},running:false},savedTimer;
 
     function createListbox(buttonId,listId,valueId,initial,onCommit){
       const button=byId(buttonId),list=byId(listId),value=byId(valueId),options=[...list.querySelectorAll('[role="option"]')];
@@ -170,19 +239,74 @@
 
     const turnSelect=createListbox('turnModeButton','turnModeList','turnModeValue','unfocused',value=>{currentTurnMode=value;void saveNotifications()});
     const policySelect=createListbox('policyButton','policyList','policyValue','notify',value=>{currentPolicy=value;void saveUpdatePolicy()});
+    const harnessPolicySelect=createListbox('harnessPolicyButton','harnessPolicyList','harnessPolicyValue','safe-auto',value=>{currentHarnessPolicy=value;void saveHarnessPolicy()});
 
     function isZh(){return locale.toLowerCase().startsWith('zh')}
     function text(zh,en){return isZh()?zh:en}
     function setPage(section){
-      const updates=section==='updates';
-      notificationsPage.hidden=updates;updatesPage.hidden=!updates;
-      if(updates){updatesNav.setAttribute('aria-current','page');notificationsNav.removeAttribute('aria-current')}
-      else{notificationsNav.setAttribute('aria-current','page');updatesNav.removeAttribute('aria-current')}
+      const updates=section==='updates',appearance=section==='appearance';
+      notificationsPage.hidden=updates||appearance;updatesPage.hidden=!updates;appearancePage.hidden=!appearance;
+      if(updates){updatesNav.setAttribute('aria-current','page');notificationsNav.removeAttribute('aria-current');appearanceNav.removeAttribute('aria-current')}
+      else if(appearance){appearanceNav.setAttribute('aria-current','page');notificationsNav.removeAttribute('aria-current');updatesNav.removeAttribute('aria-current')}
+      else{notificationsNav.setAttribute('aria-current','page');updatesNav.removeAttribute('aria-current');appearanceNav.removeAttribute('aria-current')}
+      try{history.replaceState(null,'',updates?'#updates':appearance?'#appearance':'#notifications')}catch{}
     }
+    const themeStatus=byId('themeStatus');
+    let themeOptions=[];
+    function announceTheme(textValue){themeStatus.textContent=textValue}
+    function setThemeChecked(id){
+      for(const option of themeOptions)option.setAttribute('aria-checked',String(option.dataset.themeId===id));
+      // roving tabindex：仅选中项可 Tab
+      for(const option of themeOptions)option.tabIndex=(option.dataset.themeId===id?0:-1);
+    }
+    function renderThemes(){
+      if(!window.DshThemes)return;
+      const current=DshThemes.saved();
+      themeGrid.replaceChildren();themeOptions=[];
+      const ids=Object.keys(DshThemes.THEMES);
+      ids.forEach((id,index)=>{
+        const theme=DshThemes.THEMES[id];
+        const option=document.createElement('button');
+        option.type='button';option.className='theme-option';
+        option.dataset.themeId=id;option.setAttribute('role','radio');
+        option.setAttribute('aria-checked','false');
+        option.tabIndex=(id===current?0:-1);
+        option.addEventListener('click',()=>selectTheme(id,true));
+        option.addEventListener('keydown',event=>selectThemeFromKey(event,index,ids));
+        const dot=document.createElement('span');dot.className='theme-dot';dot.style.background=theme.swatch;
+        const name=document.createElement('span');name.textContent=isZh()?theme.zh:theme.en;
+        const hex=document.createElement('span');hex.className='theme-hex';hex.setAttribute('aria-hidden','true');hex.textContent=theme.swatch;
+        option.append(dot,name,hex);themeGrid.append(option);themeOptions.push(option);
+      });
+      setThemeChecked(current);
+    }
+    function selectTheme(id,fromClick){
+      const next=DshThemes.set(id);
+      setThemeChecked(next);
+      announceTheme(text('已切换到'+DshThemes.THEMES[next].zh+' · '+DshThemes.THEMES[next].swatch,'Theme set to '+DshThemes.THEMES[next].en+' · '+DshThemes.THEMES[next].swatch));
+      if(fromClick){const el=themeOptions.find(o=>o.dataset.themeId===next);if(el)el.focus()}
+    }
+    function selectThemeFromKey(event,index,ids){
+      const dir=event.key==='ArrowRight'||event.key==='ArrowDown'?1:event.key==='ArrowLeft'||event.key==='ArrowUp'?-1:0;
+      if(event.key===' '||event.key==='Enter'){event.preventDefault();selectTheme(ids[index],true);return}
+      if(!dir)return;
+      event.preventDefault();
+      const nextIndex=(index+dir+ids.length)%ids.length;
+      const el=themeOptions[nextIndex];if(!el)return;
+      el.focus();selectTheme(ids[nextIndex],false);
+    }
+    // 其它窗口（或原生通道）改主题后，同步刷新本页主题单选组
+    window.addEventListener('storage',function(event){
+      if(event.key!=='dshShellTheme')return;
+      if(window.DshThemes){setThemeChecked(DshThemes.saved());announceTheme(text('已同步主题配色','Theme color synced'))}
+    });
+    // 首帧预渲染主题卡（bootstrap 到达前 radiogroup 即可聚焦，避免短暂空窗）
+    renderThemes();
     function localize(nextLocale){
       locale=typeof nextLocale==='string'?nextLocale:'zh-CN';document.documentElement.lang=locale;
       document.title=text('桌面端设置','Desktop Settings');document.querySelector('aside').setAttribute('aria-label',text('设置分类','Settings categories'));
-      byId('desktopLabel').textContent=text('桌面端','Desktop');notificationsNav.textContent=text('通知','Notifications');updatesNav.textContent=text('更新','Updates');
+      byId('desktopLabel').textContent=text('桌面端','Desktop');notificationsNav.textContent=text('通知','Notifications');updatesNav.textContent=text('更新','Updates');appearanceNav.textContent=text('外观','Appearance');
+      byId('settingsClose').setAttribute('aria-label',text('关闭','Close'));
       byId('notificationsTitle').textContent=text('通知','Notifications');byId('turnLabel').textContent=text('任务完成通知','Task completion notifications');byId('turnDescription').textContent=text('设置 DeepSeek Harness 完成任务时何时提醒你',"Set when DeepSeek Harness alerts you that it's finished");
       const turnLabels=isZh()?['从不','仅在窗口未聚焦时','始终']:['Never','Only when unfocused','Always'];turnSelect.options.forEach((option,index)=>option.textContent=turnLabels[index]);
       byId('approvalLabel').textContent=text('审批通知','Approval notifications');byId('approvalDescription').textContent=text('需要你审批权限或计划时显示提醒','Show alerts when permissions or plans require your approval');
@@ -190,7 +314,12 @@
       byId('updatesTitle').textContent=text('更新','Updates');byId('policyLabel').textContent=text('自动更新','Automatic updates');byId('policyDescription').textContent=text('选择桌面端如何检查和下载新版本。安装前始终由你确认。','Choose how the desktop app checks for and downloads new versions. Installation always requires your confirmation.');
       const policyLabels=isZh()?['自动检查并提醒','自动下载，安装前提醒','仅手动检查']:['Check automatically and notify','Download automatically, ask before install','Check manually only'];policySelect.options.forEach((option,index)=>option.textContent=policyLabels[index]);
       byId('currentVersionLabel').textContent=text('当前版本','Current version');byId('checkLabel').textContent=text('桌面端更新','Desktop updates');byId('checkDescription').textContent=text('检查 GitHub Releases 中适用于当前系统的新版本。','Check GitHub Releases for a new version compatible with this system.');byId('releaseNotesTitle').textContent=text('版本说明','Release notes');
-      turnSelect.set(currentTurnMode);policySelect.set(currentPolicy);renderUpdateState(updateState);
+      byId('harnessTitle').textContent=text('DeepSeek Harness 运行环境','DeepSeek Harness runtime');byId('harnessPolicyLabel').textContent=text('运行环境更新策略','Runtime update policy');byId('harnessPolicyDescription').textContent=text('受信候选在隔离槽验证后，仅在任务空闲时切换；失败自动回滚。','Trusted candidates are validated in an isolated slot, switched only while idle, and rolled back automatically on failure.');
+      const harnessPolicyLabels=isZh()?['安全自动更新','仅检测并通知','仅手动检查']:['Safe automatic updates','Detect and notify only','Manual checks only'];harnessPolicySelect.options.forEach((option,index)=>option.textContent=harnessPolicyLabels[index]);
+      byId('harnessVersionLabel').textContent=text('当前 Harness','Current Harness');byId('harnessActionLabel').textContent=text('官方运行环境','Official runtime');byId('harnessActionDescription').textContent=text('交叉核验 npm 与 GitHub，不修改正在运行的槽，也不会退出桌面应用。','Cross-check npm and GitHub without modifying the active slot or quitting the desktop app.');
+      byId('appearanceTitle').textContent=text('外观','Appearance');byId('themeLabel').textContent=text('主题配色','Theme color');byId('themeDescription').textContent=text('选择外壳强调色。立即应用到当前窗口并保存；其他已打开的窗口通常会即时同步，未同步的窗口在下次打开时使用所选主题。','Pick the accent color for the shell. It applies to this window immediately and is saved; other open windows usually sync right away, and the rest pick it up next time they open.');
+      renderThemes();
+      turnSelect.set(currentTurnMode);policySelect.set(currentPolicy);harnessPolicySelect.set(currentHarnessPolicy);renderUpdateState(updateState);renderHarnessState(harnessState);
     }
     function showSaved(){saved.classList.add('visible');clearTimeout(savedTimer);savedTimer=setTimeout(()=>saved.classList.remove('visible'),1200)}
     async function saveNotifications(){
@@ -201,6 +330,10 @@
       const value=await api.updateUpdatePreferences({policy:currentPolicy});currentPolicy=policySelect.set(value.policy);
       updateFeedback.className='update-feedback';updateFeedback.textContent=text('更新策略已保存。','Update policy saved.');
     }
+    async function saveHarnessPolicy(){
+      const next=await api.updateHarnessUpdatePolicy({...harnessState.policy,mode:currentHarnessPolicy});if(next)renderHarnessState(next);
+      harnessFeedback.className='update-feedback';harnessFeedback.textContent=text('Harness 更新策略已保存。','Harness update policy saved.');
+    }
     function formatChecked(value){
       if(!value)return text('尚未检查','Not checked yet');
       try{const formatted=new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short'}).format(new Date(value));return text('上次检查：'+formatted,'Last checked: '+formatted)}catch{return text('已检查','Checked')}
@@ -209,11 +342,13 @@
       if(!value||!value.status)return;updateState=value;const status=value.status,kind=status.kind;
       byId('currentVersion').textContent=value.currentVersion||'—';byId('lastChecked').textContent=formatChecked(value.lastCheckedAt);
       updateBadge.className='badge '+kind;updateFeedback.className='update-feedback'+(kind==='error'?' error':'');releaseNotes.hidden=true;releaseNotesBody.textContent='';
+      updateBadge.replaceChildren(Object.assign(document.createElement('span'),{textContent:''}));
+      updateBadge.style.setProperty('--progress',kind==='downloading'?String(Math.min(1,Math.max(0,(status.percent||0)/100))):'0');
       const labels={
         idle:text('准备就绪','Ready'),checking:text('正在检查','Checking'),available:text('有新版本','Update available'),none:text('已是最新','Up to date'),
         downloading:text('下载中 '+Math.round(status.percent||0)+'%','Downloading '+Math.round(status.percent||0)+'%'),ready:text('等待安装','Ready to install'),error:text('检查失败','Check failed')
       };
-      updateBadge.textContent=labels[kind]||labels.idle;
+      updateBadge.firstChild.textContent=labels[kind]||labels.idle;
       let action='check',actionLabel=text('检查更新','Check for updates'),disabled=false,feedback='';
       if(!value.packaged){disabled=true;feedback=text('开发版本不连接发布更新服务。','Development builds do not connect to the release update service.')}
       else if(kind==='checking'){disabled=true;feedback=text('正在检查新版本…','Checking for a new version…')}
@@ -224,16 +359,26 @@
       else if(kind==='error'){feedback=status.message||text('无法检查桌面端更新，请稍后重试。','Unable to check for desktop updates. Try again later.')}
       updateAction.dataset.action=action;updateAction.textContent=actionLabel;updateAction.disabled=disabled;updateFeedback.textContent=feedback;
     }
+    function renderHarnessState(value){
+      if(!value)return;harnessState=value;currentHarnessPolicy=harnessPolicySelect.set(value.policy?.mode||'safe-auto');const state=value.state||{},phase=state.phase||'idle';
+      byId('harnessVersion').textContent=state.currentVersion||'—';byId('harnessLastChecked').textContent=formatChecked(state.lastCheckedAt);harnessBadge.className='badge '+phase;
+      const labels={idle:text('准备就绪','Ready'),checking:text('正在核验','Checking'),available:text('有新版本','Update available'),building:text('装配候选','Building'),['shadow-validating']:text('隔离验证','Shadow validation'),['waiting-idle']:text('等待空闲','Waiting for idle'),switching:text('正在切换','Switching'),observing:text('在线观察','Observing'),succeeded:text('更新成功','Updated'),['rolled-back']:text('已自动回滚','Rolled back'),blocked:text('安全门禁阻止','Blocked'),failed:text('更新失败','Failed')};
+      harnessBadge.textContent=labels[phase]||labels.idle;harnessAction.textContent=text('检查并安全更新','Check and safely update');harnessAction.disabled=!value.available||value.running||['checking','building','shadow-validating','waiting-idle','switching','observing'].includes(phase);
+      harnessFeedback.className='update-feedback'+((phase==='failed'||phase==='rolled-back')?' error':'');harnessFeedback.textContent=!value.available?text('仅便携模式启用 Harness A/B 更新。','Harness A/B updates are available in portable mode only.'):(state.detail||text('受信更新会自动完成候选装配、影子启动、空闲切换、观察和回滚。','Trusted updates automatically perform candidate assembly, shadow startup, idle switching, observation, and rollback.'));
+    }
     document.addEventListener('keydown',event=>{if(event.key!=='Escape'||document.querySelector('[role="listbox"]:not([hidden])')!==null)return;event.preventDefault();void api.closeDesktopSettings()},true);
-    notificationsNav.addEventListener('click',()=>setPage('notifications'));updatesNav.addEventListener('click',()=>setPage('updates'));
+    byId('settingsClose').addEventListener('click',()=>void api.closeDesktopSettings());
+    notificationsNav.addEventListener('click',()=>setPage('notifications'));updatesNav.addEventListener('click',()=>setPage('updates'));appearanceNav.addEventListener('click',()=>setPage('appearance'));
     approvals.addEventListener('change',()=>void saveNotifications());questions.addEventListener('change',()=>void saveNotifications());
     updateAction.addEventListener('click',async()=>{if(updateAction.disabled)return;updateAction.disabled=true;const next=await api.desktopUpdateAction(updateAction.dataset.action||'check');if(next)renderUpdateState(next)});
-    Promise.all([api.getBootstrap(),api.getNotificationPreferences(),api.getUpdatePreferences(),api.getDesktopUpdateState()]).then(([bootstrap,notifications,preferences,state])=>{
+    harnessAction.addEventListener('click',async()=>{if(harnessAction.disabled)return;harnessAction.disabled=true;const next=await api.harnessUpdateAction('check');if(next)renderHarnessState(next)});
+    setPage(location.hash==='#updates'?'updates':location.hash==='#appearance'?'appearance':'notifications');
+    Promise.all([api.getBootstrap(),api.getNotificationPreferences(),api.getUpdatePreferences(),api.getDesktopUpdateState(),api.getHarnessUpdateState()]).then(([bootstrap,notifications,preferences,state,harness])=>{
       currentTurnMode=turnSelect.set(notifications.turnMode);approvals.checked=notifications.approvalsEnabled;questions.checked=notifications.questionsEnabled;
-      currentPolicy=policySelect.set(preferences.policy);applyBootstrap(bootstrap);renderUpdateState(state);
+      currentPolicy=policySelect.set(preferences.policy);applyBootstrap(bootstrap);renderUpdateState(state);renderHarnessState(harness);
     });
     function applyBootstrap(value){document.documentElement.dataset.colorScheme=value.colorScheme;document.documentElement.style.colorScheme=value.colorScheme;localize(value.locale)}
-    api.onBootstrap(applyBootstrap);api.onDesktopUpdateState(renderUpdateState);api.onSettingsSection(value=>setPage(value==='updates'?'updates':'notifications'));
+    api.onBootstrap(applyBootstrap);api.onDesktopUpdateState(renderUpdateState);api.onHarnessUpdateState(renderHarnessState);api.onSettingsSection(value=>setPage(value==='updates'?'updates':'notifications'));
   </script>
 </body>
 </html>

@@ -2,10 +2,15 @@ import { spawnSync } from 'node:child_process'
 import { createHash, timingSafeEqual } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
+/** GNU tar 会把 `C:\...` 当作远程主机解析，统一转正斜杠并加 --force-local（bsdtar 亦接受）。 */
+function tarArchiveArgs(archivePath: string): string[] {
+  return ['--force-local', archivePath.replace(/\\/g, '/')]
+}
+
 /** 把目录打成单个 tar.gz，避免安装器解压上万个小文件。 */
 export function packDirectoryToTarGz(sourceDir: string, archivePath: string): void {
   if (!existsSync(sourceDir)) throw new Error(`压缩源目录不存在：${sourceDir}`)
-  const result = spawnSync('tar', ['-czf', archivePath, '-C', sourceDir, '.'], { encoding: 'utf8', windowsHide: true })
+  const result = spawnSync('tar', ['--force-local', '-czf', archivePath.replace(/\\/g, '/'), '-C', sourceDir.replace(/\\/g, '/'), '.'], { encoding: 'utf8', windowsHide: true })
   if (result.status !== 0) {
     throw new Error(`压缩失败：${(result.stderr || result.stdout || archivePath).trim()}`)
   }
@@ -14,7 +19,7 @@ export function packDirectoryToTarGz(sourceDir: string, archivePath: string): vo
 /** 首启把随包压缩包解到可写目录。 */
 export function extractTarGz(archivePath: string, destDir: string): void {
   if (!existsSync(archivePath)) throw new Error(`压缩包不存在：${archivePath}`)
-  const listed = spawnSync('tar', ['-tzf', archivePath], {
+  const listed = spawnSync('tar', ['--force-local', '-tzf', archivePath.replace(/\\/g, '/')], {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
     windowsHide: true,
@@ -24,7 +29,7 @@ export function extractTarGz(archivePath: string, destDir: string): void {
   }
   validateArchiveEntries(listed.stdout.split(/\r?\n/))
   mkdirSync(destDir, { recursive: true })
-  const result = spawnSync('tar', ['-xzf', archivePath, '-C', destDir], { encoding: 'utf8', windowsHide: true })
+  const result = spawnSync('tar', ['--force-local', '-xzf', archivePath.replace(/\\/g, '/'), '-C', destDir.replace(/\\/g, '/')], { encoding: 'utf8', windowsHide: true })
   if (result.status !== 0) {
     throw new Error(`解压失败：${(result.stderr || result.stdout || archivePath).trim()}`)
   }

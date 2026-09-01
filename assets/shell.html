@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>DSH Codex Desktop</title>
-  <script>document.documentElement.dataset.platform=window.dshShell.platform;document.documentElement.dataset.colorScheme=new URLSearchParams(location.search).get('theme')==='light'?'light':'dark'</script>
+  <script>document.documentElement.dataset.platform=window.dshShell.platform;const __theme=new URLSearchParams(location.search).get('theme');document.documentElement.dataset.colorScheme=__theme?__theme:(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')</script>
+  <script src="theme.js"></script>
   <style>
     :root{color-scheme:dark;font-family:Inter,"Segoe UI","Microsoft YaHei UI",sans-serif;background:#171918;color:#d7d9d8}
     *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}
@@ -12,41 +13,166 @@
     html[data-platform="darwin"] .bar{padding-left:78px;padding-right:12px}
     button{-webkit-app-region:no-drag;font:inherit;color:inherit;border:0;background:transparent}
     .nav{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;opacity:.82;transition:background .12s,opacity .12s}
-    .nav:hover:not(:disabled){background:#2b2e2d;opacity:1}.nav:disabled{opacity:.28}
+    .nav:hover:not(:disabled){background:#2b2e2d;opacity:1}.nav:active:not(:disabled){background:var(--active-bg,#333635)}.nav:disabled{opacity:.45}
+    .nav[aria-pressed="true"]{background:var(--tint,#2f3231);opacity:1}
+    .nav:focus-visible,.menu:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus-ring,#e7eae8)}
     .nav img{width:14px;height:14px;filter:invert(91%) sepia(5%) saturate(80%) hue-rotate(80deg)}
     .divider{width:1px;height:18px;background:#363938;margin:0 3px}
+    .browser{position:fixed;top:40px;right:0;display:flex;flex-direction:column;z-index:5;background:linear-gradient(90deg,#1e2120,#1c2221);border-left:1px solid #292c2b}
+    .browser[hidden]{display:none}
+    .browser img{width:14px;height:14px;filter:invert(91%) sepia(5%) saturate(80%) hue-rotate(80deg)}
+    .browser-tabs{display:flex;align-items:center;gap:2px;height:38px;padding:3px 4px}
+    .browser-tabs-list{display:flex;align-items:center;gap:2px;min-width:0;flex:1;overflow-x:auto;scrollbar-width:none}
+    .browser-tabs-list::-webkit-scrollbar{display:none}
+    .browser-tabs-actions{display:flex;align-items:center;flex:none;margin-left:2px}
+    .browser-tabs .tab{display:flex;align-items:center;gap:6px;max-width:200px;min-width:0;height:30px;padding:0 6px 0 8px;border-radius:7px;color:#9aa3af;background:transparent;cursor:default;user-select:none;flex:none}
+    .browser-tabs .tab:hover{background:var(--active-bg,#2b2e2d);color:#c9cdcb}
+    .browser-tabs .tab.active{background:var(--tint,#2f3231);color:#e8eae8}
+    .browser-tabs .tab:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus-ring,#e7eae8)}
+    .browser-tabs .tab.crashed .tab-label{opacity:.5;text-decoration:line-through}
+    .browser-tabs .tab-icon{width:14px;height:14px;flex:none;display:grid;place-items:center}
+    .browser-tabs .tab-icon img{width:14px;height:14px;filter:none}
+    .browser-tabs .tab-dot{width:8px;height:8px;border-radius:50%;background:#5a5f5d}
+    .browser-tabs .tab-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+    .browser-tabs .tab-close{width:20px;height:20px;border-radius:5px;display:grid;place-items:center;flex:none}
+    .browser-tabs .tab-close:hover{background:var(--active-bg,#3a3d3c)}
+    .browser-tabs .tab-close img{width:10px;height:10px;pointer-events:none}
+    .browser-tabs .tab-add{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:none}
+    .browser-tabs .tab-add:hover{background:var(--active-bg,#2b2e2d)}
+    .browser.loading .browser-nav input{opacity:.6}
+    .browser.loading [data-browser="reload"] img{animation:browser-spin .8s linear infinite}
+    @keyframes browser-spin{to{transform:rotate(360deg)}}
+    .browser-nav{display:flex;align-items:center;gap:2px;height:36px;padding:0 6px;border-top:1px solid #292c2b}
+    .browser-nav .nav{width:26px;height:26px}
+    .browser-nav input{flex:1;min-width:0;height:26px;margin:0 4px;padding:0 9px;border-radius:13px;border:1px solid #3a3d3c;background:#262827;color:#e8eae8;font-size:12px;outline:none;-webkit-app-region:no-drag}
+    .browser-nav input:focus{border-color:var(--focus-ring,#6ea8ff)}
+    :root[data-color-scheme="light"] .browser{background:linear-gradient(90deg,#eef5f3,#e8f8f7);border-left-color:#00000014}
+    :root[data-color-scheme="light"] .browser img{filter:brightness(0);opacity:.72}
+    :root[data-color-scheme="light"] .browser-tabs .tab{color:#61666b}
+    :root[data-color-scheme="light"] .browser-tabs .tab:hover{background:var(--tint,#2631480f)}
+    :root[data-color-scheme="light"] .browser-tabs .tab.active{background:var(--tint,#26314814);color:#0f1115}
+    :root[data-color-scheme="light"] .browser-tabs .tab-dot{background:#b6bbba}
+    :root[data-color-scheme="light"] .browser-tabs .tab-close:hover{background:#00000012}
+    :root[data-color-scheme="light"] .browser-tabs .tab-add:hover{background:#2631480f}
+    :root[data-color-scheme="light"] .nav[aria-pressed="true"]{background:var(--tint,rgba(38,49,72,.08))}
+    :root[data-color-scheme="light"] .browser-nav{border-top-color:#00000014}
+    :root[data-color-scheme="light"] .browser-nav input{border-color:#00000029;background:#fff;color:#0f1115}
+    :root[data-color-scheme="light"] .browser-nav input:focus{border-color:var(--focus-ring,#0961F6)}
     .menu{height:30px;padding:0 10px;border-radius:7px;font-size:14px;color:#8f9492}
-    .menu:hover{color:#c9cdcb}.menu[aria-expanded="true"]{background:#2b2e2d;color:#c9cdcb}
+    .menu:hover{color:#c9cdcb}.menu:active{background:var(--active-bg,#333635)}.menu[aria-expanded="true"]{background:var(--tint,#2b2e2d);color:#c9cdcb}
     .status{margin-left:auto;font-size:12px;color:#8f9592;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
     :root[data-color-scheme="light"]{color-scheme:light;background:#fff;color:#0f1115}
     :root[data-color-scheme="light"] .bar{background:linear-gradient(105deg,#eff5f3 0%,#ecf7f4 21%,#e8f8f7 38%,#eaf7f9 57%,#e8f8f6 73%,#eef5f3 89%,#f1f4f3 100%);border-bottom-color:transparent}
-    :root[data-color-scheme="light"] .nav:hover:not(:disabled),:root[data-color-scheme="light"] .menu[aria-expanded="true"]{background:#2631480f}
+    :root[data-color-scheme="light"] .nav:hover:not(:disabled),:root[data-color-scheme="light"] .menu[aria-expanded="true"]{background:var(--tint,rgba(38,49,72,.06))}
     :root[data-color-scheme="light"] .nav img{filter:brightness(0);opacity:.72}
     :root[data-color-scheme="light"] .divider{background:#0000001a}
     :root[data-color-scheme="light"] .menu,:root[data-color-scheme="light"] .status{color:#61666b}
     :root[data-color-scheme="light"] .menu:hover,:root[data-color-scheme="light"] .menu[aria-expanded="true"]{color:#0f1115}
     @media(max-width:720px){.status{display:none}.bar{padding-right:144px}.menu{padding:0 7px}}
+    @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
   </style>
 </head>
 <body>
   <header class="bar" aria-label="DSH Codex Desktop">
     <button id="back" class="nav" data-action="back" title="返回" aria-label="返回"><img src="shell-icons/arrow-left.svg" alt=""></button>
     <button id="forward" class="nav" data-action="forward" title="前进" aria-label="前进"><img src="shell-icons/arrow-right.svg" alt=""></button>
+    <button id="home-btn" class="nav" data-action="home" title="主页" aria-label="主页"><img src="shell-icons/home.svg" alt=""></button>
+    <button id="browser-toggle-btn" class="nav" data-action="browser-toggle" title="浏览器" aria-label="浏览器" aria-pressed="false"><img src="shell-icons/panel-right.svg" alt=""></button>
     <span class="divider" aria-hidden="true"></span>
     <nav id="menus" aria-label="应用菜单"></nav>
     <span id="status" class="status" role="status"></span>
+    <span class="divider" aria-hidden="true"></span>
+    <button id="settings-btn" class="nav" data-action="desktop-settings" title="桌面端设置" aria-label="桌面端设置"><img src="shell-icons/gear.svg" alt=""></button>
+    <button id="restart-btn" class="nav" data-action="app-restart" title="重启应用" aria-label="重启应用"><img src="shell-icons/rotate-right.svg" alt=""></button>
   </header>
+  <section id="browser" class="browser" hidden aria-label="内置浏览器">
+    <div class="browser-tabs">
+      <div class="browser-tabs-list" id="browser-tabs" role="tablist"></div>
+      <span class="browser-tabs-actions" id="browser-tabs-actions" role="presentation"></span>
+    </div>
+    <div class="browser-nav">
+      <button class="nav" data-browser="back" title="后退" aria-label="后退"><img src="shell-icons/arrow-left.svg" alt=""></button>
+      <button class="nav" data-browser="forward" title="前进" aria-label="前进"><img src="shell-icons/arrow-right.svg" alt=""></button>
+      <button class="nav" data-browser="reload" title="重新加载" aria-label="重新加载"><img src="shell-icons/rotate-right.svg" alt=""></button>
+      <input id="browser-address" type="text" spellcheck="false" autocomplete="off" placeholder="">
+      <button class="nav" data-browser="home" title="主页" aria-label="主页"><img src="shell-icons/home.svg" alt=""></button>
+    </div>
+  </section>
   <script>
     const api=window.dshShell;let bootstrap;let state;let openMenu;
     const menuHost=document.getElementById('menus');const status=document.getElementById('status');
-    function applyState(next){state=next;document.getElementById('back').disabled=!next.canBack;document.getElementById('forward').disabled=!next.canForward;const zh=bootstrap?.locale?.startsWith('zh')??navigator.language.toLowerCase().startsWith('zh');status.textContent=next.reloading?(zh?'正在重新加载…':'Reloading…'):''}
-    function applyBootstrap(value){bootstrap=value;document.documentElement.lang=value.locale;document.documentElement.dataset.colorScheme=value.colorScheme;document.documentElement.style.colorScheme=value.colorScheme;const zh=value.locale.startsWith('zh');const back=document.getElementById('back');const forward=document.getElementById('forward');back.title=back.ariaLabel=zh?'返回':'Back';forward.title=forward.ariaLabel=zh?'前进':'Forward';menuHost.setAttribute('aria-label',zh?'应用菜单':'Application menu');menuHost.replaceChildren();for(const menu of value.menus){const button=document.createElement('button');button.className='menu';button.textContent=menu.label;button.setAttribute('aria-haspopup','menu');button.setAttribute('aria-expanded','false');button.addEventListener('click',()=>showMenu(button,menu.id));menuHost.append(button)}applyState(state??value.state)}
+    function shellZh(){return bootstrap?.locale?.startsWith('zh')??navigator.language.toLowerCase().startsWith('zh')}
+    function applyState(next){state=next;document.getElementById('back').disabled=!next.canBack;document.getElementById('forward').disabled=!next.canForward;const zh=shellZh();status.textContent=next.reloading?(zh?'正在重新加载…':'Reloading…'):(next.zoomPercent&&next.zoomPercent!==100?next.zoomPercent+'%':'');renderBrowser(next.browser)}
+    function applyBootstrap(value){bootstrap=value;document.documentElement.lang=value.locale;document.documentElement.dataset.colorScheme=value.colorScheme;document.documentElement.style.colorScheme=value.colorScheme;const zh=value.locale.startsWith('zh');const back=document.getElementById('back');const forward=document.getElementById('forward');const homeBtn=document.getElementById('home-btn');const browserToggleBtn=document.getElementById('browser-toggle-btn');back.title=back.ariaLabel=zh?'返回':'Back';forward.title=forward.ariaLabel=zh?'前进':'Forward';homeBtn.title=homeBtn.ariaLabel=zh?'主页':'Home';browserToggleBtn.title=browserToggleBtn.ariaLabel=zh?'浏览器':'Browser';const settingsBtn=document.getElementById('settings-btn');const restartBtn=document.getElementById('restart-btn');settingsBtn.title=settingsBtn.ariaLabel=zh?'桌面端设置':'Desktop Settings';restartBtn.title=restartBtn.ariaLabel=zh?'重启应用':'Restart App';document.getElementById('browser-address').placeholder=zh?'输入网址…':'Enter address…';menuHost.setAttribute('aria-label',zh?'应用菜单':'Application menu');menuHost.replaceChildren();for(const menu of value.menus){const button=document.createElement('button');button.className='menu';button.textContent=menu.label;button.setAttribute('aria-haspopup','menu');button.setAttribute('aria-expanded','false');button.addEventListener('click',()=>showMenu(button,menu.id));menuHost.append(button)}applyState(state??value.state)}
+    function renderBrowser(browser){
+      const host=document.getElementById('browser');
+      const toggleBtn=document.getElementById('browser-toggle-btn');
+      if(!browser||typeof browser!=='object'||!browser.visible){host.hidden=true;host.classList.remove('loading');toggleBtn.setAttribute('aria-pressed','false');return}
+      host.hidden=false;
+      toggleBtn.setAttribute('aria-pressed','true');
+      host.style.width=Math.max(280,Math.round(window.innerWidth*(browser.widthRatio||0.36)))+'px';
+      host.classList.toggle('loading',browser.loading===true);
+      const zh=shellZh();
+      const tabs=Array.isArray(browser.tabs)?browser.tabs:[];
+      const strip=document.getElementById('browser-tabs');
+      strip.replaceChildren();
+      const items=[];
+      for(const tab of tabs){
+        const item=document.createElement('div');item.className='tab'+(tab.id===browser.activeId?' active':'')+(tab.crashed?' crashed':'');item.setAttribute('role','tab');item.tabIndex=tab.id===browser.activeId?0:-1;item.setAttribute('aria-selected',String(tab.id===browser.activeId));item.title=(tab.url||'')+(tab.crashed?(zh?'（已崩溃，可点击重载）':' (crashed, click to reload)'):'');
+        const iconHolder=document.createElement('span');iconHolder.className='tab-icon';
+        if(tab.favicon){const favicon=document.createElement('img');favicon.src=tab.favicon;favicon.alt='';favicon.loading='lazy';iconHolder.append(favicon)}
+        else{const dot=document.createElement('span');dot.className='tab-dot';iconHolder.append(dot)}
+        item.append(iconHolder);
+        const label=document.createElement('span');label.className='tab-label';label.textContent=tab.title||tab.url;item.append(label);
+        const close=document.createElement('button');close.className='tab-close';close.title=zh?'关闭标签页':'Close tab';close.setAttribute('aria-label',close.title);
+        const closeImg=document.createElement('img');closeImg.src='shell-icons/xmark.svg';closeImg.alt='';close.append(closeImg);
+        close.addEventListener('click',(event)=>{event.stopPropagation();api.browser.closeTab(tab.id)});
+        item.append(close);
+        const activate=()=>{if(tab.crashed)api.browser.reload();api.browser.activateTab(tab.id)};
+        item.addEventListener('click',activate);
+        item.addEventListener('keydown',(event)=>{
+          if(event.key==='Enter'||event.key===' '){event.preventDefault();activate()}
+          else if(event.key==='ArrowLeft'||event.key==='ArrowRight'){
+            event.preventDefault();
+            const delta=event.key==='ArrowLeft'?-1:1;
+            const target=items[(items.indexOf(item)+delta+items.length)%items.length];
+            if(target){target.focus()}
+          }
+        });
+        items.push(item);
+        strip.append(item);
+      }
+      const actionsHost=document.getElementById('browser-tabs-actions');
+      actionsHost.replaceChildren();
+      const add=document.createElement('button');add.className='tab-add';add.title=zh?'新标签页':'New tab';add.setAttribute('aria-label',add.title);
+      const addImg=document.createElement('img');addImg.src='shell-icons/plus.svg';addImg.alt='';add.append(addImg);
+      add.addEventListener('click',()=>api.browser.newTab(''));
+      actionsHost.append(add);
+      document.querySelector('[data-browser="back"]').disabled=!browser.canBack;
+      document.querySelector('[data-browser="forward"]').disabled=!browser.canForward;
+      const address=document.getElementById('browser-address');
+      const active=tabs.find(tab=>tab.id===browser.activeId);
+      if(active&&document.activeElement!==address)address.value=active.url;
+    }
     function clearOpenMenu(button=openMenu){if(!button)return;button.setAttribute('aria-expanded','false');if(openMenu===button)openMenu=undefined}
     async function showMenu(button,menu){clearOpenMenu();button.setAttribute('aria-expanded','true');openMenu=button;const rect=button.getBoundingClientRect();try{await api.popupMenu({menu,x:Math.round(rect.left),y:Math.round(rect.bottom)})}finally{clearOpenMenu(button)}}
     // Native Windows menus can consume the initial outside click. If the
     // click is subsequently delivered to the shell, clear immediately too.
     document.addEventListener('pointerdown',event=>{if(openMenu&&event.target!==openMenu)clearOpenMenu()},true);window.addEventListener('blur',()=>clearOpenMenu());
     document.querySelectorAll('[data-action]').forEach(button=>button.addEventListener('click',()=>api.action(button.dataset.action)));
+    document.querySelectorAll('[data-browser]').forEach(button=>button.addEventListener('click',()=>{
+      const action=button.dataset.browser;
+      if(action==='back')api.browser.back();
+      else if(action==='forward')api.browser.forward();
+      else if(action==='reload')api.browser.reload();
+      else if(action==='home')api.browser.openHomepages();
+    }));
+    const browserAddress=document.getElementById('browser-address');
+    browserAddress.addEventListener('keydown',event=>{
+      if(event.key==='Enter'){const value=browserAddress.value.trim();if(value)api.browser.navigate(value);browserAddress.blur()}
+      else if(event.key==='Escape'){const active=state?.browser?.tabs?.find(tab=>tab.id===state.browser.activeId);if(active)browserAddress.value=active.url;browserAddress.blur()}
+    });
+    window.addEventListener('resize',()=>{if(state)renderBrowser(state.browser)});
     api.getBootstrap().then(value=>{document.documentElement.dataset.platform=value.platform;applyBootstrap(value)});api.onBootstrap(applyBootstrap);
     api.onState(applyState);
   </script>

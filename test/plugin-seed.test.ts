@@ -306,6 +306,8 @@ test('启动前会按 pending 清单升级社区插件，不碰官方包', async
     assert.deepEqual(updated, ['@michengai/dsh-codex-ui'])
     assert.equal(calls[0]?.includes('@michengai/dsh-codex-ui@0.2.60'), true)
     assert.equal(calls[0]?.some(item => item.includes('@deepseek-ai/dsh')), false)
+    const retained = JSON.parse(await readFile(join(profile, '.dsh-pending-updates.json'), 'utf8')) as { packages?: Array<{ packageName: string; version: string }> }
+    assert.deepEqual(retained.packages, [{ packageName: '@deepseek-ai/dsh', version: '0.1.0-rc.8' }])
   } finally {
     await rm(root, { recursive: true, force: true })
   }
@@ -472,6 +474,7 @@ test('官方 pending 会改运行时目录，不写进 Web profile', async () =>
       profileDir: profile,
       desktopRuntimeDir: runtime,
       pluginStoreDir: join(root, 'store'),
+      allowOfficialRuntimeUpdate: true,
       runner: async args => { calls.push([...args]) },
     })
     assert.deepEqual(updated, [OFFICIAL_DSH_VERSION])
@@ -489,4 +492,38 @@ test('官方 pending 会改运行时目录，不写进 Web profile', async () =>
 test('官方运行时更新会同步锁文件，避免 CI 冻结锁文件阻断启动', () => {
   const args = officialRuntimeInstallArgs('D:\\runtime')
   assert.equal(args.includes('--no-frozen-lockfile'), true)
+})
+
+test('通过指纹封存的 A/B 运行时槽在启动补种时保持不可变', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-immutable-slot-'))
+  try {
+    const profile = join(root, 'profile')
+    const runtime = join(root, 'runtime')
+    const store = join(root, 'store')
+    await mkdir(profile, { recursive: true })
+    await mkdir(store, { recursive: true })
+    await writeFile(join(profile, 'package.json'), JSON.stringify({ dependencies: {}, dsh: { profile: { bundles: [] } } }), 'utf8')
+    await mkdir(join(runtime, 'node_modules', '@deepseek-ai', 'dsh', 'lib'), { recursive: true })
+    await writeFile(join(runtime, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'), '', 'utf8')
+    for (const plugin of OFFICIAL_LAUNCH_PEERS) {
+      const packageDir = join(runtime, 'node_modules', ...plugin.packageName.split('/'))
+      await mkdir(packageDir, { recursive: true })
+      await writeFile(join(packageDir, 'package.json'), JSON.stringify({ name: plugin.packageName, version: plugin.version }), 'utf8')
+    }
+    await writeFile(join(runtime, '.dsh-runtime-fingerprint'), `${'a'.repeat(64)}\n`, 'utf8')
+    let calls = 0
+    await seedBundledPlugins({
+      nodeExecutable: 'node',
+      profileDir: profile,
+      desktopRuntimeDir: runtime,
+      pluginStoreDir: store,
+      catalog: [],
+      runner: async () => { calls += 1 },
+    })
+    assert.equal(calls, 0)
+    assert.equal(existsSync(join(runtime, 'package.json')), false)
+    assert.equal(existsSync(join(runtime, 'pnpm-workspace.yaml')), false)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })

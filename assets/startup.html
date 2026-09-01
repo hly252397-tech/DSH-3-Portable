@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <title>DSH Codex Desktop</title>
   <link rel="icon" type="image/png" href="./icon.png">
-  <script>document.documentElement.dataset.colorScheme=new URLSearchParams(location.search).get('theme')==='light'?'light':'dark'</script>
+  <script>const __theme=new URLSearchParams(location.search).get('theme');document.documentElement.dataset.colorScheme=__theme?__theme:(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')</script>
+  <script src="theme.js"></script>
   <style>
     html, body {
       margin: 0;
@@ -41,7 +42,7 @@
       width: 42px;
       height: 42px;
       border: 3px solid rgba(255, 255, 255, .12);
-      border-top-color: #6ea8ff;
+      border-top-color: var(--accent, #6ea8ff);
       border-radius: 50%;
       animation: spin .8s linear infinite;
     }
@@ -63,7 +64,7 @@
     :root[data-color-scheme="light"]{color-scheme:light}
     :root[data-color-scheme="light"] body{background:#fff;color:#0f1115}
     :root[data-color-scheme="light"] .icon{box-shadow:0 12px 32px rgba(15,17,21,.18)}
-    :root[data-color-scheme="light"] .spinner{border-color:rgba(15,17,21,.12);border-top-color:#4176e6}
+    :root[data-color-scheme="light"] .spinner{border-color:rgba(15,17,21,.12);border-top-color:var(--accent, #4176e6)}
     :root[data-color-scheme="light"] #msg{color:#61666b}
     @keyframes spin {
       to { transform: rotate(360deg); }
@@ -72,14 +73,18 @@
       from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    @media (prefers-reduced-motion: reduce) {
+      .stage { animation: none; }
+      .spinner { animation-duration: 2s; }
+    }
   </style>
 </head>
 <body>
   <main class="stage">
     <img class="icon" src="./icon.png" alt="DSH Codex Desktop">
     <div class="spinner" aria-hidden="true"></div>
+    <h1>DSH Codex Desktop</h1>
     <section class="status" role="status" aria-live="polite" aria-atomic="true">
-      <h1>DSH Codex Desktop</h1>
       <p id="msg">正在启动</p>
     </section>
   </main>

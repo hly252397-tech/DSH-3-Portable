@@ -30,6 +30,12 @@ export interface DesktopNotificationBadgeEvent {
   readonly count: number
 }
 
+/** 仅供主进程安全安排运行时切换，不包含会话内容或标识。 */
+export interface DesktopActivityEvent {
+  readonly type: 'activity'
+  readonly count: number
+}
+
 export interface DesktopNotificationReplyErrorEvent {
   readonly type: 'reply-error'
   readonly sessionId: string
@@ -40,7 +46,7 @@ export interface WindowsNotificationReplyActivation {
   readonly text: string
 }
 
-export type DesktopNotificationBridgeEvent = DesktopNotificationEvent | DesktopNotificationDismissEvent | DesktopNotificationBadgeEvent | DesktopNotificationReplyErrorEvent
+export type DesktopNotificationBridgeEvent = DesktopNotificationEvent | DesktopNotificationDismissEvent | DesktopNotificationBadgeEvent | DesktopNotificationReplyErrorEvent | DesktopActivityEvent
 
 export const DEFAULT_NOTIFICATION_PREFERENCES: DesktopNotificationPreferences = {
   turnMode: 'unfocused',
@@ -126,6 +132,10 @@ export function parseDesktopNotificationBridgeEvent(value: unknown): DesktopNoti
   if (candidate.type === 'badge') {
     if (!Number.isInteger(candidate.count) || (candidate.count as number) < 0 || (candidate.count as number) > 999) return undefined
     return { type: 'badge', count: candidate.count as number }
+  }
+  if (candidate.type === 'activity') {
+    if (!Number.isInteger(candidate.count) || (candidate.count as number) < 0 || (candidate.count as number) > 10_000) return undefined
+    return { type: 'activity', count: candidate.count as number }
   }
   if (candidate.type !== 'notify' && candidate.type !== 'dismiss' && candidate.type !== 'reply-error') return undefined
   if (typeof candidate.sessionId !== 'string' || candidate.sessionId.trim() === '' || candidate.sessionId.length > 256) return undefined

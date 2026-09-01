@@ -11,6 +11,10 @@ export function mayInvokeShellAction(kind: ShellRendererKind, id: ShellActionId)
   return kind === 'about' && (id === 'whats-new' || id === 'feedback')
 }
 
+export function mayInvokeBrowserIpc(kind: ShellRendererKind): boolean {
+  return kind === 'main'
+}
+
 export function mayPopupShellMenu(kind: ShellRendererKind): boolean {
   return kind === 'main'
 }
