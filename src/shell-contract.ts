@@ -38,7 +38,17 @@ export const SHELL_IPC = {
   browserBack: 'dsh-shell:browser-back',
   browserForward: 'dsh-shell:browser-forward',
   browserReload: 'dsh-shell:browser-reload',
+  browserShowPanel: 'dsh-shell:browser-show-panel',
+  browserHidePanel: 'dsh-shell:browser-hide-panel',
+  browserPanelBounds: 'dsh-shell:browser-panel-bounds',
 } as const
+
+export interface BrowserPanelBounds {
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
+}
 
 export interface DshNavigationState {
   readonly canBack: boolean

@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron') as typeof import('ele
 
 const IPC = {
   dshAction: 'dsh-shell:dsh-action',
+  action: 'dsh-shell:action',
   dshLocale: 'dsh-shell:dsh-locale',
   dshTheme: 'dsh-shell:dsh-theme',
   dshSettingsVisibility: 'dsh-shell:dsh-settings-visibility',
@@ -9,6 +10,9 @@ const IPC = {
   dshNotificationReply: 'dsh-shell:dsh-notification-reply',
   dshState: 'dsh-shell:dsh-state',
   dshNotification: 'dsh-shell:dsh-notification',
+  browserShowPanel: 'dsh-shell:browser-show-panel',
+  browserHidePanel: 'dsh-shell:browser-hide-panel',
+  browserPanelBounds: 'dsh-shell:browser-panel-bounds',
 } as const
 
 let clientBridgeRegistrations = 0
@@ -163,6 +167,11 @@ window.addEventListener('DOMContentLoaded', () => {
 })
 
 contextBridge.exposeInMainWorld('dshDesktopShell', {
+  browser: {
+    showPanel: () => ipcRenderer.invoke(IPC.browserShowPanel),
+    hidePanel: () => ipcRenderer.invoke(IPC.browserHidePanel),
+    reportPanelBounds: (bounds: { x: number; y: number; width: number; height: number }) => ipcRenderer.send(IPC.browserPanelBounds, bounds),
+  },
   onAction: (listener: (id: string) => void) => {
     const wrapped = (_event: Electron.IpcRendererEvent, id: string) => listener(id)
     clientBridgeRegistrations += 1
@@ -197,4 +206,5 @@ contextBridge.exposeInMainWorld('dshDesktopShell', {
   reportTheme: (colorScheme: unknown) => {
     ipcRenderer.send(IPC.dshTheme, colorScheme)
   },
+  action: (id: string) => ipcRenderer.invoke(IPC.action, id),
 })

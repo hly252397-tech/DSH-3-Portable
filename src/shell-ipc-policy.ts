@@ -8,11 +8,18 @@ export function mayGetShellBootstrap(kind: ShellRendererKind): boolean {
 
 export function mayInvokeShellAction(kind: ShellRendererKind, id: ShellActionId): boolean {
   if (kind === 'main') return true
-  return kind === 'about' && (id === 'whats-new' || id === 'feedback')
+  if (kind === 'about') return id === 'whats-new' || id === 'feedback'
+  // dsh 内容视图仅授权「重启应用」这一个动作（侧栏入口），其余 shell 动作一律不放行。
+  if (kind === 'dsh') return id === 'app-restart'
+  return false
 }
 
 export function mayInvokeBrowserIpc(kind: ShellRendererKind): boolean {
   return kind === 'main'
+}
+
+export function mayInvokeBrowserPanelIpc(kind: ShellRendererKind): boolean {
+  return kind === 'main' || kind === 'dsh'
 }
 
 export function mayPopupShellMenu(kind: ShellRendererKind): boolean {

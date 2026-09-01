@@ -30,8 +30,8 @@ import { WindowNavigationCoordinator } from './window-navigation.js'
 import { escapeRoute } from './escape-routing.js'
 import { installDesktopBridge, resolveDesktopBridgeDir } from './desktop-host.js'
 import { isChineseLocale, localizedShellActions, localizedShellMenus, normalizeShellLocale, shellActionForShortcut, SHELL_ACTIONS, type ShellActionId, type ShellMenuId } from './shell-actions.js'
-import { SHELL_BAR_HEIGHT, SHELL_IPC, type BrowserShellState, type BrowserTabState, type DshNavigationState, type DshShellActionId, type ShellBootstrap, type ShellMenuPopupRequest, type ShellState } from './shell-contract.js'
-import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeBrowserIpc, mayInvokeShellAction, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility, type ShellRendererKind } from './shell-ipc-policy.js'
+import { SHELL_BAR_HEIGHT, SHELL_IPC, type BrowserPanelBounds, type BrowserShellState, type BrowserTabState, type DshNavigationState, type DshShellActionId, type ShellBootstrap, type ShellMenuPopupRequest, type ShellState } from './shell-contract.js'
+import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeBrowserIpc, mayInvokeBrowserPanelIpc, mayInvokeShellAction, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility, type ShellRendererKind } from './shell-ipc-policy.js'
 import { DESKTOP_THEME_PALETTES, normalizeDesktopThemeSnapshot, type DesktopColorScheme, type DesktopThemePreference } from './desktop-theme.js'
 import { DSH_MARKET_STATUS_PATH, isDshMarketOperationBusy, waitForDshMarketBatchToSettle } from './dshmarket-batch.js'
 import { DEFAULT_NOTIFICATION_PREFERENCES, buildWindowsReplyToastXml, loadNotificationPreferences, parseDesktopNotificationBridgeEvent, parseWindowsNotificationReplyActivation, saveNotificationPreferences, shouldShowDesktopNotification, windowsNotificationReplyArguments, type DesktopNotificationEvent, type DesktopNotificationPreferences } from './desktop-notifications.js'
@@ -182,6 +182,8 @@ let activeBrowserTabId: string | null = null
 let browserVisible = false
 let browserWidthRatio = BROWSER_DEFAULT_WIDTH_RATIO
 let browserWorkspaceSaveTimer: NodeJS.Timeout | undefined
+// DSH Web GUI 右侧面板内容区的窗口坐标（由 GUI 通过 IPC 实时报告）
+let browserPanelBounds: BrowserPanelBounds | undefined
 
 function browserWorkspacePath(): string {
   return join(app.getPath('userData'), 'shell', 'browser-workspace.json')
@@ -997,10 +999,21 @@ function requireDshView(): WebContentsView {
 
 function layoutDshView(window: BrowserWindow): void {
   const bounds = window.getContentBounds()
-  const panelWidth = browserVisible ? Math.round(bounds.width * browserWidthRatio) : 0
-  const browserX = bounds.width - panelWidth
-  dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: Math.max(0, browserX), height: Math.max(0, bounds.height - SHELL_BAR_HEIGHT) })
-  if (browserVisible) {
+  if (browserVisible && browserPanelBounds !== undefined) {
+    // DSH Web GUI 右侧面板模式：WebContentsView 覆盖在面板内容区上方
+    // dshView 保持全宽（GUI 自己管理面板布局），浏览器 view 定位到面板坐标
+    dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: bounds.width, height: Math.max(0, bounds.height - SHELL_BAR_HEIGHT) })
+    const bp = browserPanelBounds
+    for (const tab of browserTabs) {
+      const visible = tab.id === activeBrowserTabId
+      tab.view.setVisible(visible)
+      if (visible) tab.view.setBounds({ x: bp.x, y: bp.y + SHELL_BAR_HEIGHT, width: bp.width, height: bp.height })
+    }
+  } else if (browserVisible) {
+    // 回退：独立右侧面板模式（顶栏按钮触发，无 GUI 面板坐标）
+    const panelWidth = Math.round(bounds.width * browserWidthRatio)
+    const browserX = bounds.width - panelWidth
+    dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: Math.max(0, browserX), height: Math.max(0, bounds.height - SHELL_BAR_HEIGHT) })
     const browserY = SHELL_BAR_HEIGHT + BROWSER_TABS_BAR_HEIGHT + BROWSER_NAV_BAR_HEIGHT
     const browserHeight = Math.max(0, bounds.height - browserY)
     for (const tab of browserTabs) {
@@ -1009,6 +1022,7 @@ function layoutDshView(window: BrowserWindow): void {
       if (visible) tab.view.setBounds({ x: browserX, y: browserY, width: panelWidth, height: browserHeight })
     }
   } else {
+    dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: bounds.width, height: Math.max(0, bounds.height - SHELL_BAR_HEIGHT) })
     for (const tab of browserTabs) tab.view.setVisible(false)
   }
   broadcastShellState()
@@ -1333,6 +1347,31 @@ function installShellIpc(): void {
   ipcMain.handle(SHELL_IPC.browserReload, event => {
     if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
     getActiveBrowserTab()?.view.webContents.reload()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserShowPanel)
+  ipcMain.handle(SHELL_IPC.browserShowPanel, event => {
+    if (!mayInvokeBrowserPanelIpc(shellRendererKind(event.sender))) return
+    browserVisible = true
+    relayout()
+    focusActiveBrowserTab()
+    scheduleBrowserWorkspaceSave()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserHidePanel)
+  ipcMain.handle(SHELL_IPC.browserHidePanel, event => {
+    if (!mayInvokeBrowserPanelIpc(shellRendererKind(event.sender))) return
+    browserVisible = false
+    browserPanelBounds = undefined
+    relayout()
+    scheduleBrowserWorkspaceSave()
+  })
+  ipcMain.removeAllListeners(SHELL_IPC.browserPanelBounds)
+  ipcMain.on(SHELL_IPC.browserPanelBounds, (event, bounds: unknown) => {
+    if (!mayInvokeBrowserPanelIpc(shellRendererKind(event.sender))) return
+    if (typeof bounds !== 'object' || bounds === null) return
+    const b = bounds as Record<string, unknown>
+    if (typeof b.x !== 'number' || typeof b.y !== 'number' || typeof b.width !== 'number' || typeof b.height !== 'number') return
+    browserPanelBounds = { x: b.x, y: b.y, width: b.width, height: b.height }
+    if (browserVisible) relayout()
   })
   ipcMain.removeAllListeners(SHELL_IPC.dshState)
   ipcMain.on(SHELL_IPC.dshState, (event, state: Partial<DshNavigationState>) => {
