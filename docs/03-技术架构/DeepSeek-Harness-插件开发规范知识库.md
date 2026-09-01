@@ -420,7 +420,70 @@ export function apply(ctx: Context) {
 
 ---
 
-## 11. 本仓库（便携版）映射
+## 11. Guide 功能要点（模型路由 / MCP / SDK —— 定制开发相关）
+
+### 11.1 配置模型（providers）
+
+- 凭据为**只写**：保存后界面只收脱敏描述符；密钥存 `$DSH_HOME/.credentials.yaml`，settings 仅存凭据引用
+- 自定义提供方：需小写 Provider ID（**永久不可改**，请求/会话/凭据引用都依赖它）、基础 URL、API 协议、凭据、至少一个模型
+- 图片输入是**声明制**：手动录入的模型默认纯文本，带图请求发送前即被拒；`input: [text, image]` 是对端点的断言而非检查
+
+```yaml
+llm-pi-ai:
+  providers:
+    my-gateway:
+      apiKeyEnv: GATEWAY_API_KEY
+      api: openai-completions
+      baseURL: https://gateway.example/v1
+      models:
+        - id: legacy-chat
+        - id: vision-preview
+          input: [text, image]
+      compat:
+        supportsDeveloperRole: false   # 系统提示词不以 role:developer 发出
+        maxTokensField: max_tokens     # 兼容只认 max_tokens 的服务端
+```
+
+- compat 是常见网关排错第一开关（全拒/仅推理模型失败 → 先关 `supportsDeveloperRole`）；路由级是模型默认值，模型级逐字段覆盖
+- 模型变更下一次请求即生效，无需重启；排错：`MISSING_CREDENTIAL`/`UNKNOWN_MODEL` 补密钥或模型；401 查密钥；无 `/models` 端点手动录入
+
+### 11.2 MCP 接入（dsh-mcp-client）—— 接第三方工具服务器的标准方式
+
+```yaml
+- insert:
+  - id: memory-my-server            # 唯一 id
+    name: '@deepseek-ai/dsh-mcp-client'
+    config:
+      serverName: my-memory         # 工具以 mcp__<serverName>__<tool> 公开
+      transport: stdio              # 或 streamable-http（配 url + headers）
+      command: my-memory-mcp
+      args: []
+      env: {}                       # 密钥写这里，不要写进 YAML 明文
+      cwd: !!js process.cwd()
+```
+
+- DSH 负责：解析 overlay、启动 stdio/连接 HTTP、发现工具、`mcp__<server>__<tool>` 命名公开；**不负责**下载服务器、初始化存储、认证与数据迁移
+- 安全规范：stdio 桥接启动子进程前**主动移除凭据类环境变量和全部 `DSH_*` 变量**；密钥必须走 `config.env`
+- 子进程崩溃 → 带退避自动重连 + 工具重新同步；预算耗尽 → 工具注销；初始发现异步，首条提示词前先等 `mcp__...` 工具出现
+- 持久启用：合并 insert 进 `$DSH_HOME/profiles/<name>/cordis.patch.yml`（勿覆盖整个文件）
+
+### 11.3 Python SDK（sdk-minimal profile）
+
+- `pip install deepseek-harness-sdk`；普通 SDK 运行**不需要系统 Node**
+- 核心 API：`DeepSeekHarness(provider=, model=, max_tokens=, cwd=, dsh_home=, profile="sdk-minimal")`，`harness.run(prompt, session_id=)`；进程延迟启动、复用至上下文退出
+- **自定义 profile 必须包含 `@deepseek-ai/dsh-sdk-app`（JSON-RPC server）**，缺失或非法配置启动即失败、无回退
+- 会话隔离原则：新工作用新 home + 新 session id；只有继续同一持久对话才复用 home 与 id
+- `sdk-minimal` 固定 danger-full-access（shell/editor 可改任意路径），务必一次性 workspace/容器
+
+### 11.4 其他 guide 功能（了解即可）
+
+- **GitHub 评审 overlay**：PR ready_for_review → 自动建只读评审 Session；webhook 密钥只验入站不授出站权限；HTTP 202 仅表示签名通过
+- **会话内提醒（schedule）**：`schedule_create/list/delete` 工具；`at` 须 RFC 3339 或带显式时区；`every_seconds` ≥300；不支持 cron/日历表达式；不提供进程外通知
+- 两者都是 `dsh web --patch apps/cli/config/examples/.../cordis.yml` 的可选 overlay，默认关闭
+
+---
+
+## 12. 本仓库（便携版）映射
 
 | 官方概念 | 本仓库对应物 |
 |---|---|
