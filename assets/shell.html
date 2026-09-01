@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>DSH Codex Desktop</title>
+
   <script>document.documentElement.dataset.platform=window.dshShell.platform;const __theme=new URLSearchParams(location.search).get('theme');document.documentElement.dataset.colorScheme=__theme?__theme:(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')</script>
   <script src="theme.js"></script>
   <style>
@@ -117,6 +118,19 @@
       <button class="nav" data-browser="home" title="主页" aria-label="主页"><img src="shell-icons/home.svg" alt=""></button>
     </div>
   </section>
+  <div id="restart-confirm" class="confirm-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="restart-confirm-title" aria-describedby="restart-confirm-text">
+    <div class="confirm-card">
+      <div class="confirm-head">
+        <img src="shell-icons/rotate-right.svg" alt="" class="confirm-icon">
+        <h2 id="restart-confirm-title" class="confirm-title">重启应用</h2>
+      </div>
+      <p id="restart-confirm-text" class="confirm-text">完全关闭并重启 DSH Codex Desktop？所有窗口将关闭，正在运行的任务会被中断；会话与配置保留在磁盘上，重启后可继续。</p>
+      <div class="confirm-actions">
+        <button type="button" id="restart-cancel" class="confirm-btn">取消</button>
+        <button type="button" id="restart-ok" class="confirm-btn primary">重启</button>
+      </div>
+    </div>
+  </div>
   <script>
     const api=window.dshShell;let bootstrap;let state;let openMenu;
     const menuHost=document.getElementById('menus');const status=document.getElementById('status');
@@ -129,7 +143,15 @@
       if(!browser||typeof browser!=='object'||!browser.visible){host.hidden=true;host.classList.remove('loading');toggleBtn.setAttribute('aria-pressed','false');return}
       host.hidden=false;
       toggleBtn.setAttribute('aria-pressed','true');
-      host.style.width=Math.max(280,Math.round(window.innerWidth*(browser.widthRatio||0.36)))+'px';
+      if(browser.panel&&typeof browser.panel==='object'&&typeof browser.panel.x==='number'){
+        host.style.right='auto';
+        host.style.left=Math.round(browser.panel.x)+'px';
+        host.style.top=(40+Math.round(browser.panel.y))+'px';
+        host.style.width=Math.max(280,Math.round(browser.panel.width))+'px';
+      }else{
+        host.style.left='';host.style.top='';host.style.right='0';
+        host.style.width=Math.max(280,Math.round(window.innerWidth*(browser.widthRatio||0.36)))+'px';
+      }
       host.classList.toggle('loading',browser.loading===true);
       const zh=shellZh();
       const tabs=Array.isArray(browser.tabs)?browser.tabs:[];
@@ -207,18 +229,6 @@
     api.getBootstrap().then(value=>{document.documentElement.dataset.platform=value.platform;applyBootstrap(value)});api.onBootstrap(applyBootstrap);
     api.onState(applyState);
   </script>
-  <div id="restart-confirm" class="confirm-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="restart-confirm-title" aria-describedby="restart-confirm-text">
-    <div class="confirm-card">
-      <div class="confirm-head">
-        <img src="shell-icons/rotate-right.svg" alt="" class="confirm-icon">
-        <h2 id="restart-confirm-title" class="confirm-title">重启应用</h2>
-      </div>
-      <p id="restart-confirm-text" class="confirm-text">完全关闭并重启 DSH Codex Desktop？所有窗口将关闭，正在运行的任务会被中断；会话与配置保留在磁盘上，重启后可继续。</p>
-      <div class="confirm-actions">
-        <button type="button" id="restart-cancel" class="confirm-btn">取消</button>
-        <button type="button" id="restart-ok" class="confirm-btn primary">重启</button>
-      </div>
-    </div>
-  </div>
+
 </body>
 </html>
