@@ -13,7 +13,7 @@ import { resolveAppIconPath, resolveCompactIconCrop, resolveNotificationIconPath
 import { WINDOW_ICON_PIXEL_SIZES, isLoopbackFaviconRequest } from './window-icon.js'
 import { quitDesktopApp, shouldHideInsteadOfClose } from './app-lifecycle.js'
 import type { DshServer, StartDshOptions } from './dsh-process.js'
-import { isExternalOpenUrl, isSameOrigin } from './navigation.js'
+import { isExternalHttpUrl, isExternalOpenUrl, isSameOrigin } from './navigation.js'
 import { applyPendingProfileUpdates, resolvePnpmStoreDir, seedBundledPlugins, resolveWebProfileDir } from './plugin-seed.js'
 import { parseUnresolvedBundleError, startWithProfileSelfRepair } from './profile-repair.js'
 import { quarantineProfileBundle } from './profile-quarantine.js'
@@ -383,6 +383,16 @@ function closeBrowserTab(id: string): void {
   if (browserTabs.length === 0) createHomepageTabs()
   relayout()
   scheduleBrowserWorkspaceSave()
+}
+
+/** DSH 外链统一路由：http/https 进内置浏览器（新标签页），mailto:/tel: 走系统默认程序。 */
+function routeDshExternalLink(url: string): void {
+  if (isExternalHttpUrl(url, allowedOrigin)) {
+    // 建视图是重活，排到微任务队列，避免在导航回调里同步执行
+    queueMicrotask(() => { openBrowser(url, true) })
+    return
+  }
+  if (isExternalOpenUrl(url, allowedOrigin)) runMainTask(shell.openExternal(url))
 }
 
 function openBrowser(url?: string, newTab = false): BrowserTab {
@@ -1055,7 +1065,7 @@ function createWindow(): BrowserWindow {
   runMainTask(window.loadFile(resolveShellAsset('shell.html'), { query: { theme: activeDshColorScheme } }))
 
   view.webContents.setWindowOpenHandler(({ url }) => {
-    if (isExternalOpenUrl(url, allowedOrigin)) runMainTask(shell.openExternal(url))
+    routeDshExternalLink(url)
     return { action: 'deny' }
   })
   view.webContents.on('did-start-navigation', () => { dshSettingsDialogVisible = false })
@@ -1066,12 +1076,12 @@ function createWindow(): BrowserWindow {
     }
     if (isSameOrigin(url, allowedOrigin)) return
     event.preventDefault()
-    if (isExternalOpenUrl(url, allowedOrigin)) runMainTask(shell.openExternal(url))
+    routeDshExternalLink(url)
   })
   view.webContents.on('will-redirect', (event, url) => {
     if (isSameOrigin(url, allowedOrigin)) return
     event.preventDefault()
-    if (isExternalOpenUrl(url, allowedOrigin)) runMainTask(shell.openExternal(url))
+    routeDshExternalLink(url)
   })
   installShortcutHandler(window.webContents)
   installShortcutHandler(view.webContents)
