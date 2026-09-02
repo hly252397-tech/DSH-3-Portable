@@ -58,6 +58,9 @@ DSH 是插件化架构：**产品一切部分皆插件，一切注册可逆**。
 - **部署中断 = App 残缺**：部署/更新流程被打断会留下没有主 exe 的 App 目录；恢复方式 = 重跑 `deploy-new-build.ps1`
 - **electron-builder TEMP**：必须显式指向用户临时目录（见上），否则 NSIS 找不到临时 include 文件
 - **PowerShell 转义**：Git Bash 里调用含 `$_` 的 PowerShell 命令会被 Bash 展开，用单引号包裹或写成 ps1 文件
+- **DSH 插件服务名与注入**：`ctx.command()` 不存在——命令服务名是 **`commands`（复数）**，注册 API 是 `ctx.commands.register({name, description, input:{hint}, handler(invocation)→{kind:'success',text}})`；服务未在组合中时改用 `ctx.get('name')` 可选访问，**不要**把不存在的服务写进 inject（否则 PENDING 导致启动失败）。注入声明的有效通道是 **cordis 条目的 `inject:` 字段**（bundle 的 cordis.patch.yml），模块级 `export const inject` 在默认导出函数形式下不被 loader 采用
+- **profile local/ 与 node_modules 是两份拷贝**：改 `Data/DSH/profiles/web/local/<插件>` 后必须同步到 `node_modules/<插件>`（宿主读后者），两处都要改：src 文件 + cordis.patch.yml
+- **外壳内浮层盖不住 DSH WebContentsView**：独立合成层永远在外壳 HTML 之上，z-index 无法穿透；工具栏类交互用按钮内联状态（两步确认），别做应用内模态
 
 ## 📁 关键文档
 
