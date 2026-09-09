@@ -54,6 +54,11 @@ $env:PATH = "$nodeRoot;$pnpmRoot;$env:PATH"
 # 唯一稳定路径是 npm_config_* 环境变量；显式拉长避免 react-icons / node-pty / mermaid 等大 tarball 抖动失败。
 $env:npm_config_fetch_timeout = '600000'
 $env:npm_config_fetch_retries = '5'
+# electron 二进制直连 GitHub Release 在便携环境常见超时（2026-09-09 实测 install.js fetch failed）。
+# 未显式配置时回退 npmmirror 镜像，与 prepare-runtime 的 npmmirror 预取代理策略一致；显式设置优先。
+if (-not $env:ELECTRON_MIRROR) {
+  $env:ELECTRON_MIRROR = 'https://npmmirror.com/mirrors/electron/'
+}
 $previousCi = $env:CI
 Push-Location $portableRoot
 try {
