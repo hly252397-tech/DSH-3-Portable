@@ -10,6 +10,7 @@ interface SessionList {
   byId: Record<string, {
     completed?: boolean
     displayTitle: string
+    origin?: string
     pendingInteraction?: 'approval' | 'plan-review' | 'question'
     running: boolean
   }>
@@ -102,6 +103,8 @@ export function desktopBridgeClientFactory(moduleRequire: (id: string) => unknow
       }
 
       const snapshot = (): SessionList => ctx.sessions.list.getSnapshot()
+      // 子代理（origin === 'subagent'）不属于用户可见任务，不计入任务栏角标（上游 v1.0.50）。
+      const isBadgeSession = (row: SessionList['byId'][string] | undefined): boolean => row !== undefined && row.origin !== 'subagent'
       const reportBadge = (): void => {
         if (reportedBadgeCount === unreadCompletions.size) return
         reportedBadgeCount = unreadCompletions.size
@@ -158,7 +161,8 @@ export function desktopBridgeClientFactory(moduleRequire: (id: string) => unknow
         const nextBaseline = new Map<string, { pendingInteraction?: string; running: boolean }>()
         let activityCount = 0
         for (const id of [...unreadCompletions]) {
-          if (nextSnapshot.byId[id] === undefined) unreadCompletions.delete(id)
+          const row = nextSnapshot.byId[id]
+          if (row === undefined || !isBadgeSession(row)) unreadCompletions.delete(id)
         }
         for (const id of nextSnapshot.ids) {
           const row = nextSnapshot.byId[id]
@@ -166,11 +170,11 @@ export function desktopBridgeClientFactory(moduleRequire: (id: string) => unknow
           if (row.running || row.pendingInteraction !== undefined) activityCount += 1
           // 历史已完成任务只在首次建立基线时计入；后续列表刷新不能把
           // 用户已经读过并清除的任务重新标记为未读（上游 v1.0.46）。
-          if (isInitialSnapshot && row.completed === true) unreadCompletions.add(id)
+          if (isInitialSnapshot && row.completed === true && isBadgeSession(row)) unreadCompletions.add(id)
           const previous = notificationBaseline?.get(id)
           nextBaseline.set(id, { running: row.running, ...(row.pendingInteraction === undefined ? {} : { pendingInteraction: row.pendingInteraction }) })
           if (previous === undefined) continue
-          if (previous.running && !row.running && row.pendingInteraction === undefined) {
+          if (previous.running && !row.running && row.pendingInteraction === undefined && isBadgeSession(row)) {
             unreadCompletions.add(id)
             bridge.reportNotification({
               type: 'notify',

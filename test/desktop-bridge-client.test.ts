@@ -343,6 +343,48 @@ test('上游 1.0.46：已读完成任务在列表刷新后不会重新计入角�
   assert.deepEqual(client.notifications.filter(event => event.type === 'badge').map(event => event.count), [1, 0])
 })
 
+test('上游 1.0.50：子代理不计入任务栏角标（初始、完成转换与迟到元数据）', () => {
+  let snapshot: any = {
+    ids: ['parent', 'completed-child', 'running-child'], current: undefined,
+    byId: {
+      'parent': { displayTitle: '父任务', running: true, origin: 'user' },
+      'completed-child': { displayTitle: '已完成子代理', running: false, completed: true, origin: 'subagent' },
+      'running-child': { displayTitle: '运行中子代理', running: true, origin: 'subagent' },
+    },
+  }
+  let listListener: (() => void) | undefined
+  const client = loadClient({ focused: false })
+  client.apply({
+    ...clientContext({ pickDirectory: async () => null, create: async () => ({}), startSession(): void {} }),
+    sessions: {
+      binding: () => undefined,
+      list: { getSnapshot: () => snapshot, subscribe: (listener: () => void) => { listListener = listener; return () => {} } },
+      open(): void {},
+    },
+  })
+  const badgeCounts = () => client.notifications.filter(event => event.type === 'badge').map(event => event.count)
+  // 初始基线：已完成的子代理不计入，只有运行中的父任务未完成 → 角标 0。
+  assert.deepEqual(badgeCounts(), [0])
+  assert.ok(listListener)
+
+  // 子代理完成转换：不增加角标，也不发完成通知。
+  snapshot = { ...snapshot, byId: { ...snapshot.byId, 'running-child': { ...snapshot.byId['running-child'], running: false } } }
+  listListener()
+  assert.deepEqual(badgeCounts(), [0])
+  assert.equal(client.notifications.filter(event => event.type === 'notify' && event.kind === 'turn-complete').length, 0)
+
+  // 父任务完成：正常计入角标并发完成通知。
+  snapshot = { ...snapshot, byId: { ...snapshot.byId, 'parent': { ...snapshot.byId['parent'], running: false } } }
+  listListener()
+  assert.deepEqual(badgeCounts(), [0, 1])
+  assert.equal(client.notifications.filter(event => event.type === 'notify' && event.kind === 'turn-complete' && event.sessionId === 'parent').length, 1)
+
+  // 迟到的子代理元数据：父任务补标为 subagent 后，已有角标计数被移除。
+  snapshot = { ...snapshot, byId: { ...snapshot.byId, 'parent': { ...snapshot.byId['parent'], origin: 'subagent' } } }
+  listListener()
+  assert.deepEqual(badgeCounts(), [0, 1, 0])
+})
+
 test('创建工作区异常返回空值时也不得启动会话', async () => {
   let starts = 0
   const errors: string[] = []
