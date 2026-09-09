@@ -4,6 +4,14 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.51 Portable Integration — 2026-09-09
+
+- Aligned git ancestry with upstream `v1.0.51` via an `merge -s ours` re-baseline, so every future sync is a three-way merge from that point instead of replaying conflicts from already-ported 1.0.42–1.0.46 content.
+- Ported the upstream `v1.0.50` subagent unread fix: sessions with `origin === 'subagent'` are excluded from the taskbar badge across the initial baseline, completion-transition notifications, and delayed origin metadata.
+- Bumped the desktop version to `1.0.51`, electron to `44.1.1`, and `@types/node` to `26.4.1`; the `yaml` dependency used only by upstream's bridge migration module is intentionally not adopted.
+- Reviewed and intentionally skipped the upstream 1.0.47–1.0.51 recovery-mode hardening series: it is deeply coupled to upstream's `desktop-bridge` migration architecture, while the portable build keeps its own bridge closure (`dsh-process.js`/`profile-bundle-health.js`/`profile-quarantine.js`) and per-plugin quarantine transactions by design. The desktop pet, native Mica backdrop, and the bundled-plugin matrix jump (codex-ui 0.2→1.1 and friends) are likewise deferred; plugin upgrades will be evaluated separately through Profile transactions.
+- Unified-updater enhancements: upstream releases without the portable compatibility contract now enter a dedicated "blocked" state instead of a red update failure; the release source is build-time configurable (`PortableDesktopReleaseSource`); candidate slots and download caches are pruned at commit points (pointer-referenced slots are always kept, three most recent unreferenced slots retained, audited in `events.jsonl`).
+
 ## 1.0.46 Portable Integration — 2026-09-04
 
 - Upgraded the bundled official DSH runtime and its launch peers from `0.1.2-alpha.3` to `0.1.2-rc.1`, matching the trusted release list and removing the persistent "配套管理插件" update prompt.
