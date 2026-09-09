@@ -1,11 +1,12 @@
 import { spawn } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { link, lstat, mkdir, mkdtemp, readFile, readdir, rm, rmdir, unlink, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 
 import { writeTextFileAtomic, writeTextFileAtomicSync } from './atomic-file.js'
 import {
+  ALLOWED_BUILD_PACKAGES,
   BUNDLED_PLUGINS,
   OFFICIAL_DSH_VERSION,
   OFFICIAL_LAUNCH_PEERS,
@@ -18,7 +19,7 @@ import {
   isDeepSeekOfficialPackage,
   type BundledPlugin,
 } from './bundled-plugins.js'
-import { prependPath } from './plugin-toolchain.js'
+import { pnpmStoreOptions, prependPath } from './plugin-toolchain.js'
 import { terminateProcessTree } from './process-control.js'
 import { mergeProfileUpdates, officialRuntimeUpdateVersion, parsePendingUpdates, partitionPackageUpdates, resolvePendingUpdatesPath, type ProfilePackageUpdate } from './profile-updates.js'
 import { copyPrebuiltOfficialRuntime } from './runtime-prebuilt.js'
@@ -169,12 +170,18 @@ function isPathWithin(parent: string, child: string): boolean {
   return path === '' || (path !== '..' && !path.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`))
 }
 
+export function isOfflineSeedRequested(environment: NodeJS.ProcessEnv = process.env): boolean {
+  return [environment.DSH_DESKTOP_OFFLINE, environment.npm_config_offline, environment.NPM_CONFIG_OFFLINE]
+    .some(value => /^(?:true|1)$/i.test(value?.trim() ?? ''))
+}
+
 export function buildSeedRemoveArgs(packageNames: readonly string[], targetDir: string, options: SeedPnpmOptions = {}): string[] {
   return [
     'remove',
     ...packageNames,
     `--dir=${targetDir}`,
-    ...(options.storeDir === undefined ? [] : [`--store-dir=${options.storeDir}`]),
+    ...(options.offline === true || isOfflineSeedRequested() ? ['--offline'] : []),
+    ...pnpmStoreOptions(options.storeDir),
     '--config.node-linker=hoisted',
     '--config.minimumReleaseAge=0',
     '--registry=https://registry.npmjs.org/',
@@ -186,8 +193,8 @@ export function buildSeedPluginArgs(packages: readonly BundledPlugin[], targetDi
     'add',
     ...packages.map((plugin) => `${plugin.packageName}@${plugin.version}`),
     `--dir=${targetDir}`,
-    ...(options.storeDir === undefined ? [] : [`--store-dir=${options.storeDir}`]),
-    ...(options.offline === true ? ['--offline'] : []),
+    ...pnpmStoreOptions(options.storeDir),
+    ...(options.offline === true || isOfflineSeedRequested() ? ['--offline'] : []),
     '--config.node-linker=hoisted',
     '--config.auto-install-peers=' + (options.autoInstallPeers === true ? 'true' : 'false'),
     '--config.minimumReleaseAge=0',
@@ -222,6 +229,45 @@ export function ensureAutoInstallPeersDisabled(dir: string): void {
   writeFileSync(manifestPath, next, 'utf8')
 }
 
+/** pnpm 11 removed onlyBuiltDependencies; keeping it beside allowBuilds makes
+ * profile mutations fail before plugin activation. Migrate existing profiles
+ * in place while preserving user-defined allowBuilds and other settings. */
+export function ensurePnpm11BuildPolicy(dir: string): void {
+  const manifestPath = join(dir, 'pnpm-workspace.yaml')
+  if (!existsSync(manifestPath)) return
+  const current = readFileSync(manifestPath, 'utf8')
+  let next = current.replace(/^onlyBuiltDependencies:\s*\r?\n(?:^[ \t]+-[^\r\n]*(?:\r?\n|$))*/m, '')
+  const lines = next.split(/\r?\n/)
+  const allowIndex = lines.findIndex(line => /^allowBuilds:\s*$/.test(line))
+  if (allowIndex < 0) {
+    const allowed = pnpmWorkspaceYaml().match(/^allowBuilds:\s*\n(?:^[ \t]+[^\r\n]+\r?\n?)*/m)?.[0]
+    if (allowed !== undefined) next = `${next.trimEnd()}\n${allowed}`
+  } else {
+    let allowEnd = allowIndex + 1
+    while (allowEnd < lines.length && (lines[allowEnd] === '' || /^[ \t]/.test(lines[allowEnd]))) allowEnd += 1
+    const values = new Map<string, boolean>()
+    for (const line of lines.slice(allowIndex + 1, allowEnd)) {
+      const match = line.match(/^[ \t]+(.+?):\s*(true|false)\s*$/)
+      if (!match) continue
+      let key = match[1].trim()
+      if (key.startsWith('"') && key.endsWith('"')) {
+        try { key = JSON.parse(key) as string } catch {}
+      } else if (key.startsWith("'") && key.endsWith("'")) {
+        key = key.slice(1, -1).replace(/''/g, "'")
+      }
+      values.set(key, match[2] === 'true')
+    }
+    for (const packageName of ALLOWED_BUILD_PACKAGES) values.set(packageName, true)
+    const normalized = [...values].map(([name, enabled]) => {
+      const yamlName = /^[A-Za-z0-9_.-]+$/.test(name) ? name : JSON.stringify(name)
+      return `  ${yamlName}: ${enabled ? 'true' : 'false'}`
+    })
+    lines.splice(allowIndex + 1, allowEnd - allowIndex - 1, ...normalized)
+    next = lines.join('\n')
+  }
+  if (next !== current) writeFileSync(manifestPath, next, 'utf8')
+}
+
 export function resolveProfileDshEntry(dir: string): string {
   return join(dir, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
 }
@@ -238,13 +284,6 @@ export function missingOfficialLaunchPeers(dir: string, peers = OFFICIAL_LAUNCH_
 export function isOfficialRuntimeLaunchable(dir: string): boolean {
   return existsSync(resolveProfileDshEntry(dir)) && missingOfficialLaunchPeers(dir).length === 0
 }
-
-const OFFICIAL_LOCK_PACKAGES = [
-  OFFICIAL_RUNTIME.packageName,
-  '@deepseek-ai/dsh-attachment-local',
-  '@deepseek-ai/dsh-host-apiproxy',
-  '@deepseek-ai/dsh-invariants',
-] as const
 
 export function readInstalledPackageVersion(dir: string, packageName: string): string | undefined {
   const manifestPath = resolvePackageManifestPath(dir, packageName)
@@ -267,7 +306,16 @@ export function officialRuntimeHasVersionLock(dir: string, version: string): boo
 
 export function isOfficialRuntimeFamilyAligned(dir: string, version: string): boolean {
   if (!officialRuntimeHasVersionLock(dir, version)) return false
-  return OFFICIAL_LOCK_PACKAGES.every((packageName) => readInstalledPackageVersion(dir, packageName) === version)
+  if (readInstalledPackageVersion(dir, OFFICIAL_RUNTIME.packageName) !== version) return false
+  const scopeRoot = join(dir, 'node_modules', '@deepseek-ai')
+  try {
+    const family = readdirSync(scopeRoot, { withFileTypes: true })
+      .filter(entry => (entry.isDirectory() || entry.isSymbolicLink()) && entry.name.startsWith('dsh-'))
+      .map(entry => `@deepseek-ai/${entry.name}`)
+    return family.length > 0 && family.every(packageName => readInstalledPackageVersion(dir, packageName) === version)
+  } catch {
+    return false
+  }
 }
 
 export function writeOfficialRuntimeManifest(runtimeDir: string, version = OFFICIAL_DSH_VERSION): void {
@@ -294,7 +342,8 @@ export function officialRuntimeInstallArgs(runtimeDir: string, storeDir?: string
     '--dir=' + runtimeDir,
     '--prod',
     '--no-frozen-lockfile',
-    ...(storeDir === undefined ? [] : [`--store-dir=${storeDir}`]),
+    ...(isOfflineSeedRequested() ? ['--offline'] : []),
+    ...pnpmStoreOptions(storeDir),
     '--config.node-linker=hoisted',
     '--config.auto-install-peers=true',
     '--config.minimumReleaseAge=0',
@@ -458,7 +507,7 @@ async function seedOfficialRuntime(options: SeedOptions): Promise<readonly strin
     try {
       await runner(args)
     } catch (error) {
-      if (useStore) {
+      if (useStore && !isOfflineSeedRequested()) {
         await runner(buildSeedPluginArgs([OFFICIAL_RUNTIME], runtimeDir, { autoInstallPeers: true }))
       } else {
         throw error
@@ -485,7 +534,7 @@ async function ensureOfficialLaunchPeers(options: SeedOptions, targetDir: string
   try {
     await runner(args)
   } catch (error) {
-    if (useStore) await runner(buildSeedPluginArgs([OFFICIAL_RUNTIME, ...missing], targetDir, { autoInstallPeers: true }))
+    if (useStore && !isOfflineSeedRequested()) await runner(buildSeedPluginArgs([OFFICIAL_RUNTIME, ...missing], targetDir, { autoInstallPeers: true }))
     else throw error
   }
   const stillMissing = missingOfficialLaunchPeers(targetDir)
@@ -510,11 +559,12 @@ async function seedCommunityPlugins(options: SeedOptions): Promise<SeedResult> {
   const storeOptions = useStore ? { storeDir, offline: true } : {}
   const runner = options.runner ?? ((pluginArgs) => runPnpm(options, pluginArgs))
   if (plan.packages.length > 0) {
+    if (useStore) await seedPackagedPluginLockfile(options.profileDir, storeDir)
     const args = buildSeedPluginArgs(plan.packages, options.profileDir, storeOptions)
     try {
       await runner(args)
     } catch (error) {
-      if (useStore) await runner(buildSeedPluginArgs(plan.packages, options.profileDir, {}))
+      if (useStore && !isOfflineSeedRequested()) await runner(buildSeedPluginArgs(plan.packages, options.profileDir, {}))
       else throw error
     }
   }
@@ -522,12 +572,41 @@ async function seedCommunityPlugins(options: SeedOptions): Promise<SeedResult> {
     try {
       await runner(buildSeedRemoveArgs([SUITE_PACKAGE], options.profileDir, storeOptions))
     } catch (error) {
-      if (useStore) await runner(buildSeedRemoveArgs([SUITE_PACKAGE], options.profileDir, {}))
+      if (useStore && !isOfflineSeedRequested()) await runner(buildSeedRemoveArgs([SUITE_PACKAGE], options.profileDir, {}))
       else throw error
     }
   }
   await reconcileProfileBundles(options.profileDir)
   return { seeded: plan.packages.map((plugin) => plugin.packageName) }
+}
+
+/** Use the build's resolution only for pristine profiles; never replace user locks. */
+export async function seedPackagedPluginLockfile(profileDir: string, storeDir: string): Promise<boolean> {
+  const target = join(profileDir, 'pnpm-lock.yaml')
+  if (existsSync(target) || existsSync(join(profileDir, 'node_modules'))) return false
+  const manifest = JSON.parse(await readFile(join(profileDir, 'package.json'), 'utf8'))
+  if (['dependencies', 'devDependencies', 'optionalDependencies'].some(key => Object.keys(manifest[key] ?? {}).length > 0)) return false
+  const source = join(storeDir, 'dsh-store-lock.yaml')
+  let metadata
+  try { metadata = await lstat(source) } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false // legacy package
+    throw error
+  }
+  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size > 8 * 1024 * 1024) throw new Error('内置插件锁文件不合法。')
+  const staging = await mkdtemp(join(profileDir, '.seed-lock-'))
+  const temporary = join(staging, 'pnpm-lock.yaml')
+  try {
+    await writeFile(temporary, await readFile(source), { flag: 'wx' })
+    // Atomic exclusive publication: a concurrent/user-created lock always wins.
+    try { await link(temporary, target) } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EEXIST') return false
+      throw error
+    }
+    return true
+  } finally {
+    await unlink(temporary).catch(error => { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error })
+    await rmdir(staging)
+  }
 }
 
 export async function ensureProfileScaffold(profileDir: string): Promise<void> {
@@ -547,6 +626,7 @@ export async function ensureProfileScaffold(profileDir: string): Promise<void> {
   if (!existsSync(join(profileDir, 'pnpm-workspace.yaml'))) {
     await writeFile(join(profileDir, 'pnpm-workspace.yaml'), pnpmWorkspaceYaml(false), 'utf8')
   }
+  ensurePnpm11BuildPolicy(profileDir)
   ensureAutoInstallPeersDisabled(profileDir)
 }
 
@@ -558,6 +638,7 @@ async function ensureRuntimeScaffold(runtimeDir: string): Promise<void> {
   if (!existsSync(join(runtimeDir, 'pnpm-workspace.yaml'))) {
     await writeFile(join(runtimeDir, 'pnpm-workspace.yaml'), pnpmWorkspaceYaml(), 'utf8')
   }
+  ensurePnpm11BuildPolicy(runtimeDir)
 }
 
 export async function reconcileProfileBundles(profileDir: string, packageNames?: readonly string[]): Promise<string[]> {

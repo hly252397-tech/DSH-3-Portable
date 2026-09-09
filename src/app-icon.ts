@@ -38,6 +38,27 @@ export function resolveRasterIconPath(options: IconResolutionOptions): string | 
   return candidates.find(candidate => existsSync(candidate))
 }
 
+/** Windows taskbar uses the original portable-edition whale without changing toast, favicon, or installer branding. */
+export function resolveTaskbarIconPath(options: IconResolutionOptions): string | undefined {
+  const optical = options.isPackaged
+    ? join(options.resourcesPath, 'taskbar-optical.ico')
+    : resolve(options.appPath, 'assets', 'icons', 'taskbar-optical.ico')
+  if (existsSync(optical)) return optical
+  return resolveOriginalWhaleIconPath(options)
+}
+
+function resolveOriginalWhaleIconPath(options: IconResolutionOptions): string | undefined {
+  const candidate = options.isPackaged
+    ? join(options.resourcesPath, 'taskbar.png')
+    : resolve(options.appPath, 'assets', 'icons', 'taskbar.png')
+  return existsSync(candidate) ? candidate : undefined
+}
+
+/** Keep the existing tray asset unchanged when refining the taskbar. */
+export function resolveTrayIconPath(options: IconResolutionOptions): string | undefined {
+  return resolveOriginalWhaleIconPath(options) ?? resolveRasterIconPath(options)
+}
+
 /** Windows toast headers use a tiny source slot, so use the tightly cropped ICO. */
 export function resolveNotificationIconPath(options: IconResolutionOptions): string | undefined {
   const candidate = options.isPackaged

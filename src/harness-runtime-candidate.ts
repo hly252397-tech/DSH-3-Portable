@@ -13,6 +13,7 @@ import {
 } from './plugin-seed.js'
 import { terminateProcessTree } from './process-control.js'
 import { runtimeSlotDirectory, runtimeSlotsRoot } from './runtime-slots.js'
+import { prepareRuntimePnpmLayout, verifyRuntimePnpmLayout } from './runtime-pnpm-layout.js'
 
 export interface HarnessRuntimeCandidate {
   readonly directory: string
@@ -40,11 +41,13 @@ export async function buildHarnessRuntimeCandidate(options: {
     await writeFile(join(stagingDir, 'pnpm-workspace.yaml'), pnpmWorkspaceYaml(), 'utf8')
     const args = officialRuntimeInstallArgs(stagingDir, options.storeDir)
     await (options.runner ?? ((commandArgs, cwd) => runPnpm(options.nodeExecutable, options.pnpmEntry, commandArgs, cwd, options.timeoutMs)))(args, stagingDir)
+    await prepareRuntimePnpmLayout(stagingDir)
     const validation = await validateHarnessRuntimeCandidate(stagingDir, options.version, options.expectedNpmIntegrity)
     await writeFile(join(stagingDir, '.dsh-runtime-fingerprint'), `${validation.fingerprint}\n`, 'utf8')
     const destination = runtimeSlotDirectory(options.legacyRuntimeDir, options.version, validation.fingerprint)
     if (existsSync(destination)) {
       const existing = await validateHarnessRuntimeCandidate(destination, options.version, options.expectedNpmIntegrity)
+      await verifyRuntimePnpmLayout(destination)
       if (existing.fingerprint !== validation.fingerprint) throw new Error('同名 DSH 运行时槽与候选指纹不一致。')
       return { directory: destination, version: options.version, fingerprint: validation.fingerprint, reused: true, packageCount: validation.packageCount }
     }
@@ -86,6 +89,8 @@ export async function validateHarnessRuntimeCandidate(
   }
   if (manifests.length === 0) throw new Error('候选 DSH 运行时没有可审计的官方包。')
   const fingerprint = createHash('sha256')
+    // Do not reuse a pre-fix immutable slot with the same package lock.
+    .update('dsh-runtime-pnpm-layout-v2\0')
     .update(lock)
     .update('\0')
     .update(manifests.sort().join('\0'))

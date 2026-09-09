@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DSH 完整版浏览器</title>
+  <script>const theme=new URLSearchParams(location.search).get('theme');document.documentElement.dataset.colorScheme=theme||'light'</script>
+  <link rel="stylesheet" href="theme.css">
+  <script src="theme.js"></script>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,"Segoe UI","Microsoft YaHei UI",sans-serif;background:var(--chrome-bg);color:var(--chrome-text)}
+    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}button{font:inherit;color:inherit;border:0;background:transparent}
+    .browser{position:relative;isolation:isolate;width:100%;height:100%;display:flex;flex-direction:column;background:var(--browser-surface);border:0;overflow:hidden}
+    .browser img{width:14px;height:14px;filter:invert(91%) sepia(5%) saturate(80%) hue-rotate(80deg)}
+    .browser-tabs{position:relative;display:flex;align-items:center;gap:4px;height:40px;padding:5px 8px 4px;flex:none;background:var(--browser-surface-soft);border-bottom:1px solid var(--browser-border)}
+    .browser-tabs-list{display:flex;align-items:center;gap:3px;min-width:0;max-width:calc(100% - 36px);flex:0 1 auto;overflow-x:auto;scrollbar-width:none}.browser-tabs-list::-webkit-scrollbar{display:none}
+    .browser-tabs-actions{display:flex;align-items:center;flex:none;margin:0 auto 0 0}
+    .browser-tabs .tab{position:relative;display:flex;align-items:center;gap:7px;width:190px;max-width:min(220px,42vw);min-width:132px;height:30px;padding:0 6px 0 10px;border:1px solid transparent;border-radius:var(--chrome-radius-sm);color:var(--browser-muted);cursor:default;user-select:none;flex:0 1 190px;transition:background-color 120ms ease,border-color 120ms ease,color 120ms ease,box-shadow 120ms ease}
+    .browser-tabs .tab:hover{background:var(--browser-surface-raised);color:var(--browser-text)}.browser-tabs .tab.active{background:var(--browser-surface);border-color:var(--browser-border);color:var(--browser-text)}.browser-tabs .tab.active::after{content:"";position:absolute;left:12px;right:12px;bottom:-5px;height:2px;border-radius:2px;background:var(--browser-accent)}.browser-tabs .tab:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus-ring,var(--browser-accent))}
+    .browser-tabs .tab.crashed .tab-label{opacity:.55;text-decoration:line-through}.browser-tabs .tab-icon{width:14px;height:14px;flex:none;display:grid;place-items:center}.browser-tabs .tab-icon img{filter:none}.browser-tabs .tab-dot{width:8px;height:8px;border-radius:50%;background:var(--browser-muted)}.browser-tabs .tab-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:450}.browser-tabs .tab.active .tab-label{font-weight:600}
+    .browser-tabs .tab-close{width:20px;height:20px;border-radius:5px;display:grid;place-items:center;flex:none;opacity:.62;transition:opacity 120ms ease,background-color 120ms ease}.browser-tabs .tab:not(.active):not(:hover) .tab-close{opacity:0}.browser-tabs .tab-close:hover{background:var(--browser-surface-raised);opacity:1}.browser-tabs .tab-close img{width:10px;height:10px;pointer-events:none}.browser-tabs .tab-add{width:28px;height:28px;border:1px solid transparent;border-radius:var(--chrome-radius-sm);display:grid;place-items:center;flex:none;opacity:.76;transition:background-color 120ms ease,border-color 120ms ease,opacity 120ms ease}.browser-tabs .tab-add:hover{background:var(--browser-surface-raised);border-color:var(--browser-border);opacity:1}.browser-tabs .tab-add:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus-ring,var(--browser-accent))}
+    .nav{width:28px;height:28px;border-radius:var(--chrome-radius-sm);display:grid;place-items:center;opacity:.72;transition:background-color 120ms ease,opacity 120ms ease}.nav:hover:not(:disabled){background:var(--browser-surface-raised);opacity:1}.nav:disabled{opacity:.32}.nav:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus-ring,var(--browser-accent))}
+    .browser-nav{display:flex;align-items:center;gap:3px;height:42px;padding:6px 8px;background:var(--browser-surface);border-bottom:1px solid var(--browser-border);flex:none}.browser-nav input{flex:1;min-width:0;height:30px;margin:0 5px;padding:0 12px;border-radius:var(--chrome-radius-sm);border:1px solid var(--chrome-border-strong);background:var(--chrome-bg);color:var(--browser-text);font-size:12px;outline:none;transition:background-color 120ms ease,border-color 120ms ease,box-shadow 120ms ease}.browser-nav input:hover{border-color:var(--browser-muted)}.browser-nav input:focus{border-color:var(--focus-ring,var(--browser-accent));box-shadow:0 0 0 2px color-mix(in srgb,var(--browser-accent) 18%,transparent)}
+    .browser.loading .browser-nav input{opacity:.6}.browser.loading [data-browser="reload"] img{animation:browser-spin .8s linear infinite}@keyframes browser-spin{to{transform:rotate(360deg)}}
+    :root[data-color-scheme="light"]{color-scheme:light;background:var(--chrome-bg);color:var(--chrome-text)}:root[data-color-scheme="light"] .browser{background:var(--browser-surface)}:root[data-color-scheme="light"] .browser img{filter:brightness(0);opacity:.72}
+    @media(max-width:620px){.browser-tool.optional{display:none}}
+    @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  </style>
+  <link rel="stylesheet" href="browser-workspace.css">
+</head>
+<body>
+  <section id="browser" class="browser" aria-label="DSH 完整版浏览器">
+    <div class="browser-tabs"><div class="browser-tabs-list" id="browser-tabs" role="tablist"></div><span class="browser-tabs-actions" id="browser-tabs-actions" role="presentation"></span></div>
+    <div class="browser-nav">
+      <button class="nav" data-browser="back" title="后退" aria-label="后退"><img src="shell-icons/arrow-left.svg" alt=""></button>
+      <button class="nav" data-browser="forward" title="前进" aria-label="前进"><img src="shell-icons/arrow-right.svg" alt=""></button>
+      <button class="nav" data-browser="reload" title="重新加载" aria-label="重新加载"><img src="shell-icons/rotate-right.svg" alt=""></button>
+      <input id="browser-address" type="text" spellcheck="false" autocomplete="off" placeholder="输入网址…">
+      <button class="nav" data-browser="home" title="主页" aria-label="主页"><img src="shell-icons/home.svg" alt=""></button>
+      <button id="browser-bookmark" class="browser-tool" type="button">收藏</button>
+      <button id="browser-library" class="browser-tool optional" type="button">资料</button>
+      <button id="browser-downloads" class="browser-tool optional" type="button" aria-pressed="false">下载</button>
+      <button id="browser-external" class="browser-tool optional" type="button">外部</button>
+      <button id="browser-more" class="browser-tool" type="button" aria-haspopup="menu" aria-expanded="false">更多</button>
+    </div>
+    <form id="browser-find" class="browser-find" hidden role="search" aria-label="在页面中查找"><input id="browser-find-input" type="search" autocomplete="off" placeholder="在页面中查找"><span id="browser-find-count" class="browser-find-count">0/0</span><button id="browser-find-prev" class="browser-tool" type="button">上一个</button><button id="browser-find-next" class="browser-tool" type="button">下一个</button><button id="browser-find-close" class="browser-tool" type="button">关闭</button></form>
+    <div id="browser-overflow" class="browser-overflow" hidden role="menu">
+      <button id="browser-menu-find" type="button">在页面中查找</button><button id="browser-menu-print" type="button">打印当前页面</button><button id="browser-menu-screenshot" type="button">截取页面并保存到便携盘</button><button id="browser-menu-devtools" type="button">开发者工具</button><hr>
+      <div class="zoom-row" role="group" aria-label="页面缩放"><button id="browser-zoom-out" type="button">−</button><span id="browser-zoom-value" class="zoom-value">100%</span><button id="browser-zoom-in" type="button">＋</button><button id="browser-zoom-reset" type="button">重置</button></div><hr>
+      <button id="browser-menu-downloads" type="button">下载内容</button><button id="browser-menu-library" type="button">浏览器资料与设置</button><button id="browser-menu-clear" type="button">清除 Cookie、缓存和站点数据</button><button id="browser-menu-close" type="button">关闭浏览器 Tab</button>
+    </div>
+    <aside id="browser-download-drawer" class="browser-downloads" hidden><header class="browser-drawer-header"><div class="browser-drawer-copy"><strong>下载内容</strong><span>文件保存在便携盘 Downloads 文件夹</span></div><div class="browser-drawer-actions"><button id="browser-download-folder" class="browser-tool" type="button">打开文件夹</button><button id="browser-download-clear" class="browser-tool danger" type="button">清空记录</button><button id="browser-download-close" class="browser-tool" type="button">收起</button></div></header><div id="browser-download-list" class="browser-download-list"></div></aside>
+    <section id="browser-manager" class="browser-manager" hidden>
+      <header class="browser-manager-header"><div class="browser-manager-copy"><strong>浏览器资料与设置</strong><span id="browser-manager-status">独立配置 · 密码由系统安全存储加密</span></div><div class="browser-manager-actions"><button id="browser-manager-close" class="browser-tool" type="button">关闭</button></div></header>
+      <div class="browser-manager-body">
+        <section class="browser-card wide"><div class="browser-card-heading"><div><strong>迁移浏览器数据</strong><span>Codex、Edge 或 Chrome；复制历史、收藏、Cookie、密码、自动填充和兼容扩展</span></div></div><div id="browser-sources" class="browser-source-list"></div><div id="browser-import-note" class="browser-note"></div></section>
+        <section class="browser-card wide"><div class="browser-card-heading"><div><strong>首页组</strong><span>每行一个地址；新标签使用第一项</span></div></div><form id="browser-homepage-form" class="browser-form"><textarea id="browser-homepages" class="browser-field" spellcheck="false"></textarea><button class="browser-tool primary" type="submit">保存</button><button id="browser-homepage-open" class="browser-tool" type="button">打开整组</button><button id="browser-homepage-reset" class="browser-tool" type="button">恢复默认</button></form><div id="browser-homepage-note" class="browser-note"></div></section>
+        <section class="browser-card"><div class="browser-card-heading"><div><strong>历史记录</strong><span id="browser-history-count">0 条</span></div><button id="browser-history-clear" class="browser-tool danger" type="button">清空</button></div><input id="browser-history-filter" class="browser-field" type="search" placeholder="搜索历史记录"><div id="browser-history-list" class="browser-manager-list"></div></section>
+        <section id="browser-bookmark-card" class="browser-card" tabindex="-1"><div class="browser-card-heading"><div><strong>收藏夹</strong><span id="browser-bookmark-count">0 条</span></div><button id="browser-bookmark-clear" class="browser-tool danger" type="button">清空</button></div><div id="browser-bookmark-list" class="browser-manager-list"></div></section>
+        <section class="browser-card wide"><div class="browser-card-heading"><div><strong>密码与自动填充</strong><span>密码以系统安全存储加密后写入便携盘</span></div><button id="browser-autofill" class="browser-tool" type="button">填充当前页</button></div><form id="browser-credential-form" class="browser-form"><input id="browser-credential-origin" class="browser-field" type="url" required placeholder="https://example.com"><input id="browser-credential-username" class="browser-field" autocomplete="off" placeholder="用户名"><input id="browser-credential-password" class="browser-field" type="password" autocomplete="new-password" required placeholder="密码"><button class="browser-tool primary" type="submit">加密保存</button></form><div id="browser-credential-list" class="browser-manager-list"></div><div id="browser-autofill-note" class="browser-note"></div></section>
+        <section class="browser-card"><div class="browser-card-heading"><div><strong>扩展</strong><span>迁移兼容的 Chrome 解压扩展；开关立即应用到当前浏览器会话</span></div></div><div id="browser-extension-list" class="browser-manager-list"></div></section>
+        <section class="browser-card"><div class="browser-card-heading"><div><strong>浏览器运行时</strong><span>由桌面 A/B 更新器统一更新和回滚</span></div><button id="browser-runtime-check" class="browser-tool" type="button">检查</button></div><div id="browser-runtime-info" class="browser-note">正在读取版本…</div><div class="browser-switches"><label><input id="browser-history-enabled" type="checkbox">保存浏览历史</label><label><input id="browser-import-retry" type="checkbox">启动时重试未完成迁移</label><label><input id="browser-extensions-load" type="checkbox">启动时加载已启用扩展</label></div></section>
+      </div>
+    </section>
+  </section>
+  <script src="browser-workspace.js"></script>
+  <script>
+    const api=window.dshShell;let bootstrap;let state;const workspace=window.DshBrowserWorkspace.create(api,{getState:()=>state});
+    function zh(){return bootstrap?.locale?.startsWith('zh')??true}
+    function render(browser){
+      if(!browser||typeof browser!=='object')return;const host=document.getElementById('browser');host.classList.toggle('loading',browser.loading===true);
+      const tabs=Array.isArray(browser.tabs)?browser.tabs:[];const strip=document.getElementById('browser-tabs');strip.replaceChildren();const items=[];
+      for(const tab of tabs){const item=document.createElement('div');item.className='tab'+(tab.id===browser.activeId?' active':'')+(tab.crashed?' crashed':'');item.role='tab';item.tabIndex=tab.id===browser.activeId?0:-1;item.ariaSelected=String(tab.id===browser.activeId);item.title=tab.url||'';const icon=document.createElement('span');icon.className='tab-icon';if(tab.favicon){const image=document.createElement('img');image.src=tab.favicon;image.alt='';icon.append(image)}else{const dot=document.createElement('span');dot.className='tab-dot';icon.append(dot)}const label=document.createElement('span');label.className='tab-label';label.textContent=tab.title||tab.url;const close=document.createElement('button');close.className='tab-close';close.ariaLabel=close.title=zh()?'关闭标签页':'Close tab';close.innerHTML='<img src="shell-icons/xmark.svg" alt="">';close.addEventListener('click',event=>{event.stopPropagation();api.browser.closeTab(tab.id)});item.append(icon,label,close);const activate=()=>{if(tab.crashed)api.browser.reload();api.browser.activateTab(tab.id)};item.addEventListener('click',activate);item.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();activate()}else if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();const delta=event.key==='ArrowLeft'?-1:1;items[(items.indexOf(item)+delta+items.length)%items.length]?.focus()}});items.push(item);strip.append(item)}
+      const actions=document.getElementById('browser-tabs-actions');actions.replaceChildren();const add=document.createElement('button');add.className='tab-add';add.ariaLabel=add.title=zh()?'新标签页':'New tab';add.innerHTML='<img src="shell-icons/plus.svg" alt="">';add.addEventListener('click',()=>api.browser.newTab(''));actions.append(add);
+      document.querySelector('[data-browser="back"]').disabled=!browser.canBack;document.querySelector('[data-browser="forward"]').disabled=!browser.canForward;const address=document.getElementById('browser-address');const active=tabs.find(tab=>tab.id===browser.activeId);if(active&&document.activeElement!==address)address.value=active.url;workspace.render(browser)
+    }
+    function applyState(next){state=next;render(next.browser)}
+    function applyBootstrap(value){bootstrap=value;document.documentElement.lang=value.locale;document.documentElement.dataset.colorScheme=value.colorScheme;document.documentElement.style.colorScheme=value.colorScheme;document.getElementById('browser-address').placeholder=zh()?'输入网址…':'Enter address…';applyState(state??value.state)}
+    document.querySelectorAll('[data-browser]').forEach(button=>button.addEventListener('click',()=>{const action=button.dataset.browser;if(action==='back')api.browser.back();else if(action==='forward')api.browser.forward();else if(action==='reload')api.browser.reload();else if(action==='home')api.browser.openHomepages()}));
+    const address=document.getElementById('browser-address');address.addEventListener('keydown',event=>{if(event.key==='Enter'){const value=address.value.trim();if(value)api.browser.navigate(value);address.blur()}else if(event.key==='Escape'){const active=state?.browser?.tabs?.find(tab=>tab.id===state.browser.activeId);if(active)address.value=active.url;address.blur()}});
+    api.getBootstrap().then(applyBootstrap);api.onBootstrap(applyBootstrap);api.onState(applyState);
+  </script>
+</body>
+</html>

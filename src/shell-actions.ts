@@ -20,7 +20,6 @@ export type ShellActionId =
   | 'previous-chat'
   | 'next-chat'
   | 'home'
-  | 'browser-toggle'
   | 'back'
   | 'forward'
   | 'zoom-in'
@@ -33,6 +32,7 @@ export type ShellActionId =
   | 'reload'
   | 'check-updates'
   | 'about'
+  | 'feature-panels'
 
 export interface LocalizedText {
   readonly en: string
@@ -92,13 +92,13 @@ export const SHELL_ACTIONS: readonly ShellActionDefinition[] = [
   { id: 'previous-chat', menu: 'view', group: 2, label: text('上一个聊天', 'Previous Chat'), accelerator: 'CmdOrCtrl+Shift+[', globalShortcut: true },
   { id: 'next-chat', menu: 'view', group: 2, label: text('下一个聊天', 'Next Chat'), accelerator: 'CmdOrCtrl+Shift+]', globalShortcut: true },
   { id: 'home', menu: 'view', group: 2, label: text('主页', 'Home'), accelerator: 'Alt+Home', globalShortcut: true, keywords: text('deepseek 首页', 'deepseek homepage') },
-  { id: 'browser-toggle', menu: 'view', group: 2, label: text('切换浏览器', 'Toggle Browser'), accelerator: 'CmdOrCtrl+Shift+B', globalShortcut: true, keywords: text('内置浏览器 面板 标签页', 'built-in browser panel tabs') },
   { id: 'back', menu: 'view', group: 2, label: text('返回', 'Back'), accelerator: 'CmdOrCtrl+[', globalShortcut: true },
   { id: 'forward', menu: 'view', group: 2, label: text('前进', 'Forward'), accelerator: 'CmdOrCtrl+]', globalShortcut: true },
   { id: 'zoom-in', menu: 'view', group: 3, label: text('放大', 'Zoom In'), accelerator: 'CmdOrCtrl+Shift+Plus', globalShortcut: true },
   { id: 'zoom-out', menu: 'view', group: 3, label: text('缩小', 'Zoom Out'), accelerator: 'CmdOrCtrl+-', globalShortcut: true },
   { id: 'zoom-reset', menu: 'view', group: 3, label: text('实际大小', 'Actual Size'), accelerator: 'CmdOrCtrl+0', globalShortcut: true },
   { id: 'toggle-fullscreen', menu: 'view', group: 4, label: text('切换全屏', 'Toggle Full Screen'), accelerator: 'F11', globalShortcut: true },
+  { id: 'feature-panels', menu: 'view', group: 5, label: text('功能板块', 'Feature Panels'), keywords: text('开发 索引 模块 面板 文件 路径', 'dev index module file path') },
 
   { id: 'whats-new', menu: 'help', group: 0, label: text('新功能', "What's New") },
   { id: 'feedback', menu: 'help', group: 0, label: text('反馈', 'Feedback') },

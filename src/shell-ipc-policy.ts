@@ -1,9 +1,9 @@
 import type { ShellActionId } from './shell-actions.js'
 
-export type ShellRendererKind = 'main' | 'shortcuts' | 'about' | 'settings' | 'dsh' | 'unknown'
+export type ShellRendererKind = 'main' | 'browser-panel' | 'shortcuts' | 'about' | 'settings' | 'feature-panels' | 'dsh' | 'unknown'
 
 export function mayGetShellBootstrap(kind: ShellRendererKind): boolean {
-  return kind === 'main' || kind === 'shortcuts' || kind === 'about' || kind === 'settings'
+  return kind === 'main' || kind === 'browser-panel' || kind === 'shortcuts' || kind === 'about' || kind === 'settings' || kind === 'feature-panels'
 }
 
 export function mayInvokeShellAction(kind: ShellRendererKind, id: ShellActionId): boolean {
@@ -15,11 +15,12 @@ export function mayInvokeShellAction(kind: ShellRendererKind, id: ShellActionId)
 }
 
 export function mayInvokeBrowserIpc(kind: ShellRendererKind): boolean {
-  return kind === 'main'
+  return kind === 'browser-panel'
 }
 
-export function mayInvokeBrowserPanelIpc(kind: ShellRendererKind): boolean {
-  return kind === 'main' || kind === 'dsh'
+/** DSH 内容区只可挂载、卸载和定位浏览器面板，不能获得浏览器管理权限。 */
+export function mayManageBrowserPanel(kind: ShellRendererKind): boolean {
+  return kind === 'dsh'
 }
 
 export function mayPopupShellMenu(kind: ShellRendererKind): boolean {
@@ -50,10 +51,19 @@ export function mayAccessNotificationPreferences(kind: ShellRendererKind): boole
   return kind === 'settings'
 }
 
+export function mayAccessThemePreferences(kind: ShellRendererKind): boolean {
+  return kind === 'settings'
+}
+
 export function mayAccessDesktopUpdates(kind: ShellRendererKind): boolean {
   return kind === 'settings'
 }
 
 export function mayCloseDesktopSettings(kind: ShellRendererKind): boolean {
   return kind === 'settings'
+}
+
+/** 仅「功能板块」开发态窗口能调文件路径复制；其它 renderer 一律拒绝。 */
+export function mayInvokeFeaturePanelsCopy(kind: ShellRendererKind): boolean {
+  return kind === 'feature-panels'
 }

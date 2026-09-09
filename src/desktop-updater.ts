@@ -2,14 +2,26 @@ import { readFile } from 'node:fs/promises'
 
 import { writeTextFileAtomic } from './atomic-file.js'
 
+interface DesktopUpdateProgress {
+  readonly detail?: string
+  readonly overallProgress?: number
+  readonly stageProgress?: number
+  readonly errorCode?: string
+  readonly transactionId?: string
+}
+
 export type DesktopUpdateStatus =
-  | { kind: 'idle' }
-  | { kind: 'checking' }
-  | { kind: 'available'; version: string; releaseNotes?: string }
-  | { kind: 'none' }
-  | { kind: 'downloading'; percent: number }
-  | { kind: 'ready'; version: string }
-  | { kind: 'error'; message: string }
+  | ({ kind: 'idle' } & DesktopUpdateProgress)
+  | ({ kind: 'checking' } & DesktopUpdateProgress)
+  | ({ kind: 'available'; version: string; releaseNotes?: string } & DesktopUpdateProgress)
+  | ({ kind: 'none' } & DesktopUpdateProgress)
+  | ({ kind: 'incompatible'; version?: string; message: string } & DesktopUpdateProgress)
+  | ({ kind: 'downloading'; percent: number; version?: string } & DesktopUpdateProgress)
+  | ({ kind: 'verifying' | 'building' | 'deploying' | 'validating'; version?: string } & DesktopUpdateProgress)
+  | ({ kind: 'ready'; version: string } & DesktopUpdateProgress)
+  | ({ kind: 'completed'; version: string } & DesktopUpdateProgress)
+  | ({ kind: 'rolled-back'; version?: string; message: string } & DesktopUpdateProgress)
+  | ({ kind: 'error'; message: string } & DesktopUpdateProgress)
 
 export type DesktopUpdatePolicy = 'notify' | 'auto-download' | 'manual'
 export type DesktopUpdateAction = 'check' | 'download' | 'install'
@@ -37,6 +49,18 @@ export type DesktopTrayItem = {
 
 export const DESKTOP_UPDATE_WARNING = '下载完成后将重启并替换当前桌面应用，请先保存正在进行的工作。'
 export const DESKTOP_UPDATE_WARNING_EN = 'The app will restart and replace the current desktop build after download. Save your work first.'
+
+export function preserveDesktopUpdateFailure(status: DesktopUpdateStatus, message: string): Extract<DesktopUpdateStatus, { kind: 'error' }> {
+  return {
+    kind: 'error',
+    message,
+    ...(status.detail === undefined ? {} : { detail: status.detail }),
+    ...(status.overallProgress === undefined ? {} : { overallProgress: status.overallProgress }),
+    ...(status.stageProgress === undefined ? {} : { stageProgress: status.stageProgress }),
+    ...(status.errorCode === undefined ? {} : { errorCode: status.errorCode }),
+    ...(status.transactionId === undefined ? {} : { transactionId: status.transactionId }),
+  }
+}
 
 export function sanitizeUpdatePreferences(value: unknown): DesktopUpdatePreferences {
   if (typeof value !== 'object' || value === null) return DEFAULT_UPDATE_PREFERENCES
@@ -84,7 +108,7 @@ export function publicDesktopUpdateError(error: unknown, locale = 'zh'): string 
 export function desktopUpdatePrompt(status: Extract<DesktopUpdateStatus, { kind: 'available' | 'ready' }>, locale = 'zh'): string {
   const zh = locale.toLowerCase().startsWith('zh')
   if (status.kind === 'ready') {
-    return zh ? `桌面端 ${status.version} 已下载。关闭应用后安装新版本。` : `Desktop ${status.version} is ready. Close the app to install it.`
+    return zh ? `桌面端 ${status.version} 已完成下载、校验和候选构建。确认后将优雅关闭当前桌面端，部署候选并自动重启验证。` : `Desktop ${status.version} has been downloaded, verified, and built. After confirmation, the current desktop will shut down gracefully, deploy the candidate, and restart for validation.`
   }
   const notes = status.releaseNotes === undefined || status.releaseNotes.trim() === '' ? '' : `\n\n${status.releaseNotes.trim()}`
   return zh
@@ -142,13 +166,24 @@ export function buildDesktopTrayItems(input: {
     items.push({ id: 'check', label: zh ? '检查更新…' : 'Check for Updates…', enabled: true, type: 'normal' })
   } else if (input.status.kind === 'checking') {
     items.push({ id: 'check', label: zh ? '正在检查更新…' : 'Checking for Updates…', enabled: false, type: 'normal' })
-  } else if (input.status.kind === 'downloading') {
-    const percent = Math.max(0, Math.min(100, Math.round(input.status.percent)))
-    items.push({ id: 'download', label: zh ? `正在下载 ${percent}%` : `Downloading ${percent}%`, enabled: false, type: 'normal' })
+  } else if (input.status.kind === 'downloading' || input.status.kind === 'verifying' || input.status.kind === 'building' || input.status.kind === 'deploying' || input.status.kind === 'validating') {
+    const percent = Math.max(0, Math.min(100, Math.round(input.status.overallProgress ?? (input.status.kind === 'downloading' ? input.status.percent : 0))))
+    const stage = input.status.kind === 'downloading' ? (zh ? '下载' : 'Downloading')
+      : input.status.kind === 'verifying' ? (zh ? '验证' : 'Verifying')
+        : input.status.kind === 'building' ? (zh ? '构建' : 'Building')
+          : input.status.kind === 'deploying' ? (zh ? '部署' : 'Deploying')
+            : (zh ? '启动验证' : 'Validating')
+    items.push({ id: 'progress', label: `${stage} ${percent}%`, enabled: false, type: 'normal' })
   } else if (input.status.kind === 'available') {
     items.push({ id: 'download', label: zh ? `下载并安装 ${input.status.version}` : `Download and Install ${input.status.version}`, enabled: true, type: 'normal' })
+  } else if (input.status.kind === 'incompatible') {
+    const blocked = input.status.version === undefined ? '' : ` ${input.status.version}`
+    items.push({ id: 'blocked', label: zh ? `桌面端${blocked} 缺少便携兼容契约，已阻止` : `Desktop${blocked} lacks the portable contract; blocked`, enabled: false, type: 'normal' })
+    items.push({ id: 'check', label: zh ? '检查更新…' : 'Check for Updates…', enabled: true, type: 'normal' })
   } else if (input.status.kind === 'ready') {
-    items.push({ id: 'install', label: zh ? `安装并重启 ${input.status.version}` : `Install and Restart ${input.status.version}`, enabled: true, type: 'normal' })
+    items.push({ id: 'install', label: zh ? `部署并重启 ${input.status.version}` : `Deploy and Restart ${input.status.version}`, enabled: true, type: 'normal' })
+  } else if (input.status.kind === 'completed') {
+    items.push({ id: 'check', label: zh ? `已完成 ${input.status.version}` : `Completed ${input.status.version}`, enabled: true, type: 'normal' })
   } else {
     items.push({ id: 'check', label: zh ? '检查更新…' : 'Check for Updates…', enabled: true, type: 'normal' })
   }

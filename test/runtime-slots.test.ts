@@ -34,13 +34,13 @@ test('A/B 运行时使用相对指针切换、提交和回滚', async () => {
   try {
     const legacy = join(root, 'dsh-runtime')
     await writeRuntime(legacy, '0.1.2-alpha.2', 'b'.repeat(64))
-    const candidate = runtimeSlotDirectory(legacy, '0.1.2-alpha.3', 'c'.repeat(64))
-    await writeRuntime(candidate, '0.1.2-alpha.3', 'c'.repeat(64))
+    const candidate = runtimeSlotDirectory(legacy, '0.1.2-rc.1', 'c'.repeat(64))
+    await writeRuntime(candidate, '0.1.2-rc.1', 'c'.repeat(64))
 
     const activated = activateRuntimeSlot({
       legacyRuntimeDir: legacy,
       candidateDir: candidate,
-      version: '0.1.2-alpha.3',
+      version: '0.1.2-rc.1',
       fingerprint: 'c'.repeat(64),
       transactionId: 'tx-1',
       now: '2026-09-01T00:00:00.000Z',
@@ -56,7 +56,7 @@ test('A/B 运行时使用相对指针切换、提交和回滚', async () => {
     activateRuntimeSlot({
       legacyRuntimeDir: legacy,
       candidateDir: candidate,
-      version: '0.1.2-alpha.3',
+      version: '0.1.2-rc.1',
       fingerprint: 'c'.repeat(64),
       transactionId: 'tx-2',
     })
@@ -72,14 +72,14 @@ test('候选启动失败时原子恢复上一已知可用运行时', async () =>
   try {
     const legacy = join(root, 'dsh-runtime')
     await writeRuntime(legacy, '0.1.2-alpha.2', 'b'.repeat(64))
-    const candidate = runtimeSlotDirectory(legacy, '0.1.2-alpha.3', 'c'.repeat(64))
-    await writeRuntime(candidate, '0.1.2-alpha.3', 'c'.repeat(64))
-    activateRuntimeSlot({ legacyRuntimeDir: legacy, candidateDir: candidate, version: '0.1.2-alpha.3', fingerprint: 'c'.repeat(64), transactionId: 'tx' })
+    const candidate = runtimeSlotDirectory(legacy, '0.1.2-rc.1', 'c'.repeat(64))
+    await writeRuntime(candidate, '0.1.2-rc.1', 'c'.repeat(64))
+    activateRuntimeSlot({ legacyRuntimeDir: legacy, candidateDir: candidate, version: '0.1.2-rc.1', fingerprint: 'c'.repeat(64), transactionId: 'tx' })
 
     const rolledBack = rollbackRuntimeSlot(legacy, 'tx', '候选 readiness 超时')
     assert.equal(resolveActiveRuntimeDir(legacy), legacy)
     assert.equal(rolledBack.current.version, '0.1.2-alpha.2')
-    assert.equal(rolledBack.lastFailed?.version, '0.1.2-alpha.3')
+    assert.equal(rolledBack.lastFailed?.version, '0.1.2-rc.1')
     assert.match(rolledBack.lastFailed?.reason ?? '', /readiness/)
   } finally {
     await rm(root, { recursive: true, force: true })
@@ -91,12 +91,12 @@ test('观察期进程中断后，下次启动自动恢复上一已知可用槽',
   try {
     const legacy = join(root, 'dsh-runtime')
     await writeRuntime(legacy, '0.1.2-alpha.2', 'b'.repeat(64))
-    const candidate = runtimeSlotDirectory(legacy, '0.1.2-alpha.3', 'c'.repeat(64))
-    await writeRuntime(candidate, '0.1.2-alpha.3', 'c'.repeat(64))
-    activateRuntimeSlot({ legacyRuntimeDir: legacy, candidateDir: candidate, version: '0.1.2-alpha.3', fingerprint: 'c'.repeat(64), transactionId: 'crashed-tx' })
+    const candidate = runtimeSlotDirectory(legacy, '0.1.2-rc.1', 'c'.repeat(64))
+    await writeRuntime(candidate, '0.1.2-rc.1', 'c'.repeat(64))
+    activateRuntimeSlot({ legacyRuntimeDir: legacy, candidateDir: candidate, version: '0.1.2-rc.1', fingerprint: 'c'.repeat(64), transactionId: 'crashed-tx' })
     const recovered = recoverInterruptedRuntimeSwitch(legacy, '2026-09-01T00:10:00.000Z')
     assert.equal(recovered?.current.version, '0.1.2-alpha.2')
-    assert.equal(recovered?.lastFailed?.version, '0.1.2-alpha.3')
+    assert.equal(recovered?.lastFailed?.version, '0.1.2-rc.1')
     assert.match(recovered?.lastFailed?.reason ?? '', /自动回滚/)
   } finally {
     await rm(root, { recursive: true, force: true })
@@ -112,7 +112,7 @@ test('指针路径越界或当前槽损坏时安全回退旧运行时', async ()
     await mkdir(dirname(pointerPath), { recursive: true })
     await writeFile(pointerPath, JSON.stringify({
       schema: 1,
-      current: { relativePath: '../../outside', version: '0.1.2-alpha.3', fingerprint: 'c'.repeat(64) },
+      current: { relativePath: '../../outside', version: '0.1.2-rc.1', fingerprint: 'c'.repeat(64) },
       activatedAt: '2026-09-01T00:00:00.000Z',
     }), 'utf8')
     assert.equal(resolveActiveRuntimeDir(legacy), legacy)

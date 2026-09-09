@@ -1,16 +1,18 @@
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, rm, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
 
-import { packDirectoryToTarGz, writeFileSha256 } from '../src/runtime-archive.js'
+import { packDirectoryToTarGz, writeDirectoryContentSha256, writeFileSha256 } from '../src/runtime-archive.js'
 import {
   RUNTIME_EXTRACTION_PROGRESS_PREFIX,
   extractPackagedRuntimes,
   extractPackagedRuntimesInChild,
   packagedRuntimesNeedExtraction,
+  resolvePackagedRuntimeCache,
   type RuntimeExtractionProgress,
 } from '../src/extract-runtime.js'
 
@@ -106,10 +108,80 @@ test('已解压过的运行时不会重复解压，内容缺失时会自愈', as
   }
 })
 
+test('不同桌面候选使用内容寻址缓存且不覆盖共享运行时', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-extract-cache-'))
+  try {
+    const resources = join(root, 'resources')
+    await mkdir(resources, { recursive: true })
+    await writeFile(join(resources, 'dsh-runtime.tgz'), 'runtime-a')
+    await writeFile(join(resources, 'plugins-store.tgz'), 'store-a')
+    createChecksums(resources)
+    const first = resolvePackagedRuntimeCache(resources, join(root, 'Data', 'Runtime'))
+    assert.match(first.installDir, /[\\/]Packaged[\\/][a-f0-9]{16}-[a-f0-9]{16}$/)
+    assert.notEqual(first.official, join(root, 'Data', 'Runtime', 'dsh-runtime'))
+
+    await writeFile(join(resources, 'dsh-runtime.tgz'), 'runtime-b')
+    createChecksums(resources)
+    const second = resolvePackagedRuntimeCache(resources, join(root, 'Data', 'Runtime'))
+    assert.notEqual(second.installDir, first.installDir)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('相同逻辑内容重新打包后复用同一候选缓存', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-logical-cache-'))
+  try {
+    const source = join(root, 'source')
+    const runtimeSource = join(source, 'runtime')
+    const storeSource = join(source, 'store')
+    await mkdir(join(runtimeSource, 'node_modules', '@deepseek-ai', 'dsh', 'lib'), { recursive: true })
+    await writeFile(join(runtimeSource, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'), 'runtime', 'utf8')
+    await mkdir(join(storeSource, 'v11'), { recursive: true })
+    await writeFile(join(storeSource, 'v11', 'index.db'), 'store', 'utf8')
+    const caches = []
+    for (const name of ['first', 'second']) {
+      const resources = join(root, name)
+      await mkdir(resources, { recursive: true })
+      const runtimeArchive = join(resources, 'dsh-runtime.tgz')
+      const storeArchive = join(resources, 'plugins-store.tgz')
+      packDirectoryToTarGz(runtimeSource, runtimeArchive)
+      packDirectoryToTarGz(storeSource, storeArchive)
+      writeFileSha256(runtimeArchive)
+      writeFileSha256(storeArchive)
+      writeDirectoryContentSha256(runtimeSource, runtimeArchive)
+      writeDirectoryContentSha256(storeSource, storeArchive)
+      caches.push(resolvePackagedRuntimeCache(resources, join(root, 'Data', 'Runtime')).installDir)
+    }
+    assert.equal(caches[0], caches[1])
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('逻辑内容摘要与解压结果不一致时拒绝候选缓存', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-content-mismatch-'))
+  try {
+    const resources = join(root, 'resources')
+    const source = join(root, 'source')
+    await mkdir(join(source, 'node_modules', '@deepseek-ai', 'dsh', 'lib'), { recursive: true })
+    await writeFile(join(source, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'), 'runtime', 'utf8')
+    await mkdir(resources, { recursive: true })
+    const archive = join(resources, 'dsh-runtime.tgz')
+    packDirectoryToTarGz(source, archive)
+    writeFileSha256(archive)
+    await writeFile(`${archive}.content-sha256`, `${'a'.repeat(64)}\n`, 'utf8')
+    assert.throws(() => extractPackagedRuntimes(resources, join(root, 'runtime'), join(root, 'store')), /解压内容 SHA256/)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 test('便携版通过独立 Node 进程初始化并转发阶段进度', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-extract-child-'))
   try {
     const scriptPath = join(root, 'fake-extractor.mjs')
+    const installDir = join(root, 'new-cache', 'immutable-slot')
     await writeFile(scriptPath, [
       `console.log(${JSON.stringify(RUNTIME_EXTRACTION_PROGRESS_PREFIX)} + JSON.stringify({ phase: 'runtime', state: 'start' }))`,
       `console.log(${JSON.stringify(RUNTIME_EXTRACTION_PROGRESS_PREFIX)} + JSON.stringify({ phase: 'runtime', state: 'complete' }))`,
@@ -120,10 +192,11 @@ test('便携版通过独立 Node 进程初始化并转发阶段进度', async ()
     await extractPackagedRuntimesInChild({
       nodeExecutable: process.execPath,
       scriptPath,
-      installDir: root,
+      installDir,
       resourcesDir: root,
       onProgress: event => progress.push(event),
     })
+    assert.equal(existsSync(installDir), true)
     assert.deepEqual(progress, [
       { phase: 'runtime', state: 'start' },
       { phase: 'runtime', state: 'complete' },

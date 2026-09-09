@@ -1,12 +1,14 @@
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { chmodSync, existsSync, readFileSync } from 'node:fs'
-import { cp, mkdir, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, readdir, realpath, rm, stat, unlink, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve, sep } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { ALLOWED_BUILD_PACKAGES, officialRuntimeDependencies, officialRuntimePnpmConfig, pnpmWorkspaceYaml, STORE_PACKAGES } from '../src/bundled-plugins.js'
-import { extractTarGz, packDirectoryToTarGz, writeFileSha256 } from '../src/runtime-archive.js'
+import { extractTarGz, packDirectoryToTarGz, writeDirectoryContentSha256, writeFileSha256, writePnpmStoreContentSha256 } from '../src/runtime-archive.js'
+import { pnpmStoreOptions } from '../src/plugin-toolchain.js'
+import { seedBundledPlugins } from '../src/plugin-seed.js'
 
 const projectRoot = resolve(import.meta.dirname, '..', '..')
 const nodeRoot = join(projectRoot, 'runtime-node')
@@ -66,7 +68,16 @@ async function main(): Promise<void> {
   await cp(nodeExecutable, stagedNodeExecutable)
   await writeFile(`${stagedNodeExecutable}.sha256`, nodeSha256 + '\n', 'utf8')
   await stagePnpm(nodeRoot)
-  await stageBundledPlugins(pluginRoot, nodeRoot)
+  // @ts-ignore .mjs 代理脚本未配声明文件，动态导入仅用于构建期本地加速。
+  const { startStagingRegistryProxy } = await import(pathToFileURL(join(projectRoot, 'scripts', 'staging-registry-proxy.mjs')).href)
+  const prefetchDir = join(projectRoot, 'Data', 'Temp', 'prefetch')
+  const upstreamRegistry = process.env.DSH_UPSTREAM_REGISTRY || 'https://registry.npmmirror.com/'
+  const proxy = await startStagingRegistryProxy({ prefetchDir, upstream: upstreamRegistry, port: 0 })
+  try {
+    await stageBundledPlugins(pluginRoot, nodeRoot, undefined, proxy.url)
+  } finally {
+    await proxy.close()
+  }
   const officialStore = join(officialRuntimeRoot, '.store')
   await stageOfficialRuntime(officialRuntimeRoot, nodeRoot, officialStore)
   await removePreparedPath(officialStore)
@@ -74,6 +85,8 @@ async function main(): Promise<void> {
   packDirectoryToTarGz(officialRuntimeRoot, join(projectRoot, 'runtime-dsh.tgz'))
   writeFileSha256(join(pluginRoot, 'store.tgz'))
   writeFileSha256(join(projectRoot, 'runtime-dsh.tgz'))
+  writePnpmStoreContentSha256(join(pluginRoot, 'store'), join(pluginRoot, 'store.tgz'))
+  writeDirectoryContentSha256(officialRuntimeRoot, join(projectRoot, 'runtime-dsh.tgz'))
   console.log(`已装配 Node 运行时：${nodeRoot}`)
   console.log(`已装配内置插件仓库：${join(pluginRoot, 'store.tgz')}`)
   console.log(`已装配预装官方运行时：${join(projectRoot, 'runtime-dsh.tgz')}`)
@@ -143,7 +156,15 @@ export async function writePnpmShims(destinationRoot: string, relativeEntry: str
   )
   chmodSync(join(destinationRoot, 'pnpm'), 0o755)
 }
-export async function stageBundledPlugins(destinationRoot: string, nodeRoot: string): Promise<void> {
+const DEFAULT_STAGING_REGISTRY = 'https://registry.npmmirror.com/'
+
+export async function stageBundledPlugins(
+  destinationRoot: string,
+  nodeRoot: string,
+  run: (args: readonly string[]) => void | Promise<void> = args => runStagedPnpm(nodeRoot, args),
+  stagingRegistry = process.env.DSH_STAGING_REGISTRY || DEFAULT_STAGING_REGISTRY,
+): Promise<void> {
+  console.log(`[stageBundledPlugins] 使用装配镜像源：${stagingRegistry}`)
   const storeDir = join(destinationRoot, 'store')
   const stagingDir = join(destinationRoot, 'staging')
   await mkdir(stagingDir, { recursive: true })
@@ -154,23 +175,74 @@ export async function stageBundledPlugins(destinationRoot: string, nodeRoot: str
     dependencies: Object.fromEntries(stagedPackages.map(plugin => [plugin.packageName, plugin.version])),
   }, undefined, 2) + '\n', 'utf8')
   await writeFile(join(stagingDir, 'pnpm-workspace.yaml'), pnpmWorkspaceYaml(false), 'utf8')
-  runStagedPnpm(nodeRoot, [
+  // pnpm 11.24 把 --config.fetch-timeout 当成字符串，传给 AbortSignal.timeout 会直接 TypeError。
+  // 写 .npmrc 让 pnpm 读到 number 形式的 fetch-timeout，避免大 tarball 在默认 30s 上抖动失败。
+  // 2026-09-09：本机到 npmjs 大文件通道今日抖动到 143KB/s 以下，改走用户全局镜像源 npmmirror；
+  // 同时启动本地预取代理，把已缓存的大 tarball 走 127.0.0.1 直供，避免远程超时中断装配。
+  // 供应链接口（frozen-lockfile / 离线补种）需要完整 packuments，在线阶段一次性拉取并镜像。
+  // 运行时/验证仍用 registry.npmjs.org，所以装配后把镜像元数据同步一份到 npmjs 路径，保证离线补种能找到。
+  await writeFile(join(stagingDir, '.npmrc'), [
+    'fetch-timeout=600000',
+    'fetch-retries=5',
+    'fetch-full-metadata=true',
+    `registry=${stagingRegistry}`,
+  ].join('\n') + '\n', 'utf8')
+  const installArgs = [
     'install',
     '--dir', stagingDir,
-    '--store-dir', storeDir,
+    ...pnpmStoreOptions(storeDir),
     '--prod',
     '--config.node-linker=hoisted',
     '--config.auto-install-peers=false',
     '--config.minimumReleaseAge=0',
-    '--registry=https://registry.npmjs.org/',
-  ])
+    `--registry=${stagingRegistry}`,
+  ]
+  await run(installArgs)
   for (const plugin of stagedPackages) {
     if (!existsSync(join(stagingDir, 'node_modules', ...plugin.packageName.split('/'), 'package.json'))) {
       throw new Error(`内置插件装配后缺失：${plugin.packageName}`)
     }
   }
+  const lockfile = join(stagingDir, 'pnpm-lock.yaml')
+  if (!existsSync(lockfile)) throw new Error('内置插件装配后缺少确定性锁文件。')
+  await cp(lockfile, join(storeDir, 'dsh-store-lock.yaml'))
+  // Resolution caches abbreviated packuments; frozen policy validation also
+  // requires full packuments. Materialize both during the online build, not startup.
+  await discardCachedPolicyVerdict(storeDir)
+  await run([...installArgs, '--frozen-lockfile'])
+  // 离线验证与运行时补种都按 registry.npmjs.org 查找元数据，把镜像缓存同步成 npmjs 路径。
+  await mirrorPnpmStoreMetadata(storeDir)
+  // Exercise the actual first-launch path without the build machine's global cache.
+  // A missing registry/supply-chain metadata entry must reject the package here.
+  const verificationDir = join(destinationRoot, 'offline-verification')
+  await verifyPreparedPluginStore(verificationDir, storeDir, nodeRoot, run)
+  await removePreparedPath(verificationDir)
   await pruneStoreForPackaging(storeDir)
   await removePreparedPath(stagingDir)
+}
+
+export async function verifyPreparedPluginStore(
+  verificationDir: string,
+  storeDir: string,
+  nodeRoot: string,
+  run: (args: readonly string[]) => void | Promise<void> = args => runStagedPnpm(nodeRoot, [...args]),
+): Promise<void> {
+  await mkdir(verificationDir) // exclusive ownership; never reuse a previous verification
+  await discardCachedPolicyVerdict(storeDir)
+  await seedBundledPlugins({
+    nodeExecutable: join(nodeRoot, process.platform === 'win32' ? 'node.exe' : 'node'),
+    profileDir: verificationDir,
+    pluginStoreDir: storeDir,
+    catalog: STORE_PACKAGES,
+    runner: async args => {
+      if (!args.includes('--offline')) throw new Error('内置插件离线验证失败，禁止以联网重试替代。')
+      await run(args)
+    },
+  })
+  for (const plugin of STORE_PACKAGES) {
+    const manifest = JSON.parse(await readFile(join(verificationDir, 'node_modules', ...plugin.packageName.split('/'), 'package.json'), 'utf8'))
+    if (manifest.version !== plugin.version) throw new Error(`离线补种插件版本错误：${plugin.packageName}`)
+  }
 }
 
 
@@ -241,6 +313,29 @@ export function officialRuntimeGlobalNodeModulesRoot(destinationRoot: string, pl
 export async function pruneStoreForPackaging(storeDir: string): Promise<void> {
   const projects = join(storeDir, 'v11', 'projects')
   if (existsSync(projects)) await removePreparedPath(projects)
+  await discardCachedPolicyVerdict(storeDir)
+}
+
+async function discardCachedPolicyVerdict(storeDir: string): Promise<void> {
+  // Ship the policy inputs, not a time-limited successful verdict from the build PC.
+  await unlink(join(storeDir, 'lockfile-verified.jsonl')).catch(error => {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  })
+}
+
+async function mirrorPnpmStoreMetadata(storeDir: string): Promise<void> {
+  const targetHost = 'registry.npmjs.org'
+  for (const dir of ['metadata', 'metadata-full']) {
+    const base = join(storeDir, 'v11', dir)
+    if (!existsSync(base)) continue
+    for (const entry of await readdir(base, { withFileTypes: true })) {
+      if (!entry.isDirectory() || entry.name === targetHost) continue
+      const source = join(base, entry.name)
+      const target = join(base, targetHost)
+      await removePreparedPath(target)
+      await cp(source, target, { recursive: true, dereference: false })
+    }
+  }
 }
 
 async function materializePnpmPackage(destinationRoot: string): Promise<string> {
@@ -283,10 +378,16 @@ function resolvePnpmEntry(packageRoot: string): string {
   throw new Error(`随包 pnpm 入口不存在：${packageRoot}`)
 }
 
-function runStagedPnpm(nodeRoot: string, args: readonly string[]): void {
+function runStagedPnpm(nodeRoot: string, args: readonly string[]): Promise<void> {
   const nodeExecutable = join(nodeRoot, process.platform === 'win32' ? 'node.exe' : 'node')
-  const result = spawnSync(nodeExecutable, [resolvePnpmEntry(join(nodeRoot, 'pnpm-package')), ...args], { stdio: 'inherit' })
-  if (result.status !== 0) throw new Error(`随包 pnpm 执行失败（退出码 ${result.status ?? '未知'}）。`)
+  return new Promise((resolve, reject) => {
+    const child = spawn(nodeExecutable, [resolvePnpmEntry(join(nodeRoot, 'pnpm-package')), ...args], { stdio: 'inherit', windowsHide: true })
+    child.on('error', reject)
+    child.on('close', code => {
+      if (code === 0) resolve()
+      else reject(new Error(`随包 pnpm 执行失败（退出码 ${code ?? '未知'}）。`))
+    })
+  })
 }
 
 function runCurrentNpm(args: readonly string[]): void {

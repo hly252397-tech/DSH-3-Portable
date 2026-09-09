@@ -89,6 +89,10 @@ test('打包配置把离线插件仓库放到 extraResources', async () => {
     manifest.build?.extraResources?.some(item => item.from === 'runtime-plugins/store.tgz' && item.to === 'plugins-store.tgz'),
     true,
   )
+  assert.equal(
+    manifest.build?.extraResources?.some(item => item.from === 'runtime-plugins/store.tgz.content-sha256' && item.to === 'plugins-store.tgz.content-sha256'),
+    true,
+  )
 })
 
 test('Windows 根目录图标不会进入 macOS 应用包', async () => {
@@ -101,6 +105,16 @@ test('Windows 根目录图标不会进入 macOS 应用包', async () => {
   assert.equal(manifest.build?.extraFiles, undefined)
   assert.equal(
     manifest.build?.win?.extraFiles?.some(item => item.from === 'assets/icons/icon.ico' && item.to === 'DSH Codex Desktop.ico'),
+    true,
+  )
+})
+
+test('第一版鲸鱼作为任务栏与托盘专用资源进入应用包', async () => {
+  const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as {
+    build?: { extraResources?: { from?: string; to?: string }[] }
+  }
+  assert.equal(
+    manifest.build?.extraResources?.some(item => item.from === 'assets/icons/taskbar.png' && item.to === 'taskbar.png'),
     true,
   )
 })
@@ -159,6 +173,10 @@ test('打包配置把预装官方运行时放到 extraResources', async () => {
     manifest.build?.extraResources?.some(item => item.from === 'runtime-dsh.tgz' && item.to === 'dsh-runtime.tgz'),
     true,
   )
+  assert.equal(
+    manifest.build?.extraResources?.some(item => item.from === 'runtime-dsh.tgz.content-sha256' && item.to === 'dsh-runtime.tgz.content-sha256'),
+    true,
+  )
 })
 
 test('清理运行时目录必须可重试，避免 Windows ENOTEMPTY', async () => {
@@ -203,11 +221,11 @@ test('官方运行时使用 npm 安装以兼容预发布 peer 依赖', () => {
     '--no-fund',
     '--allow-scripts=@deepseek-ai/dsh-subprocess-local,@google/genai,koffi,node-pty,protobufjs',
     '--registry=https://registry.npmjs.org/',
-    '@deepseek-ai/dsh@0.1.2-alpha.3',
+    '@deepseek-ai/dsh@0.1.2-rc.1',
     '@deepseek-ai/cordis-plugin-group@1.0.2',
-    '@deepseek-ai/dsh-scope@0.1.2-alpha.3',
-    '@deepseek-ai/dsh-timeout@0.1.2-alpha.3',
-    '@deepseek-ai/dsh-invariants@0.1.2-alpha.3',
+    '@deepseek-ai/dsh-scope@0.1.2-rc.1',
+    '@deepseek-ai/dsh-timeout@0.1.2-rc.1',
+    '@deepseek-ai/dsh-invariants@0.1.2-rc.1',
   ])
 })
 
@@ -218,11 +236,11 @@ test('npm 全局安装目录按平台归一化', () => {
 
 test('官方运行时把 DSH 和启动 peer 一起装成 npm 顶层依赖', () => {
   assert.deepEqual(officialRuntimeNpmDependencies(), {
-    '@deepseek-ai/dsh': '0.1.2-alpha.3',
+    '@deepseek-ai/dsh': '0.1.2-rc.1',
     '@deepseek-ai/cordis-plugin-group': '1.0.2',
-    '@deepseek-ai/dsh-scope': '0.1.2-alpha.3',
-    '@deepseek-ai/dsh-timeout': '0.1.2-alpha.3',
-    '@deepseek-ai/dsh-invariants': '0.1.2-alpha.3',
+    '@deepseek-ai/dsh-scope': '0.1.2-rc.1',
+    '@deepseek-ai/dsh-timeout': '0.1.2-rc.1',
+    '@deepseek-ai/dsh-invariants': '0.1.2-rc.1',
   })
 })
 
@@ -263,7 +281,7 @@ test('Windows 冒烟保留便携版冷启动路径并检查窗口响应', async 
   assert.doesNotMatch(script, /extract-runtime\.mjs/)
   assert.match(script, /\.Responding/)
   assert.match(script, /连续 10 秒未响应/)
-  assert.match(script, /startupTimeoutSeconds = 180/)
+  assert.match(script, /startupTimeoutSeconds = 900/)
   assert.match(script, /npm_config_offline = 'true'/)
   assert.match(script, /smoke-packaged-plugins\.mjs/)
   assert.doesNotMatch(script, /expectedPlugins/)
@@ -279,27 +297,110 @@ test('Windows 冒烟保留便携版冷启动路径并检查窗口响应', async 
   assert.match(main, /--user-data-dir=/)
 })
 
+test('便携构建依赖安装显式使用非交互 CI 模式并恢复调用方环境', async () => {
+  const script = await readFile(new URL('../../Build-DSH-Portable.ps1', import.meta.url), 'utf8')
+  const workspace = await readFile(new URL('../../pnpm-workspace.yaml', import.meta.url), 'utf8')
+  const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as { scripts?: Record<string, string> }
+  assert.match(script, /\$previousCi = \$env:CI/)
+  assert.match(script, /\$env:CI = 'true'/)
+  assert.match(script, /install --frozen-lockfile/)
+  assert.match(script, /\$env:CI = \$previousCi/)
+  assert.match(script, /Get-FileHash -LiteralPath \$nodeExecutable -Algorithm SHA256/)
+  assert.match(script, /\$nodeNeedsInstall/)
+  assert.match(script, /node_modules\\electron\\install\.js/)
+  assert.match(script, /Electron 安装脚本未生成开发态可执行文件/)
+  assert.match(workspace, /^\s{2}electron: true$/m)
+  assert.match(manifest.scripts?.pack ?? '', /electron-builder --dir --publish never/)
+})
+
+test('桌面候选在切换前后台预热共享环境，重启只消费完整缓存', async () => {
+  const main = await readFile(new URL('../../src/main.ts', import.meta.url), 'utf8')
+  const updater = await readFile(new URL('../../src/portable-desktop-update.ts', import.meta.url), 'utf8')
+  const stage = await readFile(new URL('../../scripts/stage-local-desktop-candidate.ts', import.meta.url), 'utf8')
+  const build = await readFile(new URL('../../Build-DSH-Portable.ps1', import.meta.url), 'utf8')
+  const prepare = await readFile(new URL('../../scripts/prepare-runtime.ts', import.meta.url), 'utf8')
+  assert.match(main, /prepareCandidateRuntime:/)
+  assert.match(main, /preparePackagedRuntimeCacheInChild/)
+  assert.match(updater, /当前桌面保持运行，正在后台准备候选共享环境/)
+  assert.match(stage, /preparePackagedRuntimeCacheInChild/)
+  assert.ok(stage.indexOf('const preparation = await preparePackagedRuntimeCacheInChild') < stage.indexOf('const staged = await stageLocalDesktopBuild'))
+  assert.match(build, /--replace-pending/)
+  assert.match(prepare, /writeDirectoryContentSha256/)
+  assert.match(prepare, /writePnpmStoreContentSha256/)
+  assert.match(prepare, /dsh-store-lock\.yaml/)
+  assert.match(updater, /resources\/dsh-runtime\.tgz\.content-sha256/)
+  assert.match(updater, /resources\/plugins-store\.tgz\.content-sha256/)
+})
+
 test('首启页面会向辅助技术播报初始化阶段', async () => {
   const startup = await readFile(new URL('../../assets/startup.html', import.meta.url), 'utf8')
+  const particles = await readFile(new URL('../../assets/whale-particles.js', import.meta.url), 'utf8')
+  const main = await readFile(new URL('../../src/main.ts', import.meta.url), 'utf8')
+  const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as {
+    build?: { extraResources?: { from?: string; to?: string }[] }
+  }
   assert.match(startup, /role="status"/)
   assert.match(startup, /aria-live="polite"/)
   assert.match(startup, /aria-atomic="true"/)
   assert.match(startup, /<h1>DSH Codex Desktop<\/h1>/)
+  assert.match(startup, /<canvas class="icon" id="whaleParticles"/)
+  assert.match(startup, /id="startupProgress" role="progressbar"/)
+  assert.match(startup, /aria-valuemin="0" aria-valuemax="100"/)
+  assert.match(startup, /id="progressValue"/)
+  assert.match(startup, /<script src="\.\/whale-particles\.js"><\/script>/)
+  assert.doesNotMatch(startup, /<img class="icon"/)
+  assert.match(main, /advanceStartupProgress\(startupProgress, progress\)/)
+  assert.match(main, /indicator\.setAttribute\('aria-valuenow', String\(next\.progress\)\)/)
+  assert.match(main, /value\.textContent = next\.progress \+ '%'/)
+  assert.match(particles, /prefers-reduced-motion: reduce/)
+  assert.equal(
+    manifest.build?.extraResources?.some(item => item.from === 'assets/whale-particles.js' && item.to === 'whale-particles.js'),
+    true,
+  )
 })
 
 test('Windows 冒烟兼容 alpha.2+ 启动 token 鉴权', async () => {
-  const script = await readFile(new URL('../../scripts/smoke-package.ps1', import.meta.url), 'utf8')
-  assert.match(script, /SkipHttpErrorCheck/)
+  const scriptBytes = await readFile(new URL('../../scripts/smoke-package.ps1', import.meta.url))
+  assert.deepEqual([...scriptBytes.subarray(0, 3)], [0xEF, 0xBB, 0xBF])
+  const script = scriptBytes.toString('utf8')
+  assert.match(script, /function Invoke-SmokeWebRequest/)
+  assert.match(script, /Add-Type -AssemblyName System\.Net\.Http/)
+  assert.match(script, /System\.Net\.Http\.HttpClient/)
+  assert.match(script, /TimeSpan\]::FromSeconds\(\$TimeoutSec\)/)
+  assert.match(script, /GetAsync\(\$Uri\)\.GetAwaiter\(\)\.GetResult\(\)/)
+  assert.match(script, /ReadAsStringAsync\(\)\.GetAwaiter\(\)\.GetResult\(\)/)
+  assert.doesNotMatch(script, /Invoke-WebRequest\s+-Uri/)
+  assert.match(script, /function Remove-SmokeDirectory/)
+  assert.match(script, /EnumerateFileSystemInfos/)
+  assert.match(script, /System\.IO\.Directory\]::Delete/)
+  assert.match(script, /\$attempt -le 3/)
+  assert.match(script, /SMOKE_PACKAGE_PASS/)
   assert.match(script, /dsh web authentication required/)
   assert.match(script, /startup-error\.log/)
   assert.match(script, /DSH_DESKTOP_SMOKE_READY_FILE/)
+  assert.match(script, /\$env:DSH_PORTABLE_ROOT = \$tempRoot/)
+  assert.match(script, /\[string\]\$PortableRoot/)
+  assert.match(script, /Data\\Updates\\Desktop\\diagnostics/)
+  assert.match(script, /Data\\Electron\\UserData/)
   assert.match(script, /startup-ready/)
+  assert.match(script, /Start-Process[^\r\n]+-WindowStyle Hidden/)
+  assert.match(script, /\$startupTimeoutSeconds = 900/)
+  assert.match(script, /function Get-AvailableLoopbackPort/)
+  assert.match(script, /\$env:DSH_DESKTOP_WEB_PORT = \[string\]\$smokePort/)
+  assert.match(script, /http:\/\/127\.0\.0\.1:\$smokePort\//)
+  assert.match(script, /\$env:DSH_DESKTOP_WEB_PORT = \$previousDesktopWebPort/)
+  assert.ok(script.indexOf('Test-Path -LiteralPath $startupError') < script.indexOf('if (-not $serviceReady)'))
   const httpSuccessBranch = script.indexOf("if ($page.StatusCode -ne 200)")
   const readyWait = script.indexOf('while ((Get-Date) -lt $deadline -and -not (Test-Path -LiteralPath $smokeReadyFile))', httpSuccessBranch)
   const pluginVerification = script.indexOf('smoke-packaged-plugins.mjs')
   assert.ok(httpSuccessBranch >= 0 && readyWait > httpSuccessBranch && pluginVerification > readyWait)
-  assert.match(script, /foreach \(\$listener in \$listeners\)/)
+  assert.doesNotMatch(script, /Get-NetTCPConnection/)
   assert.match(script, /\$candidate\.StatusCode -eq 200 -or \(\$candidate\.StatusCode -eq 401/)
+  assert.match(script, /function Find-SmokeBootstrapProcess/)
+  assert.match(script, /\$descendantIds -contains \[int\]\$process\.ParentProcessId/)
+  assert.match(script, /\$expectedNodeExecutable/)
+  assert.match(script, /\.Equals\(\$ExpectedNodeExecutable, \[System\.StringComparison\]::OrdinalIgnoreCase\)/)
+  assert.doesNotMatch(script, /\$_\.ParentProcessId -eq \$application\.Id/)
   assert.doesNotMatch(script, /Select-Object -First 1\s*\r?\n\s*if \(\$null -ne \$listener\)/)
 })
 

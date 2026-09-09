@@ -8,7 +8,7 @@ import test from 'node:test'
 import { OFFICIAL_LAUNCH_PEERS } from '../src/bundled-plugins.js'
 import { buildHarnessRuntimeCandidate, validateHarnessRuntimeCandidate } from '../src/harness-runtime-candidate.js'
 
-const VERSION = '0.1.2-alpha.3'
+const VERSION = '0.1.2-rc.1'
 const INTEGRITY = 'sha512-enterprise-test-integrity'
 const LOCKED_DSH_PACKAGES = [
   '@deepseek-ai/dsh',
@@ -29,6 +29,8 @@ async function writePackage(root: string, name: string, version: string): Promis
 
 async function materializeCandidate(root: string, options: { version?: string; integrity?: string; source?: string } = {}): Promise<void> {
   const version = options.version ?? VERSION
+  await mkdir(join(root, 'node_modules', '.pnpm'), { recursive: true })
+  await writeFile(join(root, 'node_modules', '.modules.yaml'), JSON.stringify({ virtualStoreDir: join(root, 'node_modules', '.pnpm'), storeDir: join(root, '..', 'store'), preserved: true }))
   for (const name of LOCKED_DSH_PACKAGES) await writePackage(root, name, version)
   for (const peer of OFFICIAL_LAUNCH_PEERS) {
     if (LOCKED_DSH_PACKAGES.includes(peer.packageName as typeof LOCKED_DSH_PACKAGES[number])) continue
@@ -63,11 +65,22 @@ test('候选运行时只在完整校验后原子进入不可变槽，重复构�
     assert.equal(first.fingerprint.length, 64)
     assert.equal(first.packageCount >= LOCKED_DSH_PACKAGES.length, true)
     assert.equal(existsSync(join(first.directory, '.dsh-runtime-fingerprint')), true)
+    const modules = JSON.parse(await readFile(join(first.directory, 'node_modules', '.modules.yaml'), 'utf8'))
+    assert.equal(modules.virtualStoreDir, '.pnpm')
+    assert.equal(modules.preserved, true)
 
     const second = await buildHarnessRuntimeCandidate(options)
     assert.equal(second.reused, true)
     assert.equal(second.directory, first.directory)
     assert.equal(second.fingerprint, first.fingerprint)
+    assert.deepEqual((await readdir(join(root, 'Harness', 'slots'))).filter(name => name.startsWith('.staging-')), [])
+
+    // A stale published slot must never be silently rewritten during reuse.
+    const brokenMetadata = JSON.stringify({ virtualStoreDir: join(root, 'deleted-staging/node_modules/.pnpm') })
+    const metadataPath = join(first.directory, 'node_modules', '.modules.yaml')
+    await writeFile(metadataPath, brokenMetadata)
+    await assert.rejects(buildHarnessRuntimeCandidate(options), /virtualStoreDir/)
+    assert.equal(await readFile(metadataPath, 'utf8'), brokenMetadata)
     assert.deepEqual((await readdir(join(root, 'Harness', 'slots'))).filter(name => name.startsWith('.staging-')), [])
   } finally {
     await rm(root, { recursive: true, force: true })

@@ -1,5 +1,16 @@
+import { mkdir, readFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
+
+import { writeTextFileAtomic } from './atomic-file.js'
+
 export type DesktopColorScheme = 'light' | 'dark'
 export type DesktopThemePreference = DesktopColorScheme | 'system'
+export type DesktopThemePreset = 'qoder' | 'deep-sea' | 'lake' | 'verde' | 'vermilion' | 'slate' | 'gold'
+
+export interface DesktopThemePreferences {
+  readonly schema: 1
+  readonly preset: DesktopThemePreset
+}
 
 export interface DesktopThemeSnapshot {
   readonly colorScheme: DesktopColorScheme
@@ -15,28 +26,59 @@ export interface DesktopThemePalette {
   readonly titleBarSymbol: string
 }
 
+export const DEFAULT_DESKTOP_THEME_PREFERENCES: DesktopThemePreferences = {
+  schema: 1,
+  preset: 'qoder',
+}
+
+export const DESKTOP_THEME_PRESETS: readonly DesktopThemePreset[] = [
+  'qoder', 'deep-sea', 'lake', 'verde', 'vermilion', 'slate', 'gold',
+]
+
 export const DESKTOP_THEME_PALETTES: Readonly<Record<DesktopColorScheme, DesktopThemePalette>> = {
   light: {
     aboutBackground: '#ffffff',
     settingsBackground: '#ffffff',
     shellBackground: '#ffffff',
     shortcutsBackground: '#ffffff',
-    // Match Codex's restrained mint-to-cyan title-bar wash. Electron's native
-    // caption-button area accepts only a solid color, so use the gradient's
-    // right-side resting color there and paint the full gradient in shell.html.
-    titleBarBackground: '#f1f4f3',
-    titleBarSymbol: '#0f1115',
+    titleBarBackground: '#ffffff',
+    titleBarSymbol: '#202020',
   },
   dark: {
-    aboutBackground: '#202322',
-    settingsBackground: '#202322',
-    shellBackground: '#171918',
-    shortcutsBackground: '#262827',
-    // Match Codex's dark charcoal-to-teal title-bar wash. Electron's native
-    // caption-button area is solid, so it uses the gradient's right endpoint.
-    titleBarBackground: '#1f2020',
-    titleBarSymbol: '#d7d9d8',
+    aboutBackground: '#1f1f1f',
+    settingsBackground: '#181818',
+    shellBackground: '#181818',
+    shortcutsBackground: '#1f1f1f',
+    titleBarBackground: '#181818',
+    titleBarSymbol: '#cccccc',
   },
+}
+
+export function normalizeDesktopThemePreset(value: unknown): DesktopThemePreset | undefined {
+  return typeof value === 'string' && DESKTOP_THEME_PRESETS.includes(value as DesktopThemePreset)
+    ? value as DesktopThemePreset
+    : undefined
+}
+
+export function sanitizeDesktopThemePreferences(value: unknown): DesktopThemePreferences {
+  if (typeof value !== 'object' || value === null) return DEFAULT_DESKTOP_THEME_PREFERENCES
+  const preset = normalizeDesktopThemePreset((value as { preset?: unknown }).preset)
+  return { schema: 1, preset: preset ?? DEFAULT_DESKTOP_THEME_PREFERENCES.preset }
+}
+
+export async function loadDesktopThemePreferences(path: string): Promise<DesktopThemePreferences> {
+  try {
+    return sanitizeDesktopThemePreferences(JSON.parse(await readFile(path, 'utf8')))
+  } catch {
+    return DEFAULT_DESKTOP_THEME_PREFERENCES
+  }
+}
+
+export async function saveDesktopThemePreferences(path: string, value: unknown): Promise<DesktopThemePreferences> {
+  const preferences = sanitizeDesktopThemePreferences(value)
+  await mkdir(dirname(path), { recursive: true })
+  await writeTextFileAtomic(path, JSON.stringify(preferences, null, 2) + '\n')
+  return preferences
 }
 
 export function normalizeDesktopColorScheme(value: unknown): DesktopColorScheme | undefined {

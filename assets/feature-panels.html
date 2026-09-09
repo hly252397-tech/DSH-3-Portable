@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>功能板块</title>
+  <script>const __theme=new URLSearchParams(location.search).get('theme');document.documentElement.dataset.colorScheme=__theme?__theme:(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')</script>
+  <link rel="stylesheet" href="theme.css">
+  <script src="theme.js"></script>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,"Segoe UI","Microsoft YaHei UI",sans-serif;background:var(--chrome-bg);color:var(--chrome-text)}
+    *{box-sizing:border-box}html,body{height:100%;margin:0}body{overflow:hidden}
+    main{height:100%;display:flex;flex-direction:column;padding:22px 24px 18px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}h1{font-size:20px;margin:0;font-weight:650}
+    .close{width:30px;height:30px;border:0;border-radius:var(--chrome-radius-sm);background:transparent;display:grid;place-items:center}.close:hover{background:var(--chrome-surface-2)}.close:active{background:var(--active-bg,var(--chrome-surface-3))}.close:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus-ring,var(--chrome-text-muted))}.close img{width:14px;filter:invert(90%)}
+    .search{height:38px;border:1px solid var(--chrome-border-strong);border-radius:var(--chrome-radius-sm);display:flex;align-items:center;gap:9px;padding:0 14px;margin-bottom:13px;background:var(--chrome-bg);transition:border-color .14s,box-shadow .14s}
+    .search:focus-within{border-color:var(--focus-ring,var(--chrome-text-faint));box-shadow:0 0 0 2px color-mix(in srgb,var(--focus-ring,var(--chrome-text-muted)) 25%,transparent)}.search img{width:14px;filter:invert(72%)}input{width:100%;border:0;outline:0;background:transparent;color:var(--chrome-text);font:inherit}input::placeholder{color:var(--chrome-text-faint)}
+    #status{font-size:11px;color:var(--chrome-text-faint);min-height:14px;margin:0 0 8px;transition:opacity .25s,color .25s}#status.copied{color:#4db87a}
+    #list{overflow:auto;padding-right:4px;scrollbar-color:var(--chrome-surface-3) transparent;flex:1;min-height:0}
+    .section{margin-top:14px}.section:first-child{margin-top:4px}
+    h2{font-size:14px;margin:0 0 4px;color:var(--chrome-text)}
+    h2 small{font-weight:400;font-size:11px;color:var(--chrome-text-faint);margin-left:8px}
+    .row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:9px 0;color:var(--chrome-text-muted);font-size:13px;border-bottom:1px solid var(--chrome-border)}
+    .row:last-child{border-bottom:0}
+    .panel-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+    .panel-name{color:var(--chrome-text);font-weight:550}
+    .panel-desc{color:var(--chrome-text-faint);font-size:12px;line-height:1.45}
+    .panel-file{font:12px/1.5 "Cascadia Code","Consolas",ui-monospace,monospace;color:var(--chrome-text-muted);background:var(--chrome-surface-2);border:1px solid var(--chrome-border-strong);border-radius:5px;padding:3px 7px;cursor:pointer;white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis;transition:background .12s,color .12s,border-color .12s}
+    .panel-file:hover{background:var(--chrome-surface-3);color:var(--chrome-text);border-color:var(--focus-ring,var(--chrome-text-muted))}
+    .panel-file:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus-ring,var(--chrome-text-muted))}
+    .empty{padding:42px 0;text-align:center;color:var(--chrome-text-faint)}
+    :root[data-color-scheme="light"]{color-scheme:light;background:var(--chrome-bg);color:var(--chrome-text)}
+    :root[data-color-scheme="light"] .close img,:root[data-color-scheme="light"] .search img{filter:brightness(0);opacity:.6}
+  </style>
+</head>
+<body>
+<main>
+  <header><h1 id="title">功能板块</h1><button class="close" data-action="close-window" aria-label="关闭"><img src="shell-icons/xmark.svg" alt=""></button></header>
+  <label class="search"><img src="shell-icons/magnifying-glass.svg" alt=""><input id="query" type="search" autocomplete="off" placeholder="搜索名称 / 路径 / 描述"></label>
+  <div id="status" role="status" aria-live="polite"></div>
+  <div id="list" role="region" aria-live="polite" aria-label="功能板块列表"></div>
+</main>
+<script>
+  const api=window.dshShell;let data;let copyTimer;const list=document.getElementById('list');const query=document.getElementById('query');const status=document.getElementById('status');
+  document.querySelectorAll('[data-action="close-window"]').forEach(button=>button.addEventListener('click',()=>window.close()));
+  document.addEventListener('keydown',event=>{if(event.key==='Escape')window.close()});
+  const pick=(text,zh)=>zh?text.zh:text.en;
+  function render(){
+    const zh=data.locale.startsWith('zh');
+    const q=query.value.trim().toLowerCase();
+    const all=data.featurePanels.panels;
+    const matched=q?all.filter(p=>{
+      const haystack=(pick(p.name,zh)+' '+p.file+' '+pick(p.description,zh)).toLowerCase();
+      return haystack.includes(q);
+    }):all;
+    const byCategory=new Map();
+    for(const category of data.featurePanels.categories){
+      const rows=matched.filter(p=>p.categoryId===category.id);
+      byCategory.set(category.id,{category,rows});
+    }
+    list.replaceChildren();
+    for(const {category,rows} of byCategory.values()){
+      if(!rows.length)continue;
+      const section=document.createElement('section');section.className='section';
+      const heading=document.createElement('h2');
+      heading.append(pick(category.label,zh));
+      const small=document.createElement('small');
+      small.textContent=pick(category.hint,zh);
+      heading.append(small);
+      section.append(heading);
+      for(const panel of rows){
+        const row=document.createElement('div');row.className='row';
+        const main=document.createElement('div');main.className='panel-main';
+        const name=document.createElement('span');name.className='panel-name';name.textContent=pick(panel.name,zh)+' · '+panel.id;
+        const desc=document.createElement('span');desc.className='panel-desc';desc.textContent=pick(panel.description,zh);
+        main.append(name,desc);
+        const file=document.createElement('button');file.className='panel-file';file.type='button';
+        file.title=panel.file+' · 点击复制路径';
+        file.textContent=panel.file;
+        file.addEventListener('click',()=>copyFile(panel.file,zh));
+        row.append(main,file);
+        section.append(row);
+      }
+      list.append(section);
+    }
+    if(!list.childElementCount){
+      const empty=document.createElement('div');empty.className='empty';
+      empty.textContent=zh?'未找到匹配的板块':'No matching panels';
+      list.append(empty);
+    }
+  }
+  function applyBootstrap(value){
+    data=value;const zh=value.locale.startsWith('zh');
+    document.documentElement.lang=value.locale;
+    document.documentElement.dataset.colorScheme=value.colorScheme;
+    document.documentElement.style.colorScheme=value.colorScheme;
+    document.title=zh?'功能板块':'Feature Panels';
+    document.getElementById('title').textContent=document.title;
+    document.querySelector('.close').setAttribute('aria-label',zh?'关闭':'Close');
+    query.placeholder=zh?'搜索名称 / 路径 / 描述':'Search name / path / description';
+    status.textContent='';status.classList.remove('copied');
+    render();
+  }
+  async function copyFile(value,zh){
+    if(!api.featurePanelsCopy)return;
+    const ok=await api.featurePanelsCopy(value);
+    if(copyTimer)clearTimeout(copyTimer);
+    if(ok){
+      status.textContent=zh?`已复制：${value}`:`Copied: ${value}`;
+      status.classList.add('copied');
+    }else{
+      status.textContent=zh?'复制失败':'Copy failed';
+      status.classList.remove('copied');
+    }
+    copyTimer=setTimeout(()=>{status.textContent='';status.classList.remove('copied')},2500);
+  }
+  query.addEventListener('input',render);
+  api.getBootstrap().then(value=>{applyBootstrap(value);query.focus()});
+  api.onBootstrap(applyBootstrap);
+</script>
+</body>
+</html>

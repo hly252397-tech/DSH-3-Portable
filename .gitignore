@@ -26,4 +26,20 @@ Customize/App-Overlay/*
 !Customize/App-Overlay/.gitkeep
 
 # 用户工作区（中文名）不提交。
+开发空间/
 工作空间/
+
+# 本地工作产物与无关目录（2026-09-09 基线清理，不入库）
+.tmp/
+.stability-dist/
+artifacts/
+宏建云系统/
+runtime-plugins-stale-*/
+runtime-node-stale-*/
+.opencode/
+/tags.json
+/tags-all.json
+/opencode.json
+/design-qa.md
+/QODER-MCP-README.md
+/runtime-dsh.tgz.content-sha256

@@ -18,20 +18,17 @@ internal static class DshPortableLauncher
     private static int Main()
     {
         string root = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\');
-        string appExe = Path.Combine(root, "App", "DSH Codex Desktop.exe");
-        if (!File.Exists(appExe))
-        {
-            MessageBox.Show(
-                "未找到 App\\DSH Codex Desktop.exe。\r\n\r\n请把启动器放在 DSH-3-Portable 文件夹中，并先运行 Update-DSH-Portable.cmd 获取官网程序，或用 Build-DSH-Portable.cmd 从源码构建。",
-                "DSH 便携版 3",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning);
-            return 1;
-        }
-
         Process[] running = Process.GetProcessesByName("DSH Codex Desktop");
         foreach (Process process in running)
         {
+            bool belongsToPortableRoot = false;
+            try
+            {
+                string executable = process.MainModule.FileName;
+                belongsToPortableRoot = executable.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+            }
+            catch { }
+            if (!belongsToPortableRoot) continue;
             if (process.MainWindowHandle != IntPtr.Zero)
             {
                 ShowWindow(process.MainWindowHandle, SwRestore);
@@ -39,8 +36,12 @@ internal static class DshPortableLauncher
                 return 0;
             }
         }
-        if (running.Length > 0)
+        foreach (Process process in running)
         {
+            bool belongsToPortableRoot = false;
+            try { belongsToPortableRoot = process.MainModule.FileName.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase); }
+            catch { }
+            if (!belongsToPortableRoot) continue;
             MessageBox.Show(
                 "DSH Codex Desktop 已在后台运行，但窗口暂不可见。\r\n请从系统托盘图标恢复窗口，或先彻底退出后再启动。",
                 "DSH 便携版 3",

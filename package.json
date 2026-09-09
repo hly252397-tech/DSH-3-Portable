@@ -1,6 +1,6 @@
 {
   "name": "deepseek-harness-desktop",
-  "version": "1.0.43",
+  "version": "1.0.46",
   "description": "DeepSeek Harness native desktop launcher",
   "author": "MichengAI",
   "desktopName": "DSH Codex Desktop",
@@ -21,16 +21,18 @@
       "linux-arm64": "23A5637C2470FDE09FCC1ACC77C1B92E04E3D7E3E6E80FF7DF6F5831958D1477",
       "linux-x64": "89AF8424DD53E560B1933F87BA650D8BF57C83CA5A04600EEFB31F416AABBAE7"
     },
-    "bundledDshVersion": "0.1.2-alpha.3"
+    "bundledDshVersion": "0.1.2-rc.1"
   },
   "main": "dist/src/main.js",
   "scripts": {
+    "spec:check": "node scripts/verify-dsh-official-baseline.mjs --online",
+    "spec:check:local": "node scripts/verify-dsh-official-baseline.mjs",
     "build": "tsc",
     "check": "tsc --noEmit",
     "test": "pnpm run build && node --test dist/test/*.test.js",
     "start": "pnpm run build && electron .",
     "prepare-runtime": "pnpm run build && node dist/scripts/prepare-runtime.js",
-    "pack": "pnpm run prepare-runtime && electron-builder --dir",
+    "pack": "pnpm run prepare-runtime && electron-builder --dir --publish never",
     "dist": "pnpm run prepare-runtime && electron-builder --publish never",
     "smoke:mac": "pnpm run build && node dist/scripts/smoke-macos-package.mjs",
     "smoke:linux": "pnpm run build && node dist/scripts/smoke-linux-package.mjs"
@@ -96,12 +98,20 @@
         "to": "plugins-store.tgz.sha256"
       },
       {
+        "from": "runtime-plugins/store.tgz.content-sha256",
+        "to": "plugins-store.tgz.content-sha256"
+      },
+      {
         "from": "runtime-dsh.tgz",
         "to": "dsh-runtime.tgz"
       },
       {
         "from": "runtime-dsh.tgz.sha256",
         "to": "dsh-runtime.tgz.sha256"
+      },
+      {
+        "from": "runtime-dsh.tgz.content-sha256",
+        "to": "dsh-runtime.tgz.content-sha256"
       },
       {
         "from": "assets/icon.png",
@@ -112,6 +122,14 @@
         "to": "icon.ico"
       },
       {
+        "from": "assets/icons/taskbar.png",
+        "to": "taskbar.png"
+      },
+      {
+        "from": "assets/icons/taskbar-optical.ico",
+        "to": "taskbar-optical.ico"
+      },
+      {
         "from": "assets/icons/notification.ico",
         "to": "notification.ico"
       },
@@ -120,16 +138,40 @@
         "to": "startup.html"
       },
       {
+        "from": "assets/whale-particles.js",
+        "to": "whale-particles.js"
+      },
+      {
         "from": "assets/shell.html",
         "to": "shell.html"
+      },
+      {
+        "from": "assets/browser-panel.html",
+        "to": "browser-panel.html"
+      },
+      {
+        "from": "assets/browser-workspace.css",
+        "to": "browser-workspace.css"
+      },
+      {
+        "from": "assets/browser-workspace.js",
+        "to": "browser-workspace.js"
       },
       {
         "from": "assets/theme.js",
         "to": "theme.js"
       },
       {
+        "from": "assets/theme.css",
+        "to": "theme.css"
+      },
+      {
         "from": "assets/shortcuts.html",
         "to": "shortcuts.html"
+      },
+      {
+        "from": "assets/feature-panels.html",
+        "to": "feature-panels.html"
       },
       {
         "from": "assets/about.html",
@@ -227,9 +269,6 @@
       "repo": "dsh-codex-desktop",
       "releaseType": "release"
     }
-  },
-  "dependencies": {
-    "electron-updater": "^6.8.9"
   },
   "repository": {
     "type": "git",

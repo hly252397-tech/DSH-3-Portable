@@ -36,6 +36,15 @@ test('已落地的版本不会重复安装', () => {
   assert.deepEqual(updates, [{ packageName: '@michengai/dsh-codex-ui', version: '0.2.60' }])
 })
 
+test('待更新版本优先于 package.json 的旧声明，已安装新版时不反向降级', () => {
+  const updates = mergeProfileUpdates({
+    pending: [{ packageName: '@michengai/dsh-codex-ui', version: '0.2.102' }],
+    declared: [{ packageName: '@michengai/dsh-codex-ui', version: '0.2.101' }],
+    installed: [{ packageName: '@michengai/dsh-codex-ui', version: '0.2.102' }],
+  })
+  assert.deepEqual(updates, [])
+})
+
 test('待更新清单拒绝非法包名和非精确版本', () => {
   const updates = parsePendingUpdates(JSON.stringify({
     packages: [

@@ -3,7 +3,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, r
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { extractTarGz, verifyFileSha256 } from './runtime-archive.js'
+import { directoryContentSha256, extractTarGz, pnpmStoreContentSha256, verifyFileSha256 } from './runtime-archive.js'
 import { terminateProcessTree } from './process-control.js'
 
 export const RUNTIME_EXTRACTION_PROGRESS_PREFIX = 'DSH_EXTRACT_PROGRESS '
@@ -13,7 +13,7 @@ export interface RuntimeExtractionProgress {
   state: 'start' | 'complete' | 'skip'
 }
 
-interface RuntimeExtractionProcessOptions {
+export interface RuntimeExtractionProcessOptions {
   nodeExecutable: string
   scriptPath: string
   installDir: string
@@ -21,6 +21,23 @@ interface RuntimeExtractionProcessOptions {
   timeoutMs?: number
   signal?: AbortSignal
   onProgress?: (progress: RuntimeExtractionProgress) => void
+  skipOfficial?: boolean
+}
+
+export interface PackagedRuntimePreparationOptions {
+  readonly resourcesDir: string
+  readonly runtimeRoot: string
+  readonly nodeExecutable: string
+  readonly scriptPath: string
+  readonly signal?: AbortSignal
+  readonly skipOfficial?: boolean
+  readonly onProgress?: (progress: RuntimeExtractionProgress) => void
+}
+
+export interface PackagedRuntimeCachePaths {
+  readonly installDir: string
+  readonly official: string
+  readonly store: string
 }
 
 function officialEntry(dir: string): string {
@@ -30,24 +47,63 @@ function officialEntry(dir: string): string {
 /** 首启把随包压缩包原子解压到已选定的可写目录。 */
 export function extractPackagedRuntimes(
   resourcesDir: string,
-  officialDest: string,
+  officialDest: string | undefined,
   storeDest: string,
   onProgress?: (progress: RuntimeExtractionProgress) => void,
 ): { official: boolean; store: boolean } {
   const officialArchive = join(resourcesDir, 'dsh-runtime.tgz')
   const storeArchive = join(resourcesDir, 'plugins-store.tgz')
   onProgress?.({ phase: 'runtime', state: 'start' })
-  const official = extractOnce(officialArchive, officialDest, officialEntry)
+  const official = officialDest === undefined ? false : extractOnce(officialArchive, officialDest, officialEntry, 'runtime')
   onProgress?.({ phase: 'runtime', state: official ? 'complete' : 'skip' })
   onProgress?.({ phase: 'plugins', state: 'start' })
-  const store = extractOnce(storeArchive, storeDest, dir => join(dir, 'v11'))
+  const store = extractOnce(storeArchive, storeDest, dir => join(dir, 'v11'), 'pnpm-store')
   onProgress?.({ phase: 'plugins', state: store ? 'complete' : 'skip' })
   return { official, store }
 }
 
-export function packagedRuntimesNeedExtraction(resourcesDir: string, officialDest: string, storeDest: string): boolean {
-  return needsExtraction(join(resourcesDir, 'dsh-runtime.tgz'), officialDest, officialEntry)
+export function packagedRuntimesNeedExtraction(resourcesDir: string, officialDest: string | undefined, storeDest: string): boolean {
+  return (officialDest !== undefined && needsExtraction(join(resourcesDir, 'dsh-runtime.tgz'), officialDest, officialEntry))
     || needsExtraction(join(resourcesDir, 'plugins-store.tgz'), storeDest, dir => join(dir, 'v11'))
+}
+
+/** Give each immutable pair of packaged archives its own cache so a candidate cannot modify the active runtime. */
+export function resolvePackagedRuntimeCache(resourcesDir: string, runtimeRoot: string): PackagedRuntimeCachePaths {
+  const officialDigest = readArchiveVersion(join(resourcesDir, 'dsh-runtime.tgz'))
+  const storeDigest = readArchiveVersion(join(resourcesDir, 'plugins-store.tgz'))
+  if (officialDigest === undefined || storeDigest === undefined) throw new Error('随包运行时缺少有效的内容摘要。')
+  const installDir = join(resolve(runtimeRoot), 'Packaged', `${officialDigest.slice(0, 16)}-${storeDigest.slice(0, 16)}`)
+  return {
+    installDir,
+    official: join(installDir, 'dsh-runtime'),
+    store: join(installDir, 'plugins', 'store'),
+  }
+}
+
+/**
+ * 在桌面候选仍处于构建阶段时准备共享运行环境。正式切换只消费已经完成的
+ * 内容寻址缓存，因此重启路径不再承担数万文件的解压工作；启动时保留同一
+ * 检查作为断电或人工清理后的自愈兜底。
+ */
+export async function preparePackagedRuntimeCacheInChild(options: PackagedRuntimePreparationOptions): Promise<{ prepared: boolean; cache: PackagedRuntimeCachePaths }> {
+  const cache = resolvePackagedRuntimeCache(options.resourcesDir, options.runtimeRoot)
+  const official = options.skipOfficial === true ? undefined : cache.official
+  if (!packagedRuntimesNeedExtraction(options.resourcesDir, official, cache.store)) {
+    return { prepared: false, cache }
+  }
+  await extractPackagedRuntimesInChild({
+    nodeExecutable: options.nodeExecutable,
+    scriptPath: options.scriptPath,
+    installDir: cache.installDir,
+    resourcesDir: options.resourcesDir,
+    ...(options.signal === undefined ? {} : { signal: options.signal }),
+    ...(options.skipOfficial === true ? { skipOfficial: true } : {}),
+    ...(options.onProgress === undefined ? {} : { onProgress: options.onProgress }),
+  })
+  if (packagedRuntimesNeedExtraction(options.resourcesDir, official, cache.store)) {
+    throw new Error('候选运行环境后台准备完成后仍未通过缓存门禁。')
+  }
+  return { prepared: true, cache }
 }
 
 /**
@@ -56,12 +112,18 @@ export function packagedRuntimesNeedExtraction(resourcesDir: string, officialDes
  */
 export function extractPackagedRuntimesInChild(options: RuntimeExtractionProcessOptions): Promise<void> {
   if (options.signal?.aborted === true) return Promise.reject(new Error('随包运行时初始化已取消。'))
+  // Node reports a missing cwd as a spawn ENOENT against the executable, which
+  // is misleading and prevents a brand-new content-addressed cache from ever
+  // being initialized. The immutable cache directory is safe to create before
+  // starting the isolated extraction worker.
+  mkdirSync(options.installDir, { recursive: true })
   return new Promise((resolvePromise, reject) => {
     const child = spawn(options.nodeExecutable, [
       options.scriptPath,
       options.installDir,
       options.resourcesDir,
       '--progress-json',
+      ...(options.skipOfficial === true ? ['--skip-official'] : []),
     ], {
       cwd: options.installDir,
       detached: process.platform !== 'win32',
@@ -130,7 +192,7 @@ export function extractPackagedRuntimesInChild(options: RuntimeExtractionProcess
   })
 }
 
-function extractOnce(archivePath: string, destDir: string, readyPath: (dir: string) => string): boolean {
+function extractOnce(archivePath: string, destDir: string, readyPath: (dir: string) => string, contentKind: 'runtime' | 'pnpm-store'): boolean {
   const completeMarker = join(destDir, '.dsh-extract-complete')
   if (!existsSync(archivePath)) return false
   if (isExtractionCurrent(archivePath, destDir, readyPath)) return false
@@ -143,6 +205,7 @@ function extractOnce(archivePath: string, destDir: string, readyPath: (dir: stri
   try {
     extractTarGz(archivePath, stagingDir)
     if (!existsSync(readyPath(stagingDir))) throw new Error(`压缩包内容不完整：${archivePath}`)
+    verifyExtractedContentVersion(archivePath, stagingDir, contentKind)
     if (isExtractionCurrent(archivePath, destDir, readyPath)) return false
     if (process.platform === 'win32') {
       mkdirSync(destDir, { recursive: true })
@@ -174,12 +237,25 @@ function isExtractionCurrent(archivePath: string, destDir: string, readyPath: (d
 }
 
 function readArchiveVersion(archivePath: string): string | undefined {
+  const contentVersion = readDigestFile(`${archivePath}.content-sha256`)
+  if (contentVersion !== undefined) return contentVersion
+  return readDigestFile(`${archivePath}.sha256`)
+}
+
+function readDigestFile(path: string): string | undefined {
   try {
-    const value = readFileSync(`${archivePath}.sha256`, 'utf8').trim().toLowerCase()
+    const value = readFileSync(path, 'utf8').trim().toLowerCase()
     return /^[a-f0-9]{64}$/.test(value) ? value : undefined
   } catch {
     return undefined
   }
+}
+
+function verifyExtractedContentVersion(archivePath: string, directory: string, contentKind: 'runtime' | 'pnpm-store'): void {
+  const expected = readDigestFile(`${archivePath}.content-sha256`)
+  if (expected === undefined) return
+  const actual = contentKind === 'pnpm-store' ? pnpmStoreContentSha256(directory) : directoryContentSha256(directory)
+  if (actual !== expected) throw new Error(`解压内容 SHA256 校验失败：${archivePath}`)
 }
 
 const self = fileURLToPath(import.meta.url)
@@ -189,5 +265,5 @@ if (process.argv[1] && resolve(process.argv[1]) === self) {
   const progress = process.argv.includes('--progress-json')
     ? (event: RuntimeExtractionProgress): void => { console.log(RUNTIME_EXTRACTION_PROGRESS_PREFIX + JSON.stringify(event)) }
     : undefined
-  extractPackagedRuntimes(resourcesDir, join(installDir, 'dsh-runtime'), join(installDir, 'plugins', 'store'), progress)
+  extractPackagedRuntimes(resourcesDir, process.argv.includes('--skip-official') ? undefined : join(installDir, 'dsh-runtime'), join(installDir, 'plugins', 'store'), progress)
 }

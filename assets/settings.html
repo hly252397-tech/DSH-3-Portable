@@ -5,94 +5,72 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>桌面端设置</title>
   <script>const __theme=new URLSearchParams(location.search).get('theme');document.documentElement.dataset.colorScheme=__theme?__theme:(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')</script>
+  <link rel="stylesheet" href="theme.css">
   <script src="theme.js"></script>
   <style>
-    :root{color-scheme:dark;font-family:Inter,"Segoe UI","Microsoft YaHei UI",sans-serif;background:#202322;color:#eef0ef}
-    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#202322}
+    :root{color-scheme:dark;font-family:Inter,"Segoe UI","Microsoft YaHei UI",sans-serif;background:var(--chrome-bg);color:var(--chrome-text)}
+    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--chrome-bg)}
     body{display:grid;grid-template-columns:184px minmax(0,1fr)}
     button{font:inherit}
-    aside{padding:26px 12px;border-right:1px solid #343735;background:#1c1f1e}
-    .eyebrow{margin:0 10px 18px;color:#888e8b;font-size:11px;font-weight:650;letter-spacing:.08em;text-transform:uppercase}
-    .nav-item{width:100%;height:36px;border:0;border-radius:8px;padding:0 12px;text-align:left;background:transparent;color:#a8aeab;font-size:13px;font-weight:600;cursor:pointer;outline:none;transition:background .14s,color .14s}
-    .nav-item:hover{background:#292c2b;color:#eef0ef}.nav-item:active{background:var(--active-bg,#2d302e)}.nav-item:focus-visible{box-shadow:0 0 0 2px var(--focus-ring,#e7eae8)}.nav-item[aria-current="page"]{background:var(--tint,#303331);color:#f0f2f1;cursor:default}
-    main{overflow:auto;padding:36px 44px 48px;scrollbar-color:#505552 transparent}
+    aside{padding:26px 12px;border-right:1px solid var(--chrome-border);background:var(--chrome-bg)}
+    .eyebrow{margin:0 10px 18px;color:var(--chrome-text-faint);font-size:11px;font-weight:650;letter-spacing:.08em;text-transform:uppercase}
+    .nav-item{width:100%;height:36px;border:0;border-radius:var(--chrome-radius-sm);padding:0 12px;text-align:left;background:transparent;color:var(--chrome-text-muted);font-size:13px;font-weight:600;cursor:pointer;outline:none;transition:background .14s,color .14s}
+    .nav-item:hover{background:var(--chrome-surface-2);color:var(--chrome-text)}.nav-item:active{background:var(--active-bg,var(--chrome-surface-3))}.nav-item:focus-visible{box-shadow:0 0 0 2px var(--focus-ring,var(--chrome-text-muted))}.nav-item[aria-current="page"]{background:var(--tint,var(--chrome-surface-2));color:var(--chrome-text);cursor:default}
+    main{overflow:auto;padding:36px 44px 48px;scrollbar-color:var(--chrome-surface-3) transparent;background:var(--chrome-surface)}
     .content{max-width:560px;margin:0 auto}
     h1{margin:0 0 28px;font-size:24px;line-height:1.2;font-weight:650;letter-spacing:-.02em}.subheading{margin:30px 0 12px;font-size:15px;line-height:1.3;font-weight:650}
-    .page[hidden]{display:none}.group{border-top:1px solid #383c3a}
-    .row{min-height:78px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:28px;padding:17px 0;border-bottom:1px solid #343836}
-    .label{display:block;margin-bottom:5px;color:#f0f2f1;font-size:14px;font-weight:540}
-    .description{display:block;margin:0;max-width:390px;color:#979d9a;font-size:12.5px;line-height:1.5}
+    .page[hidden]{display:none}.group{border-top:1px solid var(--chrome-border)}
+    .row{min-height:78px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:28px;padding:17px 0;border-bottom:1px solid var(--chrome-border)}
+    .label{display:block;margin-bottom:5px;color:var(--chrome-text);font-size:14px;font-weight:540}
+    .description{display:block;margin:0;max-width:390px;color:var(--chrome-text-muted);font-size:12.5px;line-height:1.5}
     .select-wrap{position:relative;width:198px}
-    .select-trigger{width:100%;min-height:36px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #4a4f4c;border-radius:8px;padding:7px 10px 7px 12px;background:#2b2e2d;color:#eef0ef;font-size:12.5px;font-weight:600;line-height:1.3;text-align:left;outline:none;cursor:pointer;transition:border-color .14s,background .14s,box-shadow .14s}
-    .select-trigger:hover,.select-trigger[aria-expanded="true"]{border-color:#676d6a;background:#303332}.select-trigger:focus-visible{border-color:#9ba19e;box-shadow:0 0 0 2px var(--focus-ring,#dfe2e0)}
+    .select-trigger{width:100%;min-height:36px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--chrome-border-strong);border-radius:var(--chrome-radius-sm);padding:7px 10px 7px 12px;background:var(--chrome-bg);color:var(--chrome-text);font-size:12.5px;font-weight:600;line-height:1.3;text-align:left;outline:none;cursor:pointer;transition:border-color .14s,background .14s,box-shadow .14s}
+    .select-trigger:hover,.select-trigger[aria-expanded="true"]{border-color:var(--chrome-text-faint);background:var(--chrome-surface-2)}.select-trigger:focus-visible{border-color:var(--focus-ring,var(--chrome-text-faint));box-shadow:0 0 0 2px color-mix(in srgb,var(--focus-ring,var(--chrome-text-muted)) 30%,transparent)}
     .select-trigger img{width:11px;height:11px;filter:brightness(0) invert(89%);opacity:.78;transition:transform .14s}.select-trigger[aria-expanded="true"] img{transform:rotate(180deg)}
-    .select-menu{position:absolute;z-index:10;top:calc(100% + 5px);right:0;width:100%;margin:0;padding:5px;border:1px solid #4a4f4c;border-radius:9px;background:#252827;box-shadow:0 14px 34px #0008,0 2px 8px #0006}
-    .select-menu[hidden]{display:none}.select-option{width:100%;min-height:34px;display:flex;align-items:center;border:0;border-radius:6px;padding:6px 9px;background:transparent;color:#dfe2e0;font-size:12.5px;line-height:1.3;text-align:left;cursor:pointer;outline:none}.select-option:hover,.select-option:focus-visible{background:#353937;color:#fff}.select-option[aria-selected="true"]{background:#3b403d;color:#fff;font-weight:650}
+    .select-menu{position:absolute;z-index:10;top:calc(100% + 5px);right:0;width:100%;margin:0;padding:5px;border:1px solid var(--chrome-border);border-radius:var(--chrome-radius);background:var(--chrome-surface);box-shadow:var(--chrome-shadow-pop)}
+    .select-menu[hidden]{display:none}.select-option{width:100%;min-height:34px;display:flex;align-items:center;border:0;border-radius:var(--chrome-radius-sm);padding:6px 9px;background:transparent;color:var(--chrome-text-muted);font-size:12.5px;line-height:1.3;text-align:left;cursor:pointer;outline:none}.select-option:hover,.select-option:focus-visible{background:var(--chrome-surface-2);color:var(--chrome-text)}.select-option[aria-selected="true"]{background:var(--tint,var(--chrome-surface-3));color:var(--chrome-text);font-weight:650}
     .switch{position:relative;width:38px;height:22px;display:inline-block}.switch input{position:absolute;opacity:0;pointer-events:none}
-    .track{position:absolute;inset:0;border-radius:999px;background:#474c49;border:1px solid #5a605d;transition:background .14s,border-color .14s}.track::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#d8dbd9;box-shadow:0 1px 2px #0006;transition:transform .14s,background .14s}
-    .switch input:checked+.track{background:var(--cta-bg,#e7eae8);border-color:var(--cta-bg,#e7eae8)}.switch input:checked+.track::after{background:var(--knob,#202322);transform:translateX(16px)}.switch input:focus-visible+.track{box-shadow:0 0 0 2px var(--focus-ring,#dfe2e0)}
-    .status-line{height:18px;margin-top:14px;color:#858b88;font-size:12px;text-align:right;opacity:0;transition:opacity .15s}.status-line.visible{opacity:1}
-    .version-block{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0;border-bottom:1px solid #343836}
-    .version{font-size:13px;color:#cfd3d1}.badge{display:inline-flex;align-items:center;min-height:23px;border:1px solid #474c49;border-radius:999px;padding:2px 9px;color:#b9bfbc;background:#292c2b;font-size:11.5px;font-weight:600}
-    .badge.available,.badge.ready{border-color:#52685d;background:#27352e;color:#bce1cc}.badge.error{border-color:#6b4c4c;background:#372929;color:#e1bcbc}
+    .track{position:absolute;inset:0;border-radius:999px;background:var(--chrome-surface-3);border:1px solid var(--chrome-border-strong);transition:background .14s,border-color .14s}.track::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--chrome-text);box-shadow:0 1px 2px #0006;transition:transform .14s,background .14s}
+    .switch input:checked+.track{background:var(--cta-bg,var(--chrome-text));border-color:var(--cta-bg,var(--chrome-text))}.switch input:checked+.track::after{background:var(--knob,var(--chrome-bg));transform:translateX(16px)}.switch input:focus-visible+.track{box-shadow:0 0 0 2px var(--focus-ring,var(--chrome-text-muted))}
+    .status-line{height:18px;margin-top:14px;color:var(--chrome-text-faint);font-size:12px;text-align:right;opacity:0;transition:opacity .15s}.status-line.visible{opacity:1}
+    .version-block{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0;border-bottom:1px solid var(--chrome-border)}
+    .version{font-size:13px;color:var(--chrome-text-muted)}.badge{display:inline-flex;align-items:center;min-height:23px;border:1px solid var(--chrome-border-strong);border-radius:999px;padding:2px 9px;color:var(--chrome-text-muted);background:var(--chrome-surface-2);font-size:11.5px;font-weight:600}
+    .badge.available,.badge.ready{border-color:#52685d;background:#27352e;color:#bce1cc}.badge.error{border-color:#6b4c4c;background:#372929;color:#e1bcbc}.badge.incompatible{border-color:#6b5c3c;background:#373023;color:#e1d3bc}
     .badge.downloading{position:relative;overflow:hidden}.badge.downloading::before{content:"";position:absolute;inset:0;background:var(--tint,#27352e);transform:scaleX(var(--progress,0));transform-origin:left;transition:transform .2s}.badge.downloading>span{position:relative}
-    .update-action{min-width:132px;min-height:36px;border:1px solid var(--cta-bg,#555b58);border-radius:8px;padding:7px 14px;background:var(--cta-bg,#e7eae8);color:var(--cta-fg,#202322);font-size:12.5px;font-weight:650;cursor:pointer;outline:none;transition:background .14s,box-shadow .14s}.update-action:hover{background:var(--cta-hover,#fff)}.update-action:active{background:var(--active-bg,#d3d7d5)}.update-action:focus-visible{box-shadow:0 0 0 3px var(--focus-ring,#dfe2e0)}.update-action:disabled{border-color:#454946;background:#343735;color:#7e8481;cursor:default}
-    .notes{margin-top:18px;padding:14px 16px;border:1px solid #363a38;border-radius:9px;background:#1d201f}.notes[hidden]{display:none}.notes-title{margin:0 0 8px;color:#cfd3d1;font-size:12px;font-weight:650}.notes-body{max-height:150px;margin:0;overflow:auto;white-space:pre-wrap;color:#969c99;font:12px/1.55 "Segoe UI",sans-serif;scrollbar-color:#505552 transparent}
-    .update-feedback{min-height:20px;margin:14px 0 0;color:#979d9a;font-size:12px;line-height:1.5}.update-feedback.error{color:#e1bcbc}
-    :root[data-color-scheme="light"]{color-scheme:light;background:#fff;color:#0f1115}
-    :root[data-color-scheme="light"] body{background:#fff}
-    :root[data-color-scheme="light"] aside{border-right-color:#0000001a;background:#f9fafb}
-    :root[data-color-scheme="light"] .eyebrow,:root[data-color-scheme="light"] .status-line{color:#61666b}
-    :root[data-color-scheme="light"] .nav-item{color:#61666b}
-    :root[data-color-scheme="light"] .nav-item:hover{background:#2631480f;color:#0f1115}
-    :root[data-color-scheme="light"] .nav-item[aria-current="page"]{background:var(--tint,#ebeef2);color:#0f1115}
-    :root[data-color-scheme="light"] main{scrollbar-color:#d4d4d4 transparent}
-    :root[data-color-scheme="light"] .group{border-top-color:#0000001a}
-    :root[data-color-scheme="light"] .row,:root[data-color-scheme="light"] .version-block{border-bottom-color:#0000001a}
-    :root[data-color-scheme="light"] .label,:root[data-color-scheme="light"] .version,:root[data-color-scheme="light"] .notes-title{color:#0f1115}
-    :root[data-color-scheme="light"] .description,:root[data-color-scheme="light"] .update-feedback{color:#61666b}
-    :root[data-color-scheme="light"] .select-trigger{border-color:#00000029;background:#fff;color:#0f1115}
-    :root[data-color-scheme="light"] .select-trigger:hover,:root[data-color-scheme="light"] .select-trigger[aria-expanded="true"]{border-color:#979da6;background:#f9fafb}
+    .update-action{min-width:132px;min-height:36px;border:1px solid var(--cta-bg,var(--chrome-text));border-radius:var(--chrome-radius-sm);padding:7px 14px;background:var(--cta-bg,var(--chrome-text));color:var(--cta-fg,var(--chrome-bg));font-size:12.5px;font-weight:650;cursor:pointer;outline:none;transition:background .14s,box-shadow .14s}.update-action:hover{background:var(--cta-hover,var(--chrome-surface-3))}.update-action:active{background:var(--active-bg,var(--chrome-surface-3))}.update-action:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--focus-ring,var(--chrome-text-muted)) 35%,transparent)}.update-action:disabled{border-color:var(--chrome-border);background:var(--chrome-surface-2);color:var(--chrome-text-faint);cursor:default}
+    .notes{margin-top:18px;padding:14px 16px;border:1px solid var(--chrome-border);border-radius:var(--chrome-radius);background:var(--chrome-bg)}.notes[hidden]{display:none}.notes-title{margin:0 0 8px;color:var(--chrome-text);font-size:12px;font-weight:650}.notes-body{max-height:150px;margin:0;overflow:auto;white-space:pre-wrap;color:var(--chrome-text-muted);font:12px/1.55 "Segoe UI",sans-serif;scrollbar-color:var(--chrome-surface-3) transparent}
+    .update-feedback{min-height:20px;margin:14px 0 0;color:var(--chrome-text-muted);font-size:12px;line-height:1.5;white-space:pre-wrap}.update-feedback.error{color:#e1bcbc}
+    .update-pipeline{padding:16px 0 18px;border-bottom:1px solid var(--chrome-border)}
+    .pipeline-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px;color:var(--chrome-text-muted);font-size:12px;font-variant-numeric:tabular-nums}
+    .progress-track{height:6px;overflow:hidden;border-radius:999px;background:var(--chrome-surface-2)}.progress-fill{height:100%;width:0;border-radius:inherit;background:var(--accent,#6ea8ff);transition:width .2s ease}
+    .pipeline-stages{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin-top:14px}
+    .pipeline-stage{min-width:0}.pipeline-stage-name{display:block;overflow:hidden;margin-bottom:6px;color:var(--chrome-text-faint);font-size:10.5px;text-align:center;text-overflow:ellipsis;white-space:nowrap}.pipeline-stage .progress-track{height:3px}
+    .pipeline-stage.done .progress-fill{width:100%;background:#4db87a}.pipeline-stage.active .pipeline-stage-name{color:var(--chrome-text);font-weight:650}.pipeline-stage.active .progress-fill{background:var(--accent,#6ea8ff)}
+    :root[data-color-scheme="light"]{color-scheme:light;background:var(--chrome-bg);color:var(--chrome-text)}
+    :root[data-color-scheme="light"] body{background:var(--chrome-bg)}
     :root[data-color-scheme="light"] .select-trigger img{filter:brightness(0);opacity:.62}
-    :root[data-color-scheme="light"] .select-menu{border-color:#0000001a;background:#fff;box-shadow:0 14px 34px #0000001f,0 2px 8px #00000014}
-    :root[data-color-scheme="light"] .select-option{color:#43454a}
-    :root[data-color-scheme="light"] .select-option:hover,:root[data-color-scheme="light"] .select-option:focus-visible{background:#f1f3f5;color:#0f1115}
-    :root[data-color-scheme="light"] .select-option[aria-selected="true"]{background:#ebeef2;color:#0f1115}
-    :root[data-color-scheme="light"] .track{border-color:#adb2b8;background:#e1e5ee}
-    :root[data-color-scheme="light"] .track::after{background:#fff;box-shadow:0 1px 2px #0003}
-    :root[data-color-scheme="light"] .badge{border-color:#0000001a;background:#f5f6f7;color:#61666b}
     :root[data-color-scheme="light"] .badge.available,:root[data-color-scheme="light"] .badge.ready{border-color:#b7dec5;background:#eefaf2;color:#24613b}
     :root[data-color-scheme="light"] .badge.error{border-color:#f2b8b8;background:#fff1f1;color:#a52b2b}
-    :root[data-color-scheme="light"] .update-action:disabled{border-color:#e1e5ee;background:#f1f3f5;color:#8a9096}
-    :root[data-color-scheme="light"] .notes{border-color:#0000001a;background:#f9fafb}
-    :root[data-color-scheme="light"] .notes-body{color:#61666b;scrollbar-color:#d4d4d4 transparent}
+    :root[data-color-scheme="light"] .badge.incompatible{border-color:#ecd9b0;background:#fdf6e7;color:#8a6413}
     :root[data-color-scheme="light"] .update-feedback.error{color:#a52b2b}
     @media(max-width:720px){body{grid-template-columns:150px minmax(0,1fr)}main{padding:30px 28px}.row{gap:18px}.select-wrap{width:176px}}
     @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-    .settings-close{position:absolute;top:12px;right:16px;width:30px;height:30px;border:0;border-radius:8px;background:transparent;display:grid;place-items:center;cursor:pointer}
-    .settings-close:hover{background:#393c3b}.settings-close:active{background:var(--active-bg,#454847)}.settings-close:focus-visible{outline:none;box-shadow:0 0 0 2px var(--focus-ring,#e7eae8)}
-    :root[data-color-scheme="light"] .settings-close:hover{background:#ebeef2}
-    :root[data-color-scheme="light"] .settings-close:active{background:#dfe3e7}
+    .settings-close{position:absolute;top:12px;right:16px;width:30px;height:30px;border:0;border-radius:var(--chrome-radius-sm);background:transparent;display:grid;place-items:center;cursor:pointer}
+    .settings-close:hover{background:var(--chrome-surface-2)}.settings-close:active{background:var(--active-bg,var(--chrome-surface-3))}.settings-close:focus-visible{outline:none;box-shadow:0 0 0 2px var(--focus-ring,var(--chrome-text-muted))}
     .settings-close img{width:13px;height:13px;filter:invert(90%)}
     :root[data-color-scheme="light"] .settings-close img{filter:brightness(0);opacity:.72}
     main{position:relative}
-    .theme-wrap{padding:2px 0 22px;border-bottom:1px solid #343836}
+    .theme-wrap{padding:2px 0 22px;border-bottom:1px solid var(--chrome-border)}
     .theme-grid{display:flex;flex-wrap:wrap;gap:8px;padding:16px 0 2px}
-    .theme-option{display:inline-flex;align-items:center;gap:8px;min-height:34px;border:1px solid #4a4f4c;border-radius:8px;padding:0 12px;background:#2b2e2d;color:#eef0ef;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .14s,border-color .14s,box-shadow .14s}
-    .theme-option:hover{background:#303332}
-    .theme-option:active{background:var(--active-bg,#353937)}
-    .theme-option:focus-visible{outline:2px solid var(--focus-ring,#e7eae8);outline-offset:1px;box-shadow:none}
-    .theme-option[aria-checked="true"]{border-color:var(--accent,#6ea8ff);background:var(--tint,#232a2e);box-shadow:0 0 0 3px var(--accent,#6ea8ff)}
+    .theme-option{display:inline-flex;align-items:center;gap:8px;min-height:34px;border:1px solid var(--chrome-border-strong);border-radius:var(--chrome-radius-sm);padding:0 12px;background:var(--chrome-bg);color:var(--chrome-text);font-size:12.5px;font-weight:600;cursor:pointer;transition:background .14s,border-color .14s,box-shadow .14s}
+    .theme-option:hover{background:var(--chrome-surface-2)}
+    .theme-option:active{background:var(--active-bg,var(--chrome-surface-3))}
+    .theme-option:focus-visible{outline:2px solid var(--focus-ring,var(--chrome-text-muted));outline-offset:1px;box-shadow:none}
+    .theme-option[aria-checked="true"]{border-color:var(--accent,#6ea8ff);background:var(--tint,var(--chrome-surface-2));box-shadow:0 0 0 3px color-mix(in srgb,var(--accent,#6ea8ff) 28%,transparent)}
     .theme-option[aria-checked="true"]:focus-visible{box-shadow:none}
     .theme-dot{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
-    .theme-hex{color:#979d9a;font-weight:500;font-variant-numeric:tabular-nums}
-    :root[data-color-scheme="light"] .theme-wrap{border-bottom-color:#0000001a}
-    :root[data-color-scheme="light"] .theme-option{border-color:#00000029;background:#fff;color:#0f1115}
-    :root[data-color-scheme="light"] .theme-option:hover{background:#f1f3f5}
-    :root[data-color-scheme="light"] .theme-option:focus-visible{outline-color:var(--focus-ring,#0f1115)}
-    :root[data-color-scheme="light"] .theme-option[aria-checked="true"]{background:var(--tint,#dce7fc)}
+    .theme-hex{color:var(--chrome-text-faint);font-weight:500;font-variant-numeric:tabular-nums}
     :root[data-color-scheme="light"] .theme-dot{box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
-    :root[data-color-scheme="light"] .theme-hex{color:#61666b}
   </style>
 </head>
 <body>
@@ -105,6 +83,7 @@
   <main>
     <button id="settingsClose" class="settings-close" type="button" aria-label="关闭"><img src="./shell-icons/xmark.svg" alt=""></button>
     <div class="content">
+      <p id="settingsError" class="update-feedback error" role="alert" hidden></p>
       <section id="notificationsPage" class="page" aria-labelledby="notificationsTitle">
         <h1 id="notificationsTitle">通知</h1>
         <div class="group">
@@ -156,6 +135,18 @@
               <span id="lastChecked" class="description">尚未检查</span>
             </div>
             <span id="updateBadge" class="badge">准备就绪</span>
+          </div>
+          <div id="desktopPipeline" class="update-pipeline" role="status" aria-live="polite" aria-label="桌面更新进度">
+            <div class="pipeline-summary"><span id="pipelineTitle">更新总进度</span><span id="pipelinePercent">0%</span></div>
+            <div class="progress-track" aria-hidden="true"><div id="pipelineOverall" class="progress-fill"></div></div>
+            <div id="pipelineStages" class="pipeline-stages">
+              <div class="pipeline-stage" data-stage="checking"><span class="pipeline-stage-name">检测</span><div class="progress-track"><div class="progress-fill"></div></div></div>
+              <div class="pipeline-stage" data-stage="downloading"><span class="pipeline-stage-name">下载</span><div class="progress-track"><div class="progress-fill"></div></div></div>
+              <div class="pipeline-stage" data-stage="verifying"><span class="pipeline-stage-name">验证</span><div class="progress-track"><div class="progress-fill"></div></div></div>
+              <div class="pipeline-stage" data-stage="building"><span class="pipeline-stage-name">构建</span><div class="progress-track"><div class="progress-fill"></div></div></div>
+              <div class="pipeline-stage" data-stage="deploying"><span class="pipeline-stage-name">部署</span><div class="progress-track"><div class="progress-fill"></div></div></div>
+              <div class="pipeline-stage" data-stage="completed"><span class="pipeline-stage-name">完成</span><div class="progress-track"><div class="progress-fill"></div></div></div>
+            </div>
           </div>
           <div class="row">
             <span><span id="checkLabel" class="label">桌面端更新</span><span id="checkDescription" class="description">检查 GitHub Releases 中适用于当前系统的新版本。</span></span>
@@ -219,7 +210,7 @@
     const notificationsPage=byId('notificationsPage'),updatesPage=byId('updatesPage'),appearancePage=byId('appearancePage');
     const themeGrid=byId('themeGrid');
     const approvals=byId('approvalsEnabled'),questions=byId('questionsEnabled'),saved=byId('notificationSaved');
-    const updateAction=byId('updateAction'),updateBadge=byId('updateBadge'),updateFeedback=byId('updateFeedback');
+    const updateAction=byId('updateAction'),updateBadge=byId('updateBadge'),updateFeedback=byId('updateFeedback'),pipelineOverall=byId('pipelineOverall'),pipelinePercent=byId('pipelinePercent'),pipelineStages=[...document.querySelectorAll('#pipelineStages .pipeline-stage')];
     const harnessAction=byId('harnessAction'),harnessBadge=byId('harnessBadge'),harnessFeedback=byId('harnessFeedback');
     const releaseNotes=byId('releaseNotes'),releaseNotesBody=byId('releaseNotesBody');
     let locale='zh-CN',currentTurnMode='unfocused',currentPolicy='notify',currentHarnessPolicy='safe-auto',updateState={currentVersion:'—',packaged:false,status:{kind:'idle'}},harnessState={available:false,policy:{mode:'safe-auto'},running:false},savedTimer;
@@ -262,6 +253,8 @@
     function renderThemes(){
       if(!window.DshThemes)return;
       const current=DshThemes.saved();
+      if(themeGrid.dataset.renderedLocale===locale&&themeOptions.length){setThemeChecked(current);return;}
+      themeGrid.dataset.renderedLocale=locale;
       themeGrid.replaceChildren();themeOptions=[];
       const ids=Object.keys(DshThemes.THEMES);
       ids.forEach((id,index)=>{
@@ -280,11 +273,16 @@
       });
       setThemeChecked(current);
     }
-    function selectTheme(id,fromClick){
-      const next=DshThemes.set(id);
+    let themeSaving=false;
+    async function selectTheme(id,fromClick){
+      if(themeSaving)return;themeSaving=true;themeGrid.setAttribute('aria-busy','true');clearSettingsError();
+      try{
+      const next=await DshThemes.set(id);
       setThemeChecked(next);
       announceTheme(text('已切换到'+DshThemes.THEMES[next].zh+' · '+DshThemes.THEMES[next].swatch,'Theme set to '+DshThemes.THEMES[next].en+' · '+DshThemes.THEMES[next].swatch));
       if(fromClick){const el=themeOptions.find(o=>o.dataset.themeId===next);if(el)el.focus()}
+      }catch(error){setThemeChecked(DshThemes.saved());reportSettingsError(error);}
+      finally{themeSaving=false;themeGrid.setAttribute('aria-busy','false');}
     }
     function selectThemeFromKey(event,index,ids){
       const dir=event.key==='ArrowRight'||event.key==='ArrowDown'?1:event.key==='ArrowLeft'||event.key==='ArrowUp'?-1:0;
@@ -300,6 +298,9 @@
       if(event.key!=='dshShellTheme')return;
       if(window.DshThemes){setThemeChecked(DshThemes.saved());announceTheme(text('已同步主题配色','Theme color synced'))}
     });
+    window.addEventListener('dsh-theme-change',function(){
+      if(window.DshThemes){setThemeChecked(DshThemes.saved());announceTheme(text('已同步全局主题','Global theme synced'))}
+    });
     // 首帧预渲染主题卡（bootstrap 到达前 radiogroup 即可聚焦，避免短暂空窗）
     renderThemes();
     function localize(nextLocale){
@@ -313,7 +314,8 @@
       byId('questionLabel').textContent=text('问题通知','Question notifications');byId('questionDescription').textContent=text('任务需要你的输入才能继续时显示提醒','Show alerts when input is needed to continue');saved.textContent=text('已保存','Saved');
       byId('updatesTitle').textContent=text('更新','Updates');byId('policyLabel').textContent=text('自动更新','Automatic updates');byId('policyDescription').textContent=text('选择桌面端如何检查和下载新版本。安装前始终由你确认。','Choose how the desktop app checks for and downloads new versions. Installation always requires your confirmation.');
       const policyLabels=isZh()?['自动检查并提醒','自动下载，安装前提醒','仅手动检查']:['Check automatically and notify','Download automatically, ask before install','Check manually only'];policySelect.options.forEach((option,index)=>option.textContent=policyLabels[index]);
-      byId('currentVersionLabel').textContent=text('当前版本','Current version');byId('checkLabel').textContent=text('桌面端更新','Desktop updates');byId('checkDescription').textContent=text('检查 GitHub Releases 中适用于当前系统的新版本。','Check GitHub Releases for a new version compatible with this system.');byId('releaseNotesTitle').textContent=text('版本说明','Release notes');
+      byId('currentVersionLabel').textContent=text('当前版本','Current version');byId('checkLabel').textContent=text('桌面端更新','Desktop updates');byId('checkDescription').textContent=text('在便携盘内完成检测、下载、验证、构建、A/B 部署和启动验证。','Detect, download, verify, build, A/B deploy, and validate startup entirely on the portable drive.');byId('releaseNotesTitle').textContent=text('版本说明','Release notes');
+      byId('desktopPipeline').setAttribute('aria-label',text('桌面更新进度','Desktop update progress'));byId('pipelineTitle').textContent=text('更新总进度','Overall update progress');const stageNames=isZh()?['检测','下载','验证','构建','部署','完成']:['Check','Download','Verify','Build','Deploy','Complete'];pipelineStages.forEach((stage,index)=>stage.querySelector('.pipeline-stage-name').textContent=stageNames[index]);
       byId('harnessTitle').textContent=text('DeepSeek Harness 运行环境','DeepSeek Harness runtime');byId('harnessPolicyLabel').textContent=text('运行环境更新策略','Runtime update policy');byId('harnessPolicyDescription').textContent=text('受信候选在隔离槽验证后，仅在任务空闲时切换；失败自动回滚。','Trusted candidates are validated in an isolated slot, switched only while idle, and rolled back automatically on failure.');
       const harnessPolicyLabels=isZh()?['安全自动更新','仅检测并通知','仅手动检查']:['Safe automatic updates','Detect and notify only','Manual checks only'];harnessPolicySelect.options.forEach((option,index)=>option.textContent=harnessPolicyLabels[index]);
       byId('harnessVersionLabel').textContent=text('当前 Harness','Current Harness');byId('harnessActionLabel').textContent=text('官方运行环境','Official runtime');byId('harnessActionDescription').textContent=text('交叉核验 npm 与 GitHub，不修改正在运行的槽，也不会退出桌面应用。','Cross-check npm and GitHub without modifying the active slot or quitting the desktop app.');
@@ -322,17 +324,33 @@
       turnSelect.set(currentTurnMode);policySelect.set(currentPolicy);harnessPolicySelect.set(currentHarnessPolicy);renderUpdateState(updateState);renderHarnessState(harnessState);
     }
     function showSaved(){saved.classList.add('visible');clearTimeout(savedTimer);savedTimer=setTimeout(()=>saved.classList.remove('visible'),1200)}
+    function reportSettingsError(error){const target=byId('settingsError');target.hidden=false;target.textContent=text('操作失败，请重试：','Operation failed. Please retry: ')+(error instanceof Error?error.message:String(error));}
+    function clearSettingsError(){byId('settingsError').hidden=true;}
+    let notificationSaving=false,policySaving=false,harnessPolicySaving=false;
     async function saveNotifications(){
+      if(notificationSaving)return;notificationSaving=true;clearSettingsError();
+      [approvals,questions,byId('turnModeButton')].forEach(control=>control.disabled=true);
+      try{
       const value=await api.updateNotificationPreferences({turnMode:currentTurnMode,approvalsEnabled:approvals.checked,questionsEnabled:questions.checked});
       currentTurnMode=turnSelect.set(value.turnMode);approvals.checked=value.approvalsEnabled;questions.checked=value.questionsEnabled;showSaved();
+      }catch(error){reportSettingsError(error);try{const value=await api.getNotificationPreferences();currentTurnMode=turnSelect.set(value.turnMode);approvals.checked=value.approvalsEnabled;questions.checked=value.questionsEnabled;}catch{}}
+      finally{notificationSaving=false;[approvals,questions,byId('turnModeButton')].forEach(control=>control.disabled=false);}
     }
     async function saveUpdatePolicy(){
+      if(policySaving)return;policySaving=true;clearSettingsError();byId('policyButton').disabled=true;
+      try{
       const value=await api.updateUpdatePreferences({policy:currentPolicy});currentPolicy=policySelect.set(value.policy);
       updateFeedback.className='update-feedback';updateFeedback.textContent=text('更新策略已保存。','Update policy saved.');
+      }catch(error){reportSettingsError(error);try{const value=await api.getUpdatePreferences();currentPolicy=policySelect.set(value.policy);}catch{}}
+      finally{policySaving=false;byId('policyButton').disabled=false;}
     }
     async function saveHarnessPolicy(){
+      if(harnessPolicySaving)return;harnessPolicySaving=true;clearSettingsError();byId('harnessPolicyButton').disabled=true;
+      try{
       const next=await api.updateHarnessUpdatePolicy({...harnessState.policy,mode:currentHarnessPolicy});if(next)renderHarnessState(next);
       harnessFeedback.className='update-feedback';harnessFeedback.textContent=text('Harness 更新策略已保存。','Harness update policy saved.');
+      }catch(error){currentHarnessPolicy=harnessPolicySelect.set(harnessState.policy?.mode||'safe-auto');reportSettingsError(error);}
+      finally{harnessPolicySaving=false;byId('harnessPolicyButton').disabled=false;}
     }
     function formatChecked(value){
       if(!value)return text('尚未检查','Not checked yet');
@@ -341,22 +359,26 @@
     function renderUpdateState(value){
       if(!value||!value.status)return;updateState=value;const status=value.status,kind=status.kind;
       byId('currentVersion').textContent=value.currentVersion||'—';byId('lastChecked').textContent=formatChecked(value.lastCheckedAt);
-      updateBadge.className='badge '+kind;updateFeedback.className='update-feedback'+(kind==='error'?' error':'');releaseNotes.hidden=true;releaseNotesBody.textContent='';
+      updateBadge.className='badge '+kind;updateFeedback.className='update-feedback'+((kind==='error'||kind==='rolled-back')?' error':'');releaseNotes.hidden=true;releaseNotesBody.textContent='';
       updateBadge.replaceChildren(Object.assign(document.createElement('span'),{textContent:''}));
-      updateBadge.style.setProperty('--progress',kind==='downloading'?String(Math.min(1,Math.max(0,(status.percent||0)/100))):'0');
+      const fallbackProgress={idle:0,checking:3,none:100,available:8,incompatible:100,downloading:30,verifying:58,building:75,ready:90,deploying:94,validating:97,completed:100,['rolled-back']:100,error:0};const overall=Math.max(0,Math.min(100,Number.isFinite(status.overallProgress)?status.overallProgress:(fallbackProgress[kind]||0)));const stageProgress=Math.max(0,Math.min(100,Number.isFinite(status.stageProgress)?status.stageProgress:(kind==='downloading'?(status.percent||0):0)));
+      pipelineOverall.style.width=overall+'%';pipelinePercent.textContent=Math.round(overall)+'%';const phaseIndex={checking:0,downloading:1,verifying:2,building:3,deploying:4,validating:4,completed:5};const activeIndex=phaseIndex[kind];const completedCount=kind==='available'||kind==='none'||kind==='incompatible'?1:kind==='ready'?4:kind==='completed'?6:(Number.isInteger(activeIndex)?activeIndex:0);pipelineStages.forEach((stage,index)=>{stage.classList.toggle('done',index<completedCount||kind==='completed');stage.classList.toggle('active',index===activeIndex&&kind!=='completed');stage.querySelector('.progress-fill').style.width=(index<completedCount||kind==='completed')?'100%':index===activeIndex?stageProgress+'%':'0%'});
+      updateBadge.style.setProperty('--progress',String(overall/100));
       const labels={
-        idle:text('准备就绪','Ready'),checking:text('正在检查','Checking'),available:text('有新版本','Update available'),none:text('已是最新','Up to date'),
-        downloading:text('下载中 '+Math.round(status.percent||0)+'%','Downloading '+Math.round(status.percent||0)+'%'),ready:text('等待安装','Ready to install'),error:text('检查失败','Check failed')
+        idle:text('准备就绪','Ready'),checking:text('正在检查','Checking'),available:text('有新版本','Update available'),none:text('已是最新','Up to date'),incompatible:text('已阻止','Blocked'),
+        downloading:text('下载中','Downloading'),verifying:text('正在验证','Verifying'),building:text('正在构建','Building'),ready:text('等待部署','Ready to deploy'),deploying:text('正在部署','Deploying'),validating:text('启动验证','Startup validation'),completed:text('更新完成','Completed'),['rolled-back']:text('已自动回滚','Rolled back'),error:text('更新失败','Update failed')
       };
       updateBadge.firstChild.textContent=labels[kind]||labels.idle;
       let action='check',actionLabel=text('检查更新','Check for updates'),disabled=false,feedback='';
-      if(!value.packaged){disabled=true;feedback=text('开发版本不连接发布更新服务。','Development builds do not connect to the release update service.')}
-      else if(kind==='checking'){disabled=true;feedback=text('正在检查新版本…','Checking for a new version…')}
-      else if(kind==='available'){action='download';actionLabel=text('下载 '+status.version,'Download '+status.version);feedback=text('发现桌面端 '+status.version+'。','Desktop '+status.version+' is available.');if(status.releaseNotes){releaseNotes.hidden=false;releaseNotesBody.textContent=status.releaseNotes}}
-      else if(kind==='downloading'){disabled=true;feedback=text('正在下载 '+Math.round(status.percent||0)+'%…','Downloading '+Math.round(status.percent||0)+'%…')}
-      else if(kind==='ready'){action='install';actionLabel=text('安装并重启','Install and restart');feedback=text('桌面端 '+status.version+' 已下载。安装将关闭并重启应用，请先保存工作。','Desktop '+status.version+' is downloaded. Installation closes and restarts the app, so save your work first.')}
+      if(!value.packaged){disabled=true;feedback=text('仅 Windows x64 便携版启用统一 A/B 更新。','The unified A/B updater is available only in the Windows x64 portable build.')}
+      else if(['checking','downloading','verifying','building','deploying','validating'].includes(kind)){disabled=true;feedback=status.detail||text('更新流水线正在运行…','The update pipeline is running…')}
+      else if(kind==='available'){action='download';actionLabel=text('下载并构建 '+status.version,'Download and build '+status.version);feedback=status.detail||text('发现桌面端 '+status.version+'。','Desktop '+status.version+' is available.');if(status.releaseNotes){releaseNotes.hidden=false;releaseNotesBody.textContent=status.releaseNotes}}
+      else if(kind==='ready'){action='install';actionLabel=text('部署并重启','Deploy and restart');feedback=status.detail||text('候选已通过完整性验证。部署会优雅关闭桌面端并自动重启验证，请先保存工作。','The candidate passed integrity checks. Deployment gracefully shuts down and restarts for validation; save your work first.')}
       else if(kind==='none'){feedback=text('当前已是最新桌面端版本。','You already have the latest desktop version.')}
-      else if(kind==='error'){feedback=status.message||text('无法检查桌面端更新，请稍后重试。','Unable to check for desktop updates. Try again later.')}
+      else if(kind==='incompatible'){feedback=status.detail||text('检测到上游新版本，但缺少 DSH 便携版 3 兼容契约，已阻止覆盖当前定制功能；请通过本地定制构建或自有发布渠道更新。','A newer upstream build was detected, but it lacks the DSH Portable 3 compatibility contract and was blocked to protect local customizations; update via a local build or your own release channel.');const diagnostic=[status.errorCode?text('错误码：','Error code: ')+status.errorCode:'',status.transactionId?text('事务：','Transaction: ')+status.transactionId:''].filter(Boolean).join(' · ');if(diagnostic)feedback+='\n'+diagnostic}
+      else if(kind==='completed'){feedback=status.detail||text('新版本已完成部署和启动验证。','The new version completed deployment and startup validation.')}
+      else if(kind==='rolled-back'||kind==='error'){feedback=status.detail||status.message||text('桌面更新失败，当前可用版本保持不变。','The desktop update failed; the current working version is unchanged.');if(kind==='error'){const diagnostic=[status.errorCode?text('错误码：','Error code: ')+status.errorCode:'',status.transactionId?text('事务：','Transaction: ')+status.transactionId:''].filter(Boolean).join(' · ');if(diagnostic)feedback+='\n'+diagnostic}}
+      else if(status.detail){feedback=status.detail}
       updateAction.dataset.action=action;updateAction.textContent=actionLabel;updateAction.disabled=disabled;updateFeedback.textContent=feedback;
     }
     function renderHarnessState(value){
@@ -370,13 +392,13 @@
     byId('settingsClose').addEventListener('click',()=>void api.closeDesktopSettings());
     notificationsNav.addEventListener('click',()=>setPage('notifications'));updatesNav.addEventListener('click',()=>setPage('updates'));appearanceNav.addEventListener('click',()=>setPage('appearance'));
     approvals.addEventListener('change',()=>void saveNotifications());questions.addEventListener('change',()=>void saveNotifications());
-    updateAction.addEventListener('click',async()=>{if(updateAction.disabled)return;updateAction.disabled=true;const next=await api.desktopUpdateAction(updateAction.dataset.action||'check');if(next)renderUpdateState(next)});
-    harnessAction.addEventListener('click',async()=>{if(harnessAction.disabled)return;harnessAction.disabled=true;const next=await api.harnessUpdateAction('check');if(next)renderHarnessState(next)});
+    updateAction.addEventListener('click',async()=>{if(updateAction.disabled)return;updateAction.disabled=true;clearSettingsError();try{const next=await api.desktopUpdateAction(updateAction.dataset.action||'check');if(next)renderUpdateState(next)}catch(error){reportSettingsError(error)}finally{renderUpdateState(updateState)}});
+    harnessAction.addEventListener('click',async()=>{if(harnessAction.disabled)return;harnessAction.disabled=true;clearSettingsError();try{const next=await api.harnessUpdateAction('check');if(next)renderHarnessState(next)}catch(error){reportSettingsError(error)}finally{renderHarnessState(harnessState)}});
     setPage(location.hash==='#updates'?'updates':location.hash==='#appearance'?'appearance':'notifications');
     Promise.all([api.getBootstrap(),api.getNotificationPreferences(),api.getUpdatePreferences(),api.getDesktopUpdateState(),api.getHarnessUpdateState()]).then(([bootstrap,notifications,preferences,state,harness])=>{
       currentTurnMode=turnSelect.set(notifications.turnMode);approvals.checked=notifications.approvalsEnabled;questions.checked=notifications.questionsEnabled;
       currentPolicy=policySelect.set(preferences.policy);applyBootstrap(bootstrap);renderUpdateState(state);renderHarnessState(harness);
-    });
+    }).catch(reportSettingsError);
     function applyBootstrap(value){document.documentElement.dataset.colorScheme=value.colorScheme;document.documentElement.style.colorScheme=value.colorScheme;localize(value.locale)}
     api.onBootstrap(applyBootstrap);api.onDesktopUpdateState(renderUpdateState);api.onHarnessUpdateState(renderHarnessState);api.onSettingsSection(value=>setPage(value==='updates'?'updates':'notifications'));
   </script>

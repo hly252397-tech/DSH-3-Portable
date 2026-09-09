@@ -64,7 +64,7 @@ interface DesktopShellBridge {
   reportState(state: DesktopNavigationState): void
 }
 
-export function desktopBridgeClientFactory(): { apply(ctx: ClientContext): void; inject: string[] } {
+export function desktopBridgeClientFactory(moduleRequire: (id: string) => unknown): { apply(ctx: ClientContext): void; inject: string[] } {
     const inject = ['sessions', 'workspaces', 'layout', 'locale']
 
     const visibleSessionRows = (): HTMLElement[] => [...document.querySelectorAll<HTMLElement>('.dcu-wb-session[role="treeitem"][aria-selected]')]
@@ -142,6 +142,7 @@ export function desktopBridgeClientFactory(): { apply(ctx: ClientContext): void;
       const trackCurrent = (): void => {
         const nextSnapshot = snapshot()
         const current = nextSnapshot.current
+        const isInitialSnapshot = notificationBaseline === undefined
         if (current !== undefined && history[historyIndex] !== current) {
           history = history.slice(0, historyIndex + 1)
           history.push(current)
@@ -163,7 +164,9 @@ export function desktopBridgeClientFactory(): { apply(ctx: ClientContext): void;
           const row = nextSnapshot.byId[id]
           if (row === undefined) continue
           if (row.running || row.pendingInteraction !== undefined) activityCount += 1
-          if (row.completed === true) unreadCompletions.add(id)
+          // 历史已完成任务只在首次建立基线时计入；后续列表刷新不能把
+          // 用户已经读过并清除的任务重新标记为未读（上游 v1.0.46）。
+          if (isInitialSnapshot && row.completed === true) unreadCompletions.add(id)
           const previous = notificationBaseline?.get(id)
           nextBaseline.set(id, { running: row.running, ...(row.pendingInteraction === undefined ? {} : { pendingInteraction: row.pendingInteraction }) })
           if (previous === undefined) continue
@@ -236,7 +239,7 @@ export function desktopBridgeClientFactory(): { apply(ctx: ClientContext): void;
       }
       const onAction = (id: string): void => {
         // Omitting the id inherits the selected Session's Workspace, exactly like
-        // the DSH “新建任务” control.
+        // the DSH "新建任务" control.
         if (id === 'new-chat') ctx.workspaces.startSession()
         else if (id === 'open-folder') void openFolder().catch(error => { console.error('打开文件夹失败。', error) })
         else if (id === 'toggle-sidebar') ctx.layout.toggleSidebar()
@@ -267,9 +270,17 @@ export function desktopBridgeClientFactory(): { apply(ctx: ClientContext): void;
         window.addEventListener('focus', onWindowFocus)
         const observer = new MutationObserver(report)
         observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-selected', 'class'] })
+        const onLogoDoubleClick = (event: MouseEvent): void => {
+          const target = event.target as HTMLElement
+          if (target.closest('.dcu-brand') === null) return
+          event.preventDefault()
+          event.stopPropagation()
+          ctx.layout.toggleSidebar()
+        }
+        document.addEventListener('dblclick', onLogoDoubleClick, true)
         trackCurrent()
         reportLocale()
-        return () => { stopAction(); stopOpenSession(); stopNotificationReply(); stopList(); stopLocale(); window.removeEventListener('focus', onWindowFocus); observer.disconnect() }
+        return () => { stopAction(); stopOpenSession(); stopNotificationReply(); stopList(); stopLocale(); window.removeEventListener('focus', onWindowFocus); observer.disconnect(); document.removeEventListener('dblclick', onLogoDoubleClick, true) }
       }, 'desktop-shell bridge')
     }
 

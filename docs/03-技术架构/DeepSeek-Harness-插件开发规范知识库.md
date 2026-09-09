@@ -3,7 +3,7 @@
 > 来源：官方文档站 https://deepseek-harness.github.io/deepseek-harness/
 > （guide/quickstart、develop/basic/*、develop/framework/*、develop/practice/*、develop/cordis-tutorial/06-07、reference/）
 > 用途：**所有智能体与本仓库开发者**在增加功能、修复缺陷、定制插件前的强制审查依据。
-> 适用版本：@deepseek-ai/dsh 0.1.2-alpha.3（本便携版内置运行时）。
+> 实现适用版本：@deepseek-ai/dsh 0.1.2-rc.1（本便携版内置运行时）。官方最新审查版本为 0.1.5-alpha.1，提交与版本差异见同目录 `DeepSeek-Harness-官方兼容基线.md`；不得把最新文档中的 API 未经验证地用于旧运行时。
 
 ---
 
@@ -19,6 +19,21 @@
 8. **LLM 适配器不支持的字段必须抛带稳定 code 的 `LlmError`**，禁止静默丢弃；HTTP 请求必须合并 `attributionHeaders()` 并传递 `options.signal`。
 9. **后应用的 patch 层按行胜出、整行替换（非深合并）**：覆盖某行必须重述该行全部键。
 10. **持久化会话事件 ≠ Cordis 事件**：`turn/*`、`step/*`、`tool/call`、`tool/result`、`compaction/*` 是会话日志事件类型，观察它们必须监听 `session/event` 后检查 `event.type`，不能 `ctx.on('tool/call', ...)`。
+
+### 0.1 官方当前版本追加门禁
+
+以下规则来自当前官方 `AGENTS.md`、`packages/AGENTS.md`、架构与测试规范；即使内置运行时仍为 alpha.3，新功能审查也必须覆盖：
+
+1. 函数插件只使用命名导出的 `name` / `inject` / `Config` / `apply`，不得同时混入 default export；服务插件才默认导出 Service 类。
+2. 可选服务在使用点通过 `ctx.get(name)` 查询；只有声明为必需注入的服务才能通过 `ctx.<name>` 访问。
+3. 产品可见插件必须有 Loader + Profile + 真实应用/进程组合测试，手工 `ctx.plugin()` 单元测试不能作为唯一证据；注册项还要验证 Fiber 处置后确实撤销。
+4. 状态、通知、缓存和 UI 回显只能在操作成功提交后发布，并从同一权威状态派生。
+5. 字节、令牌、数量和时间限制必须作用于包含包装和元数据的完整结果，并覆盖极小、精确上限、单块超限和多字节输入。
+6. Client UI 产品文案由类型化本地化字典拥有，禁止在组件中新增散落的硬编码文案。
+7. 生命周期、并发、子进程或 teardown 改动必须审阅官方 defensive patterns；一个异步操作由一个生命周期控制器或事务所有。
+8. 非平凡变更需要同批留下决策、替代方案、影响和验证证据；本仓库写入对应迭代的实施/审查记录。
+9. TypeScript 保持 strict；跨持久化、配置、模型/工具 JSON、进程和 wire 边界才做运行时校验，不在同进程强类型接口上堆叠无依据的防御代码。
+10. 官方仍处于 Developer Preview，会拒绝旧磁盘格式且不承诺会话格式兼容。任何运行时升级必须先做数据格式评估、备份、候选验证与回滚演练。
 
 ---
 
@@ -56,6 +71,8 @@ export default class MyService extends Service {
   }
 }
 ```
+
+> **inject 声明通道按导出形态区分**（2026-09 核对 MichengAI 全部 8 个社区插件 + 本仓库 plan-quota / dsh-sidebar-spaces）：① 命名导出形态 → 模块级 `export const inject` 即生效，patch 条目只写 `id`+`name`；② 类形式 → 类静态 `static inject = [...]`；③ default export 函数形态 → loader 不读模块级 inject，必须在 cordis 条目写 `inject:` 字段。
 
 ### 生命周期（Fiber 状态机）
 
@@ -417,6 +434,9 @@ export function apply(ctx: Context) {
 | 模型可见上下文 | `agent.inject()`（⚠️ 铁律 1：需新增会话事件） |
 | 用户命令（无需模型轮次） | `ctx.commands` |
 | 后台任务 | `ctx.jobs` |
+| 独立 LLM 子任务 / 只读旁问 | `ctx.subagents.start('fork', {parent, prompt, toolFilter, signal})` + `ctx.tools.guard()`（社区实证：dsh-btw） |
+| 向当前会话注入模型可见消息 | `invocation.agent.followup(createUserMessage({..., source:{kind:'plugin', plugin}}))`，source 必带插件名（满足铁律 1；社区实证：dsh-simplify） |
+| 替换内建服务实现 | patch 整行禁用原条目（`disabled: true`）+ `insert` 替代实现（社区实证：dsh-archive-manager、dsh-codex-ui） |
 
 ---
 
@@ -487,7 +507,7 @@ llm-pi-ai:
 
 | 官方概念 | 本仓库对应物 |
 |---|---|
-| 组合包 | `Data/DSH/profiles/web/local/dsh-sidebar-spaces`、`dsh-desktop-bridge` |
+| 组合包 | `Data/DSH/profiles/web/local/`（`dsh-sidebar-spaces`、`dsh-codex-ui`——移植自社区上游 MichengAI/dsh-codex-ui、`dsh-restart-button`、`dsh-work-mode`、`plan-quota`）及 `dsh-desktop-bridge` |
 | patch 层 | `cordis.patch.yml`（启动时注入 `dsh-desktop-bridge`） |
 | profile | `Data/DSH/profiles/web`（`dsh.profile.bundles` 见其 package.json） |
 | 插件产物结构 | `lib/index.js`（必须存在，ESM 入口；历史上曾因 lib/ 缺失导致 ERR_MODULE_NOT_FOUND 崩溃） |

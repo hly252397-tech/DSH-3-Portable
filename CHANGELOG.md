@@ -4,6 +4,16 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.46 Portable Integration — 2026-09-04
+
+- Upgraded the bundled official DSH runtime and its launch peers from `0.1.2-alpha.3` to `0.1.2-rc.1`, matching the trusted release list and removing the persistent "配套管理插件" update prompt.
+- Integrated the upstream `v1.0.46` unread-completion badge fix and aligned all ten bundled community components with that release's pinned version matrix.
+- Preserved the portable build's full embedded browser, transactional per-plugin quarantine, portable paths, and desktop/Harness dual A/B updaters instead of installing an upstream binary that lacks those capabilities.
+- Added a release-level portable compatibility contract. The client verifies the contract SHA256, artifact SHA256, and required capabilities before download, preventing incompatible releases from replacing portable customizations.
+- Fixed Electron physical-ASAR validation, reuse of verified download caches, and preservation of visible failure progress, error codes, and transaction IDs.
+- Changed desktop updates to prewarm the shared runtime before activation. Archives now carry logical-content digests that ignore packaging timestamps and pnpm's volatile SQLite mtime index while retaining a deterministic store lockfile: unchanged content reuses the cache across desktop builds, changed content is prepared while the old desktop remains usable, and restart only performs the slot switch and health check. Startup extraction remains solely as interrupted/damaged-cache recovery.
+- Hardened the Windows cold-start smoke gate: local acceptance data can be pinned to the portable drive, HTTP 401 checks use a bounded `HttpClient` instead of the version-dependent web cmdlet, and cleanup validates its boundary, normalizes read-only entries, and retries before reporting success.
+
 ## 1.0.43 — 2026-09-01
 
 - Upgraded the bundled official DSH runtime and its launch peers to `0.1.2-alpha.3`.

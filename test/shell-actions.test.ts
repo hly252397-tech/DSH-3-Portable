@@ -6,6 +6,7 @@ import { localizedShellActions, localizedShellMenus, normalizeShellLocale, shell
 test('桌面壳动作注册表没有重复命令且四个菜单均有内容', () => {
   assert.equal(new Set(SHELL_ACTIONS.map(action => action.id)).size, SHELL_ACTIONS.length)
   assert.deepEqual(new Set(SHELL_ACTIONS.map(action => action.menu)), new Set(['file', 'edit', 'view', 'help']))
+  assert.equal(SHELL_ACTIONS.some(action => action.id === ('browser-toggle' as never)), false)
 })
 
 test('桌面壳菜单和动作随 DSH 语言本地化', () => {
@@ -34,4 +35,5 @@ test('全局快捷键使用同一动作注册表并正确区分平台修饰键',
   assert.equal(shellActionForShortcut({ key: ',', control: true, meta: false, alt: false, shift: false }, 'win32'), undefined)
   assert.equal(shellActionForShortcut({ key: 'F11', control: false, meta: false, alt: false, shift: false }, 'win32'), 'toggle-fullscreen')
   assert.equal(shellActionForShortcut({ key: 'n', control: false, meta: false, alt: false, shift: false }, 'win32'), undefined)
+  assert.equal(shellActionForShortcut({ key: 'b', control: true, meta: false, alt: false, shift: true }, 'win32'), undefined)
 })

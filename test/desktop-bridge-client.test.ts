@@ -9,6 +9,7 @@ type ClientPlugin = { apply(ctx: Record<string, unknown>): void; inject: string[
 
 function loadClient(options: { elements?: unknown[]; errors?: string[]; focused?: boolean } = {}): {
   apply(ctx: Record<string, unknown>): void
+  doubleClick(target: { closest(selector: string): unknown }): { defaultPrevented: boolean, propagationStopped: boolean }
   focusWindow(): void
   inject: string[]
   locales: string[]
@@ -18,7 +19,7 @@ function loadClient(options: { elements?: unknown[]; errors?: string[]; focused?
   openSession(id: string): void
   reply(value: { sessionId: string; text: string }): void
 } {
-  let registration: { factory(): ClientPlugin } | undefined
+  let registration: { factory(require: (id: string) => unknown): ClientPlugin } | undefined
   let actionListener: ActionListener | undefined
   let openSessionListener: ActionListener | undefined
   let notificationReplyListener: ((value: { sessionId: string; text: string }) => void) | undefined
@@ -27,14 +28,21 @@ function loadClient(options: { elements?: unknown[]; errors?: string[]; focused?
   const notifications: Array<Record<string, unknown>> = []
   const locales: string[] = []
   const themes: Array<Record<string, unknown>> = []
+  const documentListeners = { dblclick: new Set<(event: Event) => void>() }
   const context = {
     console: { error: (...args: unknown[]) => { options.errors?.push(args.map(String).join(' ')) } },
-    document: { body: {}, hasFocus: () => focused, querySelectorAll: () => options.elements ?? [] },
+    document: {
+      body: {},
+      hasFocus: () => focused,
+      querySelectorAll: () => options.elements ?? [],
+      addEventListener(type: string, listener: (event: Event) => void): void { if (type in documentListeners) documentListeners[type as keyof typeof documentListeners].add(listener) },
+      removeEventListener(type: string, listener: (event: Event) => void): void { if (type in documentListeners) documentListeners[type as keyof typeof documentListeners].delete(listener) },
+    },
     MutationObserver: class { observe(): void {} disconnect(): void {} },
     queueMicrotask,
     setTimeout,
     window: {
-      __ModuleLoader__: { load(value: { factory(): ClientPlugin }): void { registration = value } },
+      __ModuleLoader__: { load(value: { factory(require: (id: string) => unknown): ClientPlugin }): void { registration = value } },
       dshDesktopShell: {
         onAction(listener: ActionListener): () => void { actionListener = listener; return () => { actionListener = undefined } },
         onOpenSession(listener: ActionListener): () => void { openSessionListener = listener; return () => { openSessionListener = undefined } },
@@ -50,9 +58,23 @@ function loadClient(options: { elements?: unknown[]; errors?: string[]; focused?
   }
   vm.runInNewContext(desktopBridgeClientBundle(), context)
   assert.ok(registration)
-  const plugin = registration.factory()
+  const plugin = registration.factory(id => {
+    assert.equal(id, 'react')
+    return { createElement: () => null, useLayoutEffect: () => {}, useRef: <T>(initial: T) => ({ current: initial }) }
+  })
   return {
     apply: plugin.apply,
+    doubleClick: target => {
+      let defaultPrevented = false
+      let propagationStopped = false
+      const event = {
+        target,
+        preventDefault(): void { defaultPrevented = true },
+        stopPropagation(): void { propagationStopped = true },
+      } as unknown as Event
+      for (const listener of documentListeners.dblclick) listener(event)
+      return { defaultPrevented, propagationStopped }
+    },
     focusWindow: () => { focused = true; for (const listener of focusListeners) listener() },
     inject: plugin.inject,
     locales,
@@ -70,9 +92,27 @@ test('通知回复不把会话级 conversation 声明为根上下文注入', () 
   assert.equal(client.inject.includes('locale'), true)
 })
 
+test('双击 DSH Logo 切换侧栏且不影响其他元素', () => {
+  let toggles = 0
+  const client = loadClient()
+  client.apply({
+    ...clientContext({ pickDirectory: async () => null, create: async () => ({}), startSession(): void {} }),
+    layout: { toggleSidebar(): void { toggles += 1 } },
+  })
+
+  const logoEvent = client.doubleClick({ closest: selector => selector === '.dcu-brand' ? {} : null })
+  assert.equal(toggles, 1)
+  assert.deepEqual(logoEvent, { defaultPrevented: true, propagationStopped: true })
+
+  const unrelatedEvent = client.doubleClick({ closest: () => null })
+  assert.equal(toggles, 1)
+  assert.deepEqual(unrelatedEvent, { defaultPrevented: false, propagationStopped: false })
+})
+
 function clientContext(workspaces: Record<string, unknown>): Record<string, unknown> {
   return {
     effect(callback: () => void): void { callback() },
+    get: () => undefined,
     layout: { toggleSidebar(): void {} },
     locale: { getSnapshot: () => ({ active: 'zh' }), subscribe: () => () => {} },
     sessions: {
@@ -273,6 +313,34 @@ test('未聚焦会话完成时上报未读标记，窗口重新聚焦后清除',
   assert.deepEqual(client.notifications.filter(event => event.type === 'activity').map(event => event.count), [1, 0])
   client.focusWindow()
   assert.deepEqual(client.notifications.filter(event => event.type === 'badge').map(event => event.count), [0, 1, 0])
+})
+
+test('上游 1.0.46：已读完成任务在列表刷新后不会重新计入角标', () => {
+  let snapshot: any = {
+    ids: ['session-1', 'session-2'], current: 'session-1',
+    byId: {
+      'session-1': { completed: true, displayTitle: '任务一', running: false },
+      'session-2': { completed: true, displayTitle: '任务二', running: false },
+    },
+  }
+  let listListener: (() => void) | undefined
+  const client = loadClient()
+  client.apply({
+    ...clientContext({ pickDirectory: async () => null, create: async () => ({}), startSession(): void {} }),
+    sessions: {
+      binding: () => undefined,
+      list: { getSnapshot: () => snapshot, subscribe: (listener: () => void) => { listListener = listener; return () => {} } },
+      open(): void {},
+    },
+  })
+  assert.deepEqual(client.notifications.filter(event => event.type === 'badge').map(event => event.count), [1])
+
+  snapshot = { ...snapshot, current: 'session-2' }
+  assert.ok(listListener)
+  listListener()
+  listListener()
+
+  assert.deepEqual(client.notifications.filter(event => event.type === 'badge').map(event => event.count), [1, 0])
 })
 
 test('创建工作区异常返回空值时也不得启动会话', async () => {

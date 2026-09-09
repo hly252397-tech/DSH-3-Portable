@@ -1,5 +1,12 @@
 import { existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
+
+/** pnpm records a versioned store in .modules.yaml, but cache-dir takes its root. */
+export function pnpmStoreOptions(storeDir?: string): string[] {
+  if (storeDir === undefined) return []
+  const cacheDir = /^v\d+$/.test(basename(storeDir)) ? dirname(storeDir) : storeDir
+  return [`--store-dir=${storeDir}`, `--cache-dir=${cacheDir}`]
+}
 
 interface PathLookup {
   exists?: (path: string) => boolean

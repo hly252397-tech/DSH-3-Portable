@@ -56,11 +56,16 @@ export function mergeProfileUpdates(input: {
   installed: readonly { packageName: string; version?: string }[]
 }): ProfilePackageUpdate[] {
   const installed = new Map(input.installed.map((item) => [item.packageName, item.version]))
-  const merged = new Map<string, string>()
-  for (const item of [...input.declared, ...input.pending]) {
+  const desired = new Map<string, string>()
+  for (const item of input.declared) {
     if (isDeepSeekOfficialPackage(item.packageName)) continue
-    if (installed.get(item.packageName) === item.version) continue
-    merged.set(item.packageName, item.version)
+    desired.set(item.packageName, item.version)
   }
-  return [...merged.entries()].map(([packageName, version]) => ({ packageName, version }))
+  for (const item of input.pending) {
+    if (isDeepSeekOfficialPackage(item.packageName)) continue
+    desired.set(item.packageName, item.version)
+  }
+  return [...desired.entries()]
+    .filter(([packageName, version]) => installed.get(packageName) !== version)
+    .map(([packageName, version]) => ({ packageName, version }))
 }

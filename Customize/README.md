@@ -1,7 +1,8 @@
-# 便携定制层
+# 便携定制
 
-- `App-Overlay/`：官网更新完成后，其中的文件会按相对路径覆盖到新的 `App/`。适合放不会与新版结构冲突的图标、配置或外置资源。
-- `After-Update.ps1`：可选的高级更新钩子。更新脚本会传入 `-PortableRoot`、`-AppDirectory` 和 `-Version`。钩子失败时会停止更新流程并保留旧版备份。
-- 源码级定制请在 Git 分支中提交，再运行 `Build-DSH-Portable.cmd`。不要直接修改 `App/resources/app.asar`；官网更新会替换它。
+统一 A/B 更新器不会把旧版本文件覆盖到新候选槽，也不会执行任意更新后钩子；这样可确保 GitHub Release 摘要、槽清单和实际运行文件一致。
 
-`Data/` 永远不作为覆盖层，它保存会话、配置、凭据、缓存和运行时，更新脚本不会复制或清空它。
+- 源码级定制请提交到自己的 Git 分支，再运行 `Build-DSH-Portable.cmd` 构建并验证。
+- `App-Overlay/` 仅保留为历史定制素材库，不会自动写入已验证的应用槽。
+- 不要直接修改 `App/resources/app.asar` 或 `Data/Updates/Desktop/slots/`，否则完整性门禁会拒绝启动候选并自动回滚。
+- `Data/` 保存会话、配置、凭据、缓存和运行时，桌面应用更新不会复制、清空或迁出它。

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeShellAction, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility } from '../src/shell-ipc-policy.js'
+import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayAccessThemePreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeBrowserIpc, mayInvokeShellAction, mayManageBrowserPanel, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility } from '../src/shell-ipc-policy.js'
 
 test('IPC 权限按 renderer 最小化开放', () => {
   assert.equal(mayGetShellBootstrap('main'), true)
@@ -9,6 +9,7 @@ test('IPC 权限按 renderer 最小化开放', () => {
   assert.equal(mayGetShellBootstrap('about'), true)
   assert.equal(mayGetShellBootstrap('dsh'), false)
   assert.equal(mayGetShellBootstrap('settings'), true)
+  assert.equal(mayGetShellBootstrap('browser-panel'), true)
   assert.equal(mayPopupShellMenu('main'), true)
   assert.equal(mayPopupShellMenu('about'), false)
   assert.equal(mayReportDshState('dsh'), true)
@@ -23,6 +24,8 @@ test('IPC 权限按 renderer 最小化开放', () => {
   assert.equal(mayReportDshSettingsVisibility('main'), false)
   assert.equal(mayAccessNotificationPreferences('settings'), true)
   assert.equal(mayAccessNotificationPreferences('main'), false)
+  assert.equal(mayAccessThemePreferences('settings'), true)
+  assert.equal(mayAccessThemePreferences('main'), false)
   assert.equal(mayCloseDesktopSettings('settings'), true)
   assert.equal(mayCloseDesktopSettings('main'), false)
   assert.equal(mayAccessDesktopUpdates('settings'), true)
@@ -32,4 +35,10 @@ test('IPC 权限按 renderer 最小化开放', () => {
   assert.equal(mayInvokeShellAction('about', 'quit'), false)
   assert.equal(mayInvokeShellAction('shortcuts', 'quit'), false)
   assert.equal(mayInvokeShellAction('main', 'quit'), true)
+  assert.equal(mayManageBrowserPanel('dsh'), true)
+  assert.equal(mayManageBrowserPanel('main'), false)
+  assert.equal(mayManageBrowserPanel('browser-panel'), false)
+  assert.equal(mayInvokeBrowserIpc('browser-panel'), true)
+  assert.equal(mayInvokeBrowserIpc('main'), false)
+  assert.equal(mayInvokeBrowserIpc('dsh'), false)
 })

@@ -463,12 +463,28 @@ function createBrowserLibrary({ safeStorage, browserDataRoot, stateRoot, appendL
     return importProfile(data.pendingImport.source, browserSession);
   }
 
-  async function loadExtensions(browserSession) {
-    if (!data.settings.loadExtensions) return [];
+  let extensionLoadTail = Promise.resolve();
+  function loadExtensions(browserSession) {
+    const run = extensionLoadTail.catch(() => undefined).then(() => reconcileExtensions(browserSession));
+    extensionLoadTail = run;
+    return run;
+  }
+
+  async function reconcileExtensions(browserSession) {
+    const extensions = browserSession.extensions || browserSession;
+    const normalizePath = value => process.platform === 'win32' ? path.resolve(value).toLowerCase() : path.resolve(value);
+    const samePath = (a, b) => typeof a === 'string' && typeof b === 'string' && normalizePath(a) === normalizePath(b);
+    for (const loaded of extensions.getAllExtensions()) {
+      const entry = data.extensions.find(item => samePath(item.path, loaded.path));
+      if (entry && (!data.settings.loadExtensions || !entry.enabled)) extensions.removeExtension(loaded.id);
+    }
     const results = [];
-    for (const entry of data.extensions.filter((item) => item.enabled)) {
+    for (const entry of data.extensions) {
+      if (!data.settings.loadExtensions || !entry.enabled) { entry.error = ''; continue; }
       try {
-        const loaded = await browserSession.loadExtension(entry.path, { allowFileAccess: false });
+        const loaded = extensions.getAllExtensions().find(item => samePath(item.path, entry.path))
+          || await extensions.loadExtension(entry.path, { allowFileAccess: false });
+        if (!data.settings.loadExtensions || !entry.enabled) { extensions.removeExtension(loaded.id); continue; }
         entry.error = '';
         results.push({ id: loaded.id, loaded: true });
       } catch (error) {

@@ -1,16 +1,16 @@
-import { app, BrowserWindow, Menu, Notification, Tray, WebContentsView, dialog, ipcMain, nativeImage, nativeTheme, net, protocol, safeStorage, session, shell, type Input, type MenuItemConstructorOptions, type WebContents } from 'electron'
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { app, BrowserWindow, Menu, Notification, Tray, WebContentsView, clipboard, dialog, ipcMain, nativeImage, nativeTheme, net, protocol, safeStorage, session, shell, type Input, type MenuItemConstructorOptions, type WebContents } from 'electron'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { writeFile as writeTextFile } from 'node:fs/promises'
 import { createHash, randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, parse, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { DESKTOP_APP_NAME, DESKTOP_APP_USER_MODEL_ID, DESKTOP_TOAST_ACTIVATOR_CLSID, resolveDesktopRuntimeDir, resolveDesktopUserDataDir } from './app-identity.js'
 import { OFFICIAL_DSH_VERSION } from './bundled-plugins.js'
-import { resolveAppIconPath, resolveCompactIconCrop, resolveNotificationIconPath, resolveRasterIconPath, resolveTaskBadgeIconPath, TRAY_ICON_SIZE } from './app-icon.js'
-import { WINDOW_ICON_PIXEL_SIZES, isLoopbackFaviconRequest } from './window-icon.js'
+import { resolveAppIconPath, resolveCompactIconCrop, resolveNotificationIconPath, resolveRasterIconPath, resolveTaskBadgeIconPath, resolveTaskbarIconPath, resolveTrayIconPath, TRAY_ICON_SIZE } from './app-icon.js'
+import { isLoopbackFaviconRequest } from './window-icon.js'
 import { quitDesktopApp, shouldHideInsteadOfClose } from './app-lifecycle.js'
 import type { DshServer, StartDshOptions } from './dsh-process.js'
 import { isExternalHttpUrl, isExternalOpenUrl, isSameOrigin } from './navigation.js'
@@ -19,7 +19,8 @@ import { parseUnresolvedBundleError, startWithProfileSelfRepair } from './profil
 import { quarantineProfileBundle } from './profile-quarantine.js'
 import { resolveBundledPluginStore, resolvePluginBinDir } from './plugin-toolchain.js'
 import { resolveDshBootstrap, resolveDshRuntime, resolveNodeExecutable } from './runtime.js'
-import { extractPackagedRuntimesInChild, packagedRuntimesNeedExtraction, type RuntimeExtractionProgress } from './extract-runtime.js'
+import { extractPackagedRuntimesInChild, packagedRuntimesNeedExtraction, preparePackagedRuntimeCacheInChild, resolvePackagedRuntimeCache, type RuntimeExtractionProgress } from './extract-runtime.js'
+import { advanceStartupProgress, STARTUP_PROGRESS } from './startup-progress.js'
 import { resolvePrebuiltOfficialRuntime } from './runtime-prebuilt.js'
 import { activateRuntimeSlot, commitRuntimeSlot, readRuntimeSlotPointer, recoverInterruptedRuntimeSwitch, resolveActiveRuntimeDir, rollbackRuntimeSlot, runtimeSlotVersion } from './runtime-slots.js'
 import { buildHarnessRuntimeCandidate, type HarnessRuntimeCandidate } from './harness-runtime-candidate.js'
@@ -30,14 +31,19 @@ import { WindowNavigationCoordinator } from './window-navigation.js'
 import { escapeRoute } from './escape-routing.js'
 import { installDesktopBridge, resolveDesktopBridgeDir } from './desktop-host.js'
 import { isChineseLocale, localizedShellActions, localizedShellMenus, normalizeShellLocale, shellActionForShortcut, SHELL_ACTIONS, type ShellActionId, type ShellMenuId } from './shell-actions.js'
-import { SHELL_BAR_HEIGHT, SHELL_IPC, type BrowserPanelBounds, type BrowserShellState, type BrowserTabState, type DshNavigationState, type DshShellActionId, type ShellBootstrap, type ShellMenuPopupRequest, type ShellState } from './shell-contract.js'
-import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeBrowserIpc, mayInvokeBrowserPanelIpc, mayInvokeShellAction, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility, type ShellRendererKind } from './shell-ipc-policy.js'
-import { DESKTOP_THEME_PALETTES, normalizeDesktopThemeSnapshot, type DesktopColorScheme, type DesktopThemePreference } from './desktop-theme.js'
+import { SHELL_BAR_HEIGHT, SHELL_IPC, type BrowserDownloadState, type BrowserPageSnapshot, type BrowserPanelBounds, type BrowserPanelSnapshot, type BrowserShellState, type BrowserTabState, type DshNavigationState, type DshShellActionId, type ShellBootstrap, type ShellMenuPopupRequest, type ShellState } from './shell-contract.js'
+import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayAccessThemePreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeBrowserIpc, mayInvokeFeaturePanelsCopy, mayInvokeShellAction, mayManageBrowserPanel, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility, type ShellRendererKind } from './shell-ipc-policy.js'
+import { FEATURE_PANEL_CATEGORIES, FEATURE_PANELS } from './feature-panels.js'
+import { normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight } from './browser-panel-layout.js'
+import { normalizeNativeBrowserRequest } from './native-browser-request.js'
+import { clearStaleDshAuthCookies } from './dsh-session-cookies.js'
+import { DEFAULT_DESKTOP_THEME_PREFERENCES, DESKTOP_THEME_PALETTES, loadDesktopThemePreferences, normalizeDesktopThemeSnapshot, saveDesktopThemePreferences, type DesktopColorScheme, type DesktopThemePreference, type DesktopThemePreferences } from './desktop-theme.js'
 import { DSH_MARKET_STATUS_PATH, isDshMarketOperationBusy, waitForDshMarketBatchToSettle } from './dshmarket-batch.js'
 import { DEFAULT_NOTIFICATION_PREFERENCES, buildWindowsReplyToastXml, loadNotificationPreferences, parseDesktopNotificationBridgeEvent, parseWindowsNotificationReplyActivation, saveNotificationPreferences, shouldShowDesktopNotification, windowsNotificationReplyArguments, type DesktopNotificationEvent, type DesktopNotificationPreferences } from './desktop-notifications.js'
 import { watchProfileActivation } from './profile-watch.js'
-import updater from 'electron-updater'
-import { DEFAULT_UPDATE_PREFERENCES, STARTUP_UPDATE_CHECK_DELAY_MS, buildDesktopTrayItems, desktopUpdateChannel, desktopUpdatePrompt, formatDesktopReleaseNotes, loadUpdatePreferences, publicDesktopUpdateError, saveUpdatePreferences, shouldCheckForUpdatesOnStartup, shouldDownloadUpdateAutomatically, type DesktopUpdateAction, type DesktopUpdatePreferences, type DesktopUpdateSnapshot, type DesktopUpdateStatus } from './desktop-updater.js'
+import { repairMisplacedSessionLogs } from './session-path-repair.js'
+import { DEFAULT_UPDATE_PREFERENCES, STARTUP_UPDATE_CHECK_DELAY_MS, buildDesktopTrayItems, desktopUpdatePrompt, loadUpdatePreferences, preserveDesktopUpdateFailure, publicDesktopUpdateError, saveUpdatePreferences, shouldCheckForUpdatesOnStartup, shouldDownloadUpdateAutomatically, type DesktopUpdateAction, type DesktopUpdatePreferences, type DesktopUpdateSnapshot, type DesktopUpdateStatus } from './desktop-updater.js'
+import { PortableDesktopUpdater, type PortableDesktopUpdateState } from './portable-desktop-update.js'
 import { applyPortableEnvironment, ensurePortableDirectories, resolvePortablePaths } from './portable-paths.js'
 
 const portablePaths = resolvePortablePaths(process.env.DSH_PORTABLE_ROOT)
@@ -58,8 +64,10 @@ const { isApplyPluginUpdatesIpc, startDsh } = dshProcessModule
 
 let mainWindow: BrowserWindow | undefined
 let dshView: WebContentsView | undefined
+let browserPanelView: WebContentsView | undefined
 let shortcutsWindow: BrowserWindow | undefined
 let aboutWindow: BrowserWindow | undefined
+let featurePanelsWindow: BrowserWindow | undefined
 let settingsWindow: BrowserWindow | undefined
 let server: DshServer | undefined
 let tray: Tray | undefined
@@ -67,6 +75,7 @@ let isQuitting = false
 let isRecycling = false
 let runtimeExtractionAbortController: AbortController | undefined
 let runtimeExtractionTask: Promise<void> | undefined
+let desktopActivationHeartbeatTimer: NodeJS.Timeout | undefined
 let lastStartOptions: Omit<StartDshOptions, 'onUnexpectedExit' | 'onIpcMessage'> | undefined
 let lastSeedOptions: Parameters<typeof applyPendingProfileUpdates>[0] | undefined
 let profileWatcher: { stop: () => void; sync: () => void } | undefined
@@ -81,8 +90,10 @@ let harnessUpdateTimer: NodeJS.Timeout | undefined
 let harnessUpdateTask: Promise<void> | undefined
 let harnessUpdatePolicy: HarnessUpdatePolicy = DEFAULT_HARNESS_UPDATE_POLICY
 let harnessUpdateState: HarnessUpdateState | undefined
-const { autoUpdater } = updater
+let portableDesktopUpdater: PortableDesktopUpdater | undefined
 let isReportingUnexpectedError = false
+let startupProgress = 0
+let startupStatusRevision = 0
 const windowNavigation = new WindowNavigationCoordinator()
 let dshNavigationState: DshNavigationState = { canBack: false, canForward: false, canNextChat: false, canPreviousChat: false }
 let notificationPreferences: DesktopNotificationPreferences = DEFAULT_NOTIFICATION_PREFERENCES
@@ -91,6 +102,7 @@ let unreadCompletionCount = 0
 let activeDshLocale: 'zh' | 'en' | undefined
 let activeDshColorScheme: DesktopColorScheme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
 let activeDshThemePreference: DesktopThemePreference = 'system'
+let themePreferences: DesktopThemePreferences = DEFAULT_DESKTOP_THEME_PREFERENCES
 let dshSettingsDialogVisible = false
 let activeDshWorkCount = 0
 let activeDshWorkChangedAt = Date.now()
@@ -112,14 +124,17 @@ interface HarnessUpdaterContext {
 let harnessUpdaterContext: HarnessUpdaterContext | undefined
 
 // ---------------------------------------------------------------------------
-// 内置浏览器（移植自 G:\DSH-Portable 空间板块浏览器，主页固定为 deepseek.com）
+// 全功能浏览器（完整移植自 G:\DSH-Portable 空间板块浏览器）
 // ---------------------------------------------------------------------------
-const BROWSER_DEFAULT_HOMEPAGES: readonly string[] = ['https://www.deepseek.com/en/']
-const BROWSER_TABS_BAR_HEIGHT = 38
-const BROWSER_NAV_BAR_HEIGHT = 36
+const BROWSER_DEFAULT_HOMEPAGES: readonly string[] = ['https://deepseek.com/en/', 'https://chat.deepseek.com/']
+// 必须与 assets/browser-panel.html 的 .browser-tabs / .browser-nav 高度一致；
+// 该文件全局 box-sizing:border-box，这里的数值已含 1px 下边框。
+const BROWSER_TABS_BAR_HEIGHT = 40
+const BROWSER_NAV_BAR_HEIGHT = 42
 const BROWSER_MAXIMUM_TABS = 12
 const BROWSER_DEFAULT_WIDTH_RATIO = 0.36
 const BROWSER_PARTITION = 'persist:dsh-browser'
+const DSH_PARTITION = 'persist:dsh-ui'
 
 interface BrowserTab {
   readonly id: string
@@ -131,26 +146,64 @@ interface BrowserTab {
   readonly view: WebContentsView
 }
 
+interface BrowserLibrarySnapshot {
+  readonly history: { id: string; url: string; title: string; favicon?: string; lastVisitAt?: string; visitCount?: number }[]
+  readonly bookmarks: { id: string; url: string; title: string; favicon?: string; createdAt?: string }[]
+  readonly credentials: { id: string; origin: string; username: string; label?: string; createdAt?: string; updatedAt?: string; importedFrom?: string }[]
+  readonly autofill: { name: string; value: string }[]
+  readonly extensions: { id: string; name: string; version?: string; enabled: boolean; source?: string; error?: string }[]
+  readonly pendingImport: { source: string; items: string[]; lastAttemptAt?: string } | null
+  readonly lastImport: Record<string, unknown> | null
+  readonly settings: { historyEnabled: boolean; autoRetryImport: boolean; loadExtensions: boolean; homepages: string[] }
+  readonly encryptionAvailable: boolean
+  readonly sources: { id: string; name: string; available: boolean }[]
+}
+
 interface BrowserLibraryModule {
-  publicSnapshot(): { settings?: { homepages?: string[] } }
+  publicSnapshot(): BrowserLibrarySnapshot
   recordHistory(url: string, title: string, favicon?: string): void
-  setSettings(patch: { homepages: string[] }): { homepages: string[] }
+  toggleBookmark(entry: { url: string; title: string; favicon?: string }): boolean
+  remove(kind: string, id: string): boolean
+  clear(kind: string): boolean
+  saveCredential(input: { id?: string; origin: string; username?: string; password: string; label?: string }): boolean
+  credentialSecret(id: string): { origin: string; username: string; password: string }
+  setSettings(patch: Partial<BrowserLibrarySnapshot['settings']>): BrowserLibrarySnapshot['settings']
+  importProfile(sourceId: string, browserSession: Electron.Session): Promise<Record<string, unknown>>
+  retryPending(browserSession: Electron.Session): Promise<Record<string, unknown> | null>
+  loadExtensions(browserSession: Electron.Session): Promise<unknown[]>
+  toggleExtension(id: string, enabled: boolean): boolean
 }
 
 interface BrowserWorkspaceFile {
   version: number
   browserVisible: boolean
   browserWidthRatio: number
+  browserMaximized: boolean
   activeTabId: string | null
   tabs: { id: string; title: string; url: string }[]
 }
 
 // 库延迟到首次使用时初始化：app.setPath('userData') 的便携重定向发生在此模块顶层之后，
 // 过早调用 createBrowserLibrary 会把历史/凭据写到错误的系统目录（B-1）。
+const fallbackBrowserSnapshot = (): BrowserLibrarySnapshot => ({
+  history: [], bookmarks: [], credentials: [], autofill: [], extensions: [], pendingImport: null, lastImport: null,
+  settings: { historyEnabled: true, autoRetryImport: true, loadExtensions: true, homepages: [...BROWSER_DEFAULT_HOMEPAGES] },
+  encryptionAvailable: false, sources: [],
+})
+
 const browserLibraryFallback: BrowserLibraryModule = {
-  publicSnapshot: () => ({ settings: { homepages: [...BROWSER_DEFAULT_HOMEPAGES] } }),
+  publicSnapshot: fallbackBrowserSnapshot,
   recordHistory: () => undefined,
-  setSettings: patch => ({ homepages: patch.homepages }),
+  toggleBookmark: () => false,
+  remove: () => false,
+  clear: () => false,
+  saveCredential: () => false,
+  credentialSecret: () => { throw new Error('浏览器资料库不可用。') },
+  setSettings: patch => ({ ...fallbackBrowserSnapshot().settings, ...patch }),
+  importProfile: async () => ({}),
+  retryPending: async () => null,
+  loadExtensions: async () => [],
+  toggleExtension: () => false,
 }
 
 let browserLibraryModule: { createBrowserLibrary(options: { safeStorage: Electron.SafeStorage; browserDataRoot: string; stateRoot: string; appendLog: (message: string) => void }): BrowserLibraryModule } | undefined
@@ -180,10 +233,25 @@ function browserData(): BrowserLibraryModule {
 const browserTabs: BrowserTab[] = []
 let activeBrowserTabId: string | null = null
 let browserVisible = false
-let browserWidthRatio = BROWSER_DEFAULT_WIDTH_RATIO
-let browserWorkspaceSaveTimer: NodeJS.Timeout | undefined
-// DSH Web GUI 右侧面板内容区的窗口坐标（由 GUI 通过 IPC 实时报告）
+let browserPanelOccluded = false
 let browserPanelBounds: BrowserPanelBounds | undefined
+let browserPanelOwner: string | undefined
+let browserWidthRatio = BROWSER_DEFAULT_WIDTH_RATIO
+let browserMaximized = false
+let browserManagerOpen = false
+let browserMenuOpen = false
+let browserDownloadsOpen = false
+let browserDownloadsDrawerHeight = 0
+let browserPageZoom = 1
+let browserWorkspaceSaveTimer: NodeJS.Timeout | undefined
+let browserSessionConfigured = false
+let browserDownloadSequence = 0
+type BrowserDownloadRecord = { -readonly [Key in keyof BrowserDownloadState]: BrowserDownloadState[Key] } & { readonly path: string; readonly url: string }
+const browserDownloads: BrowserDownloadRecord[] = []
+
+function browserDownloadsRoot(): string {
+  return portablePaths === undefined ? app.getPath('downloads') : join(portablePaths.root, 'Downloads')
+}
 
 function browserWorkspacePath(): string {
   return join(app.getPath('userData'), 'shell', 'browser-workspace.json')
@@ -218,6 +286,7 @@ function saveBrowserWorkspace(): void {
     version: 1,
     browserVisible,
     browserWidthRatio,
+    browserMaximized,
     activeTabId: activeBrowserTabId,
     tabs: browserTabs.map(tab => ({ id: tab.id, title: tab.title, url: tab.url })),
   }
@@ -232,9 +301,10 @@ function saveBrowserWorkspace(): void {
   }
 }
 
-// 首页固定（用户要求）：不读取/不覆写 library 持久化设置，恒返回固定主页。
 function configuredBrowserHomepages(): readonly string[] {
-  return BROWSER_DEFAULT_HOMEPAGES
+  const configured = browserData().publicSnapshot().settings.homepages
+  const pages = configured.filter(isAllowedBrowserUrl).slice(0, 8)
+  return pages.length === 0 ? BROWSER_DEFAULT_HOMEPAGES : pages
 }
 
 // 历史记录防抖：recordHistory 内部是全量同步写盘，逐次触发会卡主进程（M-3）。
@@ -268,6 +338,65 @@ function normalizeBrowserAddress(value: string): string {
   const trimmed = String(value || '').trim()
   if (trimmed === '') return primaryBrowserHomepage()
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+}
+
+function applyBrowserPageZoom(contents?: WebContents): void {
+  if (contents === undefined || contents.isDestroyed()) return
+  contents.setZoomFactor(browserPageZoom)
+}
+
+function configureBrowserSession(): void {
+  if (browserSessionConfigured) return
+  browserSessionConfigured = true
+  const browserSession = session.fromPartition(BROWSER_PARTITION, { cache: true })
+  const allowedPermissions = new Set(['clipboard-sanitized-write', 'fullscreen'])
+  browserSession.setPermissionRequestHandler((_contents, permission, callback) => callback(allowedPermissions.has(permission)))
+  browserSession.setPermissionCheckHandler((_contents, permission) => allowedPermissions.has(permission))
+  browserSession.on('will-download', (_event, item) => {
+    const downloadsRoot = browserDownloadsRoot()
+    mkdirSync(downloadsRoot, { recursive: true })
+    const sourceName = basename(item.getFilename() || 'download')
+    const parsed = parse(sourceName)
+    let destination = join(downloadsRoot, sourceName)
+    let suffix = 1
+    while (existsSync(destination)) {
+      destination = join(downloadsRoot, `${parsed.name} (${suffix})${parsed.ext}`)
+      suffix += 1
+    }
+    item.setSavePath(destination)
+    const record: BrowserDownloadRecord = {
+      id: `download-${Date.now()}-${browserDownloadSequence += 1}`,
+      name: basename(destination),
+      path: destination,
+      url: item.getURL(),
+      receivedBytes: 0,
+      totalBytes: item.getTotalBytes(),
+      progress: 0,
+      status: 'progressing',
+      startedAt: new Date().toISOString(),
+    }
+    browserDownloads.unshift(record)
+    browserDownloads.splice(20)
+    browserDownloadsOpen = true
+    relayout()
+    item.on('updated', (_updateEvent, downloadState) => {
+      record.status = downloadState
+      record.receivedBytes = item.getReceivedBytes()
+      record.totalBytes = item.getTotalBytes()
+      record.progress = record.totalBytes > 0 ? record.receivedBytes / record.totalBytes : 0
+      broadcastShellState()
+    })
+    item.once('done', (_doneEvent, downloadState) => {
+      record.status = downloadState
+      record.receivedBytes = item.getReceivedBytes()
+      record.totalBytes = item.getTotalBytes()
+      record.progress = downloadState === 'completed' ? 1 : record.progress
+      record.completedAt = new Date().toISOString()
+      broadcastShellState()
+    })
+  })
+  runMainTask(browserData().loadExtensions(browserSession).then(() => broadcastShellState()))
+  runMainTask(browserData().retryPending(browserSession).then(result => { if (result !== null) broadcastShellState() }))
 }
 
 function updateBrowserTabFromContents(tab: BrowserTab, persist = false): void {
@@ -308,6 +437,7 @@ function createBrowserTab(url: string = primaryBrowserHomepage(), requestedId?: 
   browserTabs.push(tab)
   if (mainWindow !== undefined && !mainWindow.isDestroyed()) mainWindow.contentView.addChildView(view)
   view.setVisible(false)
+  applyBrowserPageZoom(view.webContents)
   view.webContents.setWindowOpenHandler(({ url: popupUrl }) => {
     // 回调内避免同步做创建视图的重活（L-5）
     if (isAllowedBrowserUrl(popupUrl)) queueMicrotask(() => { openBrowser(popupUrl, true) })
@@ -340,6 +470,15 @@ function createBrowserTab(url: string = primaryBrowserHomepage(), requestedId?: 
   view.webContents.on('page-favicon-updated', (_event, favicons) => {
     tab.favicon = favicons.find(favicon => /^https?:\/\//i.test(favicon)) || ''
     broadcastShellState()
+  })
+  view.webContents.on('found-in-page', (_event, result) => {
+    if (browserPanelView !== undefined && !browserPanelView.webContents.isDestroyed()) browserPanelView.webContents.send(SHELL_IPC.browserFindResult, result)
+  })
+  view.webContents.on('context-menu', (_event, params) => {
+    const template: MenuItemConstructorOptions[] = []
+    if (params.selectionText !== '') template.push({ role: 'copy', label: desktopText('复制', 'Copy') })
+    if (params.isEditable) template.push({ role: 'paste', label: desktopText('粘贴', 'Paste') })
+    if (template.length > 0) Menu.buildFromTemplate(template).popup({ window: mainWindow })
   })
   view.webContents.on('render-process-gone', (_event, details) => {
     tab.crashed = true
@@ -397,6 +536,8 @@ function routeDshExternalLink(url: string): void {
 
 function openBrowser(url?: string, newTab = false): BrowserTab {
   browserVisible = true
+  browserManagerOpen = false
+  browserMenuOpen = false
   let tab = getActiveBrowserTab()
   if (tab === null || newTab) tab = createBrowserTab(url || primaryBrowserHomepage())
   else if (url) void tab.view.webContents.loadURL(normalizeBrowserAddress(url)).catch((error: Error) => console.error(`浏览器加载失败：${error.message}`))
@@ -441,19 +582,8 @@ function openHomepageGroup(): void {
 }
 
 function restoreBrowserWorkspace(): void {
-  // 首页固定在 configuredBrowserHomepages()（恒返回 deepseek.com/en），不覆写库配置（M-2）
-  const saved = loadBrowserWorkspace()
-  if (saved !== null) {
-    browserVisible = saved.browserVisible === true
-    if (typeof saved.browserWidthRatio === 'number' && saved.browserWidthRatio > 0.15 && saved.browserWidthRatio < 0.8) {
-      browserWidthRatio = saved.browserWidthRatio
-    }
-    for (const savedTab of saved.tabs.slice(0, BROWSER_MAXIMUM_TABS)) {
-      if (isAllowedBrowserUrl(savedTab.url)) createBrowserTab(savedTab.url, savedTab.id)
-    }
-    if (saved.activeTabId !== null && browserTabs.some(tab => tab.id === saved.activeTabId)) activeBrowserTabId = saved.activeTabId
-  }
-  if (browserTabs.length === 0) createHomepageTabs()
+  // Start with the workspace closed; the visible shell control opens it explicitly.
+  browserVisible = false
   relayout()
   broadcastShellState()
 }
@@ -461,6 +591,7 @@ function restoreBrowserWorkspace(): void {
 function browserShellState(): BrowserShellState {
   const active = getActiveBrowserTab()
   const contents = active?.view.webContents
+  const library = browserData().publicSnapshot()
   return {
     visible: browserVisible,
     tabs: browserTabs.map((tab): BrowserTabState => ({ id: tab.id, title: tab.title, url: tab.url, favicon: tab.favicon, crashed: tab.crashed })),
@@ -469,6 +600,14 @@ function browserShellState(): BrowserShellState {
     canForward: contents?.navigationHistory.canGoForward() ?? false,
     loading: contents?.isLoading() ?? false,
     widthRatio: browserWidthRatio,
+    maximized: browserMaximized,
+    managerOpen: browserManagerOpen,
+    menuOpen: browserMenuOpen,
+    downloadsOpen: browserDownloadsOpen,
+    downloadsDrawerHeight: browserDownloadsDrawerHeight,
+    pageZoomPercent: Math.round(browserPageZoom * 100),
+    bookmarked: active !== null && library.bookmarks.some(entry => entry.url === active.url),
+    downloads: browserDownloads.map(({ path: _path, url: _url, ...record }) => record),
     homepages: [...configuredBrowserHomepages()],
   }
 }
@@ -529,11 +668,58 @@ function desktopDialogLocale(): 'zh' | 'en' {
   return isChineseLocale(activeDshLocale ?? app.getLocale()) ? 'zh' : 'en'
 }
 
+async function spawnPortableLauncherForRestart(): Promise<void> {
+  if (portablePaths === undefined || process.platform !== 'win32') throw new Error('当前不是 Windows 便携模式。')
+  const launcherScript = join(portablePaths.root, 'Start-DSH-Portable.ps1')
+  if (!existsSync(launcherScript)) throw new Error('便携启动器脚本不存在。')
+  const windowsRoot = process.env.SystemRoot?.trim() || process.env.WINDIR?.trim()
+  if (windowsRoot === undefined || windowsRoot === '') throw new Error('Windows 系统目录环境变量不存在。')
+  const powerShellExecutable = join(windowsRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+  if (!existsSync(powerShellExecutable)) throw new Error('Windows PowerShell 可执行文件不存在。')
+  const commandBrokerExecutable = join(windowsRoot, 'System32', 'cmd.exe')
+  if (!existsSync(commandBrokerExecutable)) throw new Error('Windows 命令代理可执行文件不存在。')
+  const handoffDirectory = join(portablePaths.root, 'Data', 'Updates', 'Desktop', 'handoffs')
+  mkdirSync(handoffDirectory, { recursive: true })
+  const handoffReadyFile = join(handoffDirectory, `${process.pid}-${randomUUID()}.json`)
+  const child = spawn(commandBrokerExecutable, [
+    '/d', '/s', '/c', 'start', '', '/b', powerShellExecutable,
+    '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden',
+    '-File', launcherScript, '-WaitForProcessId', String(process.pid), '-HandoffReadyFile', handoffReadyFile,
+  ], {
+    cwd: portablePaths.root,
+    windowsHide: true,
+    stdio: 'ignore',
+  })
+  await new Promise<void>((resolvePromise, reject) => {
+    child.once('spawn', resolvePromise)
+    child.once('error', reject)
+  })
+  const handoffDeadline = Date.now() + 10_000
+  while (!existsSync(handoffReadyFile)) {
+    if (Date.now() >= handoffDeadline) throw new Error('等待便携启动器接管超时。')
+    await new Promise(resolvePromise => setTimeout(resolvePromise, 50))
+  }
+  try { unlinkSync(handoffReadyFile) } catch { }
+  child.unref()
+}
+
 /**
- * 安排重启：优先 Electron 官方 relaunch；失败时降级为分离子进程拉起新实例。
- * 返回是否成功安排。注意必须在应用退出前调用。
+ * 安排重启：Windows 便携模式必须回到根目录启动器，确保 pending
+ * 候选会经过清单校验、健康提交和失败回滚。普通安装模式才使用
+ * Electron relaunch，并在失败时降级为分离子进程。
  */
-function scheduleAppRelaunch(): boolean {
+async function scheduleAppRelaunch(): Promise<boolean> {
+  if (portablePaths !== undefined && process.platform === 'win32') {
+    try {
+      await spawnPortableLauncherForRestart()
+      return true
+    } catch (error) {
+      const restartAuditPath = join(portablePaths.root, 'Data', 'Updates', 'Desktop', 'restart-handoff.log')
+      const detail = error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown restart handoff error'
+      try { appendFileSync(restartAuditPath, `[${new Date().toISOString()}] ${detail}\n`, 'utf8') } catch { }
+      return false
+    }
+  }
   try {
     app.relaunch({ execPath: process.execPath, args: process.argv.slice(1) })
     return true
@@ -552,7 +738,7 @@ function scheduleAppRelaunch(): boolean {
 /** 完全关闭并重启：安排新实例 → 走既有优雅关停（托盘/服务/配置落盘）。
  *  防误触由外壳按钮的两步确认承担（同旧版空间板块外壳：首次点击红底确认态，5s/Esc 取消）。 */
 async function requestAppRestart(): Promise<void> {
-  if (!scheduleAppRelaunch()) {
+  if (!await scheduleAppRelaunch()) {
     const zh = desktopDialogLocale() === 'zh'
     await dialog.showMessageBox({
       type: 'error',
@@ -570,6 +756,7 @@ async function shutdownDesktop(exit: () => void): Promise<void> {
     isQuitting,
     markQuitting: () => { isQuitting = true },
     destroyTray: () => {
+      stopDesktopActivationHeartbeat()
       if (startupUpdateTimer !== undefined) clearTimeout(startupUpdateTimer)
       startupUpdateTimer = undefined
       if (harnessUpdateTimer !== undefined) clearTimeout(harnessUpdateTimer)
@@ -592,17 +779,19 @@ async function shutdownDesktop(exit: () => void): Promise<void> {
 }
 
 async function startApplication(): Promise<void> {
+  startDesktopActivationHeartbeat()
   await app.whenReady()
   ensureWindowsNotificationIdentity()
   installWindowsNotificationActivationHandler()
   notificationPreferences = await loadNotificationPreferences(notificationPreferencesPath())
+  themePreferences = await loadDesktopThemePreferences(themePreferencesPath())
   updatePreferences = await loadUpdatePreferences(updatePreferencesPath())
   installShellIpc()
   installDesktopFaviconReplacement()
   Menu.setApplicationMenu(null)
-  configureDesktopUpdater()
+  await configureDesktopUpdater()
   createTray()
-  await showStartupWindow(desktopText('正在启动', 'Starting'))
+  await showStartupWindow(desktopText('正在启动', 'Starting'), STARTUP_PROGRESS.boot)
 
   try {
     const runtimeOptions = {
@@ -618,21 +807,35 @@ async function startApplication(): Promise<void> {
       execPath: process.execPath,
       ...(portablePaths === undefined ? {} : { portableRoot: portablePaths.root }),
     })
-    const extractedStoreDir = app.isPackaged ? join(dirname(legacyDesktopRuntimeDir), 'plugins', 'store') : undefined
+    const interruptedPointer = readRuntimeSlotPointer(legacyDesktopRuntimeDir)
+    if (interruptedPointer?.pendingTransactionId !== undefined) {
+      recoverInterruptedRuntimeSwitch(legacyDesktopRuntimeDir)
+      console.warn('检测到上次未完成的 DSH 运行时观察事务，已恢复上一已知可用槽。')
+    }
+    const activeRuntimeDir = resolveActiveRuntimeDir(legacyDesktopRuntimeDir)
+    const usingActiveRuntimeSlot = resolve(activeRuntimeDir) !== resolve(legacyDesktopRuntimeDir)
+    const packagedCache = app.isPackaged
+      ? resolvePackagedRuntimeCache(process.resourcesPath, dirname(legacyDesktopRuntimeDir))
+      : undefined
+    const packagedOfficialDir = usingActiveRuntimeSlot ? undefined : packagedCache?.official
+    const extractedStoreDir = packagedCache?.store
     const nodeExecutable = resolveNodeExecutable(runtimeOptions)
-    if (app.isPackaged) {
-      const firstInitialization = packagedRuntimesNeedExtraction(process.resourcesPath, legacyDesktopRuntimeDir, extractedStoreDir!)
+    if (app.isPackaged && packagedCache !== undefined && extractedStoreDir !== undefined) {
+      const firstInitialization = packagedRuntimesNeedExtraction(process.resourcesPath, packagedOfficialDir, extractedStoreDir)
       if (firstInitialization) {
-        await updateStartupMessage(firstInitializationMessage())
+        await updateStartupMessage(firstInitializationMessage(), STARTUP_PROGRESS.firstLaunchPreparation)
         const controller = new AbortController()
         runtimeExtractionAbortController = controller
         const extraction = extractPackagedRuntimesInChild({
           nodeExecutable,
           scriptPath: join(process.resourcesPath, 'extract-runtime.mjs'),
-          installDir: dirname(legacyDesktopRuntimeDir),
+          installDir: packagedCache.installDir,
           resourcesDir: process.resourcesPath,
           signal: controller.signal,
-          onProgress: progress => { void updateStartupMessage(runtimeExtractionMessage(progress)) },
+          skipOfficial: usingActiveRuntimeSlot,
+          onProgress: progress => {
+            void updateStartupMessage(runtimeExtractionMessage(progress), runtimeExtractionPercentage(progress))
+          },
         })
         runtimeExtractionTask = extraction
         try {
@@ -644,15 +847,14 @@ async function startApplication(): Promise<void> {
         await updateStartupMessage(desktopText(
           '正在初始化插件和工作区…\n首次启动可能需要 1–3 分钟，请勿关闭应用。',
           'Initializing plugins and workspace…\nThe first launch may take 1–3 minutes. Please keep the app open.',
-        ))
+        ), STARTUP_PROGRESS.workspacePreparation)
       }
     }
-    const interruptedPointer = readRuntimeSlotPointer(legacyDesktopRuntimeDir)
-    if (interruptedPointer?.pendingTransactionId !== undefined) {
-      recoverInterruptedRuntimeSwitch(legacyDesktopRuntimeDir)
-      console.warn('检测到上次未完成的 DSH 运行时观察事务，已恢复上一已知可用槽。')
-    }
-    const desktopRuntimeDir = resolveActiveRuntimeDir(legacyDesktopRuntimeDir)
+    await updateStartupMessage(
+      desktopText('正在准备插件和工作区…', 'Preparing plugins and workspace…'),
+      STARTUP_PROGRESS.workspacePreparation,
+    )
+    const desktopRuntimeDir = usingActiveRuntimeSlot ? activeRuntimeDir : packagedOfficialDir ?? activeRuntimeDir
     const pluginStoreDir = resolveBundledPluginStore({
       ...runtimeOptions,
       ...(extractedStoreDir === undefined ? {} : { extractedStoreDir }),
@@ -674,6 +876,10 @@ async function startApplication(): Promise<void> {
       const message = error instanceof Error ? error.message : '内置插件补种失败。'
       await writeTextFile(join(app.getPath('userData'), 'plugin-seed.log'), `${message}\n`, 'utf8').catch(() => undefined)
     }
+    await updateStartupMessage(
+      desktopText('内置插件已就绪，正在应用配置…', 'Bundled plugins are ready. Applying configuration…'),
+      STARTUP_PROGRESS.bundledPluginsReady,
+    )
     try {
       const updated = await applyPendingProfileUpdates(seedOptions)
       if (updated.length > 0) console.log('已在启动前应用插件更新：' + updated.join('、'))
@@ -682,7 +888,24 @@ async function startApplication(): Promise<void> {
       await writeTextFile(join(app.getPath('userData'), 'plugin-update.log'), ` ${message}\n`, 'utf8').catch(() => undefined)
 
     }
+    await updateStartupMessage(
+      desktopText('配置已应用，正在检查用户数据…', 'Configuration applied. Checking user data…'),
+      STARTUP_PROGRESS.profileUpdatesApplied,
+    )
     installDesktopBridge(profileDir, resolveDesktopBridgeDir(runtimeOptions))
+    const sessionRepairRoot = join(app.getPath('userData'), 'session-path-repair', new Date().toISOString().replaceAll(':', '-'))
+    const sessionRepairs = await repairMisplacedSessionLogs(join(resolve(profileDir, '..', '..'), 'sessions'), sessionRepairRoot)
+    if (sessionRepairs.length > 0) {
+      await writeTextFile(
+        join(app.getPath('userData'), 'session-path-repair.log'),
+        `${new Date().toISOString()} 已安全重定位 ${sessionRepairs.length} 个会话；原始日志备份位于 ${sessionRepairRoot}\n`,
+        'utf8',
+      )
+    }
+    await updateStartupMessage(
+      desktopText('用户环境已就绪，正在启动 DSH…', 'Your environment is ready. Starting DSH…'),
+      STARTUP_PROGRESS.profileReady,
+    )
     lastSeedOptions = seedOptions
     const runtime = resolveDshRuntime({ ...runtimeOptions, profileDir, desktopRuntimeDir })
     const startOptions = {
@@ -700,6 +923,7 @@ async function startApplication(): Promise<void> {
       },
     }
     lastStartOptions = startOptions
+    await updateStartupMessage(desktopText('正在启动 DSH 服务…', 'Starting the DSH service…'), STARTUP_PROGRESS.dshStarting)
     const started = await startWithProfileSelfRepair({
       profileDir,
       extraDirs: [desktopRuntimeDir],
@@ -710,13 +934,21 @@ async function startApplication(): Promise<void> {
       }),
     })
     server = started.result
+    await updateStartupMessage(desktopText('DSH 已就绪，正在打开主界面…', 'DSH is ready. Opening the main window…'), STARTUP_PROGRESS.dshReady)
     if (started.repaired.length > 0) console.log('已自我修复损坏的插件清单：' + started.repaired.join('、'))
     profileWatcher?.stop()
     profileWatcher = watchProfileActivation(profileDir, scheduleProfileActivationRecycle, { onError: handleUnexpectedMainError })
     await createMainWindow(server.url)
+    startupProgress = STARTUP_PROGRESS.complete
     const smokeReadyFile = process.env.DSH_DESKTOP_SMOKE_READY_FILE
     if (smokeReadyFile !== undefined && smokeReadyFile !== '') {
       await writeTextFile(smokeReadyFile, 'ready\n', 'utf8')
+    }
+    const desktopUpdateTransaction = process.env.DSH_DESKTOP_UPDATE_TRANSACTION
+    const desktopUpdateHealthFile = process.env.DSH_DESKTOP_UPDATE_HEALTH_FILE
+    if (portableDesktopUpdater !== undefined && desktopUpdateTransaction !== undefined && desktopUpdateHealthFile !== undefined) {
+      await portableDesktopUpdater.confirmRunningCandidate(desktopUpdateTransaction, dirname(process.execPath), desktopUpdateHealthFile)
+      stopDesktopActivationHeartbeat()
     }
     scheduleStartupUpdateCheck()
     if (portablePaths !== undefined && pnpmEntry !== undefined) {
@@ -732,7 +964,16 @@ async function startApplication(): Promise<void> {
       })
     }
   } catch (error) {
-    if (!isQuitting) await reportStartupFailure(error)
+    if (!isQuitting) {
+      await reportStartupFailure(error)
+      // A candidate must fail closed so the external launcher can immediately
+      // restore the last-known-good slot. Keeping the error window alive would
+      // renew the activation lease until the hard deadline and delay rollback.
+      if (process.env.DSH_DESKTOP_UPDATE_TRANSACTION !== undefined) {
+        stopDesktopActivationHeartbeat()
+        app.exit(1)
+      }
+    }
   }
 }
 
@@ -747,6 +988,15 @@ function resolveStartupHtml(): string | undefined {
 let cachedWindowIcon: Electron.NativeImage | undefined
 
 function resolveWindowIconFilePath(): string | undefined {
+  const options = {
+    appPath: app.getAppPath(),
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+  }
+  return resolveTaskbarIconPath(options) ?? resolveRasterIconPath(options) ?? resolveWindowIconPath()
+}
+
+function resolveFaviconIconFilePath(): string | undefined {
   return resolveRasterIconPath({
     appPath: app.getAppPath(),
     isPackaged: app.isPackaged,
@@ -760,23 +1010,22 @@ function resolveWindowIconImage(): Electron.NativeImage | undefined {
   if (iconPath === undefined) return undefined
   const source = nativeImage.createFromPath(iconPath)
   if (source.isEmpty()) return undefined
-  const compactSource = source.crop(resolveCompactIconCrop(source.getSize()))
-  const icon = nativeImage.createEmpty()
-  for (const size of WINDOW_ICON_PIXEL_SIZES) {
-    const resized = compactSource.resize({ width: size, height: size, quality: 'best' })
-    icon.addRepresentation({
-      width: size,
-      height: size,
-      buffer: resized.toPNG(),
-      scaleFactor: 1,
-    })
+  // Preserve the ICO file-backed handle so Windows can select its exact size.
+  // Cropping/resizing here discards the individual ICO frames and optical margins.
+  if (iconPath.toLowerCase().endsWith('.ico')) {
+    cachedWindowIcon = source
+    return source
   }
-  cachedWindowIcon = icon.isEmpty() ? source : icon
+  const compactSource = source.crop(resolveCompactIconCrop(source.getSize()))
+  // Windows converts NativeImage's 1x bitmap to HICON. Registering every size
+  // at scaleFactor: 1 leaves the first 16px bitmap selected, then Windows
+  // enlarges it for the taskbar. Keep the original high-resolution bitmap.
+  cachedWindowIcon = compactSource.isEmpty() ? source : compactSource
   return cachedWindowIcon
 }
 
 function installDesktopFaviconReplacement(): void {
-  const iconPath = resolveWindowIconFilePath()
+  const iconPath = resolveFaviconIconFilePath()
   if (iconPath === undefined) return
   const iconUrl = pathToFileURL(iconPath).href
   protocol.handle('dsh-icon', () => net.fetch(iconUrl))
@@ -789,15 +1038,41 @@ function installDesktopFaviconReplacement(): void {
   })
 }
 
-async function showStartupWindow(message: string): Promise<void> {
+function startupStatusScript(message: string, progress: number | undefined): string {
+  const revision = ++startupStatusRevision
+  const payload = JSON.stringify({ message, progress, revision })
+  return `(() => {
+    const next = ${payload};
+    const root = document.documentElement;
+    const currentRevision = Number(root.dataset.startupStatusRevision ?? '-1');
+    if (next.revision < currentRevision) return;
+    root.dataset.startupStatusRevision = String(next.revision);
+    document.getElementById('msg')?.replaceChildren(document.createTextNode(next.message));
+    const indicator = document.getElementById('startupProgress');
+    const value = document.getElementById('progressValue');
+    if (!(indicator instanceof HTMLElement) || !(value instanceof HTMLElement)) return;
+    if (typeof next.progress !== 'number') {
+      indicator.hidden = true;
+      indicator.removeAttribute('aria-valuenow');
+      return;
+    }
+    indicator.hidden = false;
+    indicator.style.setProperty('--startup-progress', String(next.progress));
+    indicator.setAttribute('aria-valuenow', String(next.progress));
+    value.textContent = next.progress + '%';
+  })()`
+}
+
+async function showStartupWindow(message: string, progress?: number): Promise<void> {
+  startupProgress = progress === undefined ? 0 : advanceStartupProgress(0, progress)
   const window = mainWindow ??= createWindow()
   const view = requireDshView()
   const html = resolveStartupHtml()
   if (html !== undefined) {
     await windowNavigation.navigate(
       view,
-      () => view.webContents.loadFile(html, { query: { theme: activeDshColorScheme } }),
-      () => view.webContents.executeJavaScript('document.getElementById("msg").textContent = ' + JSON.stringify(message)),
+      () => view.webContents.loadFile(html, { query: desktopThemeQuery() }),
+      () => view.webContents.executeJavaScript(startupStatusScript(message, progress === undefined ? undefined : startupProgress)),
     )
     return
   }
@@ -808,26 +1083,36 @@ async function showStartupWindow(message: string): Promise<void> {
   )
 }
 
-async function updateStartupMessage(message: string): Promise<void> {
+async function updateStartupMessage(message: string, progress?: number): Promise<void> {
   const view = requireDshView()
   if (view.webContents.isDestroyed()) return
-  await view.webContents.executeJavaScript(`document.getElementById('msg')?.replaceChildren(document.createTextNode(${JSON.stringify(message)}))`)
+  const nextProgress = progress === undefined
+    ? undefined
+    : (startupProgress = advanceStartupProgress(startupProgress, progress))
+  await view.webContents.executeJavaScript(startupStatusScript(message, nextProgress))
     .catch(() => undefined)
 }
 
 function firstInitializationMessage(): string {
   return desktopText(
-    '首次启动，正在准备运行环境…\n可能需要 1–3 分钟，请勿关闭应用。',
-    'Preparing the runtime for the first launch…\nThis may take 1–3 minutes. Please keep the app open.',
+    '检测到共享环境缓存不完整，正在执行离线修复…\n应用会在修复完成后继续启动。',
+    'The shared runtime cache is incomplete. Repairing it offline…\nThe app will continue after recovery.',
   )
 }
 
 function runtimeExtractionMessage(progress: RuntimeExtractionProgress): string {
-  const hint = desktopText('\n首次启动可能需要 1–3 分钟，请勿关闭应用。', '\nThe first launch may take 1–3 minutes. Please keep the app open.')
+  const hint = desktopText('\n这是断电或缓存损坏后的自愈流程，请勿关闭应用。', '\nThis is recovery after an interrupted or damaged cache. Please keep the app open.')
   if (progress.phase === 'runtime') {
     return desktopText('正在校验并解压 DSH 运行环境…', 'Verifying and extracting the DSH runtime…') + hint
   }
   return desktopText('正在准备内置插件仓库…', 'Preparing the bundled plugin store…') + hint
+}
+
+function runtimeExtractionPercentage(progress: RuntimeExtractionProgress): number {
+  if (progress.phase === 'runtime') {
+    return progress.state === 'start' ? STARTUP_PROGRESS.runtimeExtractionStarted : STARTUP_PROGRESS.runtimeReady
+  }
+  return progress.state === 'start' ? STARTUP_PROGRESS.pluginStorePreparationStarted : STARTUP_PROGRESS.pluginStoreReady
 }
 
 let allowedOrigin = ''
@@ -835,8 +1120,11 @@ let allowedOrigin = ''
 async function createMainWindow(serverUrl: string): Promise<void> {
   allowedOrigin = new URL(serverUrl).origin
   mainWindow ??= createWindow()
+  configureBrowserSession()
   const view = requireDshView()
+  await clearStaleDshAuthCookies(view.webContents.session.cookies, serverUrl)
   await windowNavigation.navigate(view, () => view.webContents.loadURL(serverUrl))
+  await applyDshDesktopTheme(view)
   // 仅在首次启动（标签页为空）时恢复浏览器工作区；插件热更新回收时保留现有标签页
   if (browserTabs.length === 0) {
     restoreBrowserWorkspace()
@@ -981,12 +1269,12 @@ function resolveWindowIconPath(): string | undefined {
   })
 }
 
-function resolveShellAsset(name: 'shell.html' | 'shortcuts.html' | 'about.html' | 'settings.html'): string {
+function resolveShellAsset(name: 'shell.html' | 'browser-panel.html' | 'shortcuts.html' | 'about.html' | 'settings.html' | 'feature-panels.html' | 'theme.css'): string {
   const packaged = join(process.resourcesPath, name)
   return existsSync(packaged) ? packaged : join(app.getAppPath(), 'assets', name)
 }
 
-function resolvePreload(name: 'shell-preload.cjs' | 'dsh-view-preload.cjs'): string {
+function resolvePreload(name: 'shell-preload.cjs' | 'browser-panel-preload.cjs' | 'dsh-view-preload.cjs'): string {
   return join(app.getAppPath(), 'dist', 'src', name)
 }
 
@@ -997,33 +1285,81 @@ function requireDshView(): WebContentsView {
 
 function layoutDshView(window: BrowserWindow): void {
   const bounds = window.getContentBounds()
-  if (browserVisible && browserPanelBounds !== undefined) {
-    // DSH Web GUI 右侧面板模式：WebContentsView 覆盖在面板内容区上方
-    // dshView 保持全宽（GUI 自己管理面板布局），浏览器 view 定位到面板坐标
-    dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: bounds.width, height: Math.max(0, bounds.height - SHELL_BAR_HEIGHT) })
-    const bp = browserPanelBounds
-    for (const tab of browserTabs) {
-      const visible = tab.id === activeBrowserTabId
-      tab.view.setVisible(visible)
-      if (visible) tab.view.setBounds({ x: bp.x, y: bp.y + SHELL_BAR_HEIGHT, width: bp.width, height: bp.height })
-    }
-  } else if (browserVisible) {
-    // 回退：独立右侧面板模式（顶栏按钮触发，无 GUI 面板坐标）
-    const panelWidth = Math.round(bounds.width * browserWidthRatio)
-    const browserX = bounds.width - panelWidth
-    dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: Math.max(0, browserX), height: Math.max(0, bounds.height - SHELL_BAR_HEIGHT) })
-    const browserY = SHELL_BAR_HEIGHT + BROWSER_TABS_BAR_HEIGHT + BROWSER_NAV_BAR_HEIGHT
-    const browserHeight = Math.max(0, bounds.height - browserY)
-    for (const tab of browserTabs) {
-      const visible = tab.id === activeBrowserTabId
-      tab.view.setVisible(visible)
-      if (visible) tab.view.setBounds({ x: browserX, y: browserY, width: panelWidth, height: browserHeight })
-    }
-  } else {
-    dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: bounds.width, height: Math.max(0, bounds.height - SHELL_BAR_HEIGHT) })
-    for (const tab of browserTabs) tab.view.setVisible(false)
+  const dshHeight = Math.max(0, bounds.height - SHELL_BAR_HEIGHT)
+  const panel = browserWorkspacePanelBounds(bounds.width, dshHeight)
+  const visible = browserVisible && !browserPanelOccluded && !dshSettingsDialogVisible
+    && (browserPanelOwner === undefined || browserPanelBounds !== undefined)
+  dshView?.setVisible(true)
+  dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: bounds.width, height: dshHeight })
+  browserPanelView?.setVisible(visible)
+  if (visible) browserPanelView?.setBounds({ x: panel.x, y: panel.y + SHELL_BAR_HEIGHT, width: panel.width, height: panel.height })
+  const pageTop = BROWSER_TABS_BAR_HEIGHT + BROWSER_NAV_BAR_HEIGHT
+  const drawer = resolveBrowserDownloadsDrawerHeight(browserDownloadsOpen, browserDownloads.length, panel.height)
+  const pageHeight = Math.max(0, panel.height - pageTop - drawer)
+  for (const tab of browserTabs) {
+    const show = visible && tab.id === activeBrowserTabId && !browserManagerOpen && !browserMenuOpen && pageHeight > 0
+    tab.view.setVisible(show)
+    if (show) tab.view.setBounds({ x: panel.x, y: panel.y + SHELL_BAR_HEIGHT + pageTop, width: panel.width, height: pageHeight })
   }
   broadcastShellState()
+}
+
+function browserWorkspacePanelBounds(viewportWidth: number, viewportHeight: number): BrowserPanelBounds {
+  const reported = normalizeBrowserPanelBounds(browserPanelBounds, viewportWidth, viewportHeight)
+  if (reported !== undefined) return reported
+  const width = browserMaximized ? viewportWidth : Math.min(viewportWidth, Math.max(280, Math.round(viewportWidth * browserWidthRatio)))
+  return { x: Math.max(0, viewportWidth - width), y: 0, width, height: viewportHeight }
+}
+
+async function captureBrowserPanelSnapshot(): Promise<BrowserPanelSnapshot | null> {
+  const window = mainWindow
+  const chrome = browserPanelView?.webContents
+  if (window === undefined || chrome === undefined || chrome.isDestroyed() || !browserVisible || browserPanelOccluded) return null
+  const content = window.getContentBounds()
+  const dshHeight = Math.max(0, content.height - SHELL_BAR_HEIGHT)
+  const panel = browserWorkspacePanelBounds(content.width, dshHeight)
+  const pageTop = BROWSER_TABS_BAR_HEIGHT + BROWSER_NAV_BAR_HEIGHT
+  const drawerHeight = resolveBrowserDownloadsDrawerHeight(browserDownloadsOpen, browserDownloads.length, panel.height)
+  const pageHeight = Math.max(0, panel.height - pageTop - drawerHeight)
+  const active = getActiveBrowserTab()?.view.webContents
+  try {
+    const [chromeImage, pageImage] = await Promise.all([
+      chrome.capturePage(),
+      active === undefined || active.isDestroyed() || browserManagerOpen || browserMenuOpen || pageHeight === 0
+        ? Promise.resolve(undefined)
+        : active.capturePage(),
+    ])
+    return {
+      chromeDataUrl: chromeImage.toDataURL(),
+      ...(pageImage === undefined ? {} : { pageDataUrl: pageImage.toDataURL() }),
+      pageTop,
+      pageHeight,
+    }
+  } catch (error) {
+    console.warn(`浏览器遮挡快照生成失败：${error instanceof Error ? error.message : String(error)}`)
+    return null
+  }
+}
+
+async function captureBrowserMenuPageSnapshot(): Promise<BrowserPageSnapshot | null> {
+  const window = mainWindow
+  if (window === undefined || window.isDestroyed() || !browserVisible || browserPanelOccluded || browserManagerOpen || browserMenuOpen) return null
+  const content = window.getContentBounds()
+  const dshHeight = Math.max(0, content.height - SHELL_BAR_HEIGHT)
+  const panel = browserWorkspacePanelBounds(content.width, dshHeight)
+  const pageTop = BROWSER_TABS_BAR_HEIGHT + BROWSER_NAV_BAR_HEIGHT
+  const drawerHeight = resolveBrowserDownloadsDrawerHeight(browserDownloadsOpen, browserDownloads.length, panel.height)
+  const pageHeight = Math.max(0, panel.height - pageTop - drawerHeight)
+  const page = getActiveBrowserTab()?.view.webContents
+  if (page === undefined || page.isDestroyed() || pageHeight === 0) return null
+  try {
+    const image = await page.capturePage()
+    if (image.isEmpty()) return null
+    return { pageDataUrl: image.toDataURL(), pageTop, pageHeight }
+  } catch (error) {
+    console.warn(`浏览器菜单网页快照生成失败：${error instanceof Error ? error.message : String(error)}`)
+    return null
+  }
 }
 
 function createWindow(): BrowserWindow {
@@ -1053,22 +1389,40 @@ function createWindow(): BrowserWindow {
   const view = new WebContentsView({ webPreferences: {
     contextIsolation: true,
     nodeIntegration: false,
+    partition: DSH_PARTITION,
     preload: resolvePreload('dsh-view-preload.cjs'),
     sandbox: true,
   } })
   dshView = view
   window.contentView.addChildView(view)
+  const panelView = new WebContentsView({ webPreferences: {
+    contextIsolation: true,
+    nodeIntegration: false,
+    preload: resolvePreload('browser-panel-preload.cjs'),
+    sandbox: true,
+  } })
+  browserPanelView = panelView
+  window.contentView.addChildView(panelView)
+  panelView.setVisible(false)
   layoutDshView(window)
   window.on('resize', () => layoutDshView(window))
   window.on('maximize', () => layoutDshView(window))
   window.on('unmaximize', () => layoutDshView(window))
-  runMainTask(window.loadFile(resolveShellAsset('shell.html'), { query: { theme: activeDshColorScheme } }))
+  runMainTask(window.loadFile(resolveShellAsset('shell.html'), { query: desktopThemeQuery() }))
+  runMainTask(panelView.webContents.loadFile(resolveShellAsset('browser-panel.html'), { query: desktopThemeQuery() }))
 
   view.webContents.setWindowOpenHandler(({ url }) => {
     routeDshExternalLink(url)
     return { action: 'deny' }
   })
   view.webContents.on('did-start-navigation', () => { dshSettingsDialogVisible = false })
+  view.webContents.on('dom-ready', () => {
+    if (!isSameOrigin(view.webContents.getURL(), allowedOrigin)) return
+    // Electron removes insertCSS styles on document navigation/reload.
+    // Share this document's insertion with the initial startup readiness check.
+    dshDocumentThemeLoads.delete(view)
+    runMainTask(applyDshDesktopTheme(view))
+  })
   view.webContents.on('will-navigate', (event, url) => {
     if (windowNavigation.isNavigating()) {
       event.preventDefault()
@@ -1085,6 +1439,7 @@ function createWindow(): BrowserWindow {
   })
   installShortcutHandler(window.webContents)
   installShortcutHandler(view.webContents)
+  installShortcutHandler(panelView.webContents)
   applyInitialWindowState(window)
   window.on('enter-full-screen', broadcastShellState)
   window.on('leave-full-screen', broadcastShellState)
@@ -1098,6 +1453,10 @@ function createWindow(): BrowserWindow {
     if (mainWindow === window) {
       mainWindow = undefined
       dshView = undefined
+      browserPanelView = undefined
+      browserPanelBounds = undefined
+      browserPanelOwner = undefined
+      browserPanelOccluded = false
       dshSettingsDialogVisible = false
       browserTabs.splice(0)
       activeBrowserTabId = null
@@ -1115,28 +1474,83 @@ function currentShellState(): ShellState {
     reloading: isRecycling,
     zoomPercent: Math.round(zoomFactor * 100),
     browser: browserShellState(),
+    browserWorkspaceVisible: browserVisible,
   }
 }
 
-function shellBootstrap(): ShellBootstrap {
+function runningDshRuntimeVersion(): string {
+  const runtimeRoot = lastStartOptions?.runtime.root
+  if (runtimeRoot === undefined) return OFFICIAL_DSH_VERSION
+  return runtimeSlotVersion(runtimeRoot) ?? harnessUpdateState?.currentVersion ?? OFFICIAL_DSH_VERSION
+}
+
+function shellBootstrap(state: ShellState = currentShellState()): ShellBootstrap {
   const locale = desktopLocale()
   return {
     actions: localizedShellActions(locale, process.platform),
+    bundledRuntimeVersion: OFFICIAL_DSH_VERSION,
     colorScheme: activeDshColorScheme,
+    featurePanels: {
+      categories: FEATURE_PANEL_CATEGORIES.map(category => ({ id: category.id, label: category.label, hint: category.hint })),
+      panels: FEATURE_PANELS.map(({ panel, categoryId }) => ({
+        id: panel.id,
+        name: panel.name,
+        file: panel.file,
+        description: panel.description,
+        ...(panel.notes === undefined ? {} : { notes: panel.notes }),
+        categoryId,
+      })),
+    },
+    themePreset: themePreferences.preset,
     locale,
     menus: localizedShellMenus(locale),
     platform: process.platform,
-    runtimeVersion: OFFICIAL_DSH_VERSION,
-    state: currentShellState(),
+    runtimeUpdateChannel: harnessUpdatePolicy.channel,
+    runtimeVersion: runningDshRuntimeVersion(),
+    state,
     version: app.getVersion(),
   }
 }
 
 function broadcastShellBootstrap(): void {
-  const bootstrap = shellBootstrap()
-  for (const window of [mainWindow, shortcutsWindow, aboutWindow, settingsWindow]) {
+  const state = currentShellState()
+  const hiddenBrowserState = { ...state, browser: { ...state.browser, visible: false } }
+  const bootstrap = shellBootstrap(hiddenBrowserState)
+  for (const window of [mainWindow, shortcutsWindow, aboutWindow, featurePanelsWindow, settingsWindow]) {
     if (window !== undefined && !window.isDestroyed()) window.webContents.send(SHELL_IPC.bootstrap, bootstrap)
   }
+  if (browserPanelView !== undefined && !browserPanelView.webContents.isDestroyed()) {
+    browserPanelView.webContents.send(SHELL_IPC.bootstrap, shellBootstrap(state))
+  }
+  sendDesktopThemeToDsh()
+}
+
+function desktopThemeQuery(): Record<string, string> {
+  return { theme: activeDshColorScheme, preset: themePreferences.preset }
+}
+
+function desktopThemePayload(): { colorScheme: DesktopColorScheme; preset: DesktopThemePreferences['preset'] } {
+  return { colorScheme: activeDshColorScheme, preset: themePreferences.preset }
+}
+
+function sendDesktopThemeToDsh(): void {
+  if (dshView !== undefined && !dshView.webContents.isDestroyed()) {
+    dshView.webContents.send(SHELL_IPC.desktopTheme, desktopThemePayload())
+  }
+}
+
+const dshDocumentThemeLoads = new WeakMap<WebContentsView, Promise<void>>()
+
+async function applyDshDesktopTheme(view: WebContentsView): Promise<void> {
+  let pending = dshDocumentThemeLoads.get(view)
+  if (pending === undefined) {
+    pending = (async () => {
+      await view.webContents.insertCSS(readFileSync(resolveShellAsset('theme.css'), 'utf8'))
+      if (!view.webContents.isDestroyed()) view.webContents.send(SHELL_IPC.desktopTheme, desktopThemePayload())
+    })()
+    dshDocumentThemeLoads.set(view, pending)
+  }
+  await pending
 }
 
 function setWindowBackground(window: BrowserWindow | undefined, color: string): void {
@@ -1154,6 +1568,7 @@ function applyDesktopTheme(colorScheme: DesktopColorScheme, preference?: Desktop
   setWindowBackground(settingsWindow, palette.settingsBackground)
   setWindowBackground(shortcutsWindow, palette.shortcutsBackground)
   setWindowBackground(aboutWindow, palette.aboutBackground)
+  setWindowBackground(featurePanelsWindow, palette.shortcutsBackground)
   if (process.platform !== 'darwin' && mainWindow !== undefined && !mainWindow.isDestroyed()) {
     mainWindow.setTitleBarOverlay({ color: palette.titleBarBackground, symbolColor: palette.titleBarSymbol, height: SHELL_BAR_HEIGHT })
   }
@@ -1161,24 +1576,51 @@ function applyDesktopTheme(colorScheme: DesktopColorScheme, preference?: Desktop
 
 function broadcastShellState(): void {
   const state = currentShellState()
-  for (const window of [mainWindow, shortcutsWindow, aboutWindow, settingsWindow]) {
-    if (window !== undefined && !window.isDestroyed()) window.webContents.send(SHELL_IPC.state, state)
+  const hiddenBrowserState = { ...state, browser: { ...state.browser, visible: false } }
+  for (const window of [mainWindow, shortcutsWindow, aboutWindow, featurePanelsWindow, settingsWindow]) {
+    if (window !== undefined && !window.isDestroyed()) window.webContents.send(SHELL_IPC.state, hiddenBrowserState)
+  }
+  if (browserPanelView !== undefined && !browserPanelView.webContents.isDestroyed()) {
+    browserPanelView.webContents.send(SHELL_IPC.state, state)
   }
 }
 
 function desktopUpdateSnapshot(): DesktopUpdateSnapshot {
   return {
     currentVersion: app.getVersion(),
-    packaged: app.isPackaged,
+    packaged: app.isPackaged && portableDesktopUpdater !== undefined,
     status: updateStatus,
     ...(lastUpdateCheckAt === undefined ? {} : { lastCheckedAt: lastUpdateCheckAt }),
   }
 }
 
 function broadcastDesktopUpdateState(): void {
-  if (settingsWindow !== undefined && !settingsWindow.isDestroyed()) {
-    settingsWindow.webContents.send(SHELL_IPC.desktopUpdateState, desktopUpdateSnapshot())
+  const snapshot = desktopUpdateSnapshot()
+  for (const window of [mainWindow, settingsWindow]) {
+    if (window !== undefined && !window.isDestroyed()) window.webContents.send(SHELL_IPC.desktopUpdateState, snapshot)
   }
+}
+
+function startDesktopActivationHeartbeat(): void {
+  const transactionId = process.env.DSH_DESKTOP_UPDATE_TRANSACTION
+  const healthFile = process.env.DSH_DESKTOP_UPDATE_HEALTH_FILE
+  if (transactionId === undefined || healthFile === undefined || desktopActivationHeartbeatTimer !== undefined) return
+  const progressFile = join(dirname(healthFile), 'startup-progress.json')
+  const writeHeartbeat = (): void => {
+    try {
+      writeFileSync(progressFile, `${JSON.stringify({ schema: 1, transactionId, updatedAt: new Date().toISOString() })}\n`, 'utf8')
+    } catch {
+      // The launcher still enforces its finite lease and hard deadline if progress reporting fails.
+    }
+  }
+  writeHeartbeat()
+  desktopActivationHeartbeatTimer = setInterval(writeHeartbeat, 5_000)
+  desktopActivationHeartbeatTimer.unref()
+}
+
+function stopDesktopActivationHeartbeat(): void {
+  if (desktopActivationHeartbeatTimer !== undefined) clearInterval(desktopActivationHeartbeatTimer)
+  desktopActivationHeartbeatTimer = undefined
 }
 
 function harnessUpdateSnapshot(): { available: boolean; policy: HarnessUpdatePolicy; state?: HarnessUpdateState; running: boolean } {
@@ -1209,6 +1651,7 @@ function installShellIpc(): void {
   ipcMain.removeHandler(SHELL_IPC.popupMenu)
   ipcMain.removeHandler(SHELL_IPC.getNotificationPreferences)
   ipcMain.removeHandler(SHELL_IPC.updateNotificationPreferences)
+  ipcMain.removeHandler(SHELL_IPC.updateThemePreferences)
   ipcMain.removeHandler(SHELL_IPC.getUpdatePreferences)
   ipcMain.removeHandler(SHELL_IPC.updateUpdatePreferences)
   ipcMain.removeHandler(SHELL_IPC.getDesktopUpdateState)
@@ -1218,8 +1661,10 @@ function installShellIpc(): void {
   ipcMain.removeHandler(SHELL_IPC.harnessUpdateAction)
   ipcMain.removeHandler(SHELL_IPC.closeDesktopSettings)
   ipcMain.handle(SHELL_IPC.getBootstrap, event => {
-    if (!mayGetShellBootstrap(shellRendererKind(event.sender))) return
-    return shellBootstrap()
+    const kind = shellRendererKind(event.sender)
+    if (!mayGetShellBootstrap(kind)) return
+    const state = currentShellState()
+    return shellBootstrap(kind === 'browser-panel' ? state : { ...state, browser: { ...state.browser, visible: false } })
   })
   ipcMain.handle(SHELL_IPC.action, (event, id: unknown) => {
     if (typeof id !== 'string' || !shellActionIds.has(id)) return
@@ -1239,6 +1684,12 @@ function installShellIpc(): void {
     if (!mayAccessNotificationPreferences(shellRendererKind(event.sender))) return
     notificationPreferences = await saveNotificationPreferences(notificationPreferencesPath(), value)
     return notificationPreferences
+  })
+  ipcMain.handle(SHELL_IPC.updateThemePreferences, async (event, value: unknown) => {
+    if (!mayAccessThemePreferences(shellRendererKind(event.sender))) return
+    themePreferences = await saveDesktopThemePreferences(themePreferencesPath(), value)
+    broadcastShellBootstrap()
+    return themePreferences
   })
   ipcMain.handle(SHELL_IPC.getUpdatePreferences, event => {
     if (!mayAccessDesktopUpdates(shellRendererKind(event.sender))) return
@@ -1295,12 +1746,33 @@ function installShellIpc(): void {
     if (!mayCloseDesktopSettings(shellRendererKind(event.sender))) return
     settingsWindow?.close()
   })
+  ipcMain.removeHandler(SHELL_IPC.featurePanelsCopy)
+  ipcMain.handle(SHELL_IPC.featurePanelsCopy, (event, value: unknown) => {
+    if (!mayInvokeFeaturePanelsCopy(shellRendererKind(event.sender))) return false
+    if (typeof value !== 'string' || value === '') return false
+    clipboard.writeText(value)
+    return true
+  })
   ipcMain.removeHandler(SHELL_IPC.browserToggle)
   ipcMain.handle(SHELL_IPC.browserToggle, event => {
-    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    const kind = shellRendererKind(event.sender)
+    // The shell may open/close the workspace; privileged browser operations stay in its own renderer.
+    if (kind !== 'main' && !mayInvokeBrowserIpc(kind)) return
     browserVisible = !browserVisible
+    if (browserVisible && getActiveBrowserTab() === null) activeBrowserTabId = createBrowserTab(primaryBrowserHomepage()).id
+    if (!browserVisible) {
+      browserManagerOpen = false
+      browserMenuOpen = false
+      browserDownloadsOpen = false
+      browserMaximized = false
+    }
     relayout()
     scheduleBrowserWorkspaceSave()
+    if (!browserVisible && dshView !== undefined && !dshView.webContents.isDestroyed()) {
+      browserPanelOwner = undefined
+      browserPanelBounds = undefined
+      dshView.webContents.send(SHELL_IPC.dshBrowserCloseRequest)
+    }
   })
   ipcMain.removeHandler(SHELL_IPC.browserNewTab)
   ipcMain.handle(SHELL_IPC.browserNewTab, (event, url: unknown) => {
@@ -1344,31 +1816,362 @@ function installShellIpc(): void {
   ipcMain.removeHandler(SHELL_IPC.browserReload)
   ipcMain.handle(SHELL_IPC.browserReload, event => {
     if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    const contents = getActiveBrowserTab()?.view.webContents
+    if (contents === undefined || contents.isDestroyed()) return
+    if (contents.isLoading()) contents.stop()
+    else contents.reload()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserOpenExternal)
+  ipcMain.handle(SHELL_IPC.browserOpenExternal, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return false
+    const url = getActiveBrowserTab()?.url
+    if (url === undefined || !isAllowedBrowserUrl(url)) return false
+    runMainTask(shell.openExternal(url))
+    return true
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserPrint)
+  ipcMain.handle(SHELL_IPC.browserPrint, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return false
+    const contents = getActiveBrowserTab()?.view.webContents
+    if (contents === undefined || contents.isDestroyed()) return false
+    contents.print({ printBackground: true })
+    return true
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserScreenshot)
+  ipcMain.handle(SHELL_IPC.browserScreenshot, async event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return null
+    const contents = getActiveBrowserTab()?.view.webContents
+    if (contents === undefined || contents.isDestroyed()) return null
+    const image = await contents.capturePage()
+    const now = new Date()
+    const pad = (value: number): string => String(value).padStart(2, '0')
+    const fileName = `screenshot-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.png`
+    const downloadsRoot = browserDownloadsRoot()
+    mkdirSync(downloadsRoot, { recursive: true })
+    const filePath = join(downloadsRoot, fileName)
+    writeFileSync(filePath, image.toPNG())
+    shell.showItemInFolder(filePath)
+    return fileName
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserClearData)
+  ipcMain.handle(SHELL_IPC.browserClearData, async event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return false
+    const browserSession = session.fromPartition(BROWSER_PARTITION)
+    await browserSession.clearCache()
+    await browserSession.clearStorageData({
+      storages: ['cachestorage', 'cookies', 'filesystem', 'indexdb', 'localstorage', 'serviceworkers', 'shadercache'],
+    })
     getActiveBrowserTab()?.view.webContents.reload()
+    return true
   })
-  ipcMain.removeHandler(SHELL_IPC.browserShowPanel)
-  ipcMain.handle(SHELL_IPC.browserShowPanel, event => {
-    if (!mayInvokeBrowserPanelIpc(shellRendererKind(event.sender))) return
+  ipcMain.removeHandler(SHELL_IPC.browserGetLibrary)
+  ipcMain.handle(SHELL_IPC.browserGetLibrary, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return null
+    return browserData().publicSnapshot()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserToggleManager)
+  ipcMain.handle(SHELL_IPC.browserToggleManager, (event, visible: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    browserManagerOpen = typeof visible === 'boolean' ? visible : !browserManagerOpen
+    if (browserManagerOpen) {
+      browserVisible = true
+      browserMenuOpen = false
+      browserDownloadsOpen = false
+    }
+    relayout()
+    return browserShellState()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserToggleMenu)
+  ipcMain.removeHandler(SHELL_IPC.browserPrepareMenuSnapshot)
+  ipcMain.handle(SHELL_IPC.browserPrepareMenuSnapshot, event => {
+    if (shellRendererKind(event.sender) !== 'browser-panel') return null
+    return captureBrowserMenuPageSnapshot()
+  })
+  ipcMain.handle(SHELL_IPC.browserToggleMenu, (event, visible: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    browserMenuOpen = typeof visible === 'boolean' ? visible : !browserMenuOpen
+    if (browserMenuOpen) {
+      browserVisible = true
+      browserManagerOpen = false
+    }
+    relayout()
+    return browserShellState()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserBookmarkCurrent)
+  ipcMain.handle(SHELL_IPC.browserBookmarkCurrent, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return null
+    const tab = getActiveBrowserTab()
+    if (tab === null || !isAllowedBrowserUrl(tab.url)) return null
+    const added = browserData().toggleBookmark({ url: tab.url, title: tab.title, favicon: tab.favicon })
+    broadcastShellState()
+    return { added, library: browserData().publicSnapshot() }
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserLibraryRemove)
+  ipcMain.handle(SHELL_IPC.browserLibraryRemove, (event, kind: unknown, id: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return null
+    if (typeof kind !== 'string' || typeof id !== 'string' || !['history', 'bookmark', 'credential'].includes(kind)) return null
+    browserData().remove(kind, id)
+    broadcastShellState()
+    return browserData().publicSnapshot()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserLibraryClear)
+  ipcMain.handle(SHELL_IPC.browserLibraryClear, (event, kind: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return null
+    if (typeof kind !== 'string' || !['history', 'bookmarks', 'credentials'].includes(kind)) return null
+    browserData().clear(kind)
+    broadcastShellState()
+    return browserData().publicSnapshot()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserSaveSettings)
+  ipcMain.handle(SHELL_IPC.browserSaveSettings, async (event, patch: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return null
+    if (typeof patch !== 'object' || patch === null || Array.isArray(patch)) return browserData().publicSnapshot()
+    const input = patch as Record<string, unknown>
+    const settings: Partial<BrowserLibrarySnapshot['settings']> = {}
+    if (Array.isArray(input.homepages)) settings.homepages = input.homepages.filter((value): value is string => typeof value === 'string').slice(0, 8)
+    for (const key of ['historyEnabled', 'autoRetryImport', 'loadExtensions'] as const) {
+      if (typeof input[key] === 'boolean') settings[key] = input[key]
+    }
+    browserData().setSettings(settings)
+    if (settings.loadExtensions !== undefined) await browserData().loadExtensions(session.fromPartition(BROWSER_PARTITION))
+    return browserData().publicSnapshot()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserSaveCredential)
+  ipcMain.handle(SHELL_IPC.browserSaveCredential, (event, credential: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return null
+    if (typeof credential !== 'object' || credential === null || Array.isArray(credential)) throw new Error('凭据格式无效。')
+    const input = credential as Record<string, unknown>
+    browserData().saveCredential({
+      ...(typeof input.id === 'string' ? { id: input.id.slice(0, 200) } : {}),
+      origin: String(input.origin ?? '').slice(0, 2_000),
+      username: String(input.username ?? '').slice(0, 500),
+      password: String(input.password ?? '').slice(0, 10_000),
+      label: String(input.label ?? '').slice(0, 500),
+    })
+    return browserData().publicSnapshot()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserFillCredential)
+  ipcMain.handle(SHELL_IPC.browserFillCredential, async (event, id: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender)) || typeof id !== 'string') return null
+    const contents = getActiveBrowserTab()?.view.webContents
+    if (contents === undefined || contents.isDestroyed()) throw new Error('没有可填充的活动页面。')
+    const credential = browserData().credentialSecret(id)
+    const pageOrigin = new URL(contents.getURL()).origin
+    if (credential.origin !== pageOrigin) throw new Error(`该密码属于 ${credential.origin}，不会填入当前网站。`)
+    const payload = JSON.stringify({ username: credential.username, password: credential.password })
+    return contents.executeJavaScript(`(() => {
+      const value = ${payload};
+      const password = document.querySelector('input[type="password"]');
+      const username = document.querySelector('input[autocomplete="username"],input[type="email"],input[name*="user" i],input[name*="email" i],input[type="text"]');
+      const set = (node, next) => { if (!node) return false; const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value'); descriptor?.set?.call(node, next); node.dispatchEvent(new Event('input', { bubbles: true })); node.dispatchEvent(new Event('change', { bubbles: true })); return true; };
+      return { username: set(username, value.username), password: set(password, value.password) };
+    })()`, true)
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserAutofillPage)
+  ipcMain.handle(SHELL_IPC.browserAutofillPage, async event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return { filled: 0 }
+    const contents = getActiveBrowserTab()?.view.webContents
+    if (contents === undefined || contents.isDestroyed()) return { filled: 0 }
+    const payload = JSON.stringify(browserData().publicSnapshot().autofill.slice(0, 500))
+    return contents.executeJavaScript(`(() => {
+      const entries = ${payload}; let filled = 0;
+      for (const input of document.querySelectorAll('input:not([type="password"]),textarea')) {
+        if (input.value) continue; const key = String(input.name || input.autocomplete || input.id || '').toLowerCase();
+        const match = entries.find(entry => key && (key === String(entry.name).toLowerCase() || key.includes(String(entry.name).toLowerCase()))); if (!match) continue;
+        const prototype = input instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+        Object.getOwnPropertyDescriptor(prototype, 'value')?.set?.call(input, match.value); input.dispatchEvent(new Event('input', { bubbles: true })); filled += 1;
+      } return { filled };
+    })()`, true)
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserImportProfile)
+  ipcMain.handle(SHELL_IPC.browserImportProfile, async (event, sourceId: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender)) || typeof sourceId !== 'string' || !/^[a-z0-9_-]{1,64}$/i.test(sourceId)) return null
+    const browserSession = session.fromPartition(BROWSER_PARTITION)
+    const result = await browserData().importProfile(sourceId, browserSession)
+    await browserData().loadExtensions(browserSession)
+    broadcastShellState()
+    return { result, library: browserData().publicSnapshot() }
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserToggleExtension)
+  ipcMain.handle(SHELL_IPC.browserToggleExtension, async (event, id: unknown, enabled: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender)) || typeof id !== 'string' || typeof enabled !== 'boolean') return null
+    browserData().toggleExtension(id, enabled)
+    await browserData().loadExtensions(session.fromPartition(BROWSER_PARTITION))
+    return browserData().publicSnapshot()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserFind)
+  ipcMain.handle(SHELL_IPC.browserFind, async (event, text: unknown, options: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return null
+    const contents = getActiveBrowserTab()?.view.webContents
+    const queryText = typeof text === 'string' ? text.slice(0, 500) : ''
+    if (contents === undefined || contents.isDestroyed() || queryText === '') return null
+    const input = typeof options === 'object' && options !== null ? options as Record<string, unknown> : {}
+    const forward = input.forward !== false
+    const findNext = input.findNext === true
+    const requestId = contents.findInPage(queryText, { forward, findNext })
+    return { requestId }
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserFindStop)
+  ipcMain.handle(SHELL_IPC.browserFindStop, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    const contents = getActiveBrowserTab()?.view.webContents
+    if (contents !== undefined && !contents.isDestroyed()) contents.stopFindInPage('keepSelection')
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserDevTools)
+  ipcMain.handle(SHELL_IPC.browserDevTools, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return false
+    const contents = getActiveBrowserTab()?.view.webContents
+    if (contents === undefined || contents.isDestroyed()) return false
+    if (contents.isDevToolsOpened()) contents.closeDevTools()
+    else contents.openDevTools({ mode: 'detach', activate: true })
+    return true
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserRuntimeInfo)
+  ipcMain.handle(SHELL_IPC.browserRuntimeInfo, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return null
+    return { electron: process.versions.electron, chromium: process.versions.chrome, node: process.versions.node, updateManagedByDesktop: true }
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserRuntimeCheck)
+  ipcMain.handle(SHELL_IPC.browserRuntimeCheck, async event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return null
+    const response = await net.fetch('https://releases.electronjs.org/releases.json', { signal: AbortSignal.timeout(15_000) })
+    if (!response.ok) throw new Error(`Electron 版本服务返回 ${response.status}`)
+    const releases = await response.json() as { version?: string }[]
+    const parts = (value: string): number[] => value.split('.').map(item => Number.parseInt(item, 10) || 0)
+    const stable = releases.filter(entry => /^\d+\.\d+\.\d+$/.test(String(entry.version ?? '')))
+    stable.sort((left, right) => {
+      const a = parts(String(left.version)); const b = parts(String(right.version))
+      for (let index = 0; index < 3; index += 1) if (a[index] !== b[index]) return (b[index] ?? 0) - (a[index] ?? 0)
+      return 0
+    })
+    const current = process.versions.electron
+    const latest = String(stable[0]?.version ?? current)
+    const currentParts = parts(current); const latestParts = parts(latest)
+    let updateAvailable = false
+    for (let index = 0; index < 3; index += 1) {
+      const difference = (latestParts[index] ?? 0) - (currentParts[index] ?? 0)
+      if (difference === 0) continue
+      updateAvailable = difference > 0
+      break
+    }
+    return { current, latest, updateAvailable, checkedAt: new Date().toISOString() }
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserPageZoom)
+  ipcMain.handle(SHELL_IPC.browserPageZoom, (event, action: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return Math.round(browserPageZoom * 100)
+    if (action === 'reset') browserPageZoom = 1
+    else if (action === 'in') browserPageZoom = Math.min(2, Math.round((browserPageZoom + 0.1) * 10) / 10)
+    else if (action === 'out') browserPageZoom = Math.max(0.5, Math.round((browserPageZoom - 0.1) * 10) / 10)
+    for (const tab of browserTabs) applyBrowserPageZoom(tab.view.webContents)
+    broadcastShellState()
+    return Math.round(browserPageZoom * 100)
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserToggleDownloads)
+  ipcMain.handle(SHELL_IPC.browserToggleDownloads, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    browserDownloadsOpen = !browserDownloadsOpen
+    browserManagerOpen = false
+    browserMenuOpen = false
+    relayout()
+    return browserShellState()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserOpenDownloadsFolder)
+  ipcMain.handle(SHELL_IPC.browserOpenDownloadsFolder, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    const downloadsRoot = browserDownloadsRoot()
+    mkdirSync(downloadsRoot, { recursive: true })
+    return shell.openPath(downloadsRoot)
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserOpenDownload)
+  ipcMain.handle(SHELL_IPC.browserOpenDownload, (event, id: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender)) || typeof id !== 'string') return
+    const record = browserDownloads.find(entry => entry.id === id)
+    if (record?.status === 'completed' && existsSync(record.path)) return shell.openPath(record.path)
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserShowDownload)
+  ipcMain.handle(SHELL_IPC.browserShowDownload, (event, id: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender)) || typeof id !== 'string') return
+    const record = browserDownloads.find(entry => entry.id === id)
+    if (record !== undefined && existsSync(record.path)) shell.showItemInFolder(record.path)
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserClearDownloads)
+  ipcMain.handle(SHELL_IPC.browserClearDownloads, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    browserDownloads.splice(0)
+    browserDownloadsOpen = false
+    relayout()
+    return browserShellState()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserToggleMaximize)
+  ipcMain.handle(SHELL_IPC.browserToggleMaximize, event => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    browserMaximized = !browserMaximized
+    relayout()
+    scheduleBrowserWorkspaceSave()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserSetRatio)
+  ipcMain.handle(SHELL_IPC.browserSetRatio, (event, ratio: unknown) => {
+    if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
+    if (typeof ratio !== 'number' || !Number.isFinite(ratio)) return
+    const windowWidth = Math.max(960, mainWindow?.getContentBounds().width ?? 960)
+    const minimumRatio = 320 / windowWidth
+    const maximumRatio = Math.min(0.75, (windowWidth - 480) / windowWidth)
+    browserWidthRatio = Math.max(minimumRatio, Math.min(maximumRatio, ratio))
+    browserMaximized = false
+    relayout()
+    scheduleBrowserWorkspaceSave()
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserPanelShow)
+  ipcMain.handle(SHELL_IPC.browserPanelShow, (event, value: unknown) => {
+    if (!mayManageBrowserPanel(shellRendererKind(event.sender))) throw new Error('Browser card sender rejected')
+    const request = normalizeNativeBrowserRequest(value, allowedOrigin)
+    if (browserPanelOwner !== request.owner) browserPanelBounds = undefined
+    browserPanelOwner = request.owner
     browserVisible = true
+    browserPanelOccluded = false
+    browserMaximized = false
+    browserManagerOpen = false
+    browserMenuOpen = false
+    browserDownloadsOpen = false
+    if (request.url !== undefined) openBrowser(request.url, true)
+    else if (getActiveBrowserTab() === null) activeBrowserTabId = createBrowserTab(primaryBrowserHomepage()).id
     relayout()
-    focusActiveBrowserTab()
+    scheduleBrowserWorkspaceSave()
+    return { owner: request.owner }
+  })
+  ipcMain.removeHandler(SHELL_IPC.browserPanelHide)
+  ipcMain.handle(SHELL_IPC.browserPanelHide, (event, owner: unknown) => {
+    if (!mayManageBrowserPanel(shellRendererKind(event.sender)) || owner !== browserPanelOwner) return
+    browserPanelOwner = undefined
+    browserVisible = false
+    browserPanelOccluded = false
+    browserPanelBounds = undefined
+    browserManagerOpen = false
+    browserMenuOpen = false
+    browserDownloadsOpen = false
+    relayout()
     scheduleBrowserWorkspaceSave()
   })
-  ipcMain.removeHandler(SHELL_IPC.browserHidePanel)
-  ipcMain.handle(SHELL_IPC.browserHidePanel, event => {
-    if (!mayInvokeBrowserPanelIpc(shellRendererKind(event.sender))) return
-    browserVisible = false
-    browserPanelBounds = undefined
+  ipcMain.removeHandler(SHELL_IPC.browserPanelOccluded)
+  ipcMain.removeHandler(SHELL_IPC.browserPanelPrepareOcclusion)
+  ipcMain.handle(SHELL_IPC.browserPanelPrepareOcclusion, event => {
+    if (!mayManageBrowserPanel(shellRendererKind(event.sender))) return null
+    return captureBrowserPanelSnapshot()
+  })
+  ipcMain.handle(SHELL_IPC.browserPanelOccluded, (event, value: unknown, owner: unknown) => {
+    if (!mayManageBrowserPanel(shellRendererKind(event.sender)) || typeof value !== 'boolean' || owner !== browserPanelOwner) return
+    if (browserPanelOccluded === value) return
+    browserPanelOccluded = value
     relayout()
-    scheduleBrowserWorkspaceSave()
   })
   ipcMain.removeAllListeners(SHELL_IPC.browserPanelBounds)
-  ipcMain.on(SHELL_IPC.browserPanelBounds, (event, bounds: unknown) => {
-    if (!mayInvokeBrowserPanelIpc(shellRendererKind(event.sender))) return
-    if (typeof bounds !== 'object' || bounds === null) return
-    const b = bounds as Record<string, unknown>
-    if (typeof b.x !== 'number' || typeof b.y !== 'number' || typeof b.width !== 'number' || typeof b.height !== 'number') return
-    browserPanelBounds = { x: b.x, y: b.y, width: b.width, height: b.height }
+  ipcMain.on(SHELL_IPC.browserPanelBounds, (event, value: unknown) => {
+    if (!mayManageBrowserPanel(shellRendererKind(event.sender))) return
+    if (typeof value !== 'object' || value === null || (value as { owner?: unknown }).owner !== browserPanelOwner) return
+    const content = mainWindow?.getContentBounds()
+    if (content === undefined) return
+    const panel = normalizeBrowserPanelBounds(value, content.width, Math.max(0, content.height - SHELL_BAR_HEIGHT), event.sender.getZoomFactor())
+    browserPanelBounds = panel
     if (browserVisible) relayout()
   })
   ipcMain.removeAllListeners(SHELL_IPC.dshState)
@@ -1406,7 +2209,11 @@ function installShellIpc(): void {
   ipcMain.removeAllListeners(SHELL_IPC.dshSettingsVisibility)
   ipcMain.on(SHELL_IPC.dshSettingsVisibility, (event, value: unknown) => {
     if (!mayReportDshSettingsVisibility(shellRendererKind(event.sender))) return
-    dshSettingsDialogVisible = value === true
+    const visible = value === true
+    if (visible !== dshSettingsDialogVisible) {
+      dshSettingsDialogVisible = visible
+      relayout()
+    }
   })
   ipcMain.removeAllListeners(SHELL_IPC.dshNotification)
   ipcMain.on(SHELL_IPC.dshNotification, (event, value: unknown) => {
@@ -1438,8 +2245,10 @@ function installShellIpc(): void {
 
 function shellRendererKind(sender: WebContents): ShellRendererKind {
   if (sender === mainWindow?.webContents) return 'main'
+  if (sender === browserPanelView?.webContents) return 'browser-panel'
   if (sender === shortcutsWindow?.webContents) return 'shortcuts'
   if (sender === aboutWindow?.webContents) return 'about'
+  if (sender === featurePanelsWindow?.webContents) return 'feature-panels'
   if (sender === settingsWindow?.webContents) return 'settings'
   if (sender === dshView?.webContents) return 'dsh'
   return 'unknown'
@@ -1521,7 +2330,47 @@ function dismissDshSettingsDialog(): void {
 function installShortcutHandler(contents: Electron.WebContents): void {
   contents.on('before-input-event', (event, input: Input) => {
     if (input.type !== 'keyDown') return
-    const auxiliaryWindow = [shortcutsWindow, aboutWindow, settingsWindow].find(window => window?.webContents === contents)
+    const browserTab = browserTabs.find(tab => tab.view.webContents === contents)
+    if (browserTab !== undefined) {
+      const command = process.platform === 'darwin' ? input.meta : input.control
+      const key = input.key.toLowerCase()
+      if (command && key === 'f') {
+        event.preventDefault()
+        browserPanelView?.webContents.send(SHELL_IPC.browserOpenFind)
+        return
+      }
+      if (command && key === 'l') {
+        event.preventDefault()
+        browserPanelView?.webContents.send(SHELL_IPC.browserFocusAddress)
+        return
+      }
+      if (command && key === 't') {
+        event.preventDefault()
+        createBrowserTab(configuredBrowserHomepages()[0])
+        return
+      }
+      if (command && key === 'w') {
+        event.preventDefault()
+        closeBrowserTab(browserTab.id)
+        return
+      }
+      if ((command && key === 'r') || input.key === 'F5') {
+        event.preventDefault()
+        contents.reload()
+        return
+      }
+      if (input.alt && input.key === 'Left' && contents.canGoBack()) {
+        event.preventDefault()
+        contents.goBack()
+        return
+      }
+      if (input.alt && input.key === 'Right' && contents.canGoForward()) {
+        event.preventDefault()
+        contents.goForward()
+        return
+      }
+    }
+    const auxiliaryWindow = [shortcutsWindow, aboutWindow, featurePanelsWindow, settingsWindow].find(window => window?.webContents === contents)
     const route = escapeRoute({
       key: input.key,
       isAuxiliaryWindow: auxiliaryWindow !== undefined,
@@ -1566,12 +2415,6 @@ async function executeShellAction(id: ShellActionId): Promise<void> {
   if (id === 'quit') { await requestQuit(); return }
   if (id === 'app-restart') { await requestAppRestart(); return }
   if (id === 'home') { openHomepageGroup(); return }
-  if (id === 'browser-toggle') {
-    browserVisible = !browserVisible
-    relayout()
-    scheduleBrowserWorkspaceSave()
-    return
-  }
   if (contents === undefined) return
   if (id === 'undo') contents.undo()
   else if (id === 'redo') contents.redo()
@@ -1585,8 +2428,12 @@ async function executeShellAction(id: ShellActionId): Promise<void> {
   else if (id === 'zoom-reset') contents.setZoomFactor(1)
   else if (id === 'toggle-fullscreen') mainWindow?.setFullScreen(!(mainWindow?.isFullScreen() ?? false))
   else if (id === 'show-shortcuts') showShortcutsWindow()
+  else if (id === 'feature-panels') { showFeaturePanelsWindow(); return }
   else if (id === 'reload') await recycleDshForPluginUpdate()
-  else if (id === 'check-updates') await checkDesktopUpdate()
+  else if (id === 'check-updates') {
+    showDesktopSettingsWindow('updates')
+    await checkDesktopUpdate('settings')
+  }
   else if (id === 'whats-new') await shell.openExternal('https://github.com/MichengAI/dsh-codex-desktop/releases')
   else if (id === 'feedback') await shell.openExternal('https://github.com/MichengAI/dsh-codex-desktop/issues/new')
   else if (id === 'about') showAboutWindow()
@@ -1595,6 +2442,10 @@ async function executeShellAction(id: ShellActionId): Promise<void> {
 
 function notificationPreferencesPath(): string {
   return join(app.getPath('userData'), 'desktop-settings.json')
+}
+
+function themePreferencesPath(): string {
+  return join(app.getPath('userData'), 'shell', 'theme.json')
 }
 
 function updatePreferencesPath(): string {
@@ -1832,7 +2683,7 @@ function showDesktopSettingsWindow(section: DesktopSettingsSection = 'notificati
     window.webContents.send(SHELL_IPC.settingsSection, section)
     window.webContents.send(SHELL_IPC.desktopUpdateState, desktopUpdateSnapshot())
   })
-  runMainTask(window.loadFile(resolveShellAsset('settings.html'), { query: { theme: activeDshColorScheme } }))
+  runMainTask(window.loadFile(resolveShellAsset('settings.html'), { query: desktopThemeQuery() }))
 }
 
 function showShortcutsWindow(): void {
@@ -1855,7 +2706,7 @@ function showShortcutsWindow(): void {
   shortcutsWindow = window
   window.on('closed', () => { if (shortcutsWindow === window) shortcutsWindow = undefined })
   installShortcutHandler(window.webContents)
-  runMainTask(window.loadFile(resolveShellAsset('shortcuts.html'), { query: { theme: activeDshColorScheme } }))
+  runMainTask(window.loadFile(resolveShellAsset('shortcuts.html'), { query: desktopThemeQuery() }))
 }
 
 function showAboutWindow(): void {
@@ -1889,27 +2740,94 @@ function showAboutWindow(): void {
   aboutWindow = window
   window.on('closed', () => { if (aboutWindow === window) aboutWindow = undefined })
   installShortcutHandler(window.webContents)
-  runMainTask(window.loadFile(resolveShellAsset('about.html'), { query: { theme: activeDshColorScheme } }))
+  runMainTask(window.loadFile(resolveShellAsset('about.html'), { query: desktopThemeQuery() }))
 }
 
-function configureDesktopUpdater(): void {
-  autoUpdater.logger = console
-  autoUpdater.autoDownload = false
-  autoUpdater.autoInstallOnAppQuit = false
-  const channel = desktopUpdateChannel()
-  if (channel !== undefined) {
-    autoUpdater.channel = channel
-    autoUpdater.allowDowngrade = false
+function showFeaturePanelsWindow(): void {
+  if (featurePanelsWindow !== undefined && !featurePanelsWindow.isDestroyed()) {
+    featurePanelsWindow.show()
+    featurePanelsWindow.focus()
+    return
   }
-  autoUpdater.on('download-progress', progress => {
-    setDesktopUpdateStatus({ kind: 'downloading', percent: progress.percent })
+  const window = new BrowserWindow({
+    parent: mainWindow,
+    modal: true,
+    width: 760,
+    height: 640,
+    minWidth: 520,
+    minHeight: 420,
+    title: desktopText('功能板块', 'Feature Panels'),
+    autoHideMenuBar: true,
+    backgroundColor: DESKTOP_THEME_PALETTES[activeDshColorScheme].shortcutsBackground,
+    webPreferences: { contextIsolation: true, nodeIntegration: false, preload: resolvePreload('shell-preload.cjs'), sandbox: true },
   })
-  autoUpdater.on('update-downloaded', info => {
-    setDesktopUpdateStatus({ kind: 'ready', version: info.version })
+  removeNativeWindowMenu(window)
+  featurePanelsWindow = window
+  window.on('closed', () => { if (featurePanelsWindow === window) featurePanelsWindow = undefined })
+  installShortcutHandler(window.webContents)
+  runMainTask(window.loadFile(resolveShellAsset('feature-panels.html'), { query: desktopThemeQuery() }))
+}
+
+async function configureDesktopUpdater(): Promise<void> {
+  if (!app.isPackaged || portablePaths === undefined || process.platform !== 'win32' || process.arch !== 'x64') return
+  portableDesktopUpdater = new PortableDesktopUpdater({
+    portableRoot: portablePaths.root,
+    currentVersion: app.getVersion(),
+    onState: applyPortableDesktopUpdateState,
+    prepareCandidateRuntime: async (appDirectory, onProgress) => {
+      const resourcesDir = join(appDirectory, 'resources')
+      const legacyRuntimeDir = resolveDesktopRuntimeDir(app.getPath('userData'), {
+        isPackaged: true,
+        execPath: join(appDirectory, 'DSH Codex Desktop.exe'),
+        portableRoot: portablePaths.root,
+      })
+      const activeRuntimeDir = resolveActiveRuntimeDir(legacyRuntimeDir)
+      await preparePackagedRuntimeCacheInChild({
+        resourcesDir,
+        runtimeRoot: dirname(legacyRuntimeDir),
+        nodeExecutable: resolveNodeExecutable({ isPackaged: true, resourcesPath: resourcesDir }),
+        scriptPath: join(resourcesDir, 'extract-runtime.mjs'),
+        skipOfficial: resolve(activeRuntimeDir) !== resolve(legacyRuntimeDir),
+        onProgress,
+      })
+    },
   })
-  autoUpdater.on('error', error => {
-    setDesktopUpdateStatus({ kind: 'error', message: publicDesktopUpdateError(error, desktopLocale()) })
-  })
+  await portableDesktopUpdater.initialize()
+}
+
+function applyPortableDesktopUpdateState(state: PortableDesktopUpdateState): void {
+  if (state.lastCheckedAt !== undefined) lastUpdateCheckAt = state.lastCheckedAt
+  const progress = {
+    detail: state.detail,
+    overallProgress: state.overallProgress,
+    stageProgress: state.stageProgress,
+    ...(state.errorCode === undefined ? {} : { errorCode: state.errorCode }),
+    ...(state.transactionId === undefined ? {} : { transactionId: state.transactionId }),
+  }
+  const version = state.targetVersion ?? state.release?.version
+  let status: DesktopUpdateStatus
+  if (state.phase === 'available' && version !== undefined) {
+    status = { kind: 'available', version, ...(state.release?.releaseNotes === undefined ? {} : { releaseNotes: state.release.releaseNotes }), ...progress }
+  } else if (state.phase === 'downloading') {
+    status = { kind: 'downloading', percent: state.stageProgress, ...(version === undefined ? {} : { version }), ...progress }
+  } else if (state.phase === 'ready' && version !== undefined) {
+    status = { kind: 'ready', version, ...progress }
+  } else if (state.phase === 'completed') {
+    status = { kind: 'completed', version: version ?? state.currentVersion, ...progress }
+  } else if (state.phase === 'rolled-back') {
+    status = { kind: 'rolled-back', ...(version === undefined ? {} : { version }), message: state.detail, ...progress }
+  } else if (state.phase === 'incompatible') {
+    status = { kind: 'incompatible', ...(version === undefined ? {} : { version }), message: state.detail, ...progress }
+  } else if (state.phase === 'error') {
+    status = { kind: 'error', message: state.detail, ...progress }
+  } else if (state.phase === 'verifying' || state.phase === 'building' || state.phase === 'deploying' || state.phase === 'validating') {
+    status = { kind: state.phase, ...(version === undefined ? {} : { version }), ...progress }
+  } else if (state.phase === 'idle' || state.phase === 'checking' || state.phase === 'none') {
+    status = { kind: state.phase, ...progress }
+  } else {
+    status = { kind: 'error', message: '桌面更新状态缺少目标版本，已安全停止。', ...progress }
+  }
+  setDesktopUpdateStatus(status)
 }
 
 function scheduleStartupUpdateCheck(): void {
@@ -2248,7 +3166,7 @@ function createTray(): void {
     refreshTrayMenu()
     return
   }
-  const rasterPath = resolveRasterIconPath({
+  const rasterPath = resolveTrayIconPath({
     appPath: app.getAppPath(),
     isPackaged: app.isPackaged,
     resourcesPath: process.resourcesPath,
@@ -2319,23 +3237,24 @@ async function handleTrayUpdateAction(id: string): Promise<void> {
 type DesktopUpdateInteraction = 'interactive' | 'background' | 'settings'
 
 async function checkDesktopUpdate(interaction: DesktopUpdateInteraction = 'interactive'): Promise<void> {
-  if (updateStatus.kind === 'checking' || updateStatus.kind === 'downloading') return
-  if (!app.isPackaged) {
+  if (['checking', 'downloading', 'verifying', 'building', 'deploying', 'validating'].includes(updateStatus.kind)) return
+  if (portableDesktopUpdater === undefined) {
     if (interaction === 'interactive') {
       await dialog.showMessageBox({
         type: 'info',
         title: DESKTOP_APP_NAME,
-        message: desktopText('开发态不能检查安装包更新，请使用发布的安装包。', 'Update checks are unavailable in development builds. Use a released installer.'),
+        message: desktopText('桌面端 A/B 更新仅在 Windows x64 便携版中启用。', 'Desktop A/B updates are available in the Windows x64 portable build.'),
       })
     }
     return
   }
-  setDesktopUpdateStatus({ kind: 'checking' })
   try {
-    const result = await autoUpdater.checkForUpdates()
-    const version = result?.updateInfo.version
-    if (version === undefined || version === app.getVersion()) {
-      setDesktopUpdateStatus({ kind: 'none' }, true)
+    const checked = await portableDesktopUpdater.check()
+    if (checked.phase === 'error') {
+      if (interaction === 'interactive') await dialog.showMessageBox({ type: 'error', title: DESKTOP_APP_NAME, message: checked.detail })
+      return
+    }
+    if (checked.phase === 'none') {
       dismissDesktopUpdateNotification()
       if (interaction === 'interactive') {
         await dialog.showMessageBox({
@@ -2346,11 +3265,15 @@ async function checkDesktopUpdate(interaction: DesktopUpdateInteraction = 'inter
       }
       return
     }
-    const available: Extract<DesktopUpdateStatus, { kind: 'available' }> = { kind: 'available', version, releaseNotes: formatDesktopReleaseNotes(result?.updateInfo.releaseNotes) }
-    setDesktopUpdateStatus(available, true)
+    if (checked.phase !== 'available' || checked.release === undefined) return
+    const available: Extract<DesktopUpdateStatus, { kind: 'available' }> = {
+      kind: 'available',
+      version: checked.release.version,
+      ...(checked.release.releaseNotes === undefined ? {} : { releaseNotes: checked.release.releaseNotes }),
+    }
     if (interaction === 'background') {
       if (shouldDownloadUpdateAutomatically(updatePreferences)) await downloadDesktopUpdate('background')
-      else showDesktopUpdateNotification('available', version)
+      else showDesktopUpdateNotification('available', checked.release.version)
       return
     }
     if (interaction === 'settings') return
@@ -2365,7 +3288,7 @@ async function checkDesktopUpdate(interaction: DesktopUpdateInteraction = 'inter
     if (prompt.response === 0) await downloadDesktopUpdate('interactive')
   } catch (error) {
     const message = publicDesktopUpdateError(error, desktopLocale())
-    setDesktopUpdateStatus({ kind: 'error', message }, true)
+    setDesktopUpdateStatus(preserveDesktopUpdateFailure(updateStatus, message), true)
     if (interaction === 'interactive') {
       await dialog.showMessageBox({
         type: 'error',
@@ -2377,13 +3300,16 @@ async function checkDesktopUpdate(interaction: DesktopUpdateInteraction = 'inter
 }
 
 async function downloadDesktopUpdate(interaction: DesktopUpdateInteraction = 'interactive'): Promise<void> {
-  if (updateStatus.kind !== 'available') return
+  if (updateStatus.kind !== 'available' || portableDesktopUpdater === undefined) return
   const version = updateStatus.version
-  setDesktopUpdateStatus({ kind: 'downloading', percent: 0 })
   try {
-    await autoUpdater.downloadUpdate()
+    const prepared = await portableDesktopUpdater.prepare()
+    if (prepared.phase === 'error') {
+      if (interaction === 'interactive') await dialog.showMessageBox({ type: 'error', title: DESKTOP_APP_NAME, message: prepared.detail })
+      return
+    }
+    if (prepared.phase !== 'ready') return
     const ready = { kind: 'ready' as const, version }
-    setDesktopUpdateStatus(ready)
     if (interaction === 'background') {
       showDesktopUpdateNotification('ready', version)
       return
@@ -2400,7 +3326,7 @@ async function downloadDesktopUpdate(interaction: DesktopUpdateInteraction = 'in
     if (prompt.response === 0) await installDesktopUpdate()
   } catch (error) {
     const message = publicDesktopUpdateError(error, desktopLocale())
-    setDesktopUpdateStatus({ kind: 'error', message })
+    setDesktopUpdateStatus(preserveDesktopUpdateFailure(updateStatus, message))
     if (interaction === 'interactive') {
       await dialog.showMessageBox({
         type: 'error',
@@ -2431,7 +3357,7 @@ function showDesktopUpdateNotification(kind: 'available' | 'ready', version: str
   const notification = new Notification({
     title: DESKTOP_APP_NAME,
     body: kind === 'ready'
-      ? desktopText(`桌面端 ${version} 已下载，点击选择安装时间。`, `Desktop ${version} is ready. Click to choose when to install.`)
+      ? desktopText(`桌面端 ${version} 已完成构建验证，点击选择部署时间。`, `Desktop ${version} passed build validation. Click to choose when to deploy.`)
       : desktopText(`发现桌面端 ${version}，点击查看更新。`, `Desktop ${version} is available. Click to review the update.`),
     ...(icon === undefined ? {} : { icon }),
   })
@@ -2447,7 +3373,11 @@ function showDesktopUpdateNotification(kind: 'available' | 'ready', version: str
 }
 
 async function installDesktopUpdate(): Promise<void> {
-  await shutdownDesktop(() => { autoUpdater.quitAndInstall(false, true) })
+  if (portableDesktopUpdater === undefined || portablePaths === undefined || updateStatus.kind !== 'ready') return
+  const staged = await portableDesktopUpdater.stageActivation()
+  if (staged.phase === 'error') throw new Error(staged.detail)
+  await spawnPortableLauncherForRestart()
+  await shutdownDesktop(() => { app.exit(0) })
 }
 
 function showMainWindow(): void {

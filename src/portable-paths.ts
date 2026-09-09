@@ -1,5 +1,5 @@
-import { mkdirSync } from 'node:fs'
-import { isAbsolute, join, resolve } from 'node:path'
+import { existsSync, lstatSync, mkdirSync } from 'node:fs'
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 
 export interface PortablePaths {
   readonly root: string
@@ -20,12 +20,13 @@ export interface PortablePaths {
  * The launcher resolves this on every start, so a USB drive can change letters
  * without leaving an absolute path from the previous computer behind.
  */
-export function resolvePortablePaths(root: string | undefined): PortablePaths | undefined {
-  const trimmed = root?.trim()
+export function resolvePortablePaths(root: string | undefined, executablePath = process.execPath): PortablePaths | undefined {
+  const trimmed = root?.trim() || discoverPortableRoot(executablePath)
   if (trimmed === undefined || trimmed === '') return undefined
+  if (!isAbsolute(trimmed)) throw new Error('DSH_PORTABLE_ROOT must be an absolute path.')
   const portableRoot = resolve(trimmed)
-  if (!isAbsolute(portableRoot)) throw new Error('DSH_PORTABLE_ROOT must be an absolute path.')
   const data = join(portableRoot, 'Data')
+  const localizedWorkspace = join(portableRoot, '工作空间')
   return {
     root: portableRoot,
     appData: join(data, 'Windows', 'Roaming'),
@@ -38,8 +39,33 @@ export function resolvePortablePaths(root: string | undefined): PortablePaths | 
     sessionData: join(data, 'Electron', 'SessionData'),
     temp: join(data, 'Temp'),
     userData: join(data, 'Electron', 'UserData'),
-    workspace: join(portableRoot, 'Workspace'),
+    workspace: existsSync(localizedWorkspace) ? localizedWorkspace : join(portableRoot, 'Workspace'),
   }
+}
+
+/** Only recognize our two shipped layouts; never infer from cwd or a random ancestor. */
+function discoverPortableRoot(executablePath: string): string | undefined {
+  if (basename(executablePath).toLowerCase() !== 'dsh codex desktop.exe') return undefined
+  const directory = dirname(resolve(executablePath))
+  let candidate: string | undefined
+  if (basename(directory).toLowerCase() === 'app') candidate = dirname(directory)
+  else if (basename(dirname(directory)).toLowerCase() === 'slots'
+    && basename(resolve(directory, '../..')).toLowerCase() === 'desktop'
+    && basename(resolve(directory, '../../..')).toLowerCase() === 'updates'
+    && basename(resolve(directory, '../../../..')).toLowerCase() === 'data') {
+    candidate = resolve(directory, '../../../../..')
+  }
+  if (candidate === undefined) return undefined
+  const markers = ['Start-DSH-Portable.ps1', 'Portable-Environment.ps1'].map(name => join(candidate, name))
+  if (!markers.some(marker => existsSync(marker))) {
+    // App is also a valid ordinary installation folder. A slot layout is portable-only.
+    if (basename(directory).toLowerCase() === 'app') return undefined
+    throw new Error('便携启动文件缺失；请恢复便携目录，不能回退到系统用户目录。')
+  }
+  if (!markers.every(marker => existsSync(marker) && lstatSync(marker).isFile() && !lstatSync(marker).isSymbolicLink())) {
+    throw new Error('便携启动文件不完整或为链接；拒绝回退到系统用户目录。')
+  }
+  return candidate
 }
 
 export function ensurePortableDirectories(paths: PortablePaths): void {
@@ -68,6 +94,9 @@ export function applyPortableEnvironment(paths: PortablePaths, environment: Node
     npm_config_userconfig: join(development, 'npmrc'),
     PNPM_HOME: join(development, 'pnpm-home'),
     PNPM_STORE_DIR: join(development, 'pnpm-store'),
+    ELECTRON_CACHE: join(development, 'electron-cache'),
+    ELECTRON_BUILDER_CACHE: join(development, 'electron-builder-cache'),
+    PLAYWRIGHT_BROWSERS_PATH: join(development, 'playwright'),
     PIP_CACHE_DIR: join(development, 'pip-cache'),
     PYTHONUSERBASE: join(development, 'python-user'),
     CARGO_HOME: join(development, 'cargo'),

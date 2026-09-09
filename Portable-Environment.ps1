@@ -24,7 +24,7 @@ function Set-DshPortableEnvironment {
     Temp = Join-Path $dataRoot 'Temp'
     AppData = Join-Path $dataRoot 'Windows\Roaming'
     LocalAppData = Join-Path $dataRoot 'Windows\Local'
-    Workspace = Join-Path $resolvedRoot 'Workspace'
+    Workspace = if (Test-Path -LiteralPath (Join-Path $resolvedRoot '工作空间') -PathType Container) { Join-Path $resolvedRoot '工作空间' } else { Join-Path $resolvedRoot 'Workspace' }
     Development = $developmentRoot
   }
 

@@ -93,7 +93,23 @@ export const BUILTIN_TRUSTED_HARNESS_RELEASES: readonly TrustedHarnessRelease[] 
   version: '0.1.2-alpha.3',
   npmIntegrity: 'sha512-VvATzYmQ4LMJREJ9e2POKksSHRfqP3y9pghplLBaQBuw2BqfbC0mQUVsaPwxe4wlcpj+riEgn8OJB01YnpF+3A==',
   githubCommit: 'dd6322d604e00eec1ba5e0c8541159906a21094a',
+}, {
+  // 2026-09-02：npm registry 签名、GitHub 不可变标签、223 包候选闭包、
+  // 隔离影子启动及现有社区插件 Profile 兼容启动均已通过。
+  version: '0.1.2-alpha.5',
+  npmIntegrity: 'sha512-MrD2rPhmjz+8Phs+d9lD9xL1qswCYjcSHMd96fF8NTdDm7FRRsU5QhLDR0x6U4JwGxEvee1pccuvbZY6NyEQhA==',
+  githubCommit: 'db6bdc3576c2d4e7c965e8e3ed0c2a731eed87f5',
+}, {
+  // 2026-09-09：按用户要求升级到 rc.1；npm integrity、GitHub 标签 commit 已核对。
+  version: '0.1.2-rc.1',
+  npmIntegrity: 'sha512-RPq48TzxvwpdT9/7W1tbhZDBMmeK+bxDrX9cqQC27Wx/LqtgJF8PSa3b3xriU8oxtvhwYmk21w2cej3uMQrnVA==',
+  githubCommit: 'a66e4702047846cdaa10c66c9d3df3951f5ea70d',
 }]
+
+// 2026-09-09 曾短暂受信 0.1.5-alpha.1（npm integrity sha512-AUjywjrPnhXcAdAjRNgyQa1QCnplFTNYZ+XpR9uCZdbg2FiCb06pHyoDUB2Wxuddzid9D7pVwEiU1OTl4Oshsg==，
+// GitHub commit 5dda764ed3aa172535a7967b06ff95d9cbfe536a）后除名：影子验证可通过，但真实
+// Profile 启动时 MichengAI 插件族（dsh-automation 0.1.35 最新版）抛
+// "cannot get property webServer without inject"，生态尚未适配。重新受信前必须先过实机 Profile 验证。
 
 export function harnessUpdateRoot(portableRoot: string): string {
   return join(portableRoot, 'Data', 'Updates', 'Harness')
@@ -205,55 +221,92 @@ export async function checkHarnessUpdate(options: {
     'dist-tags'?: Record<string, unknown>
     versions?: Record<string, { dist?: { integrity?: unknown; tarball?: unknown; signatures?: Array<{ keyid?: unknown }> } }>
   }
-  const target = registry['dist-tags']?.[policy.channel]
-  if (typeof target !== 'string' || !isExactVersion(target)) throw new Error('npm alpha 通道没有返回合法的精确版本。')
-  if (policy.skipVersions.includes(target) || compareReleaseVersions(target, options.currentVersion) <= 0) {
-    return { checkedAt, currentVersion: options.currentVersion, updateAvailable: false }
-  }
-  const dist = registry.versions?.[target]?.dist
-  if (dist === undefined || typeof dist.integrity !== 'string' || !/^sha512-[A-Za-z0-9+/]+={0,2}$/.test(dist.integrity)) {
-    throw new Error('npm 候选版本缺少合法的 SHA512 integrity。')
-  }
-  if (typeof dist.tarball !== 'string' || !isAllowedNpmTarball(dist.tarball, target)) {
-    throw new Error('npm 候选版本 tarball 来源不在允许列表。')
-  }
-  const signatureKeyIds = (dist.signatures ?? []).flatMap(signature => typeof signature.keyid === 'string' ? [signature.keyid] : [])
-  if (signatureKeyIds.length === 0) throw new Error('npm 候选版本缺少 registry 签名声明。')
+  const distTags = registry['dist-tags'] ?? {}
+  // 发现通道取 policy.channel（alpha 预览线）加 latest 稳定线；能否自动切换只由受信清单决定。
+  // alpha 候选未受信时回退稳定线，避免预览版生态未适配时整体卡死在旧运行时。
+  const discovered = [...new Set([distTags[policy.channel], distTags.latest])]
+    .filter((tag): tag is string => typeof tag === 'string' && isExactVersion(tag))
+    .sort((a, b) => compareReleaseVersions(b, a))
+  if (discovered.length === 0) throw new Error('npm dist-tags 没有返回合法的精确版本。')
+  let notifyOnly: {
+    version: string
+    npmIntegrity: string
+    npmTarball: string
+    npmSignatureKeyIds: readonly string[]
+    githubTag: string
+    githubCommit: string
+    automaticBlockReason: string
+  } | undefined
+  let tagError: Error | undefined
+  for (const target of discovered) {
+    if (policy.skipVersions.includes(target) || compareReleaseVersions(target, options.currentVersion) <= 0) continue
+    const dist = registry.versions?.[target]?.dist
+    if (dist === undefined || typeof dist.integrity !== 'string' || !/^sha512-[A-Za-z0-9+/]+={0,2}$/.test(dist.integrity)) {
+      throw new Error('npm 候选版本缺少合法的 SHA512 integrity。')
+    }
+    if (typeof dist.tarball !== 'string' || !isAllowedNpmTarball(dist.tarball, target)) {
+      throw new Error('npm 候选版本 tarball 来源不在允许列表。')
+    }
+    const signatureKeyIds = (dist.signatures ?? []).flatMap(signature => typeof signature.keyid === 'string' ? [signature.keyid] : [])
+    if (signatureKeyIds.length === 0) throw new Error('npm 候选版本缺少 registry 签名声明。')
 
-  const githubTag = `dsh-v${target}`
-  const tagResponse = await fetchImpl(`https://api.github.com/repos/deepseek-ai/deepseek-harness/git/ref/tags/${githubTag}`, {
-    headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'DSH-Codex-Desktop-Harness-Updater' },
-    signal: AbortSignal.timeout(15_000),
-  })
-  if (!tagResponse.ok) throw new Error(`GitHub 不可变标签核对失败（HTTP ${tagResponse.status}）。`)
-  const tag = await tagResponse.json() as { object?: { sha?: unknown } }
-  const githubCommit = tag.object?.sha
-  if (typeof githubCommit !== 'string' || !/^[a-f0-9]{40}$/i.test(githubCommit)) throw new Error('GitHub 标签没有返回合法 commit。')
+    const githubTag = `dsh-v${target}`
+    let githubCommit: string | undefined
+    try {
+      const tagResponse = await fetchImpl(`https://api.github.com/repos/deepseek-ai/deepseek-harness/git/ref/tags/${githubTag}`, {
+        headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'DSH-Codex-Desktop-Harness-Updater' },
+        signal: AbortSignal.timeout(15_000),
+      })
+      if (!tagResponse.ok) throw new Error(`GitHub 不可变标签核对失败（HTTP ${tagResponse.status}）。`)
+      const tag = await tagResponse.json() as { object?: { sha?: unknown } }
+      const sha = tag.object?.sha
+      if (typeof sha !== 'string' || !/^[a-f0-9]{40}$/i.test(sha)) throw new Error('GitHub 标签没有返回合法 commit。')
+      githubCommit = sha
+    } catch (error) {
+      // 单个候选的标签核对失败不终止整个检查；无任何可用候选时再上抛。
+      tagError = error instanceof Error ? error : new Error(String(error))
+      continue
+    }
 
-  const trusted = (options.trusted ?? BUILTIN_TRUSTED_HARNESS_RELEASES).find(item => item.version === target)
-  const automaticEligible = trusted !== undefined
-    && trusted.npmIntegrity === dist.integrity
-    && trusted.githubCommit.toLowerCase() === githubCommit.toLowerCase()
-  const automaticBlockReason = automaticEligible
-    ? undefined
-    : trusted === undefined
-      ? '候选版本尚未进入桌面端受信发布清单。'
-      : '候选版本的 commit 或 npm integrity 与受信清单不一致。'
-  return {
-    checkedAt,
-    currentVersion: options.currentVersion,
-    updateAvailable: true,
-    candidate: {
-      version: target,
-      npmIntegrity: dist.integrity,
-      npmTarball: dist.tarball,
-      npmSignatureKeyIds: signatureKeyIds,
-      githubTag,
-      githubCommit: githubCommit.toLowerCase(),
-      automaticEligible,
-      ...(automaticBlockReason === undefined ? {} : { automaticBlockReason }),
-    },
+    const trusted = (options.trusted ?? BUILTIN_TRUSTED_HARNESS_RELEASES).find(item => item.version === target)
+    const automaticEligible = trusted !== undefined
+      && trusted.npmIntegrity === dist.integrity
+      && trusted.githubCommit.toLowerCase() === githubCommit.toLowerCase()
+    if (automaticEligible && trusted !== undefined) {
+      return {
+        checkedAt,
+        currentVersion: options.currentVersion,
+        updateAvailable: true,
+        candidate: {
+          version: target,
+          npmIntegrity: dist.integrity,
+          npmTarball: dist.tarball,
+          npmSignatureKeyIds: signatureKeyIds,
+          githubTag,
+          githubCommit: githubCommit.toLowerCase(),
+          automaticEligible: true,
+        },
+      }
+    }
+    if (notifyOnly === undefined) {
+      notifyOnly = {
+        version: target,
+        npmIntegrity: dist.integrity,
+        npmTarball: dist.tarball,
+        npmSignatureKeyIds: signatureKeyIds,
+        githubTag,
+        githubCommit: githubCommit.toLowerCase(),
+        automaticBlockReason: trusted === undefined
+          ? '候选版本尚未进入桌面端受信发布清单。'
+          : '候选版本的 commit 或 npm integrity 与受信清单不一致。',
+      }
+    }
   }
+  if (notifyOnly !== undefined) {
+    return { checkedAt, currentVersion: options.currentVersion, updateAvailable: true, candidate: { ...notifyOnly, automaticEligible: false } }
+  }
+  if (tagError !== undefined) throw tagError
+  return { checkedAt, currentVersion: options.currentVersion, updateAvailable: false }
 }
 
 export async function appendHarnessUpdateEvent(updateRoot: string, event: HarnessUpdateEvent): Promise<void> {

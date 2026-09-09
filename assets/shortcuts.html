@@ -4,29 +4,21 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>键盘快捷键</title>
   <script>const __theme=new URLSearchParams(location.search).get('theme');document.documentElement.dataset.colorScheme=__theme?__theme:(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')</script>
+  <link rel="stylesheet" href="theme.css">
   <script src="theme.js"></script>
   <style>
-    :root{color-scheme:dark;font-family:Inter,"Segoe UI","Microsoft YaHei UI",sans-serif;background:#262827;color:#f1f2f1}
+    :root{color-scheme:dark;font-family:Inter,"Segoe UI","Microsoft YaHei UI",sans-serif;background:var(--chrome-bg);color:var(--chrome-text)}
     *{box-sizing:border-box}html,body{height:100%;margin:0}body{overflow:hidden}
     main{height:100%;display:flex;flex-direction:column;padding:22px 24px 18px}
     header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}h1{font-size:20px;margin:0;font-weight:650}
-    .close{width:30px;height:30px;border:0;border-radius:7px;background:transparent;display:grid;place-items:center}.close:hover{background:#393c3b}.close:active{background:var(--active-bg,#454847)}.close:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus-ring,#e7eae8)}.close img{width:14px;filter:invert(90%)}
-    .search{height:38px;border:1px solid #4c504e;border-radius:20px;display:flex;align-items:center;gap:9px;padding:0 14px;margin-bottom:13px;background:#2c2e2d}
-    .search:focus-within{border-color:var(--focus-ring,#858b88);box-shadow:0 0 0 2px var(--tint,rgba(133,139,136,.19))}.search img{width:14px;filter:invert(72%)}input{width:100%;border:0;outline:0;background:transparent;color:#f3f4f3;font:inherit}input::placeholder{color:#9ba19e}
-    #list{overflow:auto;padding-right:4px;scrollbar-color:#565b58 transparent}.section{margin-top:14px}.section:first-child{margin-top:4px}h2{font-size:14px;margin:0 0 8px;color:#dadcdb}
-    .row{min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:7px 0;color:#c9ccca;font-size:14px}.keys{display:flex;gap:5px;flex:none}kbd{font:12px/1.7 "Segoe UI",sans-serif;color:#d9dcda;background:#3b3e3d;border:1px solid #4a4e4c;border-radius:5px;padding:0 7px;box-shadow:0 1px 0 #171918}
-    .empty{padding:42px 0;text-align:center;color:#9ba19e}
-    :root[data-color-scheme="light"]{color-scheme:light;background:#fff;color:#0f1115}
-    :root[data-color-scheme="light"] .close:hover{background:#2631480f}
+    .close{width:30px;height:30px;border:0;border-radius:var(--chrome-radius-sm);background:transparent;display:grid;place-items:center}.close:hover{background:var(--chrome-surface-2)}.close:active{background:var(--active-bg,var(--chrome-surface-3))}.close:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus-ring,var(--chrome-text-muted))}.close img{width:14px;filter:invert(90%)}
+    .search{height:38px;border:1px solid var(--chrome-border-strong);border-radius:var(--chrome-radius-sm);display:flex;align-items:center;gap:9px;padding:0 14px;margin-bottom:13px;background:var(--chrome-bg);transition:border-color .14s,box-shadow .14s}
+    .search:focus-within{border-color:var(--focus-ring,var(--chrome-text-faint));box-shadow:0 0 0 2px color-mix(in srgb,var(--focus-ring,var(--chrome-text-muted)) 25%,transparent)}.search img{width:14px;filter:invert(72%)}input{width:100%;border:0;outline:0;background:transparent;color:var(--chrome-text);font:inherit}input::placeholder{color:var(--chrome-text-faint)}
+    #list{overflow:auto;padding-right:4px;scrollbar-color:var(--chrome-surface-3) transparent}.section{margin-top:14px}.section:first-child{margin-top:4px}h2{font-size:14px;margin:0 0 8px;color:var(--chrome-text)}
+    .row{min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:7px 0;color:var(--chrome-text-muted);font-size:14px}.keys{display:flex;gap:5px;flex:none}kbd{font:12px/1.7 "Segoe UI",sans-serif;color:var(--chrome-text);background:var(--chrome-surface-2);border:1px solid var(--chrome-border-strong);border-radius:5px;padding:0 7px}
+    .empty{padding:42px 0;text-align:center;color:var(--chrome-text-faint)}
+    :root[data-color-scheme="light"]{color-scheme:light;background:var(--chrome-bg);color:var(--chrome-text)}
     :root[data-color-scheme="light"] .close img,:root[data-color-scheme="light"] .search img{filter:brightness(0);opacity:.6}
-    :root[data-color-scheme="light"] .search{border-color:#00000029;background:#f9fafb}
-    :root[data-color-scheme="light"] .search:focus-within{border-color:var(--focus-ring,#81858c);box-shadow:0 0 0 2px var(--tint,rgba(129,133,140,.19))}
-    :root[data-color-scheme="light"] input{color:#0f1115}:root[data-color-scheme="light"] input::placeholder{color:#6f747a}
-    :root[data-color-scheme="light"] #list{scrollbar-color:#d4d4d4 transparent}
-    :root[data-color-scheme="light"] h2{color:#43454a}
-    :root[data-color-scheme="light"] .row{color:#61666b}
-    :root[data-color-scheme="light"] kbd{border-color:#cfd3d6;background:#f1f3f5;color:#43454a;box-shadow:0 1px 0 #cfd3d6}
-    :root[data-color-scheme="light"] .empty{color:#61666b}
   </style>
 </head>
 <body><main><header><h1 id="title">键盘快捷键</h1><button class="close" data-action="close-window" aria-label="关闭"><img src="shell-icons/xmark.svg" alt=""></button></header><label class="search"><img src="shell-icons/magnifying-glass.svg" alt=""><input id="query" type="search" autocomplete="off" placeholder="搜索快捷键"></label><div id="list" role="region" aria-live="polite" aria-label="快捷键列表"></div></main>

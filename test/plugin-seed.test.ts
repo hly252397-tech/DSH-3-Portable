@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 import { OFFICIAL_DSH_VERSION, OFFICIAL_LAUNCH_PEERS, OFFICIAL_RUNTIME, SUITE_PACKAGE, officialDshVersionOverrides } from '../src/bundled-plugins.js'
-import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, rebasePortablePnpmState, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
+import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, ensurePnpm11BuildPolicy, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, rebasePortablePnpmState, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
 
 const catalog = [
   { packageName: '@michengai/dsh-codex-ui', version: '0.2.58' },
@@ -70,6 +70,7 @@ test('只补种缺失插件，并走 profile 内的 pnpm add', () => {
     '@michengai/dsh-im-connect@0.1.10',
     '--dir=D:\\profile\\web',
     '--store-dir=D:\\plugins\\store',
+    '--cache-dir=D:\\plugins\\store',
     '--offline',
     '--config.node-linker=hoisted',
     '--config.auto-install-peers=false',
@@ -492,6 +493,32 @@ test('官方 pending 会改运行时目录，不写进 Web profile', async () =>
 test('官方运行时更新会同步锁文件，避免 CI 冻结锁文件阻断启动', () => {
   const args = officialRuntimeInstallArgs('D:\\runtime')
   assert.equal(args.includes('--no-frozen-lockfile'), true)
+})
+
+test('pnpm 11 工作区会移除旧构建白名单并保留新的 allowBuilds', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-pnpm11-policy-'))
+  try {
+    const manifest = join(root, 'pnpm-workspace.yaml')
+    await writeFile(manifest, [
+      'packages:',
+      '  - .',
+      'onlyBuiltDependencies:',
+      '  - koffi',
+      '  - node-pty',
+      'allowBuilds:',
+      '  koffi: false',
+      '  "koffi": true',
+      '  node-pty: true',
+      '',
+    ].join('\n'), 'utf8')
+    ensurePnpm11BuildPolicy(root)
+    const next = await readFile(manifest, 'utf8')
+    assert.doesNotMatch(next, /onlyBuiltDependencies:/)
+    assert.match(next, /allowBuilds:\s*\n\s+koffi: true\s*\n\s+node-pty: true/)
+    assert.equal((next.match(/^\s+(?:"koffi"|koffi):/gm) ?? []).length, 1)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })
 
 test('通过指纹封存的 A/B 运行时槽在启动补种时保持不可变', async () => {

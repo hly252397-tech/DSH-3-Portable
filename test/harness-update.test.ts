@@ -17,26 +17,47 @@ import {
 
 const alpha3Integrity = 'sha512-VvATzYmQ4LMJREJ9e2POKksSHRfqP3y9pghplLBaQBuw2BqfbC0mQUVsaPwxe4wlcpj+riEgn8OJB01YnpF+3A=='
 const alpha3Commit = 'dd6322d604e00eec1ba5e0c8541159906a21094a'
+const alpha5Integrity = 'sha512-MrD2rPhmjz+8Phs+d9lD9xL1qswCYjcSHMd96fF8NTdDm7FRRsU5QhLDR0x6U4JwGxEvee1pccuvbZY6NyEQhA=='
+const alpha5Commit = 'db6bdc3576c2d4e7c965e8e3ed0c2a731eed87f5'
+const rc1Integrity = 'sha512-RPq48TzxvwpdT9/7W1tbhZDBMmeK+bxDrX9cqQC27Wx/LqtgJF8PSa3b3xriU8oxtvhwYmk21w2cej3uMQrnVA=='
+const rc1Commit = 'a66e4702047846cdaa10c66c9d3df3951f5ea70d'
+const alpha1_5Integrity = 'sha512-AUjywjrPnhXcAdAjRNgyQa1QCnplFTNYZ+XpR9uCZdbg2FiCb06pHyoDUB2Wxuddzid9D7pVwEiU1OTl4Oshsg=='
+const alpha1_5Commit = '5dda764ed3aa172535a7967b06ff95d9cbfe536a'
 
-function releaseFetch(options: { tarball?: string; commit?: string; version?: string } = {}): typeof fetch {
+function releaseFetch(options: {
+  tarball?: string
+  commit?: string
+  integrity?: string
+  version?: string
+  latestVersion?: string
+  latestIntegrity?: string
+  latestCommit?: string
+} = {}): typeof fetch {
   const version = options.version ?? '0.1.2-alpha.3'
+  const latestVersion = options.latestVersion ?? '0.1.1-rc.2'
   return (async (input: string | URL | Request) => {
     const url = String(input)
     if (url.includes('registry.npmjs.org')) {
+      const dist = (integrity: string | undefined, target: string) => ({
+        integrity: integrity ?? alpha3Integrity,
+        tarball: `https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-${target}.tgz`,
+        signatures: [{ keyid: 'SHA256:test' }],
+      })
       return new Response(JSON.stringify({
-        'dist-tags': { alpha: version, latest: '0.1.1-rc.2' },
+        'dist-tags': { alpha: version, latest: latestVersion },
         versions: {
           [version]: {
             dist: {
-              integrity: alpha3Integrity,
-              tarball: options.tarball ?? `https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-${version}.tgz`,
-              signatures: [{ keyid: 'SHA256:test' }],
+              ...dist(options.integrity, version),
+              ...(options.tarball === undefined ? {} : { tarball: options.tarball }),
             },
           },
+          [latestVersion]: { dist: dist(options.latestIntegrity, latestVersion) },
         },
       }), { status: 200 })
     }
-    return new Response(JSON.stringify({ object: { sha: options.commit ?? alpha3Commit } }), { status: 200 })
+    const sha = url.endsWith(`dsh-v${latestVersion}`) ? options.latestCommit ?? alpha3Commit : options.commit ?? alpha3Commit
+    return new Response(JSON.stringify({ object: { sha } }), { status: 200 })
   }) as typeof fetch
 }
 
@@ -46,6 +67,51 @@ test('同时匹配 npm alpha、不可变标签和受信清单才允许自动更�
   assert.equal(result.candidate?.version, '0.1.2-alpha.3')
   assert.equal(result.candidate?.githubCommit, alpha3Commit)
   assert.equal(result.candidate?.automaticEligible, true)
+})
+
+test('通过实机候选门禁的 alpha.5 已进入内置受信清单', async () => {
+  const result = await checkHarnessUpdate({
+    currentVersion: '0.1.2-alpha.3',
+    fetch: releaseFetch({ version: '0.1.2-alpha.5', integrity: alpha5Integrity, commit: alpha5Commit }),
+  })
+  assert.equal(result.candidate?.automaticEligible, true)
+  assert.equal(result.candidate?.githubCommit, alpha5Commit)
+})
+
+test('0.1.2-rc.1 已进入内置受信清单，满足用户升级请求', async () => {
+  const result = await checkHarnessUpdate({
+    currentVersion: '0.1.2-alpha.5',
+    fetch: releaseFetch({ version: '0.1.2-rc.1', integrity: rc1Integrity, commit: rc1Commit }),
+  })
+  assert.equal(result.candidate?.automaticEligible, true)
+  assert.equal(result.candidate?.githubCommit, rc1Commit)
+})
+
+test('0.1.5-alpha.1 已除名：仅通知，不自动切换', async () => {
+  const result = await checkHarnessUpdate({
+    currentVersion: '0.1.2-alpha.5',
+    fetch: releaseFetch({ version: '0.1.5-alpha.1', integrity: alpha1_5Integrity, commit: alpha1_5Commit }),
+  })
+  assert.equal(result.candidate?.version, '0.1.5-alpha.1')
+  assert.equal(result.candidate?.automaticEligible, false)
+  assert.match(result.candidate?.automaticBlockReason ?? '', /受信发布清单/)
+})
+
+test('alpha 候选未受信时回退 latest 稳定线的受信版本', async () => {
+  const result = await checkHarnessUpdate({
+    currentVersion: '0.1.2-alpha.5',
+    fetch: releaseFetch({
+      version: '0.1.5-alpha.1',
+      integrity: alpha1_5Integrity,
+      commit: alpha1_5Commit,
+      latestVersion: '0.1.2-rc.1',
+      latestIntegrity: rc1Integrity,
+      latestCommit: rc1Commit,
+    }),
+  })
+  assert.equal(result.candidate?.version, '0.1.2-rc.1')
+  assert.equal(result.candidate?.automaticEligible, true)
+  assert.equal(result.candidate?.githubCommit, rc1Commit)
 })
 
 test('更新状态原子持久化并过滤非法阶段、路径和错误内容', async () => {

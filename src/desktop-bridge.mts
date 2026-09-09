@@ -6,9 +6,22 @@ import { createDesktopHostServices } from './desktop-host.js'
 export const name = 'dsh-desktop-bridge'
 
 interface CordisLike {
+  effect?(callback: () => void | (() => void), label?: string): void
+  inject?(names: string[], callback: (ctx: CordisLike & { settings: DesktopSettingsService }) => void): void
   provide?(name: string, value?: unknown): void
   set?(name: string, value: unknown): void
   [key: string]: unknown
+}
+
+interface DesktopSettingsDescriptor {
+  ns?: string
+  revision?: number
+  value?: unknown
+}
+
+interface DesktopSettingsService {
+  describe(options?: { redactSecrets?: boolean }): DesktopSettingsDescriptor[]
+  update(namespace: string, patch: Record<string, unknown>, expectedRevision?: number): Promise<unknown>
 }
 
 /** 向 DSH 提供官方桌面契约，让插件市场走随包 pnpm，并由桌面端负责热更新。 */

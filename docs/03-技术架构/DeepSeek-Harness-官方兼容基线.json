@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-09-09T14:30:00+08:00",
+  "official": {
+    "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
+    "branch": "master",
+    "commit": "5dda764ed3aa172535a7967b06ff95d9cbfe536a",
+    "dshVersion": "0.1.5-alpha.1",
+    "documentation": "https://deepseek-harness.github.io/deepseek-harness/",
+    "stability": "developer-preview"
+  },
+  "bundled": {
+    "dshVersion": "0.1.2-rc.1",
+    "desktopManifest": "package.json",
+    "runtimeManifest": "Data/Runtime/dsh-runtime/node_modules/@deepseek-ai/dsh/package.json"
+  },
+  "policy": {
+    "implementationTarget": "bundled",
+    "latestUpstreamIsCompatibilityWatchline": true,
+    "requireOnlineHeadCheckBeforeFeatureWork": true,
+    "requireManualReviewWhenHeadChanges": true,
+    "allowAutomaticBaselineRewrite": false
+  }
+}

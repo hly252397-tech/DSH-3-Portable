@@ -5,6 +5,16 @@
   // 变量约定：accent 强调色 · focus-ring 焦点环 · focus-border 聚焦边框 ·
   // active-bg 按下态底 · tint 强调色弱化底 · cta-bg/fg/hover 主按钮 · knob 开关滑钮
   var THEMES = {
+    qoder: {
+      zh: 'Qoder 工作台', en: 'Qoder Workbench', swatch: '#6F8F78',
+      dark: { accent: '#82A88D', 'focus-ring': '#82A88D', 'focus-border': '#688873', 'active-bg': '#2B342E', tint: 'rgba(130,168,141,.16)', 'cta-bg': '#82A88D', 'cta-fg': '#101512', 'cta-hover': '#98B8A0', knob: '#101512' },
+      light: { accent: '#607E69', 'focus-ring': '#607E69', 'focus-border': '#839C89', 'active-bg': '#E5EAE6', tint: 'rgba(96,126,105,.14)', 'cta-bg': '#607E69', 'cta-fg': '#FFFFFF', 'cta-hover': '#4E6D57', knob: '#FFFFFF' }
+    },
+    'deep-sea': {
+      zh: '深海蓝', en: 'Deep Sea', swatch: '#176FD1',
+      dark: { accent: '#55A7FF', 'focus-ring': '#55A7FF', 'focus-border': '#347FD1', 'active-bg': '#20364A', tint: 'rgba(85,167,255,.14)', 'cta-bg': '#55A7FF', 'cta-fg': '#07131F', 'cta-hover': '#75B8FF', knob: '#07131F' },
+      light: { accent: '#176FD1', 'focus-ring': '#176FD1', 'focus-border': '#5A96D8', 'active-bg': '#DDEBFA', tint: 'rgba(23,111,209,.13)', 'cta-bg': '#176FD1', 'cta-fg': '#FFFFFF', 'cta-hover': '#0F5EBA', knob: '#FFFFFF' }
+    },
     lake: {
       zh: '湖蓝系', en: 'Lake Blue', swatch: '#0961F6',
       dark: { accent: '#4D8BFF', 'focus-ring': '#4D8BFF', 'focus-border': '#3E6FD9', 'active-bg': '#26344E', tint: 'rgba(9,97,246,.16)', 'cta-bg': '#4D8BFF', 'cta-fg': '#0A1526', 'cta-hover': '#6AA0FF', knob: '#0A1526' },
@@ -32,23 +42,25 @@
     }
   };
   var KEY = 'dshShellTheme';
-  // 内存态作为“当前主题”唯一权威来源：选中高亮据此渲染，localStorage 失效时也不会与主题脱节
-  var current = 'lake';
+  var queryPreset = new URLSearchParams(location.search).get('preset');
+  // 主进程持久化值是跨窗口权威来源；内存态和 localStorage 仅承担即时渲染与旧版本降级。
+  var current = 'qoder';
 
-  function parse(id) { return (id && THEMES[id]) ? id : 'lake'; }
+  function parse(id) { return (id && THEMES[id]) ? id : 'qoder'; }
   function readStored() {
     try { var v = localStorage.getItem(KEY); if (v && THEMES[v]) return v; } catch (e) { /* 忽略 */ }
     return null;
   }
-  function effective() { return THEMES[current] ? current : 'lake'; }
+  function effective() { return THEMES[current] ? current : 'qoder'; }
 
   function paint() {
-    var theme = THEMES[effective()] || THEMES.lake;
+    var theme = THEMES[effective()] || THEMES.qoder;
     var mode = document.documentElement.dataset.colorScheme === 'light' ? 'light' : 'dark';
     var vars = theme[mode];
     var style = document.documentElement.style;
     for (var name in vars) style.setProperty('--' + name, vars[name]);
     document.documentElement.dataset.theme = effective();
+    document.documentElement.dataset.dshPreset = effective();
   }
 
   window.DshThemes = {
@@ -56,14 +68,14 @@
     apply: paint,
     saved: effective,        // 渲染选中态（编辑外观页）使用
     current: effective,
-    set: function (id) {
+    set: async function (id) {
       var next = parse(id);
-      current = next;
-      paint();
       // 优先走原生持久化通道（多窗口与启动页一致的最佳解，前提是主进程暴露该 IPC）
       if (window.dshShell && window.dshShell.updateThemePreferences) {
-        try { void window.dshShell.updateThemePreferences({ preset: next }); } catch (e) { /* 回退 */ }
+        await window.dshShell.updateThemePreferences({ preset: next });
       }
+      current = next;
+      paint();
       try { localStorage.setItem(KEY, next); } catch (e) { /* 持久化失败：仅当前窗口生效 */ }
       return next;
     }
@@ -72,20 +84,28 @@
   // 跨窗口同步：同源其它窗口（shell/startup/about/shortcuts）通过 storage 事件到达；
   // BroadcastChannel 不跨越独立 WebContents，已弃用。
   window.addEventListener('storage', function (event) {
-    if (event.key === KEY) { current = parse(event.newValue || 'lake'); paint(); }
+    if (event.key === KEY) { current = parse(event.newValue || 'qoder'); paint(); }
   });
 
   // 深浅色切换（bootstrap 覆写 data-color-scheme）时重绘主题
   var lastScheme = document.documentElement.dataset.colorScheme;
+  var lastPreset = document.documentElement.dataset.dshPreset;
   try {
     new MutationObserver(function () {
-      if (document.documentElement.dataset.colorScheme !== lastScheme) {
-        lastScheme = document.documentElement.dataset.colorScheme;
+      var nextScheme = document.documentElement.dataset.colorScheme;
+      var nextPreset = document.documentElement.dataset.dshPreset;
+      var schemeChanged = nextScheme !== lastScheme;
+      var presetChanged = nextPreset !== lastPreset;
+      if (schemeChanged || presetChanged) {
+        lastScheme = nextScheme;
+        lastPreset = nextPreset;
+        if (presetChanged) current = parse(nextPreset || 'qoder');
         paint();
+        if (presetChanged) window.dispatchEvent(new CustomEvent('dsh-theme-change', { detail: { preset: effective() } }));
       }
-    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-color-scheme'] });
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-color-scheme', 'data-dsh-preset'] });
   } catch (e) { /* 旧内核降级：主题随 bootstrap 重设即可 */ }
 
-  current = parse(readStored() || 'lake');
+  current = parse(queryPreset || readStored() || 'qoder');
   paint();
 })();

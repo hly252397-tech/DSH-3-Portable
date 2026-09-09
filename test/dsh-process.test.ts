@@ -8,7 +8,24 @@ import { APPLY_PLUGIN_UPDATES_IPC, DSH_WEB_LAUNCH_ARGS, isApplyPluginUpdatesIpc,
 
 const projectRoot = resolve(import.meta.dirname, '..', '..')
 const fixtureEntry = join(projectRoot, 'test', 'fixtures', 'dsh-fixture.mjs')
+const gatedFixtureEntry = join(projectRoot, 'test', 'fixtures', 'dsh-fixture-gated.mjs')
 const bootstrapPath = join(projectRoot, 'dist', 'src', 'dsh-bootstrap.mjs')
+
+test('0.1.5+ 入口带 import.meta.main 守卫时 bootstrap 显式调用 runCli', async () => {
+  const server = await startDsh({
+    bootstrapPath,
+    environment: { ...process.env },
+    nodeExecutable: process.execPath,
+    runtime: { entry: gatedFixtureEntry, root: projectRoot },
+    startupTimeoutMs: fixtureStartupTimeoutMs,
+  })
+  try {
+    const response = await fetch(`${server.url}asset.js`)
+    assert.equal(response.status, 200)
+  } finally {
+    await server.stop()
+  }
+})
 
 test('等待分片就绪输出与 HTTP 健康检查', async () => {
   const server = await startFixture('chunked')
