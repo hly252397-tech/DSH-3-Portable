@@ -1,6 +1,6 @@
 {
   "name": "deepseek-harness-desktop",
-  "version": "1.0.46",
+  "version": "1.0.51",
   "description": "DeepSeek Harness native desktop launcher",
   "author": "MichengAI",
   "desktopName": "DSH Codex Desktop",
@@ -39,8 +39,8 @@
   },
   "devDependencies": {
     "@electron/notarize": "3.1.1",
-    "@types/node": "26.4.0",
-    "electron": "44.0.0",
+    "@types/node": "26.4.1",
+    "electron": "44.1.1",
     "electron-builder": "26.15.7",
     "typescript": "7.0.2"
   },
