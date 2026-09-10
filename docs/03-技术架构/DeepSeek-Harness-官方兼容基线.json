@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "verifiedAt": "2026-09-10T10:30:00+08:00",
+  "verifiedAt": "2026-09-11T11:00:00+08:00",
   "official": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
     "branch": "master",
-    "commit": "b2e3b2a0125854567a4a5fcba75782e42fe84901",
-    "dshVersion": "0.1.5-alpha.2",
+    "commit": "c291e7961a515f6d7af9304e7fd1d257929aef26",
+    "dshVersion": "0.1.5-rc.2",
     "documentation": "https://deepseek-harness.github.io/deepseek-harness/",
     "stability": "developer-preview"
   },
