@@ -7,9 +7,9 @@
 | 项目 | 当前值 | 用途 |
 |---|---|---|
 | 便携版实现基线 | `@deepseek-ai/dsh 0.1.2-rc.1` | 编译、运行、API 和 Profile 兼容性的最终依据；与 npm latest 稳定线一致 |
-| 官方审查基线 | `deepseek-ai/deepseek-harness@5dda764ed3aa172535a7967b06ff95d9cbfe536a` | 检查官方最新架构、开发和测试要求 |
-| 官方审查版本 | `@deepseek-ai/dsh 0.1.5-alpha.1` | alpha 预览线；已从受信清单除名（生态未适配），仅作迁移预警 |
-| 核对日期 | `2026-09-09` | 判断本地规范是否过期 |
+| 官方审查基线 | `deepseek-ai/deepseek-harness@b2e3b2a0125854567a4a5fcba75782e42fe84901` | 检查官方最新架构、开发和测试要求 |
+| 官方审查版本 | `@deepseek-ai/dsh 0.1.5-alpha.2` | alpha 预览线；未入受信清单（0.1.5-alpha.1 实机 Profile 失败的生态阻断未解除），仅作迁移预警 |
+| 核对日期 | `2026-09-10` | 判断本地规范是否过期 |
 
 机器可读记录见 `DeepSeek-Harness-官方兼容基线.json`。
 
@@ -31,6 +31,16 @@
 - UI 文案由本地化字典拥有；不得在新增 Client UI 中散落硬编码产品文案。
 - 生命周期、并发、子进程或清理改动必须额外审阅官方 defensive patterns，并验证取消、处置、超时和进程树回收。
 - 非平凡变更必须留下决策、替代方案、兼容影响和验证证据；本仓库使用对应迭代的实施/审查记录承载，不照搬官方仓库内部 PR 流程。
+
+## 2026-09-10 人工审阅记录
+
+- 审阅范围：`5dda764ed3aa172535a7967b06ff95d9cbfe536a...b2e3b2a0125854567a4a5fcba75782e42fe84901`（262 提交、300 文件；`.agents/notes` 193 文件为内部笔记）及其中官方根 `AGENTS.md`、`docs/AGENTS.md`、`THIRD_PARTY_NOTICES.md`、`apps/desktop-host` 的逐文件差异；GitHub tag `dsh-v0.1.5-alpha.2` 已核对指向 HEAD `b2e3b2a`。
+- 规范变化：根 `AGENTS.md` 仅措辞调整——Session 版本/状态权威收敛到新文档 `docs/session-format-status.md`（邻接迁移规则不变：已发布代不得移动/覆盖/删除）；`docs/AGENTS.md` 写作规则同步引用该权威文档；`THIRD_PARTY_NOTICES.md` 明确浏览器预构建产物中的第三方输入独立于 npm 依赖段解析；`apps/desktop-host` 仅版本号随发布对齐，无代码变化。
+- 主要技术变化：①子代理目录（parent-owned child catalogs）——Session V3 投影视图新增 catalog 事件族与快照顺序保证，session hydration 视图改为全有/全无，session-query 默认返回全部投影状态；②`apps/web` 67 文件——侧栏全局面板与文档/图片/PDF 预览、交付文件卡片与原生文件操作、反馈对话框、插件实例标签、MCP 分页循环修复、scoped tools 指引修复；注意 Mermaid/Graphviz/SVG/HTML 代码块预览在 #3710 引入后被 #3901 整体 Revert，最终 HEAD 不含该特性；③CI/流程——weighted PR approvals、取消被取代验证、review-ownership 重构；④实验性 Agent Teams 包独立发布，不在 `dsh` 依赖闭包内。
+- Client UI 影响：新增能力全部位于官方 web 客户端内部，与桌面外壳的 WebContentsView、preload IPC、主题令牌、菜单 Portal 和 Client Slot 接口无契约变更。
+- 本仓库决策：官方审查基线推进到 `0.1.5-alpha.2@b2e3b2a`；**受信清单维持不变**——0.1.5-alpha.1 的除名裁决依然成立（本范围内无 MichengAI 插件族适配，真实 Profile 下 `cannot get property webServer without inject` 阻断未解除），重新受信前必须先过实机 Profile 验证的既定前置不变。实现基线仍为 `0.1.2-rc.1`。已核对 0.1.5-alpha.2 的 npm integrity（sha512-nzkfldYf3rIXeW0gfExtxoUdhaivsO+kAaKV4JpNLZC0OtxAUlnAZ0yHzf03IaOTNtAP/aXS7FOAr5O8Lckr1A==）与家族依赖闭包（全部对齐 `^0.1.5-alpha.2`），备将来生态适配后受信使用。
+- 追评（同日）：审阅期间 master HEAD 已再前移至 `c291e79`（+160 提交、300 文件：`.agents/notes` 126、`apps/desktop` 76、`apps/web` 47）。显著主题：composer 命令菜单 UI、桌面打包方式与启动速度优化、macOS 签名/公证并行化、`docs(session)` 直接事件读取器弃用政策、CI 预算与夹具稳定化；`docs/architecture` 仅 i18n 同步。**基线仍锚定已审阅的发布点 `b2e3b2a`**，不追热 master；`--online` 门禁对 HEAD 漂移保持红灯即漂移信号，下一轮审阅覆盖 `b2e3b2a..HEAD`（`apps/desktop` 76 文件与桌面 fork 相关性高，需细读）。
+- dist-tag 快照（同日）：npm `latest=0.1.5-rc.1`、`next=0.1.5-rc.2`、`alpha=0.1.5-alpha.2`。0.1.5 线已进入 rc 收敛期而生态适配仍未发生；`checkHarnessUpdate` 的两条发现通道（alpha/latest）当前均未受信，更新器只会通知不会切换，运行时槽保持 `0.1.2-alpha.5`。**0.1.2 → 0.1.5 运行时迁移是下一个大里程碑**，前置仍是 MichengAI 插件族适配 + 实机 Profile 验证。
 
 ## 2026-09-09 人工审阅记录
 
