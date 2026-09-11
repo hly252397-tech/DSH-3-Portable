@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -9,7 +10,8 @@ const extensionPath = resolve('Customize/Automation-Workbench/workbench.js')
 const clientPath = resolve('Data/DSH/profiles/web/node_modules/@michengai/dsh-automation/lib/client.js')
 const buildModule = pathToFileURL(resolve('Customize/Automation-Workbench/build.mjs')).href
 
-test('automation adapter is pinned, repeatable and rejects an unreviewed update', async () => {
+test('automation adapter is pinned, repeatable and rejects an unreviewed update', async t => {
+  if (!existsSync(clientPath)) return t.skip('实机 @michengai/dsh-automation 产物缺失（CI 全新检出）')
   const { buildWorkbench } = await import(buildModule)
   const [source, extension] = await Promise.all([readFile(clientPath, 'utf8'), readFile(extensionPath, 'utf8')])
   const once = buildWorkbench(source, extension)

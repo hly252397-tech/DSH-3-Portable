@@ -1,8 +1,15 @@
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import test from 'node:test'
 import { runInNewContext } from 'node:vm'
+
+// 实机 profile 产物；全新检出（如 CI）缺失时相关用例跳过。
+const spacesClientPath = join(process.cwd(), 'Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.src.js')
+const codexClientPath = join(process.cwd(), 'Data/DSH/profiles/web/local/dsh-codex-ui/lib/client.js')
+const haveLiveSpacesClient = existsSync(spacesClientPath)
+const haveLiveCodexClient = existsSync(codexClientPath)
 
 async function navigationHarness() {
   let api: any
@@ -13,7 +20,7 @@ async function navigationHarness() {
   let dialog = false
   let buttons: any[] = []
   let launchers: any[] = []
-  const source = (await readFile(join(process.cwd(), 'Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.src.js'), 'utf8'))
+  const source = (await readFile(spacesClientPath, 'utf8'))
     .replace('exports.apply = apply;', 'exports.navigation = openSettingsSection; exports.apply = apply;')
   runInNewContext(source, {
     window: { __ModuleLoader__: { load(def: any) { api = def.factory(() => ({})).navigation } } },
@@ -34,7 +41,9 @@ async function navigationHarness() {
   }
 }
 
-test('extensions launcher selects Plugins once instead of leaving General open', async () => {
+test('extensions launcher selects Plugins once instead of leaving General open', async t => {
+  if (!haveLiveSpacesClient) return t.skip('实机 sidebar-spaces 产物缺失（CI 全新检出）')
+
   const h = await navigationHarness()
   let opened = 0, selected = 0, complete = 0, missing = 0
   h.setLaunchers([
@@ -47,7 +56,9 @@ test('extensions launcher selects Plugins once instead of leaving General open',
   assert.ok(h.cleaned)
 })
 
-test('automation waits for delayed settings navigation and selects the exact section', async () => {
+test('automation waits for delayed settings navigation and selects the exact section', async t => {
+  if (!haveLiveSpacesClient) return t.skip('实机 sidebar-spaces 产物缺失（CI 全新检出）')
+
   const h = await navigationHarness()
   let selected = 0, missing = 0
   h.setLaunchers([h.button('Settings', () => h.setDialog(true))])
@@ -56,7 +67,9 @@ test('automation waits for delayed settings navigation and selects the exact sec
   assert.equal(selected, 1); assert.equal(missing, 0); assert.ok(h.cleaned)
 })
 
-test('existing settings dialog is reused without toggling its launcher', async () => {
+test('existing settings dialog is reused without toggling its launcher', async t => {
+  if (!haveLiveSpacesClient) return t.skip('实机 sidebar-spaces 产物缺失（CI 全新检出）')
+
   const h = await navigationHarness()
   let selected = 0
   h.setDialog(true); h.setButtons([h.button('插件', () => selected++)])
@@ -65,7 +78,9 @@ test('existing settings dialog is reused without toggling its launcher', async (
   assert.equal(selected, 1)
 })
 
-test('missing launcher and missing target report failure and release resources', async () => {
+test('missing launcher and missing target report failure and release resources', async t => {
+  if (!haveLiveSpacesClient) return t.skip('实机 sidebar-spaces 产物缺失（CI 全新检出）')
+
   for (const dialog of [false, true]) {
     const h = await navigationHarness()
     let failed = 0
@@ -76,7 +91,9 @@ test('missing launcher and missing target report failure and release resources',
   }
 })
 
-test('cancellation, supersession and disabled controls cannot cause late navigation', async () => {
+test('cancellation, supersession and disabled controls cannot cause late navigation', async t => {
+  if (!haveLiveSpacesClient) return t.skip('实机 sidebar-spaces 产物缺失（CI 全新检出）')
+
   const h = await navigationHarness()
   let failed = 0, selected = 0
   h.setDialog(true)
@@ -92,10 +109,12 @@ test('cancellation, supersession and disabled controls cannot cause late navigat
   assert.equal(selected, 0); assert.equal(failed, 1); assert.ok(h.cleaned)
 })
 
-test('extension browsing keeps one entry: Codex UI launches the standalone workbench', async () => {
+test('extension browsing keeps one entry: Codex UI launches the standalone workbench', async t => {
+  if (!haveLiveSpacesClient || !haveLiveCodexClient) return t.skip('实机插件产物缺失（CI 全新检出）')
+
   const [source, codexUi] = await Promise.all([
-    readFile(join(process.cwd(), 'Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.src.js'), 'utf8'),
-    readFile(join(process.cwd(), 'Data/DSH/profiles/web/local/dsh-codex-ui/lib/client.js'), 'utf8'),
+    readFile(spacesClientPath, 'utf8'),
+    readFile(codexClientPath, 'utf8'),
   ])
   // 底部不再注册「扩展」入口。
   assert.doesNotMatch(source, /id:\s*["']dsh-extensions["']/)
@@ -112,7 +131,9 @@ test('extension browsing keeps one entry: Codex UI launches the standalone workb
   assert.match(source, /function AutomationApp[\s\S]*?useEffect[\s\S]*?return openSettingsSection\("automation"/)
 })
 
-test('market handoff waits for its tab without clicking the settings section twice', async () => {
+test('market handoff waits for its tab without clicking the settings section twice', async t => {
+  if (!haveLiveSpacesClient) return t.skip('实机 sidebar-spaces 产物缺失（CI 全新检出）')
+
   const h = await navigationHarness()
   let selected = 0, completed = 0, ready = false
   h.setDialog(true); h.setButtons([h.button('插件市场', () => selected++)])
@@ -123,7 +144,9 @@ test('market handoff waits for its tab without clicking the settings section twi
   assert.equal(selected, 1); assert.equal(completed, 1); assert.ok(h.cleaned)
 })
 
-test('market follow-up is cancelled when its owner is disposed', async () => {
+test('market follow-up is cancelled when its owner is disposed', async t => {
+  if (!haveLiveSpacesClient) return t.skip('实机 sidebar-spaces 产物缺失（CI 全新检出）')
+
   const h = await navigationHarness()
   let completed = 0, ready = false
   h.setDialog(true); h.setButtons([h.button('Plugin Market', () => {})])
@@ -132,7 +155,9 @@ test('market follow-up is cancelled when its owner is disposed', async () => {
   assert.equal(completed, 0); assert.ok(h.cleaned)
 })
 
-test('activity host cleanup supports remount and removes empty hosts from older bundles', async () => {
+test('activity host cleanup supports remount and removes empty hosts from older bundles', async t => {
+  if (!haveLiveSpacesClient) return t.skip('实机 sidebar-spaces 产物缺失（CI 全新检出）')
+
   let mount: () => () => void = () => { throw new Error('module not loaded') }
   let host: any = { hasChildNodes: () => false, remove() { host = null } }
   let mounted = 0, unmounted = 0
@@ -140,7 +165,7 @@ test('activity host cleanup supports remount and removes empty hosts from older 
     querySelector(selector: string) { return selector.includes('activity-host') ? host : {} },
     insertBefore(next: any) { host = next },
   }
-  const source = (await readFile(join(process.cwd(), 'Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.src.js'), 'utf8'))
+  const source = (await readFile(spacesClientPath, 'utf8'))
     .replace('exports.apply = apply;', 'exports.mount = mountHeroActivityGrid; exports.apply = apply;')
   const deps = (name: string) => name === 'react' ? { createElement() { return {} } }
     : name === 'react-dom/client' ? { createRoot() { return { render() { mounted++ }, unmount() { unmounted++ } } } } : {}
@@ -157,8 +182,10 @@ test('activity host cleanup supports remount and removes empty hosts from older 
   disposeAgain(); assert.equal(unmounted, 2); assert.equal(host, null)
 })
 
-test('sidebar knowledge entry is a plain tab like its siblings, renamed 知识中心', async () => {
-  const source = await readFile(join(process.cwd(), 'Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.src.js'), 'utf8')
+test('sidebar knowledge entry is a plain tab like its siblings, renamed 知识中心', async t => {
+  if (!haveLiveSpacesClient) return t.skip('实机 sidebar-spaces 产物缺失（CI 全新检出）')
+
+  const source = await readFile(spacesClientPath, 'utf8')
   assert.match(source, /knowledge: "知识中心"/)
   const knowledge = source.slice(source.indexOf('id: "space-knowledge"'), source.indexOf('id: "space-database"'))
   const database = source.slice(source.indexOf('id: "space-database"'), source.indexOf('id: "space-inventor-2027"'))

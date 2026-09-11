@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { runInNewContext } from 'node:vm'
 import test from 'node:test'
 import { normalizeNativeBrowserRequest } from '../src/native-browser-request.js'
+
+// 实机 profile 里的 better-sidebar 产物；全新检出（如 CI）缺失时相关用例跳过。
+const browserViewPath = new URL('../../Data/DSH/profiles/web/local/dsh-better-sidebar/portable/browser-view.js', import.meta.url)
+const haveLiveBrowserView = existsSync(browserViewPath)
 
 test('browser cards accept web URLs but cannot open privileged schemes or the DSH origin', () => {
   const self = 'http://127.0.0.1:3080'
@@ -16,7 +21,7 @@ test('browser cards accept web URLs but cannot open privileged schemes or the DS
 })
 
 async function componentHarness(show: () => Promise<unknown> = async () => ({})) {
-  const source = await readFile(new URL('../../Data/DSH/profiles/web/local/dsh-better-sidebar/portable/browser-view.js', import.meta.url), 'utf8')
+  const source = await readFile(browserViewPath, 'utf8')
   const effects: Array<() => (() => void) | undefined> = []
   const calls: Array<[string, any]> = []
   const frames: Array<() => void> = []
@@ -57,7 +62,9 @@ async function componentHarness(show: () => Promise<unknown> = async () => ({}))
   } }
 }
 
-test('a card smaller than the native viewport minimum hides the browser and recovers after resize', async () => {
+test('a card smaller than the native viewport minimum hides the browser and recovers after resize', async t => {
+  if (!haveLiveBrowserView) return t.skip('实机 better-sidebar 产物缺失（CI 全新检出）')
+
   const h = await componentHarness()
   const dispose = h.start()!
   await Promise.resolve()
@@ -70,7 +77,9 @@ test('a card smaller than the native viewport minimum hides the browser and reco
   dispose()
 })
 
-test('native card mounts the shared browser, tracks its bounds, yields to dialogs and releases ownership', async () => {
+test('native card mounts the shared browser, tracks its bounds, yields to dialogs and releases ownership', async t => {
+  if (!haveLiveBrowserView) return t.skip('实机 better-sidebar 产物缺失（CI 全新检出）')
+
   const h = await componentHarness()
   const dispose = h.start()!
   await Promise.resolve()
@@ -85,7 +94,9 @@ test('native card mounts the shared browser, tracks its bounds, yields to dialog
   assert.ok(h.calls.some(([name]) => name === 'unsubscribe'))
 })
 
-test('an unmounted card cannot resume its render loop when a delayed show finishes', async () => {
+test('an unmounted card cannot resume its render loop when a delayed show finishes', async t => {
+  if (!haveLiveBrowserView) return t.skip('实机 better-sidebar 产物缺失（CI 全新检出）')
+
   let resolveShow!: () => void
   const h = await componentHarness(() => new Promise<void>(resolve => { resolveShow = resolve }))
   h.start()!()

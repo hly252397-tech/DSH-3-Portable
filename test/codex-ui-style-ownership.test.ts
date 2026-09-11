@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import test from 'node:test'
 import { runInNewContext } from 'node:vm'
 
 const owner = '@michengai/dsh-codex-ui'
+// 前两条用例读取实机 profile 产物与历史运行时槽；全新检出（如 CI）没有这些文件时跳过。
+const liveClientPath = join(process.cwd(), 'Data/DSH/profiles/web/local/dsh-codex-ui/lib/client.js')
+const liveLoaderPath = join(process.cwd(), 'Data/Runtime/Harness/slots/0.1.2-alpha.5-cb08109a63a4f05b/node_modules/@deepseek-ai/dsh-client-modules/lib/client.js')
 
-test('reviewed Codex fork styles explicitly belong to their own plugin', async () => {
-  const source = await readFile(join(process.cwd(), 'Data/DSH/profiles/web/local/dsh-codex-ui/lib/client.js'), 'utf8')
+test('reviewed Codex fork styles explicitly belong to their own plugin', async t => {
+  if (!existsSync(liveClientPath)) return t.skip('实机 codex-ui 产物缺失（CI 全新检出）')
+  const source = await readFile(liveClientPath, 'utf8')
   // The registry package can update independently. Portable appearance is owned
   // by assets/theme.css and verified against the actual registry UI in Electron.
   const styles = [...source.matchAll(/react_jsx_runtime\.jsxs?\)\("style", \{([^\n]*)/g)]
@@ -17,8 +22,9 @@ test('reviewed Codex fork styles explicitly belong to their own plugin', async (
   assert.match(source, /style.id = CONVERSATION_HEADER_STYLE_ID;\s*style.dataset.plugin = "@michengai\/dsh-codex-ui"/)
 })
 
-test('actual installed module loader cannot claim tagged sidebar styles for another plugin', async () => {
-  const loaderSource = await readFile(join(process.cwd(), 'Data/Runtime/Harness/slots/0.1.2-alpha.5-cb08109a63a4f05b/node_modules/@deepseek-ai/dsh-client-modules/lib/client.js'), 'utf8')
+test('actual installed module loader cannot claim tagged sidebar styles for another plugin', async t => {
+  if (!existsSync(liveLoaderPath)) return t.skip('实机历史运行时槽缺失（CI 全新检出）')
+  const loaderSource = await readFile(liveLoaderPath, 'utf8')
   const start = loaderSource.indexOf('const claimStyles = (id) => {')
   const end = loaderSource.indexOf('\n\t\t};', start)
   assert.ok(start >= 0 && end > start)
