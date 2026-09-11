@@ -4,7 +4,8 @@ import test from 'node:test'
 
 import { applyPortableEnvironment, resolvePortablePaths } from '../src/portable-paths.js'
 
-test('便携路径全部收口在当前便携根目录', () => {
+test('便携路径全部收口在当前便携根目录', t => {
+  if (process.platform !== 'win32') return t.skip('便携根以 Windows 盘符路径表达，仅在 win32 验证')
   const paths = resolvePortablePaths('G:\\DSH-3-Portable')
   assert.ok(paths)
   for (const [name, path] of Object.entries(paths)) {
@@ -15,7 +16,8 @@ test('便携路径全部收口在当前便携根目录', () => {
   }
 })
 
-test('便携环境覆盖 DSH、用户目录、缓存和常见开发工具目录', () => {
+test('便携环境覆盖 DSH、用户目录、缓存和常见开发工具目录', t => {
+  if (process.platform !== 'win32') return t.skip('便携根以 Windows 盘符路径表达，仅在 win32 验证')
   const paths = resolvePortablePaths('G:\\DSH-3-Portable')!
   const environment: NodeJS.ProcessEnv = {}
   applyPortableEnvironment(paths, environment)
