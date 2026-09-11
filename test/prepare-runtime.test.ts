@@ -6,7 +6,8 @@ import { join } from 'node:path'
 import test from 'node:test'
 import { pathToFileURL } from 'node:url'
 
-import { copyWorkspacePackages, officialRuntimeGlobalNodeModulesRoot, officialRuntimeNpmDependencies, officialRuntimeNpmInstallArgs, pruneStoreForPackaging, removePreparedPath, resolveBundledNodeSha256, validateOfficialRuntimeLayout, writePnpmShims } from '../scripts/prepare-runtime.js'
+import { copyWorkspacePackages, officialRuntimeGlobalNodeModulesRoot, officialRuntimeNpmDependencies, officialRuntimeNpmInstallArgs, pruneStoreForPackaging, removePreparedPath, resolveBundledNodeSha256, validateOfficialRuntimeLayout, writePnpmShims, writeReleaseSourceManifest } from '../scripts/prepare-runtime.js'
+import { DEFAULT_DESKTOP_RELEASE_SOURCE } from '../src/portable-desktop-update.js'
 import { DESKTOP_BRIDGE_FILES } from '../src/desktop-host.js'
 
 test('按目标平台选择随包 Node 的 SHA256', () => {
@@ -502,6 +503,27 @@ test('更新产物使用不会被 GitHub 改写的固定文件名', async () => 
   assert.equal(manifest.build?.win?.artifactName, 'dsh-codex-desktop-${version}-win-${arch}.${ext}')
   assert.equal(manifest.build?.mac?.artifactName, 'dsh-codex-desktop-${version}-mac-${arch}.${ext}')
   assert.equal(manifest.build?.linux?.artifactName, 'dsh-codex-desktop-${version}-linux-${arch}.${ext}')
+})
+
+test('打包把 DSH_PORTABLE_RELEASE_SOURCE 烘焙进 resources，未注入时写内置默认', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-release-source-bake-'))
+  try {
+    // 未注入环境变量：写内置默认（上游仓库），应用端仍可被 Data/config 覆盖。
+    await writeReleaseSourceManifest(root, {})
+    assert.deepEqual(JSON.parse(await readFile(join(root, 'release-source.json'), 'utf8')), DEFAULT_DESKTOP_RELEASE_SOURCE)
+    // 注入有效 JSON：按注入值烘焙，供 CI/本地构建指向自有发布仓库。
+    await writeReleaseSourceManifest(root, { DSH_PORTABLE_RELEASE_SOURCE: '{"owner":"hly252397-tech","repo":"DSH-3-Portable","artifactBase":"dsh-codex-desktop"}' })
+    assert.deepEqual(JSON.parse(await readFile(join(root, 'release-source.json'), 'utf8')), { owner: 'hly252397-tech', repo: 'DSH-3-Portable', artifactBase: 'dsh-codex-desktop' })
+    // 非法注入直接失败，禁止带着坏发布源出包。
+    await assert.rejects(writeReleaseSourceManifest(root, { DSH_PORTABLE_RELEASE_SOURCE: '{"owner":"bad owner"}' }), /不是有效的发布源/)
+    // 打包配置确实把烘焙产物映射进 resources。
+    const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as {
+      build?: { extraResources?: Array<{ from?: string, to?: string }> }
+    }
+    assert.ok(manifest.build?.extraResources?.some(item => item.from === 'dist/release-source.json' && item.to === 'release-source.json'))
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })
 
 test('macOS 双架构使用各自的更新通道元数据', async () => {

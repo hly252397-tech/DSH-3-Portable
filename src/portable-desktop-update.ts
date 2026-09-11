@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { createReadStream, existsSync, type Stats } from 'node:fs'
+import { createReadStream, existsSync, readFileSync, type Stats } from 'node:fs'
 import { appendFile, cp, mkdir, open, readFile, readdir, rename, rm, stat, statfs } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
@@ -670,6 +670,23 @@ export function sanitizeReleaseSource(value: unknown): PortableDesktopReleaseSou
   const repo = shape(candidate.repo)
   const artifactBase = shape(candidate.artifactBase)
   return owner === undefined || repo === undefined || artifactBase === undefined ? undefined : { owner, repo, artifactBase }
+}
+
+/** 便携盘机器本地覆盖：用户不重新打包就能改发布源。 */
+export const PORTABLE_RELEASE_SOURCE_OVERRIDE_PATH = join('Data', 'config', 'desktop-release-source.json')
+
+/** 桌面更新源解析：按传入顺序取第一个有效配置（机器本地 Data/config 覆盖优先于
+ * 构建期烘焙进 resources 的清单），全部缺失或坏 JSON 时返回 undefined，由调用方
+ * 回落内置默认（上游官方仓库——不带便携契约的 Release 会被安全门禁拦成「已阻止」）。 */
+export function resolvePortableReleaseSource(candidatePaths: readonly (string | undefined)[]): PortableDesktopReleaseSource | undefined {
+  for (const path of candidatePaths) {
+    if (path === undefined) continue
+    try {
+      const source = sanitizeReleaseSource(JSON.parse(readFileSync(path, 'utf8')) as unknown)
+      if (source !== undefined) return source
+    } catch { /* 缺文件或坏 JSON 都回落下一级 */ }
+  }
+  return undefined
 }
 
 export function sanitizePortableDesktopUpdateState(value: unknown, currentVersion: string, releaseSource: PortableDesktopReleaseSource = DEFAULT_DESKTOP_RELEASE_SOURCE): PortableDesktopUpdateState {

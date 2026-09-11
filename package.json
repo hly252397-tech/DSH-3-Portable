@@ -1,6 +1,6 @@
 {
   "name": "deepseek-harness-desktop",
-  "version": "1.0.51",
+  "version": "1.0.53",
   "description": "DeepSeek Harness native desktop launcher",
   "author": "MichengAI",
   "desktopName": "DSH Codex Desktop",
@@ -66,6 +66,10 @@
       "browser-library.cjs"
     ],
     "extraResources": [
+      {
+        "from": "dist/release-source.json",
+        "to": "release-source.json"
+      },
       {
         "from": "runtime-node",
         "to": "node",

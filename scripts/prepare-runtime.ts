@@ -6,6 +6,7 @@ import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { ALLOWED_BUILD_PACKAGES, officialRuntimeDependencies, officialRuntimePnpmConfig, pnpmWorkspaceYaml, STORE_PACKAGES } from '../src/bundled-plugins.js'
+import { DEFAULT_DESKTOP_RELEASE_SOURCE, sanitizeReleaseSource } from '../src/portable-desktop-update.js'
 import { extractTarGz, packDirectoryToTarGz, writeDirectoryContentSha256, writeFileSha256, writePnpmStoreContentSha256 } from '../src/runtime-archive.js'
 import { pnpmStoreOptions } from '../src/plugin-toolchain.js'
 import { seedBundledPlugins } from '../src/plugin-seed.js'
@@ -26,6 +27,21 @@ export async function removePreparedPath(target: string): Promise<void> {
     spawnSync(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', `del /f /q "${target}"`], { stdio: 'ignore', windowsHide: true })
     if (existsSync(target)) throw error
   }
+}
+
+/** 把桌面更新源烘焙进打包资源：CI/本地构建用环境变量注入（JSON：owner/repo/artifactBase），
+ * 未注入时写内置默认。打包后的应用读 resources/release-source.json 作为兜底源，
+ * 便携盘 Data/config/desktop-release-source.json 仍可在机器本地覆盖。 */
+export async function writeReleaseSourceManifest(distDir: string, env: NodeJS.ProcessEnv = process.env): Promise<void> {
+  let source = DEFAULT_DESKTOP_RELEASE_SOURCE
+  const raw = env.DSH_PORTABLE_RELEASE_SOURCE
+  if (typeof raw === 'string' && raw.trim() !== '') {
+    const parsed = sanitizeReleaseSource(JSON.parse(raw) as unknown)
+    if (parsed === undefined) throw new Error('DSH_PORTABLE_RELEASE_SOURCE 不是有效的发布源 JSON（需要 owner/repo/artifactBase）。')
+    source = parsed
+  }
+  await mkdir(distDir, { recursive: true })
+  await writeFile(join(distDir, 'release-source.json'), JSON.stringify(source, undefined, 2) + '\n', 'utf8')
 }
 
 function isRetryableRemoveError(error: unknown): boolean {
@@ -55,6 +71,7 @@ async function main(): Promise<void> {
     throw new Error('随包 Node 版本不匹配：需要 ' + expectedNodeVersion + '，实际 ' + process.version + '。')
   }
   const officialArchive = join(projectRoot, 'runtime-dsh.tgz')
+  await writeReleaseSourceManifest(join(projectRoot, 'dist'))
   for (const target of [nodeRoot, pluginRoot, officialRuntimeRoot, officialArchive]) {
     if (!target.startsWith(projectRoot + sep)) throw new Error(`拒绝清理项目外路径：${target}`)
     await removePreparedPath(target)

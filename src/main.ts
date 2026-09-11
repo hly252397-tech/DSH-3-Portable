@@ -43,7 +43,7 @@ import { DEFAULT_NOTIFICATION_PREFERENCES, buildWindowsReplyToastXml, loadNotifi
 import { watchProfileActivation } from './profile-watch.js'
 import { repairMisplacedSessionLogs } from './session-path-repair.js'
 import { DEFAULT_UPDATE_PREFERENCES, STARTUP_UPDATE_CHECK_DELAY_MS, buildDesktopTrayItems, desktopUpdatePrompt, loadUpdatePreferences, preserveDesktopUpdateFailure, publicDesktopUpdateError, saveUpdatePreferences, shouldCheckForUpdatesOnStartup, shouldDownloadUpdateAutomatically, type DesktopUpdateAction, type DesktopUpdatePreferences, type DesktopUpdateSnapshot, type DesktopUpdateStatus } from './desktop-updater.js'
-import { PortableDesktopUpdater, type PortableDesktopUpdateState } from './portable-desktop-update.js'
+import { PortableDesktopUpdater, resolvePortableReleaseSource, PORTABLE_RELEASE_SOURCE_OVERRIDE_PATH, type PortableDesktopUpdateState } from './portable-desktop-update.js'
 import { applyPortableEnvironment, ensurePortableDirectories, resolvePortablePaths } from './portable-paths.js'
 
 const portablePaths = resolvePortablePaths(process.env.DSH_PORTABLE_ROOT)
@@ -2771,6 +2771,12 @@ async function configureDesktopUpdater(): Promise<void> {
   portableDesktopUpdater = new PortableDesktopUpdater({
     portableRoot: portablePaths.root,
     currentVersion: app.getVersion(),
+    // 机器本地 Data/config 覆盖优先于构建期烘焙的 resources/release-source.json；
+    // 都没有时回落内置默认（上游仓库，缺契约的 Release 会被拦成「已阻止」）。
+    releaseSource: resolvePortableReleaseSource([
+      join(portablePaths.root, PORTABLE_RELEASE_SOURCE_OVERRIDE_PATH),
+      join(process.resourcesPath, 'release-source.json'),
+    ]),
     onState: applyPortableDesktopUpdateState,
     prepareCandidateRuntime: async (appDirectory, onProgress) => {
       const resourcesDir = join(appDirectory, 'resources')

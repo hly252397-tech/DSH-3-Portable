@@ -115,6 +115,7 @@ jobs:
       - name: 测试并打包桌面端
         shell: pwsh
         env:
+          DSH_PORTABLE_RELEASE_SOURCE: '{"owner":"hly252397-tech","repo":"DSH-3-Portable","artifactBase":"dsh-codex-desktop"}'
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}

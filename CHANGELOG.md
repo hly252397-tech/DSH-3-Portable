@@ -4,6 +4,14 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.53 Portable Integration — 2026-09-11
+
+- Aligned git ancestry with upstream `v1.0.53` via an `merge -s ours` re-baseline, then reviewed the upstream `v1.0.51..v1.0.53` increments group by group.
+- Intentionally not ported — bundled runtime/plugin matrix jump (upstream `00515df`): the portable build keeps shipping `@deepseek-ai/dsh` `0.1.2-rc.1` and reaches `0.1.5-rc.2` through its own A/B runtime updater (family-pinned resolution, shadow validation, idle switch with automatic rollback and per-version deployment backoff). The upstream `dsh-bootstrap` `runCli` guard for 0.1.5+ entries was already absorbed earlier. Note: upstream warns that `0.1.5-rc.2` moves sessions to the Session V3 format — new sessions are not readable by old runtimes; the runtime updater's rollback protects the executable slot, so back up important sessions before accepting a runtime update.
+- Intentionally not ported — native theme sync fix (upstream `8748b33`): it injects the `theme` service into the desktop bridge to report theme *preference* changes for the native Mica material. The portable shell deliberately does not inject `theme` into the bridge (regression-tested) and derives native theming from the resolved color scheme, so the preference-only Mica-variant bug it fixes cannot occur here. The desktop-pet window fix targets a feature the portable build defers.
+- The desktop update source is now genuinely self-serve: `prepare-runtime` bakes `DSH_PORTABLE_RELEASE_SOURCE` into `resources/release-source.json` at packaging time, `<portableRoot>/Data/config/desktop-release-source.json` overrides it per machine, and the packaged updater resolves its release source through both before falling back to the built-in default. CI publishes contract-bearing releases on `v*` tags, so in-app "Check for updates" can download and A/B-deploy new versions without local rebuilds.
+- Bumped the desktop version to `1.0.53`.
+
 ## 1.0.51 Portable Integration — 2026-09-09
 
 - Aligned git ancestry with upstream `v1.0.51` via an `merge -s ours` re-baseline, so every future sync is a three-way merge from that point instead of replaying conflicts from already-ported 1.0.42–1.0.46 content.

@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdtemp, mkdir, readFile, utimes, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
 
-import { PortableDesktopUpdater, physicalFileIsRegular, physicalFileSha256, portableDesktopPointerPath, portableDesktopUpdateRoot, prunePortableDesktopSlots, stageLocalDesktopBuild } from '../src/portable-desktop-update.js'
+import { PortableDesktopUpdater, physicalFileIsRegular, physicalFileSha256, portableDesktopPointerPath, portableDesktopUpdateRoot, prunePortableDesktopSlots, resolvePortableReleaseSource, stageLocalDesktopBuild } from '../src/portable-desktop-update.js'
 
 const requiredFiles = [
   'DSH Codex Desktop.exe',
@@ -483,6 +483,31 @@ test('本地构建只有显式授权时才原子替换尚未激活的候选', as
   assert.notEqual(second.transactionId, first.transactionId)
   const events = await readFile(join(portableDesktopUpdateRoot(root), 'events.jsonl'), 'utf8')
   assert.match(events, new RegExp(`"replacedTransactionId":"${first.transactionId}"`))
+})
+
+test('桌面更新源按 机器本地覆盖 > 构建期烘焙 顺序解析，缺文件或坏 JSON 回落下一级', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-release-source-'))
+  try {
+    const overridePath = join(root, 'Data', 'config', 'desktop-release-source.json')
+    const bakedPath = join(root, 'resources', 'release-source.json')
+    // 全部缺失：返回 undefined，由调用方回落内置默认。
+    assert.equal(resolvePortableReleaseSource([overridePath, bakedPath]), undefined)
+    // 坏 JSON 不拦截解析，继续回落下一级。
+    await mkdir(dirname(overridePath), { recursive: true })
+    await writeFile(overridePath, '{not-json', 'utf8')
+    assert.equal(resolvePortableReleaseSource([overridePath, bakedPath]), undefined)
+    // 烘焙清单生效。
+    await mkdir(dirname(bakedPath), { recursive: true })
+    await writeFile(bakedPath, JSON.stringify({ owner: 'build-owner', repo: 'build-repo', artifactBase: 'dsh-codex-desktop' }), 'utf8')
+    assert.deepEqual(resolvePortableReleaseSource([overridePath, bakedPath]), { owner: 'build-owner', repo: 'build-repo', artifactBase: 'dsh-codex-desktop' })
+    // 机器本地覆盖优先于烘焙清单；字段非法的覆盖视为不存在。
+    await writeFile(overridePath, JSON.stringify({ owner: 'local-owner', repo: 'local-repo', artifactBase: 'dsh-codex-desktop' }), 'utf8')
+    assert.deepEqual(resolvePortableReleaseSource([overridePath, bakedPath]), { owner: 'local-owner', repo: 'local-repo', artifactBase: 'dsh-codex-desktop' })
+    await writeFile(overridePath, JSON.stringify({ owner: 'bad owner!', repo: 'local-repo', artifactBase: 'dsh-codex-desktop' }), 'utf8')
+    assert.deepEqual(resolvePortableReleaseSource([overridePath, bakedPath]), { owner: 'build-owner', repo: 'build-repo', artifactBase: 'dsh-codex-desktop' })
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })
 
 test('候选提交使用 Electron original-fs 读取物理 app.asar，避免把归档当目录', async () => {
