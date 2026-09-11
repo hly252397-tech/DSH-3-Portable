@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -6,7 +7,10 @@ import { runInNewContext } from 'node:vm'
 import test from 'node:test'
 import { resolveActiveRuntimeDir } from '../src/runtime-slots.js'
 
-test('the portable Profile retains the sidebar cards provider alongside the Codex navigation', async () => {
+const haveLiveProfile = existsSync(join(process.cwd(), 'Data/DSH/profiles/web/package.json'))
+
+test('the portable Profile retains the sidebar cards provider alongside the Codex navigation', async t => {
+  if (!haveLiveProfile) return t.skip('实机 profile 缺失（CI 全新检出）')
   const profile = join(process.cwd(), 'Data/DSH/profiles/web')
   const manifest = JSON.parse(await readFile(join(profile, 'package.json'), 'utf8'))
   for (const name of ['dsh-better-sidebar', '@michengai/dsh-codex-ui']) {
@@ -18,8 +22,9 @@ test('the portable Profile retains the sidebar cards provider alongside the Code
   assert.ok(sidebar.exports['./client'], 'restoring only the backend does not restore cards')
 })
 
-test('companion cards register when the sidebar loads later and recover after reload', async () => {
+test('companion cards register when the sidebar loads later and recover after reload', async t => {
   const runtime = resolveActiveRuntimeDir(join(process.cwd(), 'Data/Runtime/dsh-runtime'))
+  if (runtime === undefined || !existsSync(join(runtime, 'node_modules', '@deepseek-ai', 'cordis', 'lib', 'index.js'))) return t.skip('实机运行时槽缺失（CI 全新检出）')
   const { Context } = await import(pathToFileURL(join(runtime, 'node_modules/@deepseek-ai/cordis/lib/index.js')).href)
   const source = await readFile(join(process.cwd(), 'Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.src.js'), 'utf8')
   let connect: any

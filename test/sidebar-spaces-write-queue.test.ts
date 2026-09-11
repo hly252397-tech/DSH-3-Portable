@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { runInNewContext } from 'node:vm'
 import test from 'node:test'
+
+const haveLiveSpacesClient = existsSync(resolve('Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.src.js'))
 
 async function harness() {
   const source = await readFile(resolve('Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.src.js'), 'utf8')
@@ -22,7 +25,8 @@ async function harness() {
   return { save, states, requests }
 }
 
-test('a blur save followed by add-field keeps both writes and advances the committed revision', async () => {
+test('a blur save followed by add-field keeps both writes and advances the committed revision', async t => {
+  if (!haveLiveSpacesClient) return t.skip('实机 sidebar-spaces 产物缺失（CI 全新检出）')
   const h = await harness()
   const first = h.save((data: any) => ({ ...data, cell: 'edited' }))
   const second = h.save((data: any) => ({ ...data, fields: [...data.fields, 'note'] }))
@@ -41,7 +45,8 @@ test('a blur save followed by add-field keeps both writes and advances the commi
   assert.equal(h.states[1], 'ready')
 })
 
-test('revision conflicts stop queued writes and retain the last committed view', async () => {
+test('revision conflicts stop queued writes and retain the last committed view', async t => {
+  if (!haveLiveSpacesClient) return t.skip('实机 sidebar-spaces 产物缺失（CI 全新检出）')
   const h = await harness()
   const first = h.save((data: any) => ({ ...data, cell: 'uncommitted' }))
   const second = h.save((data: any) => ({ ...data, fields: ['note'] }))

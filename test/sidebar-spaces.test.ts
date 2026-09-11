@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import test from 'node:test'
@@ -18,25 +19,30 @@ async function loadSpaces(): Promise<SpacesModule> {
   return import(pathToFileURL(source).href) as Promise<SpacesModule>
 }
 
+const haveLiveSpacesPlugin = existsSync(join(process.cwd(), 'Data', 'DSH', 'profiles', 'web', 'local', 'dsh-sidebar-spaces', 'lib', 'index.js'))
+
 function pluginPath(...parts: string[]): string {
   return join(process.cwd(), 'Data', 'DSH', 'profiles', 'web', 'local', 'dsh-sidebar-spaces', ...parts)
 }
 
-test('sidebar spaces host plugin exposes a named plugin and finds local Inventor 2027', async () => {
+test('sidebar spaces host plugin exposes a named plugin and finds local Inventor 2027', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const plugin = await loadSpaces()
   assert.equal(plugin.name, 'dsh-sidebar-spaces')
   assert.match(plugin.resolveInventorExecutable() ?? '', /Autodesk[\\/]Inventor 2027[\\/]Bin[\\/]Inventor\.exe$/i)
   assert.equal(plugin.resolveInventorExecutable('', {}, 'linux'), undefined)
 })
 
-test('Inventor routes accept same-origin loopback requests and reject cross-site requests', async () => {
+test('Inventor routes accept same-origin loopback requests and reject cross-site requests', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const plugin = await loadSpaces()
   assert.equal(plugin.isTrustedRequest({ headers: { host: '127.0.0.1:5174', origin: 'http://127.0.0.1:5174', 'sec-fetch-site': 'same-origin' } }), true)
   assert.equal(plugin.isTrustedRequest({ headers: { host: '127.0.0.1:5174', origin: 'https://evil.example', 'sec-fetch-site': 'cross-site' } }), false)
   assert.equal(plugin.isTrustedRequest({ headers: { host: '192.168.1.4:5174', origin: 'http://192.168.1.4:5174' } }, ['192.168.1.4:5174']), true)
 })
 
-test('child environment scrub removes credential-shaped values', async () => {
+test('child environment scrub removes credential-shaped values', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const plugin = await loadSpaces()
   const scrubbed = plugin.scrubChildEnvironment({ Path: 'C:\\Windows', API_TOKEN: 'secret', PASSWORD_FILE: 'secret', SAFE_VALUE: 'yes' })
   assert.equal(scrubbed.Path, 'C:\\Windows')
@@ -45,7 +51,8 @@ test('child environment scrub removes credential-shaped values', async () => {
   assert.equal(scrubbed.PASSWORD_FILE, undefined)
 })
 
-test('plugin registers status and launch routes through Cordis effects', async () => {
+test('plugin registers status and launch routes through Cordis effects', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const plugin = await loadSpaces()
   const paths: string[] = []
   const disposers: Array<() => void> = []
@@ -66,7 +73,8 @@ test('plugin registers status and launch routes through Cordis effects', async (
   assert.equal(disposers.length, 3)
 })
 
-test('published client bundle contains the Qoder workbench, global search, enhanced charts, and Inventor tab', async () => {
+test('published client bundle contains the Qoder workbench, global search, enhanced charts, and Inventor tab', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const [source, bundle] = await Promise.all([
     readFile(pluginPath('lib', 'client.src.js'), 'utf8'),
     readFile(pluginPath('lib', 'client.js'), 'utf8'),
@@ -100,7 +108,8 @@ async function clientModel(storage: Map<string, string>, fetchMock?: (...args: a
   return api
 }
 
-test('knowledge text import preserves long UTF-8 text and treats markup as source, not HTML', async () => {
+test('knowledge text import preserves long UTF-8 text and treats markup as source, not HTML', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const api = await clientModel(new Map())
   const body = '# 工程手册\r\n' + '齿轮参数😀\n'.repeat(1500) + '<script>unsafe()</script>'
   const bytes = new TextEncoder().encode('\ufeff' + body)
@@ -112,7 +121,8 @@ test('knowledge text import preserves long UTF-8 text and treats markup as sourc
   assert.equal(result.source.filename, '工程手册.MD')
 })
 
-test('knowledge text import rejects unsupported, oversize, empty, invalid UTF-8 and binary files', async () => {
+test('knowledge text import rejects unsupported, oversize, empty, invalid UTF-8 and binary files', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const api = await clientModel(new Map())
   await assert.rejects(api.readKnowledgeFile({ name: 'file.pdf' }), /暂不支持/)
   await assert.rejects(api.readKnowledgeFile({ name: 'large.txt', size: 262145 }), /超过/)
@@ -126,7 +136,8 @@ test('knowledge text import rejects unsupported, oversize, empty, invalid UTF-8 
   await assert.rejects(api.readKnowledgeFile({ ...file(new Uint8Array(262145)), size: 1 }), /超过/)
 })
 
-test('legacy knowledge migration preserves entries and is idempotent with collection membership', async () => {
+test('legacy knowledge migration preserves entries and is idempotent with collection membership', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const api = await clientModel(new Map())
   const old = { version: 1, entries: [{ id: 'kept', title: '用户原文', body: '不能丢', tags: ['机械'] }] }
   const migrated = api.normalizeKnowledge(old)
@@ -136,7 +147,8 @@ test('legacy knowledge migration preserves entries and is idempotent with collec
   assert.equal(JSON.stringify(api.normalizeKnowledge(migrated)), JSON.stringify(migrated))
 })
 
-test('client migrates legacy data only after host reports absent and keeps the original', async () => {
+test('client migrates legacy data only after host reports absent and keeps the original', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const key = 'dsh.spaceTabs.v1.knowledge'
   const raw = JSON.stringify({ version: 1, entries: [{ id: 'keep', title: '旧标题', body: '保留', tags: [] }] })
   const storage = new Map([[key, raw]])
@@ -150,7 +162,8 @@ test('client migrates legacy data only after host reports absent and keeps the o
   assert.equal(result.data.entries[0].body, '保留')
   assert.equal(storage.get(key), raw)
 })
-test('existing host data wins over stale or corrupt browser copies', async () => {
+test('existing host data wins over stale or corrupt browser copies', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   let calls = 0
   const key = 'dsh.spaceTabs.v1.knowledge'
   const saved = { revision: 8, data: { version: 1, collections: [], entries: [] } }
@@ -160,7 +173,8 @@ test('existing host data wins over stale or corrupt browser copies', async () =>
   assert.equal((await api.loadPortable(key)).revision, 8)
   assert.equal(calls, 1)
 })
-test('corrupt legacy data or backend failure cannot seed over user data', async () => {
+test('corrupt legacy data or backend failure cannot seed over user data', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const key = 'dsh.spaceTabs.v1.knowledge'
   let calls = 0
   const api = await clientModel(new Map([[key, 'broken']]), async () => {
@@ -172,7 +186,8 @@ test('corrupt legacy data or backend failure cannot seed over user data', async 
   await assert.rejects(unavailable.loadPortable(key), /storage-unavailable/)
 })
 
-test('activity chart uses only nonblank session last-activity dates and never fabricates activity', async () => {
+test('activity chart uses only nonblank session last-activity dates and never fabricates activity', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const api = await clientModel(new Map())
   const now = new Date(2026, 8, 5, 12)
   const empty = api.activityDays({ ids: [], byId: {} }, now)
@@ -186,7 +201,8 @@ test('activity chart uses only nonblank session last-activity dates and never fa
   assert.equal(days.reduce((sum: number, day: any) => sum + day.count, 0), 1)
 })
 
-test('task search merges title and content hits, deduplicates and excludes unknown or blank sessions', async () => {
+test('task search merges title and content hits, deduplicates and excludes unknown or blank sessions', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const api = await clientModel(new Map())
   const snapshot = { ids: ['a', 'b', 'blank'], byId: {
     a: { displayTitle: 'Inventor 齿轮设计', updatedAt: 20, blank: false },
@@ -203,7 +219,8 @@ test('task search merges title and content hits, deduplicates and excludes unkno
   assert.equal(api.taskSearchResults(snapshot, hits, '   ', null).length, 0)
 })
 
-test('cancelled task search aborts transport and cannot publish late results', async () => {
+test('cancelled task search aborts transport and cannot publish late results', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const api = await clientModel(new Map())
   const states: any[] = []
   let resolveSearch!: (value: unknown) => void
@@ -225,7 +242,8 @@ test('cancelled task search aborts transport and cannot publish late results', a
   assert.equal(states[0].status, 'loading')
 })
 
-test('task search distinguishes backend failure from successful empty search and retains truncation', async () => {
+test('task search distinguishes backend failure from successful empty search and retains truncation', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const api = await clientModel(new Map())
   const settled = (response: unknown) => new Promise<any>(resolve => {
     api.startTaskContentSearch({ search: async () => response }, 'needle', (state: any) => { if (state.status !== 'loading') resolve(state) }, 0)
