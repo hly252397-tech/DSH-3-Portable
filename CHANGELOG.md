@@ -4,6 +4,12 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.54 Portable Integration — 2026-09-12
+
+- Fixed the sidebar drag affordance that could cover the conversation workspace: the installed conversation UI renamed its width-handle namespace (`data-width-handle` → `data-dcu-width-handle`), so the portable retirement rule no longer matched and the handles resurfaced as full-column-height (32px × 100vh) invisible strips that blocked clicks and, while dragged, resized the input column over the whole workspace. `theme.css` now retires both generations; verified against the live DOM through the debug protocol.
+- Removed the redundant sidebar-header "collapse sidebar" button per user decision: collapsing is owned by the double-click on the DSH logo (desktop bridge), and the conversation topbar keeps its "expand sidebar" button as the recovery path. Both zh/en aria labels are covered.
+- Added a regression test pinning both retirement selectors against the installed codex-ui locale contract (drift fails the gate instead of silently resurfacing the controls).
+
 ## 1.0.53 Portable Integration — 2026-09-11
 
 - Aligned git ancestry with upstream `v1.0.53` via an `merge -s ours` re-baseline, then reviewed the upstream `v1.0.51..v1.0.53` increments group by group.

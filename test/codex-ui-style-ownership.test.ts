@@ -66,3 +66,20 @@ test('主题层把 codex-ui ≥1.1 的完整侧栏变量组钉进便携浅色调
   }
   assert.match(block, /--dcu-sidebar-background:\s*#ffffff/)
 })
+
+test('对话宽度把手（新旧两代命名空间）与收缩侧栏按钮保持退役', async t => {
+  const css = await readFile(join(process.cwd(), 'assets/theme.css'), 'utf8')
+  // 旧官方把手是 data-width-handle；2026-09-12 实机发现实装 UI 改用 data-dcu-width-handle
+  // 并以 32px×100% 全列高复活，挡住对话工作区点击且拖动会覆盖对话列——两代都必须退役。
+  for (const selector of ['[data-width-handle="left"]', '[data-width-handle="right"]',
+    '[data-dcu-width-handle="left"]', '[data-dcu-width-handle="right"]']) {
+    assert.ok(css.includes(selector), `theme.css 必须继续退役 ${selector}`)
+  }
+  // 收起侧栏按钮退役：收起归双击 Logo（desktop 桥），展开保留在对话顶栏按钮。
+  assert.match(css, /button\[aria-label="收缩侧边栏"\]/)
+  assert.match(css, /button\[aria-label="Collapse sidebar"\]/)
+  // 与实装 codex-ui 的文案契约：改名/改文案时这里失败，提示同步 theme.css 选择器。
+  if (!existsSync(liveClientPath)) return t.skip('实机 codex-ui 产物缺失（CI 全新检出）')
+  const source = await readFile(liveClientPath, 'utf8')
+  assert.ok(source.includes('"sidebar.collapse"'), 'codex-ui 收缩按钮文案键已变化，需同步 theme.css 的 aria 选择器')
+})

@@ -628,14 +628,27 @@ body[data-color-scheme="light"] .dcu-root::before {
   -webkit-backdrop-filter: none !important;
 }
 
-/* Keep the previously retired conversation resize controls retired after updates. */
-body [data-width-handle="left"], body [data-width-handle="right"] {
+/* Keep the previously retired conversation resize controls retired after updates.
+   codex-ui 0.2.x 把命名空间从 data-width-handle 改成 data-dcu-width-handle
+   （2026-09-12 实证：改名后把手以 32px×100% 全列高、z-index 8 复活，
+   挡住对话工作区的点击并可把输入区拖到覆盖整列）。 */
+body [data-width-handle="left"], body [data-width-handle="right"],
+body [data-dcu-width-handle="left"], body [data-dcu-width-handle="right"] {
   display: none !important;
   pointer-events: none !important;
 }
-body [data-width-handle="left"]::after, body [data-width-handle="right"]::after {
+body [data-width-handle="left"]::after, body [data-width-handle="right"]::after,
+body [data-dcu-width-handle="left"]::after, body [data-dcu-width-handle="right"]::after {
   display: none !important;
   content: none !important;
+}
+
+/* 侧栏顶排的「收缩侧边栏」按钮退役：收起入口归双击 DSH Logo（desktop 桥），
+   展开入口保留在对话顶栏的「展开侧边栏」按钮。两个语言的 aria 文案都要覆盖。 */
+body .dcu-root button[aria-label="收缩侧边栏"],
+body .dcu-root button[aria-label="Collapse sidebar"] {
+  display: none !important;
+  pointer-events: none !important;
 }
 
 /* Fixed 252 px sidebar width across all color schemes and presets. */
