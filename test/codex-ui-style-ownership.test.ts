@@ -44,3 +44,19 @@ test('actual installed module loader cannot claim tagged sidebar styles for anot
   assert.equal(claimed.length, 1)
   assert.equal(claim(owner).length, 1)
 })
+
+test('主题层把 codex-ui ≥1.1 的完整侧栏变量组钉进便携浅色调色板', async () => {
+  const css = await readFile(join(process.cwd(), 'assets/theme.css'), 'utf8')
+  const blockStart = css.indexOf('body[data-color-scheme="light"] .dcu-root')
+  assert.ok(blockStart >= 0, 'theme.css 必须保留浅色 .dcu-root 覆盖块')
+  const blockEnd = css.indexOf('}', css.indexOf('--dcu-sidebar-icon', blockStart))
+  const block = css.slice(blockStart, blockEnd)
+  // codex-ui ≥1.1 侧栏与设置页导航直接引用 --dcu-sidebar-*（默认 #eef7f5 淡绿）；
+  // 任一变量缺失都会让对应区域回退上游默认色（2026-09-11 设置页左栏实际复发）。
+  for (const variable of ['--dcu-sidebar-background', '--dcu-sidebar-hover', '--dcu-sidebar-border',
+    '--dcu-sidebar-primary', '--dcu-sidebar-secondary', '--dcu-sidebar-tertiary',
+    '--dcu-sidebar-navigation', '--dcu-sidebar-icon']) {
+    assert.ok(block.includes(variable), `${variable} 未被钉住，codex-ui 更新后会回退默认配色`)
+  }
+  assert.match(block, /--dcu-sidebar-background:\s*#ffffff/)
+})

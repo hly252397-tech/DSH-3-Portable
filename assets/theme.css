@@ -606,11 +606,19 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
 }
 
 /* Portable appearance belongs to the shell, outside replaceable plugin packages.
-   Match both expanded and compact rails, irrespective of plugin CSS load order. */
+   Match both expanded and compact rails, irrespective of plugin CSS load order.
+   codex-ui ≥1.1：侧栏与设置页导航改为直接引用 --dcu-sidebar-* 变量（默认 #eef7f5 淡绿），
+   必须整组收敛到便携浅色 zinc 调色板，否则设置页左栏回退淡绿（2026-09-11 实测复发）。 */
 body[data-color-scheme="light"] .dcu-root {
   background: #ffffff !important;
+  --dcu-sidebar-background: #ffffff !important;
   --dcu-sidebar-hover: #f4f4f5 !important;
   --dcu-sidebar-border: #e4e4e7 !important;
+  --dcu-sidebar-primary: #18181b !important;
+  --dcu-sidebar-secondary: #52525b !important;
+  --dcu-sidebar-tertiary: #71717a !important;
+  --dcu-sidebar-navigation: #18181b !important;
+  --dcu-sidebar-icon: #52525b !important;
 }
 
 /* Glass plugins paint an additional surface above the sidebar background. */
