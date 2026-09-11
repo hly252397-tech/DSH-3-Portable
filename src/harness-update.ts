@@ -104,6 +104,16 @@ export const BUILTIN_TRUSTED_HARNESS_RELEASES: readonly TrustedHarnessRelease[] 
   version: '0.1.2-rc.1',
   npmIntegrity: 'sha512-RPq48TzxvwpdT9/7W1tbhZDBMmeK+bxDrX9cqQC27Wx/LqtgJF8PSa3b3xriU8oxtvhwYmk21w2cej3uMQrnVA==',
   githubCommit: 'a66e4702047846cdaa10c66c9d3df3951f5ea70d',
+}, {
+  // 2026-09-11：0.1.5-rc.1 重新受信。前置已满足——①MichengAI 六件套 09-10/09-11 集体发版，
+  // peerDependencies 全部显式声明 0.1.5-rc.1/rc.2（0.1.5-alpha.1 除名时的 inject 阻断解除）；
+  // ②真实 Profile 插件矩阵已于同日先升级到适配版（codex-ui 1.1.2/agency 0.1.40/skills 0.1.48/
+  // archive 0.1.38/im-connect 0.1.45/automation 0.1.38/pet 0.1.4/btw 0.1.6/simplify 0.1.4）。
+  // 选 rc.1（npm latest 稳定线，更新器发现通道可见）而非 rc.2（next 预发布通道，发现通道不可见）。
+  // 切换仍走影子验证 + 空闲门禁 + 5 分钟观察 + 自动回滚；失败自动退回 rc.1(0.1.2) 槽。
+  version: '0.1.5-rc.1',
+  npmIntegrity: 'sha512-rmNmzQCg3oIc1z8xH7izRSOuy1TNzq+/NILyfM+7e8DKOyV+yBtg47WEsqR2SiIe1ATec3L/rUa1YhIcfQ2XEg==',
+  githubCommit: '183f08e9c6dde7e36cd2318eaee70b0da08fb35e',
 }]
 
 // 2026-09-09 曾短暂受信 0.1.5-alpha.1（npm integrity sha512-AUjywjrPnhXcAdAjRNgyQa1QCnplFTNYZ+XpR9uCZdbg2FiCb06pHyoDUB2Wxuddzid9D7pVwEiU1OTl4Oshsg==，

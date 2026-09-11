@@ -3,13 +3,14 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-// 0.1.35（2026-09-09 插件自更新）：三锚点与补丁引用的绑定/图标导出已逐项核对兼容后重钉
-export const upstreamHash = '0f2bff9daaf79a4ae031bc097d60d65e3d2dcfa82415c9f42dfb385361c9619d'
+// 0.1.38（2026-09-11 矩阵升级）：三锚点逐项核对原样存在；图标导出 IconAlarmClockOutline16 已改名，
+// 换用该 bundle 唯一绑定的 IconListPenOutline16（列表笔，工作台入口语义可接受）后重钉
+export const upstreamHash = '21fefb6ce8b9e6bb7d3ae0302e41e817630a708edfe7bb294cf918781b706ad1'
 const begin = '// PORTABLE_AUTOMATION_WORKBENCH_BEGIN\n'
 const end = '// PORTABLE_AUTOMATION_WORKBENCH_END\n'
 const applyAnchor = 'function apply(ctx) {'
 const runtimeAnchor = '  const runtime = createAutomationRuntime(ctx.connection.rpc);'
-const installLine = '\n  const portableWorkbench = installPortableAutomationWorkbench(ctx, { React: import_react11, createPortal: import_react_dom.createPortal, View: AutomationView, runtime, t, permissionT, modelT, Icon: import_dsh_client_ui_primitives2.IconAlarmClockOutline16 });'
+const installLine = '\n  const portableWorkbench = installPortableAutomationWorkbench(ctx, { React: import_react11, createPortal: import_react_dom.createPortal, View: AutomationView, runtime, t, permissionT, modelT, Icon: import_dsh_client_ui_primitives2.IconListPenOutline16 });'
 const oldPage = 'return (0, import_react11.createElement)(AutomationView, { t, permissionT, modelT, runtime, ...props.close === void 0 ? {} : { closeSettings: props.close } });'
 const newPage = 'return (0, import_react11.createElement)(portableWorkbench.SettingsLink, { close: props.close });'
 export const sha256 = source => createHash('sha256').update(source).digest('hex')

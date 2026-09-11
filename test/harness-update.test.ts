@@ -21,6 +21,8 @@ const alpha5Integrity = 'sha512-MrD2rPhmjz+8Phs+d9lD9xL1qswCYjcSHMd96fF8NTdDm7FR
 const alpha5Commit = 'db6bdc3576c2d4e7c965e8e3ed0c2a731eed87f5'
 const rc1Integrity = 'sha512-RPq48TzxvwpdT9/7W1tbhZDBMmeK+bxDrX9cqQC27Wx/LqtgJF8PSa3b3xriU8oxtvhwYmk21w2cej3uMQrnVA=='
 const rc1Commit = 'a66e4702047846cdaa10c66c9d3df3951f5ea70d'
+const rc1_5Integrity = 'sha512-rmNmzQCg3oIc1z8xH7izRSOuy1TNzq+/NILyfM+7e8DKOyV+yBtg47WEsqR2SiIe1ATec3L/rUa1YhIcfQ2XEg=='
+const rc1_5Commit = '183f08e9c6dde7e36cd2318eaee70b0da08fb35e'
 const alpha1_5Integrity = 'sha512-AUjywjrPnhXcAdAjRNgyQa1QCnplFTNYZ+XpR9uCZdbg2FiCb06pHyoDUB2Wxuddzid9D7pVwEiU1OTl4Oshsg=='
 const alpha1_5Commit = '5dda764ed3aa172535a7967b06ff95d9cbfe536a'
 
@@ -85,6 +87,16 @@ test('0.1.2-rc.1 已进入内置受信清单，满足用户升级请求', async 
   })
   assert.equal(result.candidate?.automaticEligible, true)
   assert.equal(result.candidate?.githubCommit, rc1Commit)
+})
+
+test('0.1.5-rc.1 已重新受信：生态适配后允许自动切换', async () => {
+  const result = await checkHarnessUpdate({
+    currentVersion: '0.1.2-rc.1',
+    fetch: releaseFetch({ version: '0.1.5-rc.1', integrity: rc1_5Integrity, commit: rc1_5Commit }),
+  })
+  assert.equal(result.candidate?.version, '0.1.5-rc.1')
+  assert.equal(result.candidate?.automaticEligible, true)
+  assert.equal(result.candidate?.githubCommit, rc1_5Commit)
 })
 
 test('0.1.5-alpha.1 已除名：仅通知，不自动切换', async () => {
