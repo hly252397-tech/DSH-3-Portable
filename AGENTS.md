@@ -86,6 +86,8 @@
 - **官方 pending 条目是幽灵，绝不能回写**：codex-ui 在安装前写 `profile/.dsh-pending-updates.json`、失败不回滚，而 profile 安装路径明确拒绝官方包——回写会让一次失败点击变成永远无法应用的待更新项，并在之后每次插件更新里被合并带回。`applyPendingProfileUpdates` 只消费社区条目，官方条目一律清掉
 - **影子验证不覆盖社区插件，运行时升级必须带失败退避**：`src/harness-shadow.ts` 造的是一次性 profile（只装 `OFFICIAL_PROFILE_BUNDLES`、`cordis.patch.yml` 为空），因此候选可以「影子验证通过 → 真实 profile 切换崩溃 → 自动回滚」（历史实例 `0.1.5-alpha.1`：`cannot get property webServer without inject`）。启动自修复只挡得住「无法解析的 bundle」，挡不住 `apply()` 里同步抛错的服务依赖插件。`state.json` 的 `deploymentFailures` + `evaluateDeploymentRetryGate` 按版本退避（默认 2 次 / 24 小时，手动检查永远放行）就是为此存在——**不要为了让自动升级更积极而绕过它**；同时新增部署失败点时（`deployHarnessCandidate` 抛错、切换回滚）必须记一次，切换提交成功必须清除该版本记录
 - **指纹槽的清单损坏没有启动检查能发现，靠 `reconcileOfficialRuntimeManifest` 自愈**：`isOfficialRuntimeLaunchable` 只看入口与 peer 是否存在，`.dsh-runtime-fingerprint` 只覆盖 lock 与家族清单（**根 `package.json` 被有意排除**），而指纹槽在 `seedOfficialRuntime` 里直接早返回——三者叠加的结果是「清单 `0.1.5-rc.2` + `node_modules` `0.1.2-rc.1`」的坏槽永远不会被修，错误版本号一路传到「关于」页与更新器。自愈只在**家族版本单一可读**时把已存在的根清单与 `resolutionMode` 拉回实际版本（不动 lock、不动物化依赖，指纹语义不变）；家族混用时保持原样交给 A/B 门禁；**绝不在指纹槽里凭空造文件**（会打破「槽是不可变制品」约束与其回归测试）
+- **测试禁止读取实机 `Data/` 产物，CI 是全新检出**：`test/` 里凡直接 `readFile`/`import` 实机 profile 插件产物（`Data/DSH/profiles/web/local/*`、`profiles/web/node_modules/*`）、运行时槽或仓库外工作空间文件（如 `工作空间/`）的用例，本机全绿但 CI 直接 ENOENT 整组失败（2026-09-11 首次跑 CI 连挂两轮的根因）。必须 `existsSync` 守卫 + `t.skip('实机产物缺失（CI 全新检出）')`，模块级读取/导入一律改惰性；改完用干净克隆（`git clone . 别处` + `pnpm install --frozen-lockfile` + tsc + node --test）复验 0 fail 才算过
+- **认祖后的版本标签名归便携仓库**：`git fetch upstream --tags` 会把上游 `v<版本>` 标签拉进本地；认祖合并后要 `git tag -f v<版本>` 把名字声明给便携仓库自己的发布提交（发布契约脚本要求标签名恰为 `v<精确版本>`）。此后 `git fetch upstream --tags` 对该版本报标签冲突属预期，不要为消冲突删掉自己的发布标签
 
 ## 🌐 社区插件生态实证（MichengAI 8 仓库，2026-09-07 源码核对）
 
