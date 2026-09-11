@@ -12,6 +12,7 @@ import {
   OFFICIAL_LAUNCH_PEERS,
   OFFICIAL_PROFILE_BUNDLES,
   OFFICIAL_RUNTIME,
+  OFFICIAL_RUNTIME_RESOLUTION_MODE,
   officialRuntimeDependencies,
   officialRuntimePnpmConfig,
   pnpmWorkspaceYaml,
@@ -336,6 +337,63 @@ export function writeOfficialRuntimeManifest(runtimeDir: string, version = OFFIC
   writeTextFileAtomicSync(manifestPath, JSON.stringify(next, undefined, 2) + '\n')
 }
 
+/** 活动槽的描述性清单必须跟随实际安装的家族版本。历史缺陷：旧桥接在活动槽里原地
+ * 写入新版本清单，留下「清单 0.1.5-rc.2 + node_modules 0.1.2-rc.1」的坏槽——启动检查
+ * 只验证入口与 peer 存在，指纹只覆盖 lock 与家族清单，二者都发现不了它，槽会带着错误
+ * 版本号一路用下去。家族版本单一且可读时把清单拉回实际版本（只改描述性清单，不动物化
+ * 依赖，所以指纹语义不变）；家族本身混用时保持原样，交由 A/B 切换门禁拒绝。
+ * 返回是否发生了修复。 */
+export function reconcileOfficialRuntimeManifest(runtimeDir: string): boolean {
+  const installed = installedOfficialRuntimeFamilyVersion(runtimeDir)
+  if (installed === undefined) return false
+  // 只改已存在的清单：指纹槽里凭空造文件会打破「槽是不可变制品」的既有约束。
+  if (!existsSync(join(runtimeDir, 'package.json'))) return false
+  // 家族解析模式是另一处「已存在的目录永远补不上」的地雷，一并幂等确保。
+  ensureRuntimeResolutionMode(runtimeDir)
+  if (officialRuntimeHasVersionLock(runtimeDir, installed)
+    && readDeclaredOfficialRuntimeVersion(runtimeDir) === installed) {
+    return false
+  }
+  writeOfficialRuntimeManifest(runtimeDir, installed)
+  return true
+}
+
+/** 家族安装版本必须唯一：混用时无法判断该以谁为准，返回 undefined 让调用方跳过。 */
+function installedOfficialRuntimeFamilyVersion(dir: string): string | undefined {
+  const versions = new Set<string>()
+  for (const packageName of [OFFICIAL_RUNTIME.packageName, ...installedOfficialFamilyNames(dir)]) {
+    const version = readInstalledPackageVersion(dir, packageName)
+    if (version === undefined || !isExactVersion(version)) return undefined
+    versions.add(version)
+  }
+  return versions.size === 1 ? [...versions][0] : undefined
+}
+
+function installedOfficialFamilyNames(dir: string): string[] {
+  try {
+    return readdirSync(join(dir, 'node_modules', '@deepseek-ai'), { withFileTypes: true })
+      .filter(entry => (entry.isDirectory() || entry.isSymbolicLink()) && entry.name.startsWith('dsh-'))
+      .map(entry => `@deepseek-ai/${entry.name}`)
+  } catch {
+    return []
+  }
+}
+
+function readDeclaredOfficialRuntimeVersion(dir: string): string | undefined {
+  try {
+    const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as {
+      dependencies?: Record<string, string>
+    }
+    return manifest.dependencies?.[OFFICIAL_RUNTIME.packageName]
+  } catch {
+    return undefined
+  }
+}
+
+function isExactVersion(value: string): boolean {
+  return /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(value)
+}
+
 export function officialRuntimeInstallArgs(runtimeDir: string, storeDir?: string): string[] {
   return [
     'install',
@@ -347,8 +405,27 @@ export function officialRuntimeInstallArgs(runtimeDir: string, storeDir?: string
     '--config.node-linker=hoisted',
     '--config.auto-install-peers=true',
     '--config.minimumReleaseAge=0',
+    // 与 pnpm-workspace.yaml 的 resolutionMode 同一设置，双写保证任何入口都按发布时间解析。
+    '--config.resolution-mode=' + OFFICIAL_RUNTIME_RESOLUTION_MODE,
     '--registry=https://registry.npmjs.org/',
   ]
+}
+
+/** 官方运行时工作区必须声明 resolutionMode，否则官方家族的同元组预发布会被最高版语义
+ * 拆成混用（根包 rc.1 + 传递包 rc.2），候选槽会在家族对齐门禁处被判失败。
+ * 已存在的文件只补/改这一行，不动用户或其他流程写入的内容。 */
+export function ensureRuntimeResolutionMode(runtimeDir: string): void {
+  const workspacePath = join(runtimeDir, 'pnpm-workspace.yaml')
+  const desired = `resolutionMode: ${OFFICIAL_RUNTIME_RESOLUTION_MODE}`
+  if (!existsSync(workspacePath)) {
+    writeFileSync(workspacePath, pnpmWorkspaceYaml(true, { resolutionMode: OFFICIAL_RUNTIME_RESOLUTION_MODE }), 'utf8')
+    return
+  }
+  const current = readFileSync(workspacePath, 'utf8')
+  const next = /^resolutionMode:\s*/m.test(current)
+    ? current.replace(/^resolutionMode:[^\r\n]*$/m, desired)
+    : `${current.trimEnd()}\n${desired}\n`
+  if (next !== current) writeFileSync(workspacePath, next, 'utf8')
 }
 
 export async function applyOfficialRuntimeVersion(options: SeedOptions, version: string): Promise<string> {
@@ -356,9 +433,7 @@ export async function applyOfficialRuntimeVersion(options: SeedOptions, version:
   if (runtimeDir === undefined) throw new Error('未配置官方运行时目录，无法在线升级官方包。')
   await mkdir(runtimeDir, { recursive: true })
   writeOfficialRuntimeManifest(runtimeDir, version)
-  if (!existsSync(join(runtimeDir, 'pnpm-workspace.yaml'))) {
-    await writeFile(join(runtimeDir, 'pnpm-workspace.yaml'), pnpmWorkspaceYaml(), 'utf8')
-  }
+  ensureRuntimeResolutionMode(runtimeDir)
   ensureAutoInstallPeersEnabled(runtimeDir)
   const runner = options.runner ?? ((pluginArgs) => runPnpm(options, pluginArgs))
   await runner(officialRuntimeInstallArgs(runtimeDir, resolvePnpmStoreDir(runtimeDir, options.pluginStoreDir)))
@@ -410,7 +485,7 @@ export async function applyPendingProfileUpdates(options: SeedOptions): Promise<
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
   }
-  const { official, community } = partitionPackageUpdates(pending)
+  const { community } = partitionPackageUpdates(pending)
   const declared = await readDeclaredPackageVersions(options.profileDir)
   const installed = await readInstalledPackageVersions(options.profileDir, [...new Set([
     ...declared.map((item) => item.packageName),
@@ -425,16 +500,14 @@ export async function applyPendingProfileUpdates(options: SeedOptions): Promise<
     applied.push(...updates.map((item) => item.packageName))
   }
   const officialVersion = officialRuntimeUpdateVersion(pending)
-  let retained = official
   if (officialVersion !== undefined && options.desktopRuntimeDir !== undefined && options.allowOfficialRuntimeUpdate === true) {
     applied.push(await applyOfficialRuntimeVersion(options, officialVersion))
-    retained = []
   }
-  if (retained.length > 0) {
-    await writeTextFileAtomic(pendingPath, `${JSON.stringify({ packages: retained }, undefined, 2)}\n`)
-  } else if (existsSync(pendingPath)) {
-    await rm(pendingPath, { force: true })
-  }
+  // 官方条目绝不回写：profile 安装路径明确拒绝官方包，官方运行时的唯一权威是桌面端
+  // A/B 更新器（候选槽 + 影子验证 + 空闲切换 + 失败回滚）。旧版「关于」页会先写 pending
+  // 再发起安装、失败时不回滚，回写就会把一次失败点击留成永远无法应用的幽灵待更新项，
+  // 在之后的每次插件更新里被反复合并带回。这里直接丢弃，桌面更新器自行发现新版本。
+  if (existsSync(pendingPath)) await rm(pendingPath, { force: true })
   return applied
 }
 
@@ -488,6 +561,9 @@ async function seedOfficialRuntime(options: SeedOptions): Promise<readonly strin
   // 损坏时由运行时指针回退到上一槽，而不是在故障槽内现场修包。
   if (existsSync(join(runtimeDir, '.dsh-runtime-fingerprint'))) {
     if (!isOfficialRuntimeLaunchable(runtimeDir)) throw new Error('不可变 DSH 运行时槽校验失败，拒绝原地维修。')
+    // 指纹只覆盖 lock 与家族清单，入口存在也不代表清单写的版本是真的；把被历史缺陷
+    // 半改写的描述性清单拉回实际安装版本，避免错误版本号一路传到「关于」页与更新器。
+    reconcileOfficialRuntimeManifest(runtimeDir)
     return []
   }
   const seeded: string[] = []
@@ -636,7 +712,13 @@ async function ensureRuntimeScaffold(runtimeDir: string): Promise<void> {
     writeOfficialRuntimeManifest(runtimeDir)
   }
   if (!existsSync(join(runtimeDir, 'pnpm-workspace.yaml'))) {
-    await writeFile(join(runtimeDir, 'pnpm-workspace.yaml'), pnpmWorkspaceYaml(), 'utf8')
+    await writeFile(
+      join(runtimeDir, 'pnpm-workspace.yaml'),
+      pnpmWorkspaceYaml(true, { resolutionMode: OFFICIAL_RUNTIME_RESOLUTION_MODE }),
+      'utf8',
+    )
+  } else {
+    ensureRuntimeResolutionMode(runtimeDir)
   }
   ensurePnpm11BuildPolicy(runtimeDir)
 }

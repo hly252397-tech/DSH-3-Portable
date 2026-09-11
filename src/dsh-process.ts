@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 
 import { prependPath } from './plugin-toolchain.js'
 import { parseReadyUrl } from './readiness.js'
-import { APPLY_PLUGIN_UPDATES_IPC } from './bundled-plugins.js'
+import { APPLY_PLUGIN_UPDATES_IPC, REQUEST_HARNESS_UPDATE_IPC } from './bundled-plugins.js'
 import { terminateProcessTree } from './process-control.js'
 import type { DshRuntime } from './runtime.js'
 
@@ -108,6 +108,11 @@ function waitForReady(child: ChildProcess, timeoutMs: number): Promise<string> {
 export function isApplyPluginUpdatesIpc(message: unknown): boolean {
   return message === APPLY_PLUGIN_UPDATES_IPC
     || (typeof message === 'object' && message !== null && 'type' in message && message.type === APPLY_PLUGIN_UPDATES_IPC)
+}
+
+export function isRequestHarnessUpdateIpc(message: unknown): boolean {
+  return message === REQUEST_HARNESS_UPDATE_IPC
+    || (typeof message === 'object' && message !== null && 'type' in message && message.type === REQUEST_HARNESS_UPDATE_IPC)
 }
 
 function createServer(child: ChildProcess, url: string, onUnexpectedExit?: (message: string) => void, onIpcMessage?: (message: unknown) => void): DshServer {

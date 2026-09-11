@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 
-import { OFFICIAL_DSH_VERSION, OFFICIAL_LAUNCH_PEERS, OFFICIAL_RUNTIME, SUITE_PACKAGE, officialDshVersionOverrides } from '../src/bundled-plugins.js'
-import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, ensurePnpm11BuildPolicy, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, rebasePortablePnpmState, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
+import { OFFICIAL_DSH_VERSION, OFFICIAL_LAUNCH_PEERS, OFFICIAL_RUNTIME, OFFICIAL_RUNTIME_RESOLUTION_MODE, SUITE_PACKAGE, officialDshVersionOverrides } from '../src/bundled-plugins.js'
+import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, ensurePnpm11BuildPolicy, ensureRuntimeResolutionMode, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, rebasePortablePnpmState, reconcileOfficialRuntimeManifest, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
 
 const catalog = [
   { packageName: '@michengai/dsh-codex-ui', version: '0.2.58' },
@@ -283,7 +283,7 @@ test('会清掉 Web profile 里的官方 node_modules，避免盖掉运行时', 
   }
 })
 
-test('启动前会按 pending 清单升级社区插件，不碰官方包', async () => {
+test('启动前会按 pending 清单升级社区插件，官方残留条目被清掉而不是留成幽灵', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-pending-'))
   try {
     const profile = join(root, 'profile')
@@ -307,8 +307,31 @@ test('启动前会按 pending 清单升级社区插件，不碰官方包', async
     assert.deepEqual(updated, ['@michengai/dsh-codex-ui'])
     assert.equal(calls[0]?.includes('@michengai/dsh-codex-ui@0.2.60'), true)
     assert.equal(calls[0]?.some(item => item.includes('@deepseek-ai/dsh')), false)
-    const retained = JSON.parse(await readFile(join(profile, '.dsh-pending-updates.json'), 'utf8')) as { packages?: Array<{ packageName: string; version: string }> }
-    assert.deepEqual(retained.packages, [{ packageName: '@deepseek-ai/dsh', version: '0.1.0-rc.8' }])
+    // 官方运行时不走 profile 安装路径，登记条目必须清掉：回写会变成永远无法应用的幽灵
+    // 待更新项，并在之后每次插件更新时被重新合并带回。
+    assert.equal(existsSync(join(profile, '.dsh-pending-updates.json')), false)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('只剩官方条目的 pending 文件会被删除，不再反复提示待更新', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-pending-official-only-'))
+  try {
+    const profile = join(root, 'profile')
+    await mkdir(profile)
+    await writeFile(join(profile, 'package.json'), JSON.stringify({ dependencies: {} }), 'utf8')
+    await writeFile(join(profile, '.dsh-pending-updates.json'), JSON.stringify({
+      packages: [{ packageName: '@deepseek-ai/dsh', version: '0.1.5-rc.2' }],
+    }), 'utf8')
+    const updated = await applyPendingProfileUpdates({
+      nodeExecutable: 'node',
+      profileDir: profile,
+      pluginStoreDir: join(root, 'store'),
+      runner: async () => { throw new Error('官方条目不应触发 profile 安装') },
+    })
+    assert.deepEqual(updated, [])
+    assert.equal(existsSync(join(profile, '.dsh-pending-updates.json')), false)
   } finally {
     await rm(root, { recursive: true, force: true })
   }
@@ -495,6 +518,34 @@ test('官方运行时更新会同步锁文件，避免 CI 冻结锁文件阻断�
   assert.equal(args.includes('--no-frozen-lockfile'), true)
 })
 
+test('官方运行时安装按发布时间解析，避免家族被拉成混用预发布', () => {
+  const args = officialRuntimeInstallArgs('D:\\runtime')
+  assert.equal(args.includes(`--config.resolution-mode=${OFFICIAL_RUNTIME_RESOLUTION_MODE}`), true)
+})
+
+test('运行时工作区补齐 resolutionMode 且不改动已有内容', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-runtime-resolution-'))
+  try {
+    const workspacePath = join(root, 'pnpm-workspace.yaml')
+    await writeFile(workspacePath, ['packages:', '  - .', '', 'nodeLinker: hoisted', ''].join('\n'), 'utf8')
+    ensureRuntimeResolutionMode(root)
+    const patched = await readFile(workspacePath, 'utf8')
+    assert.match(patched, new RegExp(`^resolutionMode: ${OFFICIAL_RUNTIME_RESOLUTION_MODE}\$`, 'm'))
+    assert.match(patched, /nodeLinker: hoisted/)
+    // 幂等：重复调用既不新增重复行，也不覆盖用户的其他设置。
+    ensureRuntimeResolutionMode(root)
+    assert.equal(await readFile(workspacePath, 'utf8'), patched)
+    // 旧值被替换，不会留下两行互相矛盾的解析模式。
+    await writeFile(workspacePath, 'packages:\n  - .\nresolutionMode: highest\n', 'utf8')
+    ensureRuntimeResolutionMode(root)
+    const replaced = await readFile(workspacePath, 'utf8')
+    assert.equal(replaced.match(/^resolutionMode:/gm)?.length, 1)
+    assert.match(replaced, new RegExp(`^resolutionMode: ${OFFICIAL_RUNTIME_RESOLUTION_MODE}\$`, 'm'))
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 test('pnpm 11 工作区会移除旧构建白名单并保留新的 allowBuilds', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-pnpm11-policy-'))
   try {
@@ -550,6 +601,69 @@ test('通过指纹封存的 A/B 运行时槽在启动补种时保持不可变', 
     assert.equal(calls, 0)
     assert.equal(existsSync(join(runtime, 'package.json')), false)
     assert.equal(existsSync(join(runtime, 'pnpm-workspace.yaml')), false)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+async function writeInstalledFamily(runtime: string, version: string, options: { mixed?: boolean } = {}): Promise<void> {
+  const dshDir = join(runtime, 'node_modules', '@deepseek-ai', 'dsh')
+  await mkdir(join(dshDir, 'lib'), { recursive: true })
+  await writeFile(join(dshDir, 'package.json'), JSON.stringify({ name: '@deepseek-ai/dsh', version }), 'utf8')
+  await writeFile(join(dshDir, 'lib', 'bin.js'), '', 'utf8')
+  let mixedDone = false
+  for (const plugin of OFFICIAL_LAUNCH_PEERS) {
+    const packageDir = join(runtime, 'node_modules', ...plugin.packageName.split('/'))
+    await mkdir(packageDir, { recursive: true })
+    // cordis-plugin-group 版本线独立，只有 dsh-* 参与家族一致性判断。
+    const familyPeer = plugin.packageName.startsWith('@deepseek-ai/dsh-')
+    let peerVersion = familyPeer ? version : plugin.version
+    if (options.mixed === true && familyPeer && !mixedDone) {
+      peerVersion = '0.1.6-rc.1'
+      mixedDone = true
+    }
+    await writeFile(join(packageDir, 'package.json'), JSON.stringify({ name: plugin.packageName, version: peerVersion }), 'utf8')
+  }
+}
+
+test('被半改写的活动运行时槽在启动时把描述性清单拉回实际安装版本', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-slot-manifest-heal-'))
+  try {
+    const runtime = join(root, 'runtime')
+    await writeInstalledFamily(runtime, OFFICIAL_DSH_VERSION)
+    // 复现历史缺陷：旧桥接原地把清单写成新版本，node_modules 其实还是旧版本。
+    writeOfficialRuntimeManifest(runtime, '0.1.5-rc.2')
+    await writeFile(join(runtime, '.dsh-runtime-fingerprint'), `${'b'.repeat(64)}\n`, 'utf8')
+    assert.equal(reconcileOfficialRuntimeManifest(runtime), true)
+    const manifest = JSON.parse(await readFile(join(runtime, 'package.json'), 'utf8')) as {
+      dependencies?: Record<string, string>
+      pnpm?: { overrides?: Record<string, string> }
+    }
+    assert.equal(manifest.dependencies?.['@deepseek-ai/dsh'], OFFICIAL_DSH_VERSION)
+    assert.equal(manifest.pnpm?.overrides?.['@deepseek-ai/dsh'], OFFICIAL_DSH_VERSION)
+    assert.equal(manifest.pnpm?.overrides?.['@deepseek-ai/dsh-*'], OFFICIAL_DSH_VERSION)
+    // 已存在的目录也要补上解析模式，否则候选装配的钉版语义与运行时不一致。
+    const workspace = await readFile(join(runtime, 'pnpm-workspace.yaml'), 'utf8')
+    assert.match(workspace, new RegExp(`^resolutionMode: ${OFFICIAL_RUNTIME_RESOLUTION_MODE}$`, 'm'))
+    // 指纹封存标记不被改写（只改描述性清单，不动物化依赖），且修复幂等。
+    assert.equal((await readFile(join(runtime, '.dsh-runtime-fingerprint'), 'utf8')).trim(), 'b'.repeat(64))
+    assert.equal(reconcileOfficialRuntimeManifest(runtime), false)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('家族版本混用时不动活动运行时槽清单，交由 A/B 门禁拒绝', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-slot-mixed-family-'))
+  try {
+    const runtime = join(root, 'runtime')
+    await writeInstalledFamily(runtime, OFFICIAL_DSH_VERSION, { mixed: true })
+    writeOfficialRuntimeManifest(runtime, '0.1.5-rc.2')
+    assert.equal(reconcileOfficialRuntimeManifest(runtime), false)
+    const manifest = JSON.parse(await readFile(join(runtime, 'package.json'), 'utf8')) as {
+      dependencies?: Record<string, string>
+    }
+    assert.equal(manifest.dependencies?.['@deepseek-ai/dsh'], '0.1.5-rc.2')
   } finally {
     await rm(root, { recursive: true, force: true })
   }

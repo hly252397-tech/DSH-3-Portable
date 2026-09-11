@@ -20,6 +20,8 @@ export interface HarnessUpdatePolicy {
   readonly maxDownloadRetries: number
   readonly keepGoodSlots: number
   readonly skipVersions: readonly string[]
+  readonly maxAutomaticDeployAttempts: number
+  readonly deployRetryCooldownHours: number
 }
 
 export interface TrustedHarnessRelease {
@@ -69,6 +71,18 @@ export interface HarnessUpdateState {
   readonly lastCheckedAt?: string
   readonly lastSucceededAt?: string
   readonly detail?: string
+  /**
+   * 按目标版本记住部署失败次数。真机切换失败（例如社区插件未适配新运行时）不能靠
+   * 每轮重试碰运气：反复「构建 → 切换 → 回滚 → 重启」会把界面变成失败循环，
+   * 这里让它在失败若干次后自动退避，只保留用户手动重试入口。
+   */
+  readonly deploymentFailures?: Readonly<Record<string, HarnessDeploymentFailure>>
+}
+
+export interface HarnessDeploymentFailure {
+  readonly attempts: number
+  readonly lastFailureAt: string
+  readonly detail?: string
 }
 
 export const DEFAULT_HARNESS_UPDATE_POLICY: HarnessUpdatePolicy = {
@@ -83,6 +97,8 @@ export const DEFAULT_HARNESS_UPDATE_POLICY: HarnessUpdatePolicy = {
   maxDownloadRetries: 3,
   keepGoodSlots: 3,
   skipVersions: [],
+  maxAutomaticDeployAttempts: 2,
+  deployRetryCooldownHours: 24,
 }
 
 /**
@@ -109,11 +125,19 @@ export const BUILTIN_TRUSTED_HARNESS_RELEASES: readonly TrustedHarnessRelease[] 
   // peerDependencies 全部显式声明 0.1.5-rc.1/rc.2（0.1.5-alpha.1 除名时的 inject 阻断解除）；
   // ②真实 Profile 插件矩阵已于同日先升级到适配版（codex-ui 1.1.2/agency 0.1.40/skills 0.1.48/
   // archive 0.1.38/im-connect 0.1.45/automation 0.1.38/pet 0.1.4/btw 0.1.6/simplify 0.1.4）。
-  // 选 rc.1（npm latest 稳定线，更新器发现通道可见）而非 rc.2（next 预发布通道，发现通道不可见）。
-  // 切换仍走影子验证 + 空闲门禁 + 5 分钟观察 + 自动回滚；失败自动退回 rc.1(0.1.2) 槽。
+  // 切换仍走影子验证 + 空闲门禁 + 5 分钟观察 + 自动回滚；失败自动退回 0.1.2-rc.1 槽。
   version: '0.1.5-rc.1',
   npmIntegrity: 'sha512-rmNmzQCg3oIc1z8xH7izRSOuy1TNzq+/NILyfM+7e8DKOyV+yBtg47WEsqR2SiIe1ATec3L/rUa1YhIcfQ2XEg==',
   githubCommit: '183f08e9c6dde7e36cd2318eaee70b0da08fb35e',
+}, {
+  // 2026-09-11：0.1.5-rc.2 受信（next 候选线 = 官方仓库 HEAD c291e796）。npm integrity 与
+  // dsh-v0.1.5-rc.2 标签 commit 已核对，候选槽已按 resolutionMode=time-based 实测装配为纯
+  // rc.2 家族（231/231 包，0 混用）。选它作为迁移目标让三处口径一致：官方兼容基线的
+  // upstream HEAD、社区插件 peerDependencies 声明（0.1.5-rc.1 || 0.1.5-rc.2）、以及
+  // "关于"页展示给用户的版本号。切换仍走影子验证 + 空闲门禁 + 观察窗口 + 自动回滚。
+  version: '0.1.5-rc.2',
+  npmIntegrity: 'sha512-8Xc8hCQHcIWRmTCVU/xZdp6/qMsWMeAd2ObChKDEsfhUPJFXx6H0lgeb1DxUMD86HZrrVN+1bCvn1ppjZ/fOxw==',
+  githubCommit: 'fb2c4b9e698e30edb738bca4cf0618587db7d203',
 }]
 
 // 2026-09-09 曾短暂受信 0.1.5-alpha.1（npm integrity sha512-AUjywjrPnhXcAdAjRNgyQa1QCnplFTNYZ+XpR9uCZdbg2FiCb06pHyoDUB2Wxuddzid9D7pVwEiU1OTl4Oshsg==，
@@ -160,6 +184,7 @@ export function sanitizeHarnessUpdateState(value: unknown, currentVersion: strin
   const iso = (input: unknown): string | undefined => typeof input === 'string' && !Number.isNaN(Date.parse(input)) ? new Date(input).toISOString() : undefined
   const transactionId = typeof candidate.transactionId === 'string' && /^[a-f0-9-]{8,64}$/i.test(candidate.transactionId) ? candidate.transactionId : undefined
   const detail = typeof candidate.detail === 'string' ? candidate.detail.replace(/\s+/g, ' ').trim().slice(0, 2_000) : undefined
+  const deploymentFailures = sanitizeDeploymentFailures(candidate.deploymentFailures)
   return {
     schema: 1,
     phase,
@@ -170,7 +195,97 @@ export function sanitizeHarnessUpdateState(value: unknown, currentVersion: strin
     ...(iso(candidate.lastCheckedAt) === undefined ? {} : { lastCheckedAt: iso(candidate.lastCheckedAt) }),
     ...(iso(candidate.lastSucceededAt) === undefined ? {} : { lastSucceededAt: iso(candidate.lastSucceededAt) }),
     ...(detail === undefined || detail === '' ? {} : { detail }),
+    ...(Object.keys(deploymentFailures).length === 0 ? {} : { deploymentFailures }),
   }
+}
+
+const MAX_DEPLOYMENT_FAILURES = 20
+
+interface DeploymentFailureCarrier {
+  readonly deploymentFailures?: Readonly<Record<string, HarnessDeploymentFailure>>
+}
+
+function sanitizeDeploymentFailures(value: unknown): Record<string, HarnessDeploymentFailure> {
+  if (typeof value !== 'object' || value === null) return {}
+  const result: Record<string, HarnessDeploymentFailure> = {}
+  for (const [version, raw] of Object.entries(value as Record<string, unknown>)) {
+    // 版本号白名单同时挡住 __proto__ / constructor 之类的键，避免原型污染。
+    if (!isExactVersion(version)) continue
+    const entry = typeof raw === 'object' && raw !== null ? raw as Partial<HarnessDeploymentFailure> : undefined
+    if (entry === undefined) continue
+    const attempts = typeof entry.attempts === 'number' && Number.isInteger(entry.attempts) && entry.attempts > 0
+      ? Math.min(100, entry.attempts)
+      : undefined
+    const lastFailureAt = typeof entry.lastFailureAt === 'string' && !Number.isNaN(Date.parse(entry.lastFailureAt))
+      ? new Date(entry.lastFailureAt).toISOString()
+      : undefined
+    if (attempts === undefined || lastFailureAt === undefined) continue
+    const failureDetail = typeof entry.detail === 'string' ? entry.detail.replace(/\s+/g, ' ').trim().slice(0, 200) : ''
+    result[version] = {
+      attempts,
+      lastFailureAt,
+      ...(failureDetail === '' ? {} : { detail: failureDetail }),
+    }
+  }
+  return capDeploymentFailures(result)
+}
+
+function capDeploymentFailures(input: Record<string, HarnessDeploymentFailure>): Record<string, HarnessDeploymentFailure> {
+  const entries = Object.entries(input)
+  if (entries.length <= MAX_DEPLOYMENT_FAILURES) return input
+  return Object.fromEntries(entries
+    .sort((left, right) => Date.parse(right[1].lastFailureAt) - Date.parse(left[1].lastFailureAt))
+    .slice(0, MAX_DEPLOYMENT_FAILURES))
+}
+
+/** 记一次目标版本的部署失败；同一版本累积次数，过期版本按时间淘汰。 */
+export function recordDeploymentFailure(
+  state: DeploymentFailureCarrier | undefined,
+  version: string,
+  detail: string | undefined,
+  now: string,
+): Record<string, HarnessDeploymentFailure> {
+  const current = sanitizeDeploymentFailures(state?.deploymentFailures)
+  if (!isExactVersion(version)) return current
+  const attempts = Math.min(100, (current[version]?.attempts ?? 0) + 1)
+  const failureDetail = typeof detail === 'string' ? detail.replace(/\s+/g, ' ').trim().slice(0, 200) : ''
+  return capDeploymentFailures({
+    ...current,
+    [version]: { attempts, lastFailureAt: now, ...(failureDetail === '' ? {} : { detail: failureDetail }) },
+  })
+}
+
+/** 提交成功后清掉该版本的失败记忆，让后续版本不受历史失败牵连。 */
+export function clearDeploymentFailure(
+  state: DeploymentFailureCarrier | undefined,
+  version: string,
+): Record<string, HarnessDeploymentFailure> {
+  const current = sanitizeDeploymentFailures(state?.deploymentFailures)
+  if (current[version] === undefined) return current
+  const next = { ...current }
+  delete next[version]
+  return next
+}
+
+/**
+ * 自动重试闸门：同一版本连续失败达到上限后进入冷却期，只保留手动重试。
+ * 手动重试（用户在设置或「关于」页点击更新）永远放行，冷却结束后自动重试恢复。
+ */
+export function evaluateDeploymentRetryGate(options: {
+  version: string
+  failures?: Readonly<Record<string, HarnessDeploymentFailure>>
+  policy?: HarnessUpdatePolicy
+  nowMs?: number
+}): { allowed: boolean; attempts: number; reason?: string } {
+  const policy = options.policy ?? DEFAULT_HARNESS_UPDATE_POLICY
+  const failure = sanitizeDeploymentFailures(options.failures)[options.version]
+  if (failure === undefined) return { allowed: true, attempts: 0 }
+  const retryAtMs = Date.parse(failure.lastFailureAt) + policy.deployRetryCooldownHours * 3_600_000
+  if (failure.attempts < policy.maxAutomaticDeployAttempts) return { allowed: true, attempts: failure.attempts }
+  if ((options.nowMs ?? Date.now()) >= retryAtMs) return { allowed: true, attempts: failure.attempts }
+  const reason = `候选 ${options.version} 已连续 ${failure.attempts} 次部署失败，自动升级暂停到 ${new Date(retryAtMs).toISOString()}`
+    + `（最近原因：${failure.detail ?? '未记录'}）。可在设置页手动重试。`
+  return { allowed: false, attempts: failure.attempts, reason }
 }
 
 export async function loadHarnessUpdatePolicy(path: string): Promise<HarnessUpdatePolicy> {
@@ -208,6 +323,8 @@ export function sanitizeHarnessUpdatePolicy(value: unknown): HarnessUpdatePolicy
     skipVersions: Array.isArray(candidate.skipVersions)
       ? [...new Set(candidate.skipVersions.filter((item): item is string => typeof item === 'string' && isExactVersion(item)))].slice(0, 100)
       : [],
+    maxAutomaticDeployAttempts: bounded(candidate.maxAutomaticDeployAttempts, 1, 10, numbers.maxAutomaticDeployAttempts),
+    deployRetryCooldownHours: bounded(candidate.deployRetryCooldownHours, 1, 720, numbers.deployRetryCooldownHours),
   }
 }
 
@@ -232,9 +349,10 @@ export async function checkHarnessUpdate(options: {
     versions?: Record<string, { dist?: { integrity?: unknown; tarball?: unknown; signatures?: Array<{ keyid?: unknown }> } }>
   }
   const distTags = registry['dist-tags'] ?? {}
-  // 发现通道取 policy.channel（alpha 预览线）加 latest 稳定线；能否自动切换只由受信清单决定。
+  // 发现通道取 policy.channel（alpha 预览线）+ next 候选线（官方 RC 线，HEAD 通常在这里）
+  // + latest 稳定线；能否自动切换只由受信清单决定，未受信的更新版本只通知不部署。
   // alpha 候选未受信时回退稳定线，避免预览版生态未适配时整体卡死在旧运行时。
-  const discovered = [...new Set([distTags[policy.channel], distTags.latest])]
+  const discovered = [...new Set([distTags[policy.channel], distTags.next, distTags.latest])]
     .filter((tag): tag is string => typeof tag === 'string' && isExactVersion(tag))
     .sort((a, b) => compareReleaseVersions(b, a))
   if (discovered.length === 0) throw new Error('npm dist-tags 没有返回合法的精确版本。')

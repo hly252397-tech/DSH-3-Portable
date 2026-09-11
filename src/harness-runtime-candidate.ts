@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { pnpmWorkspaceYaml } from './bundled-plugins.js'
+import { OFFICIAL_RUNTIME_RESOLUTION_MODE, pnpmWorkspaceYaml } from './bundled-plugins.js'
 import {
   isOfficialRuntimeFamilyAligned,
   isOfficialRuntimeLaunchable,
@@ -38,7 +38,11 @@ export async function buildHarnessRuntimeCandidate(options: {
   const stagingDir = await mkdtemp(join(slotsRoot, '.staging-'))
   try {
     writeOfficialRuntimeManifest(stagingDir, options.version)
-    await writeFile(join(stagingDir, 'pnpm-workspace.yaml'), pnpmWorkspaceYaml(), 'utf8')
+    await writeFile(
+      join(stagingDir, 'pnpm-workspace.yaml'),
+      pnpmWorkspaceYaml(true, { resolutionMode: OFFICIAL_RUNTIME_RESOLUTION_MODE }),
+      'utf8',
+    )
     const args = officialRuntimeInstallArgs(stagingDir, options.storeDir)
     await (options.runner ?? ((commandArgs, cwd) => runPnpm(options.nodeExecutable, options.pnpmEntry, commandArgs, cwd, options.timeoutMs)))(args, stagingDir)
     await prepareRuntimePnpmLayout(stagingDir)

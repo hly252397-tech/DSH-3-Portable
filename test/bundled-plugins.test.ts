@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { BUNDLED_PLUGINS, OFFICIAL_DSH_VERSION, OFFICIAL_LAUNCH_PEERS, OFFICIAL_RUNTIME, compareReleaseVersions, isDeepSeekOfficialPackage, isOfficialDshPackage, officialDshVersionOverrides, officialRuntimeDependencies, officialRuntimePnpmConfig, planOfficialRuntimeTarget, pnpmAllowBuildsManifest, pnpmWorkspaceYaml, SUITE_PACKAGE, bundledPluginNames, seededPackageNames } from '../src/bundled-plugins.js'
+import { BUNDLED_PLUGINS, OFFICIAL_DSH_VERSION, OFFICIAL_LAUNCH_PEERS, OFFICIAL_RUNTIME, OFFICIAL_RUNTIME_RESOLUTION_MODE, compareReleaseVersions, isDeepSeekOfficialPackage, isOfficialDshPackage, officialDshVersionOverrides, officialRuntimeDependencies, officialRuntimePnpmConfig, planOfficialRuntimeTarget, pnpmAllowBuildsManifest, pnpmWorkspaceYaml, SUITE_PACKAGE, bundledPluginNames, seededPackageNames } from '../src/bundled-plugins.js'
 
 test('内置目录包含十个社区插件和市场组件', () => {
   assert.deepEqual(bundledPluginNames(), [
@@ -96,4 +96,7 @@ test('装配与补种会放行 DSH 所需的原生构建脚本', () => {
   assert.doesNotMatch(pnpmWorkspaceYaml(), /onlyBuiltDependencies:/)
   assert.match(pnpmWorkspaceYaml(), /autoInstallPeers:\s*true/)
   assert.match(pnpmWorkspaceYaml(false), /autoInstallPeers:\s*false/)
+  // 未显式要求时不写 resolutionMode（Profile 侧仍用 pnpm 默认的 highest）。
+  assert.doesNotMatch(pnpmWorkspaceYaml(false), /resolutionMode/)
+  assert.match(pnpmWorkspaceYaml(true, { resolutionMode: OFFICIAL_RUNTIME_RESOLUTION_MODE }), new RegExp(`^resolutionMode: ${OFFICIAL_RUNTIME_RESOLUTION_MODE}$`, 'm'))
 })

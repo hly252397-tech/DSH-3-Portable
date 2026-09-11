@@ -8,7 +8,8 @@
 |---|---|---|
 | 便携版实现基线 | `@deepseek-ai/dsh 0.1.2-rc.1` | 编译、运行、API 和 Profile 兼容性的最终依据；与 npm latest 稳定线一致 |
 | 官方审查基线 | `deepseek-ai/deepseek-harness@c291e7961a515f6d7af9304e7fd1d257929aef26` | 检查官方最新架构、开发和测试要求 |
-| 官方审查版本 | `@deepseek-ai/dsh 0.1.5-rc.2` | master 已携带 rc.2 发布；未入受信清单（生态阻断未解除），仅作迁移预警 |
+| 官方审查版本 | `@deepseek-ai/dsh 0.1.5-rc.2` | master 已携带 rc.2 发布；已进受信清单，作为桌面 A/B 更新器的迁移目标 |
+| 运行时迁移目标 | `@deepseek-ai/dsh 0.1.5-rc.2`（受信） | `checkHarnessUpdate` 经 npm integrity + GitHub 标签 commit + 受信清单三重核对后可自动切换；rc.1 保留受信以支撑回滚/降级路径 |
 | 核对日期 | `2026-09-11` | 判断本地规范是否过期 |
 
 机器可读记录见 `DeepSeek-Harness-官方兼容基线.json`。
@@ -24,7 +25,7 @@
 ## 官方兼容性判定
 
 - 自定义 Harness 行为优先通过 Profile、Bundle、插件、服务、事件和 Client Slot 扩展，不直接改写官方运行时包。
-- 代码必须以已内置 `0.1.2-rc.1` 的实际导出和类型声明为准；官方 `0.1.5-alpha.1` 文档只作为迁移预警，运行时升级完成前不得假定新 API 存在。
+- 代码必须以已内置 `0.1.2-rc.1` 的实际导出和类型声明为准；官方 `0.1.5-rc.2` 文档只作为迁移预警，运行时经 A/B 切换真正生效前不得假定新 API 存在。
 - 运行时升级属于兼容性迁移：需要独立候选、依赖闭包锁定、Profile 真实组合测试、会话格式评估、A/B 切换和自动回滚。
 - 产品可见插件不能只做手工 `ctx.plugin()` 单元测试，必须通过 Loader + Profile 的真实组合路径验证。
 - 用户可见状态只能在事务提交点后发布；失败前不得显示“完成”。
@@ -39,6 +40,12 @@
 - 会话读取器弃用（5cfc765f / #3828）：`docs/subsystems/session.md` +3 行、`packages/core/session/src/index.ts` +3 行 `@deprecated` 标记直读事件读取器，配套同步历史读取弃用政策。本仓库插件经 `ctx` 事件订阅与 waterfall 拦截，不触直读 API；`session-path-repair.ts` 读取的是已发布会话文件格式头（邻接迁移政策保证已发布代不移动），均不受影响。后续 0.1.5 迁移时知识库需补充新政策条目。
 - 其余主题：web composer 命令菜单（分组/本地化/glyph）、0.1.5 反馈与文件精化 backport（060323d8）、subprocess Linux scope 空范围修复（060ae6f3）、Blacksmith CI 托管镜像修复。`docs/architecture` 仅 i18n 同步，无规范变化。
 - 本仓库决策：实现基线维持 `0.1.2-rc.1`；受信清单维持不变（0.1.5 生态阻断未解除，npm `latest=0.1.5-rc.1`、`next=0.1.5-rc.2` 均未受信，更新器只通知不切换）；桌面 fork 与官方桌面无同步关系，本区间不产生移植补丁，双技术评估项记入待办。
+- 后续决策（同日，用户报告「关于」页可更新提示与更新失败后）：用户看到插件「关于」页提示 `0.1.2-rc.1 → 0.1.5-rc.2  可更新`，点击更新后失败。定位为三个独立缺陷叠加，一并修复：
+  1. **家族钉版失效（根因）**：pnpm 11.24 完全忽略 `package.json` 的 `pnpm.overrides`，且 overrides 的通配选择器（`@deepseek-ai/dsh-*`）实测不命中；官方发版包把传递依赖写成 `^<同元组预发布>`，最高版语义把候选拉成混用家族（`0.1.5-rc.1` 根包 + `0.1.5-rc.2` 传递包），`isOfficialRuntimeFamilyAligned` 门禁正确拒绝，事件日志记录 `候选 DSH 运行时核心包版本未对齐。`。改为官方运行时统一按发布时间解析：`resolutionMode: time-based` 同时写入生成的 `pnpm-workspace.yaml`、安装参数（`--config.resolution-mode=time-based`）和既有运行时目录（新增幂等 `ensureRuntimeResolutionMode`）。用真实候选构建器实测：`0.1.5-rc.1` 与 `0.1.5-rc.2` 各自装配 240 包、官方家族 231/231 全对齐、0 混用，双双通过候选校验。
+  2. **活动槽被原地改写**：插件「关于」页点更新会走桥接的官方分支，旧实现直接在**正在运行的活动运行时槽**上 `writeOfficialRuntimeManifest` + pnpm 安装，把槽的 `package.json` 改成新版本而 `node_modules` 仍是旧版本（且 Windows 下正在使用的文件无法替换，安装必然半途失败），槽随即在家族对齐门禁处失效。现改为绝不原地安装：桥接返回退出码 1 并发出 `request-harness-update`，由外壳启动 A/B 更新周期（候选槽 → 影子验证 → 空闲切换 → 观察 → 失败回滚）。
+  3. **两套版本口径不一致**：codex-ui「关于」页对官方运行时读 npm **`next`** 标签（`0.1.5-rc.2`），外壳更新器只发现 `[alpha, latest]`（`0.1.5-rc.1`），提示与可切换目标天然不同。现把 `next` 纳入发现通道，并将 `0.1.5-rc.2` 加入受信清单（npm integrity 与 `dsh-v0.1.5-rc.2` 标签 commit 已核对），使官方 HEAD、插件 peer 声明（`0.1.5-rc.1 || 0.1.5-rc.2`）与「关于」页展示三处口径一致；`0.1.5-rc.1` 保留受信以支撑回滚与降级。
+  4. 附带修复：codex-ui 在安装前写 `.dsh-pending-updates.json`、安装失败不回滚，导致一次失败点击留下永远无法应用的幽灵待更新项（`profile` 安装路径明确拒绝官方包）。`applyPendingProfileUpdates` 现在不再回写官方条目，直接清掉登记文件。
+  5. 实机修复：活动槽 `0.1.2-rc.1-2c82a3efc755c12c` 的 `package.json` 被旧实现半改写为 `0.1.5-rc.2`（`node_modules` 仍为 `0.1.2-rc.1`），已用正式写入函数恢复为 `0.1.2-rc.1`；校验该槽重新计算指纹仍等于登记的 `2c82a3ef…`，223 个官方包，槽内容与 `current.json` 记录一致。
 
 ## 2026-09-10 人工审阅记录
 

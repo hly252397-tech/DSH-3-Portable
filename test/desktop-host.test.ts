@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 
-import { APPLY_PLUGIN_UPDATES_IPC, OFFICIAL_DSH_VERSION } from '../src/bundled-plugins.js'
+import { APPLY_PLUGIN_UPDATES_IPC, OFFICIAL_DSH_VERSION, REQUEST_HARNESS_UPDATE_IPC } from '../src/bundled-plugins.js'
 import { createDesktopHostServices, DESKTOP_BRIDGE_FILES, ensureDesktopBridgeBundle, ensureDesktopBridgePatch, installDesktopBridge, mergeDesktopBridgePatch, officialPluginUpdateVersion, runBundledPnpm, shouldRecycleAfterPluginArgs, shouldRecycleAfterPluginResult } from '../src/desktop-host.js'
 
 async function waitFor(predicate: () => boolean | Promise<boolean>, timeoutMs = 1_000): Promise<void> {
@@ -283,6 +283,23 @@ test('官方 peer 不会被单独安装进 Web profile', async () => {
   handle.stderr.on('data', chunk => { stderr += chunk.toString('utf8') })
   assert.deepEqual(await handle.done, { exitCode: 1, signal: null })
   assert.match(stderr, /不能单独安装到 Web profile/)
+})
+
+test('官方运行时更新绝不原地改写活动槽，而是转交 A/B 更新器', async () => {
+  const messages: unknown[] = []
+  const host = createDesktopHostServices({
+    profileName: 'web',
+    profileDir: 'D:\\profile\\web',
+    desktopRuntimeDir: 'D:\\runtime',
+    send: message => { messages.push(message) },
+    runner: () => { throw new Error('官方运行时不得原地安装到活动槽') },
+  })
+  const handle = host.desktopPnpm.runPlugin(['add', '@deepseek-ai/dsh@0.1.5-rc.2'], 'D:\\profile\\web')
+  let stderr = ''
+  handle.stderr.on('data', chunk => { stderr += chunk.toString('utf8') })
+  assert.deepEqual(await handle.done, { exitCode: 1, signal: null })
+  assert.deepEqual(messages, [REQUEST_HARNESS_UPDATE_IPC])
+  assert.match(stderr, /A\/B 更新器/)
 })
 
 test('同一命令混装官方包和社区包时明确拒绝，不静默漏装社区包', async () => {

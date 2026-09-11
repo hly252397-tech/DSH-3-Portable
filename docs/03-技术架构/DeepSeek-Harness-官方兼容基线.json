@@ -14,6 +14,15 @@
     "desktopManifest": "package.json",
     "runtimeManifest": "Data/Runtime/dsh-runtime/node_modules/@deepseek-ai/dsh/package.json"
   },
+  "runtimeMigration": {
+    "verifiedAt": "2026-09-11T22:30:00+08:00",
+    "discoveryTags": ["alpha", "next", "latest"],
+    "trustedTargets": ["0.1.5-rc.1", "0.1.5-rc.2"],
+    "migrationTarget": "0.1.5-rc.2",
+    "resolutionMode": "time-based",
+    "candidateEvidence": "候选构建器实测：0.1.5-rc.1 与 0.1.5-rc.2 各装配 240 包，官方家族 231/231 全对齐、0 混用，均通过候选校验。",
+    "note": "官方运行时按发布时间解析，避免官方发版包的 ^同元组预发布 传递依赖被最高版语义拆成混用家族；0.1.5-rc.2 为迁移目标，0.1.5-rc.1 保留以支撑回滚与降级。"
+  },
   "policy": {
     "implementationTarget": "bundled",
     "latestUpstreamIsCompatibilityWatchline": true,

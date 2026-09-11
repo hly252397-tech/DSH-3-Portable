@@ -512,6 +512,27 @@ llm-pi-ai:
 | profile | `Data/DSH/profiles/web`（`dsh.profile.bundles` 见其 package.json） |
 | 插件产物结构 | `lib/index.js`（必须存在，ESM 入口；历史上曾因 lib/ 缺失导致 ERR_MODULE_NOT_FOUND 崩溃） |
 
+### 12.1 官方运行时装配陷阱（2026-09-11 实证）
+
+- **pnpm 11 忽略 `package.json` 的 `pnpm.overrides`**：只认 `pnpm-workspace.yaml` 的 `overrides`；而且通配选择器（`@deepseek-ai/dsh-*`）**实测不命中**。因此「用 overrides 把官方家族钉到同一版本」在 pnpm 11 下不可能生效。
+- **官方发版包的传递依赖是 `^<同元组预发布>`**（如 `^0.1.5-rc.1`），默认最高版语义会把家族拉成混用：`0.1.5-rc.1` 根包 + `0.1.5-rc.2` 传递包，候选会在家族对齐门禁处被正确拒绝（事件日志 `候选 DSH 运行时核心包版本未对齐。`）。
+- **正确做法是按发布时间解析**：`resolutionMode: time-based`。三个入口都要写，缺一个就有一条路径装出混用家族：①生成的 `pnpm-workspace.yaml`（`pnpmWorkspaceYaml(true, { resolutionMode })`）；②安装参数 `--config.resolution-mode=time-based`；③**已存在**的运行时目录（`ensureRuntimeResolutionMode`——只在文件缺失时写入的旧代码永远补不上这一行）。
+- **官方运行时绝不可原地安装**：`desktopRuntimeDir` 是正在运行的活动槽。原地 `writeOfficialRuntimeManifest` + pnpm 安装会把槽改成「`package.json` 新版本 + `node_modules` 旧版本」的坏槽，且 Windows 下正在使用的文件无法替换，安装必然半途失败。用户看到的是「更新成功但版本没变」或干脆失败。桥接必须把意图交给桌面端 A/B 更新器（`request-harness-update` → 候选槽 → 影子验证 → 空闲切换 → 观察 → 失败回滚）。
+- **坏槽没有任何启动检查能发现，必须主动自愈**：`isOfficialRuntimeLaunchable` 只验证入口与 peer 是否存在，指纹（`.dsh-runtime-fingerprint`）只覆盖 lock 与家族清单、**根清单被有意排除**——所以「清单写着 `0.1.5-rc.2`、实际装着 `0.1.2-rc.1`」的槽既不会被判不可用、也不会被指纹发现，错误版本号会一路流到「关于」页与更新器。其余补种逻辑对指纹槽直接早返回，因此**已存在的坏槽永远不会被修**。修法是启动时 `reconcileOfficialRuntimeManifest`：家族版本单一可读时，只把**已存在**的根清单与 `resolutionMode` 拉回实际安装版本（不动 lock、不动物化依赖，指纹语义不变）；家族混用时保持原样，交由 A/B 门禁拒绝；**绝不在指纹槽里凭空造文件**（会打破「槽是不可变制品」的既有约束与对应测试）。
+
+### 12.2 「关于」页更新通道（host↔shell 第四通道）
+
+- codex-ui 的依赖卡对官方运行时**故意优先读 npm `next` 标签**（`npmTaggedVersion(pkg,'next') ?? npmTaggedVersion(pkg,'latest')`），而外壳更新器的发现通道是 `[policy.channel, next, latest]`。**两侧口径必须一起改**，否则「关于」页说 `0.1.5-rc.2 可更新`、外壳却只认到 `0.1.5-rc.1`。
+- 用户在「关于」页点更新的路径：`desktopPnpm.runPlugin(['add', '<官方包>@<版本>'])` → 桥接识别为官方包 → **不安装**，通过 `process.send` 上报 `REQUEST_HARNESS_UPDATE_IPC` → 外壳 `handleDshIpc` 调 `startHarnessUpdateTask(true)` → 返回退出码 1 与说明文案。桥接消息判定统一走 `isRequestHarnessUpdateIpc`（兼容字符串与 `{type}` 两种形态），主进程侧要对旧打包桥接做可选链兼容。
+- **pending 幽灵条目**：codex-ui 在安装前写 `profile/.dsh-pending-updates.json`，成功挂载后才清除；失败不回滚。而 profile 安装路径明确拒绝官方包，所以官方条目永远不会被消费。本仓库的 `applyPendingProfileUpdates` 因此**不回写**官方条目，直接删除登记文件。
+
+### 12.3 影子验证的盲区与失败退避（2026-09-11 实证）
+
+- **影子验证不加载社区插件**：`createHarnessShadowProfile` 造的是只装 `OFFICIAL_PROFILE_BUNDLES` 的一次性 profile，且 `cordis.patch.yml` 为空。因此候选可能**通过影子验证、却在真实 profile 切换时崩溃**（历史实例：`0.1.5-alpha.1` 抛 `cannot get property webServer without inject`）。启动自修复（`src/profile-repair.ts`）只能隔离「无法解析的 bundle」与入口预检不健康者，对 `apply()` 期间同步抛错的**服务依赖类**插件无效。
+- **必须按版本记忆部署失败**：否则「构建 5.7 分钟 → 切换 → 回滚 → 重启」会在每个检查周期（默认 6 小时）和每次重启后重复。`state.json` 的 `deploymentFailures` 记 `{ attempts, lastFailureAt, detail }`，`evaluateDeploymentRetryGate` 达阈值后拦截**自动**升级并置 `blocked`；用户手动检查（`interactive`）永远放行，让他们自己决定要不要再试。
+- **写入失败记忆的时机**：`deployHarnessCandidate` 抛错（`failed`）、切换未提交（`rolled-back`）记一次；切换提交成功（`succeeded`）清除该版本记录。只记「部署/切换」失败，不记网络类失败，避免误伤。
+- **持久化安全**：版本号必须过 `isExactVersion` 白名单（顺带挡住 `__proto__` / `constructor` 原型污染键），`attempts` 钳 1–100，`detail` 压平并截断，最多保留 20 条。
+
 **改动这些文件的智能体，提交前必须对照本文档第 0 节铁律逐条自查，并运行仓库测试门禁。**
 
 ---

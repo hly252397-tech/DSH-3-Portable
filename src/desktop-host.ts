@@ -1,9 +1,9 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { PassThrough } from 'node:stream'
 
-import { APPLY_PLUGIN_UPDATES_IPC, OFFICIAL_DSH_VERSION, isDeepSeekOfficialPackage, isOfficialDshPackage } from './bundled-plugins.js'
+import { APPLY_PLUGIN_UPDATES_IPC, OFFICIAL_DSH_VERSION, REQUEST_HARNESS_UPDATE_IPC, isDeepSeekOfficialPackage, isOfficialDshPackage } from './bundled-plugins.js'
 import { desktopBridgeClientBundle } from './desktop-bridge-client-source.js'
-import { finalizeProfileBundlesAfterInstall, officialRuntimeInstallArgs, writeOfficialRuntimeManifest } from './plugin-seed.js'
+import { finalizeProfileBundlesAfterInstall } from './plugin-seed.js'
 import { terminateProcessTree } from './process-control.js'
 
 export const DESKTOP_BRIDGE_PACKAGE = 'dsh-desktop-bridge'
@@ -125,16 +125,17 @@ export function createDesktopHostServices(options: DesktopHostOptions) {
     }
     const officialVersion = officialPluginUpdateVersion(args)
     if (officialVersion !== undefined && options.desktopRuntimeDir !== undefined) {
-      writeOfficialRuntimeManifest(options.desktopRuntimeDir, officialVersion)
-      const handle = (options.runner ?? runBundledPnpm)(officialRuntimeInstallArgs(options.desktopRuntimeDir), options.desktopRuntimeDir, signal)
-      void handle.done.then(async (outcome) => {
-        if (outcome.exitCode !== 0) return
-        const delay = options.recycleDelayMs ?? 400
-        setTimeout(() => {
-          options.send?.(APPLY_PLUGIN_UPDATES_IPC)
-        }, delay).unref?.()
-      }).catch(error => { console.error('官方运行时更新后处理失败。', error) })
-      return handle
+      // 官方运行时绝不原地安装。desktopRuntimeDir 是正在运行的活动运行时槽：
+      // 原地改写会把槽的 package.json 直接改成新版本、而 node_modules 仍是旧版本
+      // （且 Windows 下正在使用的文件无法替换，安装必然半途失败），槽随即在
+      // "家族版本对齐"门禁处失效，用户看到的是"更新成功但版本没变"。
+      // 改为转交桌面端 A/B 更新器：候选槽 → 影子验证 → 空闲切换 → 观察 → 失败回滚。
+      options.send?.(REQUEST_HARNESS_UPDATE_IPC)
+      return completedPnpmHandle(
+        1,
+        '官方运行时由桌面端 A/B 更新器统一升级（候选槽 + 影子验证 + 失败自动回滚），'
+        + `不能在应用运行时原地覆盖。已转交更新器处理目标版本 ${officialVersion}，请在设置页查看进度。\n`,
+      )
     }
     if (officialSpecs.length > 0) {
       const message = pluginCommandAction(args) === 'remove'

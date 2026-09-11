@@ -25,7 +25,7 @@ import { resolvePrebuiltOfficialRuntime } from './runtime-prebuilt.js'
 import { activateRuntimeSlot, commitRuntimeSlot, readRuntimeSlotPointer, recoverInterruptedRuntimeSwitch, resolveActiveRuntimeDir, rollbackRuntimeSlot, runtimeSlotVersion } from './runtime-slots.js'
 import { buildHarnessRuntimeCandidate, type HarnessRuntimeCandidate } from './harness-runtime-candidate.js'
 import { validateHarnessShadowStart } from './harness-shadow.js'
-import { DEFAULT_HARNESS_UPDATE_POLICY, acquireHarnessUpdateLock, appendHarnessUpdateEvent, checkHarnessUpdate, harnessUpdatePolicyPath, harnessUpdateRoot, harnessUpdateStatePath, loadHarnessUpdatePolicy, loadHarnessUpdateState, saveHarnessUpdatePolicy, saveHarnessUpdateState, type HarnessReleaseCandidate, type HarnessUpdatePolicy, type HarnessUpdateState } from './harness-update.js'
+import { DEFAULT_HARNESS_UPDATE_POLICY, acquireHarnessUpdateLock, appendHarnessUpdateEvent, checkHarnessUpdate, clearDeploymentFailure, evaluateDeploymentRetryGate, harnessUpdatePolicyPath, harnessUpdateRoot, harnessUpdateStatePath, loadHarnessUpdatePolicy, loadHarnessUpdateState, recordDeploymentFailure, saveHarnessUpdatePolicy, saveHarnessUpdateState, type HarnessReleaseCandidate, type HarnessUpdatePolicy, type HarnessUpdateState } from './harness-update.js'
 import { applyInitialWindowState } from './window-state.js'
 import { WindowNavigationCoordinator } from './window-navigation.js'
 import { escapeRoute } from './escape-routing.js'
@@ -54,13 +54,14 @@ if (portablePaths !== undefined) {
 
 interface DshProcessModule {
   isApplyPluginUpdatesIpc: (message: unknown) => boolean
+  isRequestHarnessUpdateIpc?: (message: unknown) => boolean
   startDsh: (options: StartDshOptions) => Promise<DshServer>
 }
 
 const dshProcessModule = await import(app.isPackaged
   ? pathToFileURL(join(process.resourcesPath, 'desktop-bridge', 'dsh-process.js')).href
   : './dsh-process.js') as DshProcessModule
-const { isApplyPluginUpdatesIpc, startDsh } = dshProcessModule
+const { isApplyPluginUpdatesIpc, isRequestHarnessUpdateIpc, startDsh } = dshProcessModule
 
 let mainWindow: BrowserWindow | undefined
 let dshView: WebContentsView | undefined
@@ -1161,6 +1162,12 @@ function runMainTask(task: Promise<unknown>): void {
 
 
 function handleDshIpc(message: unknown): void {
+  if (isRequestHarnessUpdateIpc?.(message) === true) {
+    // 「关于」页点“更新”官方运行时时，桥接进程只上报意图：真正的升级必须走
+    // A/B 更新器，绝不能原地覆盖正在运行的活动槽。
+    startHarnessUpdateTask(true)
+    return
+  }
   if (!isApplyPluginUpdatesIpc(message)) return
   // dsh-codex-ui uses this IPC after its own update-all flow. It has the
   // same contract as a profile mutation, so letting it bypass the market
@@ -1728,18 +1735,9 @@ function installShellIpc(): void {
   })
   ipcMain.handle(SHELL_IPC.harnessUpdateAction, async (event, value: unknown) => {
     if (!mayAccessDesktopUpdates(shellRendererKind(event.sender)) || value !== 'check' || harnessUpdaterContext === undefined) return harnessUpdateSnapshot()
-    if (harnessUpdateTask === undefined) {
-      if (harnessUpdateTimer !== undefined) clearTimeout(harnessUpdateTimer)
-      harnessUpdateTimer = undefined
-      const task = runHarnessUpdateCycle(harnessUpdaterContext, true)
-      harnessUpdateTask = task
-      broadcastHarnessUpdateState()
-      await task.finally(() => {
-        harnessUpdateTask = undefined
-        broadcastHarnessUpdateState()
-        if (!isQuitting && harnessUpdatePolicy.mode !== 'manual') scheduleHarnessUpdateCheck(harnessUpdatePolicy.checkIntervalHours * 60 * 60_000)
-      })
-    }
+    const task = startHarnessUpdateTask(true)
+    // 设置页等待本次周期结束再刷新快照；周期内的每次状态变化另有广播。
+    if (task !== undefined) await task
     return harnessUpdateSnapshot()
   })
   ipcMain.handle(SHELL_IPC.closeDesktopSettings, event => {
@@ -2871,6 +2869,24 @@ function scheduleHarnessUpdateCheck(delayMs: number): void {
   harnessUpdateTimer.unref?.()
 }
 
+/** 手动触发的更新周期（设置页按钮、插件「关于」页请求）。同一时刻只跑一个周期，
+ * 返回正在运行的周期以便调用方等待；已有周期在跑时返回 undefined。 */
+function startHarnessUpdateTask(interactive: boolean): Promise<void> | undefined {
+  const context = harnessUpdaterContext
+  if (context === undefined || harnessUpdateTask !== undefined) return harnessUpdateTask
+  if (harnessUpdateTimer !== undefined) clearTimeout(harnessUpdateTimer)
+  harnessUpdateTimer = undefined
+  const task = runHarnessUpdateCycle(context, interactive)
+  harnessUpdateTask = task
+  broadcastHarnessUpdateState()
+  void task.finally(() => {
+    harnessUpdateTask = undefined
+    broadcastHarnessUpdateState()
+    if (!isQuitting && harnessUpdatePolicy.mode !== 'manual') scheduleHarnessUpdateCheck(harnessUpdatePolicy.checkIntervalHours * 60 * 60_000)
+  }).catch(() => undefined)
+  return task
+}
+
 async function setHarnessUpdateState(
   context: HarnessUpdaterContext,
   phase: HarnessUpdateState['phase'],
@@ -2926,6 +2942,31 @@ async function runHarnessUpdateCycle(context: HarnessUpdaterContext, interactive
       await appendHarnessUpdateEvent(context.updateRoot, {
         transactionId: checkTransactionId,
         phase: 'trust-gate',
+        outcome: 'blocked',
+        timestamp: new Date().toISOString(),
+        currentVersion,
+        targetVersion: candidate.version,
+        detail,
+      })
+      return
+    }
+    // 同一版本反复「构建 → 切换 → 回滚 → 重启」会把界面变成失败循环，这里按版本退避；
+    // 用户手动触发的检查（interactive）永远放行，让他们自己决定要不要再试一次。
+    const retryGate = evaluateDeploymentRetryGate({
+      version: candidate.version,
+      failures: harnessUpdateState?.deploymentFailures,
+      policy: harnessUpdatePolicy,
+    })
+    if (!interactive && !retryGate.allowed) {
+      const detail = retryGate.reason ?? '该版本自动升级已暂停。'
+      await setHarnessUpdateState(context, 'blocked', {
+        lastCheckedAt: checked.checkedAt,
+        targetVersion: candidate.version,
+        detail,
+      })
+      await appendHarnessUpdateEvent(context.updateRoot, {
+        transactionId: checkTransactionId,
+        phase: 'retry-gate',
         outcome: 'blocked',
         timestamp: new Date().toISOString(),
         currentVersion,
@@ -3003,7 +3044,12 @@ async function deployHarnessCandidate(context: HarnessUpdaterContext, release: H
     await switchHarnessRuntime(context, candidate, transactionId)
   } catch (error) {
     const detail = error instanceof Error ? error.message : '候选部署失败。'
-    await setHarnessUpdateState(context, 'failed', { transactionId, targetVersion: release.version, detail }).catch(() => undefined)
+    await setHarnessUpdateState(context, 'failed', {
+      transactionId,
+      targetVersion: release.version,
+      detail,
+      deploymentFailures: recordDeploymentFailure(harnessUpdateState, release.version, detail, new Date().toISOString()),
+    }).catch(() => undefined)
     await event('deploy', 'failure', detail).catch(() => undefined)
     throw error
   } finally {
@@ -3104,7 +3150,13 @@ async function switchHarnessRuntime(context: HarnessUpdaterContext, candidate: H
     observing = false
     commitRuntimeSlot(context.legacyRuntimeDir, transactionId)
     const completedAt = new Date().toISOString()
-    await setHarnessUpdateState(context, 'succeeded', { transactionId, targetVersion: candidate.version, lastSucceededAt: completedAt, detail: 'readiness 与在线观察均通过，A/B 指针已提交。' })
+    await setHarnessUpdateState(context, 'succeeded', {
+      transactionId,
+      targetVersion: candidate.version,
+      lastSucceededAt: completedAt,
+      detail: 'readiness 与在线观察均通过，A/B 指针已提交。',
+      deploymentFailures: clearDeploymentFailure(harnessUpdateState, candidate.version),
+    })
     await appendHarnessUpdateEvent(context.updateRoot, {
       transactionId,
       phase: 'commit',
@@ -3135,7 +3187,12 @@ async function switchHarnessRuntime(context: HarnessUpdaterContext, candidate: H
     })
     server = restored
     await createMainWindow(restored.url)
-    await setHarnessUpdateState(context, 'rolled-back', { transactionId, targetVersion: candidate.version, detail: `候选失败，已自动恢复上一运行时：${detail}` })
+    await setHarnessUpdateState(context, 'rolled-back', {
+      transactionId,
+      targetVersion: candidate.version,
+      detail: `候选失败，已自动恢复上一运行时：${detail}`,
+      deploymentFailures: recordDeploymentFailure(harnessUpdateState, candidate.version, detail, new Date().toISOString()),
+    })
     await appendHarnessUpdateEvent(context.updateRoot, {
       transactionId,
       phase: 'rollback',

@@ -10,6 +10,9 @@ export interface BundledPlugin {
 /** 官方 DSH 家族统一锁死的版本。打包和在线升级都按这一个号对齐。 */
 export const OFFICIAL_DSH_VERSION = '0.1.2-rc.1'
 export const APPLY_PLUGIN_UPDATES_IPC = 'apply-plugin-updates'
+/** 插件（codex-ui「关于」页）请求升级官方运行时。官方运行时不能原地改写正在运行的活动槽，
+ * 该请求只转交桌面端 A/B 更新器处理：候选槽 → 影子验证 → 空闲切换 → 观察 → 失败回滚。 */
+export const REQUEST_HARNESS_UPDATE_IPC = 'request-harness-update'
 
 /** 官方 DSH 运行时。从 npm 安装，不依赖本地 deepseek-harness 源码。 */
 export const OFFICIAL_RUNTIME: BundledPlugin = {
@@ -151,7 +154,19 @@ export function officialRuntimePnpmConfig(version = OFFICIAL_DSH_VERSION): {
   return { ...pnpmAllowBuildsManifest(), overrides: officialDshVersionOverrides(version) }
 }
 
-export function pnpmWorkspaceYaml(autoInstallPeers = true): string {
+/** pnpm 只认 pnpm-workspace.yaml 里的 overrides；package.json 的 pnpm.overrides
+ * 在 pnpm 11 已被忽略，且 overrides 的通配选择器（`@deepseek-ai/dsh-*`）实测不命中。
+ * 官方家族的发版包把传递依赖写成 `^<同元组预发布>`，最高版语义会把整族拉到更新的 rc 上
+ * （0.1.5-rc.1 根包 + 0.1.5-rc.2 传递包），因此官方运行时改用按发布时间解析。 */
+export const OFFICIAL_RUNTIME_RESOLUTION_MODE = 'time-based'
+
+export function pnpmWorkspaceYaml(autoInstallPeers = true, options: { resolutionMode?: string } = {}): string {
   const allow = ALLOWED_BUILD_PACKAGES.map(name => `  ${JSON.stringify(name)}: true`).join('\n')
-  return ['packages:', '  - .', '', 'nodeLinker: hoisted', 'autoInstallPeers: ' + (autoInstallPeers ? 'true' : 'false'), 'allowBuilds:', allow, ''].join('\n')
+  return [
+    'packages:', '  - .', '',
+    'nodeLinker: hoisted',
+    'autoInstallPeers: ' + (autoInstallPeers ? 'true' : 'false'),
+    ...(options.resolutionMode === undefined ? [] : ['resolutionMode: ' + options.resolutionMode]),
+    'allowBuilds:', allow, '',
+  ].join('\n')
 }
