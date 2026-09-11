@@ -78,7 +78,7 @@
 - **electron-builder TEMP**：NSIS 打包时 TEMP 必须指向真实可写的用户临时目录，否则找不到临时 include 文件。`Build-DSH-Portable.ps1` 已通过 `Portable-Environment.ps1` 的 `Set-DshPortableEnvironment` 设置（`TEMP/TMP` → `<便携根>\Data\Temp`，`ELECTRON_BUILDER_CACHE` → `Data\Development\electron-builder-cache`）；**绕过该包装脚本直接跑 electron-builder 时必须自行设置这两个变量**
 - **PowerShell 转义**：Git Bash 里调用含 `$_` 的 PowerShell 命令会被 Bash 展开，用单引号包裹或写成 ps1 文件
 - **DSH 插件服务名与注入**：`ctx.command()` 不存在——命令服务名是 **`commands`（复数）**，注册 API 是 `ctx.commands.register({name, description, input:{hint}, handler(invocation)→{kind:'success',text}})`；服务未在组合中时改用 `ctx.get('name')` 可选访问，**不要**把不存在的服务写进 inject（否则 PENDING 导致启动失败）。注入声明的有效通道**按导出形态区分**（2026-09 对照 MichengAI 8 个社区插件与本仓库 plan-quota / dsh-sidebar-spaces 源码核实，见下方「社区插件生态实证」）：① **命名导出** `name`+`inject`+`apply` → 模块级 `export const inject` 即生效，patch 条目只写 `id`+`name`；② **default export 类** → 类静态 `static inject = [...]`；③ **default export 函数** → loader 不读模块级 inject，必须在 cordis 条目（bundle 的 cordis.patch.yml）写 `inject:` 字段——plan-quota 即此形态，缺失时抛 "cannot get property command without inject"
-- **profile local/ 与 node_modules 是两份拷贝**：改 `Data/DSH/profiles/web/local/<插件>` 后必须同步到 `node_modules/<插件>`（宿主读后者），两处都要改：src 文件 + cordis.patch.yml
+- **profile local/ 与 node_modules 是两份拷贝**：改 `Data/DSH/profiles/web/local/<插件>` 后必须同步到 `node_modules/<插件>`（宿主读后者），两处都要改：src 文件 + cordis.patch.yml。评估结论：改用 pnpm `link:` 协议声明本地插件可让 node_modules 侧成为 junction、改 local/ 即时生效（沙箱已验证，见 [评估文档](docs/03-技术架构/评估-目录链接替代插件双拷贝.md)）；采纳实施前本规则仍然有效
 - **外壳内浮层盖不住 DSH WebContentsView**：独立合成层永远在外壳 HTML 之上，z-index 无法穿透；工具栏类交互用按钮内联状态（两步确认），别做应用内模态
 
 ## 🌐 社区插件生态实证（MichengAI 8 仓库，2026-09-07 源码核对）
