@@ -4,6 +4,12 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.55 Portable Integration — 2026-09-12
+
+- Removed the redundant in-page close button from the desktop settings window: the window has a native titlebar, so the second X under it was noise (Esc still closes; the frameless About window keeps its in-page close as the only close affordance).
+- Same cleanup for the keyboard-shortcuts window, which is also natively framed.
+- Changed nothing else; this release exists so the self-serve update loop can be exercised again end-to-end from 1.0.54.
+
 ## 1.0.54 Portable Integration — 2026-09-12
 
 - Fixed the sidebar drag affordance that could cover the conversation workspace: the installed conversation UI renamed its width-handle namespace (`data-width-handle` → `data-dcu-width-handle`), so the portable retirement rule no longer matched and the handles resurfaced as full-column-height (32px × 100vh) invisible strips that blocked clicks and, while dragged, resized the input column over the whole workspace. `theme.css` now retires both generations; verified against the live DOM through the debug protocol.

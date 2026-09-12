@@ -55,10 +55,6 @@
     :root[data-color-scheme="light"] .update-feedback.error{color:#a52b2b}
     @media(max-width:720px){body{grid-template-columns:150px minmax(0,1fr)}main{padding:30px 28px}.row{gap:18px}.select-wrap{width:176px}}
     @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-    .settings-close{position:absolute;top:12px;right:16px;width:30px;height:30px;border:0;border-radius:var(--chrome-radius-sm);background:transparent;display:grid;place-items:center;cursor:pointer}
-    .settings-close:hover{background:var(--chrome-surface-2)}.settings-close:active{background:var(--active-bg,var(--chrome-surface-3))}.settings-close:focus-visible{outline:none;box-shadow:0 0 0 2px var(--focus-ring,var(--chrome-text-muted))}
-    .settings-close img{width:13px;height:13px;filter:invert(90%)}
-    :root[data-color-scheme="light"] .settings-close img{filter:brightness(0);opacity:.72}
     main{position:relative}
     .theme-wrap{padding:2px 0 22px;border-bottom:1px solid var(--chrome-border)}
     .theme-grid{display:flex;flex-wrap:wrap;gap:8px;padding:16px 0 2px}
@@ -81,7 +77,6 @@
     <button id="appearanceNav" class="nav-item" type="button">外观</button>
   </aside>
   <main>
-    <button id="settingsClose" class="settings-close" type="button" aria-label="关闭"><img src="./shell-icons/xmark.svg" alt=""></button>
     <div class="content">
       <p id="settingsError" class="update-feedback error" role="alert" hidden></p>
       <section id="notificationsPage" class="page" aria-labelledby="notificationsTitle">
@@ -307,7 +302,6 @@
       locale=typeof nextLocale==='string'?nextLocale:'zh-CN';document.documentElement.lang=locale;
       document.title=text('桌面端设置','Desktop Settings');document.querySelector('aside').setAttribute('aria-label',text('设置分类','Settings categories'));
       byId('desktopLabel').textContent=text('桌面端','Desktop');notificationsNav.textContent=text('通知','Notifications');updatesNav.textContent=text('更新','Updates');appearanceNav.textContent=text('外观','Appearance');
-      byId('settingsClose').setAttribute('aria-label',text('关闭','Close'));
       byId('notificationsTitle').textContent=text('通知','Notifications');byId('turnLabel').textContent=text('任务完成通知','Task completion notifications');byId('turnDescription').textContent=text('设置 DeepSeek Harness 完成任务时何时提醒你',"Set when DeepSeek Harness alerts you that it's finished");
       const turnLabels=isZh()?['从不','仅在窗口未聚焦时','始终']:['Never','Only when unfocused','Always'];turnSelect.options.forEach((option,index)=>option.textContent=turnLabels[index]);
       byId('approvalLabel').textContent=text('审批通知','Approval notifications');byId('approvalDescription').textContent=text('需要你审批权限或计划时显示提醒','Show alerts when permissions or plans require your approval');
@@ -389,7 +383,6 @@
       harnessFeedback.className='update-feedback'+((phase==='failed'||phase==='rolled-back')?' error':'');harnessFeedback.textContent=!value.available?text('仅便携模式启用 Harness A/B 更新。','Harness A/B updates are available in portable mode only.'):(state.detail||text('受信更新会自动完成候选装配、影子启动、空闲切换、观察和回滚。','Trusted updates automatically perform candidate assembly, shadow startup, idle switching, observation, and rollback.'));
     }
     document.addEventListener('keydown',event=>{if(event.key!=='Escape'||document.querySelector('[role="listbox"]:not([hidden])')!==null)return;event.preventDefault();void api.closeDesktopSettings()},true);
-    byId('settingsClose').addEventListener('click',()=>void api.closeDesktopSettings());
     notificationsNav.addEventListener('click',()=>setPage('notifications'));updatesNav.addEventListener('click',()=>setPage('updates'));appearanceNav.addEventListener('click',()=>setPage('appearance'));
     approvals.addEventListener('change',()=>void saveNotifications());questions.addEventListener('change',()=>void saveNotifications());
     updateAction.addEventListener('click',async()=>{if(updateAction.disabled)return;updateAction.disabled=true;clearSettingsError();try{const next=await api.desktopUpdateAction(updateAction.dataset.action||'check');if(next)renderUpdateState(next)}catch(error){reportSettingsError(error)}finally{renderUpdateState(updateState)}});
