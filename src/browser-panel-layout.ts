@@ -54,7 +54,12 @@ export function normalizeBrowserPanelBounds(
   const top = Math.max(0, y)
   const right = Math.min(Math.round(viewportWidth), x + width)
   const bottom = Math.min(Math.round(viewportHeight), y + height)
-  const clippedWidth = right - left
+  // 对话保护钳制：页面报告的占位矩形可能太宽（页面内钳制只改了 .nArs4W_panel 的
+  // max-width，但页面 reportBounds 时用的是 clip 前的 offsetWidth），原生视图按此
+  // 定位就会比对话列底线更宽。用同一把尺子裁到 viewport − 900px 后再返回。
+  const maximumWidth = Math.max(MINIMUM_PANEL_WIDTH, viewportWidth - MAXIMUM_PANEL_WIDTH_MARGIN)
+  const clampedRight = Math.min(right, left + maximumWidth)
+  const clippedWidth = clampedRight - left
   const clippedHeight = bottom - top
   if (clippedWidth < MINIMUM_PANEL_WIDTH || clippedHeight < MINIMUM_PANEL_HEIGHT) return
   return { x: left, y: top, width: clippedWidth, height: clippedHeight }

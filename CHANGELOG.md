@@ -4,6 +4,10 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.64 Portable Integration — 2026-09-12
+
+- The native browser panel's reported-bounds path (when the page reports the card placeholder rect) was **not** going through `capBrowserWorkspacePanelWidth` — only the ratio-derived fallback was. This meant the native card could still render wider than `viewport − 900px` when the page's placeholder was itself too wide (the in-page clamp caught the in-page panel, but the native view mirrored the pre-clamp bounds). Fix: `normalizeBrowserPanelBounds` now clamps the reported width through the same `viewport − 900px` constraint before returning, so both paths enforce the conversation protection symmetrically. Also reinforced the shell's ratio cap from 0.55 to 0.48 and added `MAXIMUM_BROWSER_WIDTH_RATIO` as a named constant.
+
 ## 1.0.63 Portable Integration — 2026-09-12
 
 - **Aligned the conversation layout with the official Harness model** (per user direction to stop patching and follow upstream): the official source defines `--dsh-chat-content-width = var(--dsh-chat-user-width, clamp(680px, 64% of column, 920px))` — already responsive by design. Two portable-side violations broke it: a legacy drag preference (`--dsh-chat-user-width: 640px` fixed pixels) overrode the responsive clamp, and the conversation floor (420→560px) sat below the official 680px content minimum. The theme now clears the stale preference (`unset`) so the official clamp governs, raises the conversation floor to the official 680px, and moves the workbench panel cap to `calc(100vw − 1040px)` (hides below a 1100px viewport). Verified the official source (`dsh-client-ui-conversation`) before changing anything.
