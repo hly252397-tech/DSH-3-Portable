@@ -4,6 +4,10 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.61 Portable Integration — 2026-09-12
+
+- Re-proportioned the narrow-window layout using the user's reference (WorkBuddy): the conversation column floor rises from 420px to a comfortable 560px, the workbench panel takes the remainder capped at `calc(100vw − 1000px)`, and below a ~1040px viewport the panel hides entirely so the conversation owns the window. The panel yields first; the conversation floor yields last.
+
 ## 1.0.60 Portable Integration — 2026-09-12
 
 - Narrow-window pass on the user's own screenshots: the previous clamp still granted the workbench panel up to `100vw − 740px`, which at a 2000px window left the conversation at its 420px floor with home cards clipped mid-card. The panel cap is now `clamp(340px, calc(100vw − 900px), 1100px)` — an 1100px absolute maximum (the dragged 1075px still fits on wide screens) that yields space first as the window narrows (measured: panel 460 / conversation 508 at a 1450px window, zero overflow). The home cards row also wraps now (`flex-wrap: wrap`), degrading to a 2×2 grid instead of being clipped.
