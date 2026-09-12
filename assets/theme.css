@@ -657,31 +657,33 @@ body .dcu-root button[aria-label="Collapse sidebar"] {
    （图标轨 40 + 侧栏 252 + 对话底线 560 + 间距），窗口窄于 ~1040px 时面板整个
    隐藏、对话独占——面板先让位，对话列底线最后让位。 */
 body .nArs4W_panel {
-  max-width: calc(100vw - 1000px) !important;
+  max-width: calc(100vw - 1040px) !important;
 }
-@media (max-width: 1040px) {
+@media (max-width: 1100px) {
   body .nArs4W_panel {
     display: none !important;
     pointer-events: none !important;
   }
 }
 body .pI_x6G_centerCol {
-  min-width: 560px;
+  min-width: 680px;
 }
 
-/* 首页卡片行允许换行：四张卡的最小内容宽度 (~650px) 超过窄窗下的对话列时，
-   不换行就会溢出裁切（2026-09-12 实证）。换行后窄窗降级为 2×2 布局。 */
+/* 首页卡片行允许换行：官方内容下限 680px 内四张卡 (~650px) 可容纳，
+   换行仅作为更窄窗口下的兜底（正常不再触发）。 */
 body .dcu-home-cards {
   flex-wrap: wrap !important;
 }
 
-/* 对话内容列宽度的历史拖拽值是内联像素（--dsh-conversation-column-width: 1035px
-   之类），窗口/面板一变它就溢出容器被裁切（2026-09-12 实证：容器 623px 时内容仍按
-   1035px 渲染，标题与卡片被切一半）。宽度把手已退役，内容列改为响应式：填满容器、
-   上限 900px 保证可读行宽；用户气泡宽度同样封顶。 */
+/* 对话内容列恢复官方响应式模型（官方源码：--dsh-chat-content-width =
+   var(--dsh-chat-user-width, clamp(680px, 列宽×64%, 920px))，官方默认随列宽
+   自适应、下限 680）。历史拖拽偏好是固定像素（640px），会盖掉官方响应式——
+   清除之，交还官方模型；对话列底线按官方内容下限提到 680px。 */
 body .wSkVaW_root {
-  --dsh-conversation-column-width: min(100%, 900px) !important;
-  --dsh-chat-user-width: min(100%, 640px) !important;
+  --dsh-chat-user-width: unset !important;
+}
+body .pI_x6G_centerCol {
+  min-width: 680px;
 }
 
 /* Fixed 252 px sidebar width across all color schemes and presets. */
