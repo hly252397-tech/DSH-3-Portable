@@ -4,6 +4,10 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.65 Portable Integration — 2026-09-12
+
+- Fixed the rc.2 new-frontend (dsh-web-frontend,  module family) workspace tab menu overflowing over the portable sidebar: the menu is fixed-positioned with a JS right-aligned anchor, so a button at the strip's left edge pushed the menu's left rim into the sidebar zone. The theme pins the menu's left to 260px via module-prefix matching, after reviewing the new frontend's CSS source ( rule).
+
 ## 1.0.64 Portable Integration — 2026-09-12
 
 - The native browser panel's reported-bounds path (when the page reports the card placeholder rect) was **not** going through `capBrowserWorkspacePanelWidth` — only the ratio-derived fallback was. This meant the native card could still render wider than `viewport − 900px` when the page's placeholder was itself too wide (the in-page clamp caught the in-page panel, but the native view mirrored the pre-clamp bounds). Fix: `normalizeBrowserPanelBounds` now clamps the reported width through the same `viewport − 900px` constraint before returning, so both paths enforce the conversation protection symmetrically. Also reinforced the shell's ratio cap from 0.55 to 0.48 and added `MAXIMUM_BROWSER_WIDTH_RATIO` as a named constant.

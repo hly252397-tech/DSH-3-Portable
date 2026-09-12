@@ -15,6 +15,7 @@ test('工作台面板宽度被钳制，对话列保留官方内容下限', async
   assert.match(css, /body \.dcu-home-cards \{\s*flex-wrap: wrap !important;/)
 })
 
+// 0.1.5-rc.2 新前端的标签菜单 fixed 定位、JS 右对齐——左缘会伸进侧栏区，钳到侧栏之外。
 test('对话内容列恢复官方响应式模型，清除历史拖拽偏好', async () => {
   const css = await readFile(join(process.cwd(), 'assets/theme.css'), 'utf8')
   // 官方模型：--dsh-chat-content-width = var(--dsh-chat-user-width, clamp(680, 64%, 920))
@@ -22,4 +23,12 @@ test('对话内容列恢复官方响应式模型，清除历史拖拽偏好', as
   assert.match(css, /body \.wSkVaW_root \{\s*--dsh-chat-user-width: unset !important;/)
   // 我方 min(100%, 900px) 覆盖已移除（与官方模型冲突）
   assert.doesNotMatch(css, /--dsh-conversation-column-width: min\(100%, 900px\)/)
+})
+
+test('rc.2 新前端的标签菜单不越出便携侧栏区', async () => {
+  const css = await readFile(join(process.cwd(), 'assets/theme.css'), 'utf8')
+  // _menu_17p4l_444（fixed、JS 右对齐锚点）在按钮位于标签条左端时左缘伸进侧栏。
+  // 用模块前缀匹配本构建系列，强制左对齐到侧栏之外（260px）。
+  assert.match(css, /body \[class\*="_menu_17p4l"\] \{\s*left: 260px !important;/)
+  assert.match(css, /right: auto !important;/)
 })

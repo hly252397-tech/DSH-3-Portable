@@ -669,6 +669,15 @@ body .pI_x6G_centerCol {
   min-width: 680px;
 }
 
+/* 0.1.5-rc.2 新前端（dsh-web-frontend）的工作台标签菜单（_menu_17p4l_444，
+   position:fixed）由 JS 按锚点右对齐计算 left——按钮在标签条左端时菜单左缘
+   会伸进便携侧栏区（2026-09-12 实证）。add 按钮固定在标签条左端（侧栏右缘
+   之外），菜单强制左对齐到侧栏之外即可；类名哈希随构建变化，用前缀匹配。 */
+body [class*="_menu_17p4l"] {
+  left: 260px !important;
+  right: auto !important;
+}
+
 /* 首页卡片行允许换行：官方内容下限 680px 内四张卡 (~650px) 可容纳，
    换行仅作为更窄窗口下的兜底（正常不再触发）。 */
 body .dcu-home-cards {
