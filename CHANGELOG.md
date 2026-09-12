@@ -4,6 +4,10 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.60 Portable Integration — 2026-09-12
+
+- Narrow-window pass on the user's own screenshots: the previous clamp still granted the workbench panel up to `100vw − 740px`, which at a 2000px window left the conversation at its 420px floor with home cards clipped mid-card. The panel cap is now `clamp(340px, calc(100vw − 900px), 1100px)` — an 1100px absolute maximum (the dragged 1075px still fits on wide screens) that yields space first as the window narrows (measured: panel 460 / conversation 508 at a 1450px window, zero overflow). The home cards row also wraps now (`flex-wrap: wrap`), degrading to a 2×2 grid instead of being clipped.
+
 ## 1.0.59 Portable Integration — 2026-09-12
 
 - Fixed the root cause of the clipped conversation content (titles and cards cut in half at narrow widths): the conversation root carries inline persisted pixel widths from the retired width-handle era (`--dsh-conversation-column-width: 1035px`, `--dsh-chat-user-width: 640px`), so whenever the container shrank below those pixels the content overflowed and was clipped. The theme now overrides them responsively (`min(100%, 900px)` / `min(100%, 640px)`): the content fills its container at any width and caps at a readable 900px line length on wide screens. Verified live: container 623px → content 623px, zero clipping.
