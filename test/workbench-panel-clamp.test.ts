@@ -12,3 +12,12 @@ test('工作台面板宽度被钳制，对话列保留可用下限', async () =>
   assert.match(css, /body \.nArs4W_panel \{\s*max-width: calc\(100vw - 740px\) !important;/)
   assert.match(css, /body \.pI_x6G_centerCol \{\s*min-width: 420px;/)
 })
+
+test('对话内容列不再使用持久化像素宽度，窄容器下不再裁切', async () => {
+  const css = await readFile(join(process.cwd(), 'assets/theme.css'), 'utf8')
+  // 宽度把手时代拖拽后内联持久化的像素值（--dsh-conversation-column-width: 1035px 之类）
+  // 会在容器变窄时把内容列溢出裁切（标题/卡片切一半）。把手已退役，内容列响应式：
+  // 填满容器、上限 900px；用户气泡同理封顶 640px。
+  assert.match(css, /body \.wSkVaW_root \{\s*--dsh-conversation-column-width: min\(100%, 900px\) !important;/)
+  assert.match(css, /--dsh-chat-user-width: min\(100%, 640px\) !important;/)
+})

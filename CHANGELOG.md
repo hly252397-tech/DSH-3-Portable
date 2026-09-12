@@ -4,6 +4,10 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.59 Portable Integration — 2026-09-12
+
+- Fixed the root cause of the clipped conversation content (titles and cards cut in half at narrow widths): the conversation root carries inline persisted pixel widths from the retired width-handle era (`--dsh-conversation-column-width: 1035px`, `--dsh-chat-user-width: 640px`), so whenever the container shrank below those pixels the content overflowed and was clipped. The theme now overrides them responsively (`min(100%, 900px)` / `min(100%, 640px)`): the content fills its container at any width and caps at a readable 900px line length on wide screens. Verified live: container 623px → content 623px, zero clipping.
+
 ## 1.0.58 Portable Integration — 2026-09-12
 
 - GitHub API rate limiting (HTTP 403/429 from the unauthenticated `releases/latest` call) no longer renders as a red "update failed": the check now keeps the previous conclusion (up-to-date / available, whichever was last confirmed), refreshes the check timestamp with a "rate limited, will retry" note, and only surfaces the `RELEASE_RATE_LIMITED` code. High-frequency checking (restarts × check cycles × manual) exhausts the 60/hour anonymous quota easily — that is a transient condition, not a broken release.
