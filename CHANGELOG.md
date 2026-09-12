@@ -4,6 +4,12 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.56 Portable Integration — 2026-09-12
+
+- Fixed the subagent "task manager" panel squeezing the conversation into an unusable sliver: better-sidebar clamps its draggable panel width only to the viewport (`clampWidth` max = `innerWidth`), so a wide drag (or a restored stale width) plus the `autoOpenSubagent` auto-open left the conversation column at min-content (text wrapping one character per line). `theme.css` now clamps the workbench panel to 70vw and gives the conversation column a 420px floor; verified against the live DOM by persisting a 2500px panel width and measuring.
+- The plugin market upgraded `@michengai/dsh-codex-ui` to 1.1.2 (local 0.2.x layout gone, package now in `node_modules`). The ≥1.1 sidebar variable mappings were already in place; content-contract tests that pinned the local 0.2.x build now skip there and the retirement-selector contract resolves both layouts.
+- Re-pinned the Automation-Workbench adapter to the market-upgraded `@michengai/dsh-automation` 0.1.40 (added `maxConcurrentRuns`, schedule granularity 5→1 min, schedule form redesign): all four anchors (`apply`, runtime line, settings return line, `IconListPenOutline16`) verified unchanged, adapter rebuilt and applied to the installed client.
+
 ## 1.0.55 Portable Integration — 2026-09-12
 
 - Removed the redundant in-page close button from the desktop settings window: the window has a native titlebar, so the second X under it was noise (Esc still closes; the frameless About window keeps its in-page close as the only close affordance).

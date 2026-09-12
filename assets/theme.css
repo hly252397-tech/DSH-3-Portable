@@ -651,6 +651,17 @@ body .dcu-root button[aria-label="Collapse sidebar"] {
   pointer-events: none !important;
 }
 
+/* 工作台面板宽度钳制：better-sidebar 的拖宽只钳到视口宽（clampWidth 上限 =
+   innerWidth），拖宽一次或恢复旧状态后再被 autoOpenSubagent 自动重开，
+   对话列就会被挤到竖排（2026-09-12 实证）。面板永远不超过视口 70%，
+   对话列自身保留 420px 可用下限，两层互为兜底。 */
+body .nArs4W_panel {
+  max-width: 70vw !important;
+}
+body .pI_x6G_centerCol {
+  min-width: 420px;
+}
+
 /* Fixed 252 px sidebar width across all color schemes and presets. */
 body .dcu-root,
 body .dcu-foot {

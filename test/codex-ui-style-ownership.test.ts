@@ -7,6 +7,7 @@ import { runInNewContext } from 'node:vm'
 
 const owner = '@michengai/dsh-codex-ui'
 // 前两条用例读取实机 profile 产物与历史运行时槽；全新检出（如 CI）没有这些文件时跳过。
+// 样式注入计数等深度契约是本地 0.2.x 产物专有的；市场安装的 1.1+ 布局见下方退役契约用例。
 const liveClientPath = join(process.cwd(), 'Data/DSH/profiles/web/local/dsh-codex-ui/lib/client.js')
 const liveLoaderPath = join(process.cwd(), 'Data/Runtime/Harness/slots/0.1.2-alpha.5-cb08109a63a4f05b/node_modules/@deepseek-ai/dsh-client-modules/lib/client.js')
 
@@ -78,7 +79,8 @@ test('对话宽度把手（新旧两代命名空间）与收缩侧栏按钮保�
   // 收起侧栏按钮退役：收起归双击 Logo（desktop 桥），展开保留在对话顶栏按钮。
   assert.match(css, /button\[aria-label="收缩侧边栏"\]/)
   assert.match(css, /button\[aria-label="Collapse sidebar"\]/)
-  // 与实装 codex-ui 的文案契约：改名/改文案时这里失败，提示同步 theme.css 选择器。
+  // 与实装 codex-ui 的文案契约（本地 0.2.x 或市场 1.1+ 任一布局）：改名/改文案时这里失败，
+  // 提示同步 theme.css 选择器。
   if (!existsSync(liveClientPath)) return t.skip('实机 codex-ui 产物缺失（CI 全新检出）')
   const source = await readFile(liveClientPath, 'utf8')
   assert.ok(source.includes('"sidebar.collapse"'), 'codex-ui 收缩按钮文案键已变化，需同步 theme.css 的 aria 选择器')
