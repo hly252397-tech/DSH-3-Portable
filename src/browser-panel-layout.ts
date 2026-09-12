@@ -2,8 +2,25 @@ import type { BrowserPanelBounds } from './shell-contract.js'
 
 const MINIMUM_PANEL_WIDTH = 280
 const MINIMUM_PANEL_HEIGHT = 240
-const DOWNLOADS_DRAWER_EMPTY_HEIGHT = 112
 const DOWNLOADS_DRAWER_MAX_HEIGHT = 248
+/** 浏览器工作台面板的绝对宽度上限：无论比例被拖到多大，面板都不得吃掉
+ * 对话区的舒适宽度（2026-09-12 实证：0.75 比例上限在宽屏给面板 75% 宽度，
+ * 对话列被挤到底线）。视口 − 900px 保证对话列至少 560px + 侧栏 + 图标轨。 */
+const MAXIMUM_PANEL_WIDTH_MARGIN = 900
+
+/**
+ * Cap a requested browser workspace panel width so the panel never consumes
+ * the conversation area: at most `viewportWidth - 900px` (the remainder keeps
+ * the icon rail, the 252px sidebar and a 560px conversation floor), and never
+ * below the panel's own 280px minimum (very narrow windows hide the panel
+ * through the renderer instead).
+ */
+export function capBrowserWorkspacePanelWidth(viewportWidth: number, requestedWidth: number): number {
+  const maximum = Math.max(280, viewportWidth - MAXIMUM_PANEL_WIDTH_MARGIN)
+  return Math.min(requestedWidth, maximum, Math.max(280, viewportWidth))
+}
+
+const DOWNLOADS_DRAWER_EMPTY_HEIGHT = 112
 const DOWNLOADS_DRAWER_HEADER_AND_PADDING = 58
 const DOWNLOADS_DRAWER_ROW_HEIGHT = 52
 

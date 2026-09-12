@@ -34,7 +34,7 @@ import { isChineseLocale, localizedShellActions, localizedShellMenus, normalizeS
 import { SHELL_BAR_HEIGHT, SHELL_IPC, type BrowserDownloadState, type BrowserPageSnapshot, type BrowserPanelBounds, type BrowserPanelSnapshot, type BrowserShellState, type BrowserTabState, type DshNavigationState, type DshShellActionId, type ShellBootstrap, type ShellMenuPopupRequest, type ShellState } from './shell-contract.js'
 import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayAccessThemePreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeBrowserIpc, mayInvokeFeaturePanelsCopy, mayInvokeShellAction, mayManageBrowserPanel, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility, type ShellRendererKind } from './shell-ipc-policy.js'
 import { FEATURE_PANEL_CATEGORIES, FEATURE_PANELS } from './feature-panels.js'
-import { normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight } from './browser-panel-layout.js'
+import { capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight } from './browser-panel-layout.js'
 import { normalizeNativeBrowserRequest } from './native-browser-request.js'
 import { clearStaleDshAuthCookies } from './dsh-session-cookies.js'
 import { DEFAULT_DESKTOP_THEME_PREFERENCES, DESKTOP_THEME_PALETTES, loadDesktopThemePreferences, normalizeDesktopThemeSnapshot, saveDesktopThemePreferences, type DesktopColorScheme, type DesktopThemePreference, type DesktopThemePreferences } from './desktop-theme.js'
@@ -262,6 +262,10 @@ function loadBrowserWorkspace(): BrowserWorkspaceFile | null {
   try {
     const parsed = JSON.parse(readFileSync(browserWorkspacePath(), 'utf8')) as BrowserWorkspaceFile
     if (!Array.isArray(parsed.tabs)) return null
+    // 历史遗留的超宽比例（旧上限 0.75）在加载时收敛到新上限，避免重启后仍占大半窗。
+    if (typeof parsed.browserWidthRatio === 'number' && parsed.browserWidthRatio > 0.55) {
+      parsed.browserWidthRatio = 0.55
+    }
     return parsed
   } catch {
     return null
@@ -1314,7 +1318,7 @@ function layoutDshView(window: BrowserWindow): void {
 function browserWorkspacePanelBounds(viewportWidth: number, viewportHeight: number): BrowserPanelBounds {
   const reported = normalizeBrowserPanelBounds(browserPanelBounds, viewportWidth, viewportHeight)
   if (reported !== undefined) return reported
-  const width = browserMaximized ? viewportWidth : Math.min(viewportWidth, Math.max(280, Math.round(viewportWidth * browserWidthRatio)))
+  const width = browserMaximized ? viewportWidth : capBrowserWorkspacePanelWidth(viewportWidth, Math.max(280, Math.round(viewportWidth * browserWidthRatio)))
   return { x: Math.max(0, viewportWidth - width), y: 0, width, height: viewportHeight }
 }
 
@@ -2112,8 +2116,9 @@ function installShellIpc(): void {
     if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
     if (typeof ratio !== 'number' || !Number.isFinite(ratio)) return
     const windowWidth = Math.max(960, mainWindow?.getContentBounds().width ?? 960)
+    // 比例上限 0.55：面板最多占窗口的 55%（WorkBuddy 参照比例），对话区保底 ~40%
     const minimumRatio = 320 / windowWidth
-    const maximumRatio = Math.min(0.75, (windowWidth - 480) / windowWidth)
+    const maximumRatio = Math.min(0.55, (windowWidth - 900) / windowWidth)
     browserWidthRatio = Math.max(minimumRatio, Math.min(maximumRatio, ratio))
     browserMaximized = false
     relayout()

@@ -4,6 +4,10 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.62 Portable Integration — 2026-09-12
+
+- Applied the same conversation-protection clamp to the shell's **native** browser workspace panel, which page CSS cannot reach: the width ratio cap drops from 0.75 to 0.55 of the window, and the ratio-derived width is additionally hard-capped at `viewport − 900px` (`capBrowserWorkspacePanelWidth`), so the native panel can never consume the conversation area regardless of how the ratio was dragged. A legacy persisted ratio above 0.55 is clamped at load. This closes the gap where the in-page clamp (1.0.56–1.0.61) governed better-sidebar's in-page panel while the native card followed its own ratio.
+
 ## 1.0.61 Portable Integration — 2026-09-12
 
 - Re-proportioned the narrow-window layout using the user's reference (WorkBuddy): the conversation column floor rises from 420px to a comfortable 560px, the workbench panel takes the remainder capped at `calc(100vw − 1000px)`, and below a ~1040px viewport the panel hides entirely so the conversation owns the window. The panel yields first; the conversation floor yields last.

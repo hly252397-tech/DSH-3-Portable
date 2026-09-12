@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
-import { normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight } from '../src/browser-panel-layout.js'
+import { capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight } from '../src/browser-panel-layout.js'
 
 test('浏览器面板坐标保持在 DSH 内容视口内', () => {
   assert.deepEqual(
@@ -84,4 +84,15 @@ test('顶部外壳分隔线改用 ::after，避免被 WCO 覆盖在右侧', asyn
   assert.match(afterBody, /position\s*:\s*absolute/, '.bar::after 必须绝对定位以挂在 bar 底部')
   assert.match(afterBody, /top\s*:\s*100%/, '.bar::after 必须挂在 .bar 底沿，刚好绕过 WCO')
   assert.match(afterBody, /border-top\s*:\s*1px\s+solid\s+var\(--chrome-border\)/, '.bar::after 必须有 1px 边线，颜色与原 --chrome-border 一致')
+})
+
+test('工作台面板宽度钳制：比例再大也不超过视口余量（对话列保底）', () => {
+  // 用户把比例拖到旧上限 0.75：2560 视口下面板最多 1660（= 2560 - 900 对话保底余量）
+  assert.equal(capBrowserWorkspacePanelWidth(2560, Math.round(2560 * 0.75)), 1660)
+  // 窄窗：1450 视口 → 面板最多 550，对话列保住 ~600
+  assert.equal(capBrowserWorkspacePanelWidth(1450, 1200), 550)
+  // 比例本来不大时不加限制
+  assert.equal(capBrowserWorkspacePanelWidth(2560, 900), 900)
+  // 面板自身最小宽度 280 兜底
+  assert.equal(capBrowserWorkspacePanelWidth(900, 800), 280)
 })
