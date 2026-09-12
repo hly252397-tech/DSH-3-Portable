@@ -651,16 +651,22 @@ body .dcu-root button[aria-label="Collapse sidebar"] {
   pointer-events: none !important;
 }
 
-/* 工作台面板宽度钳制：better-sidebar 的拖宽只钳到视口宽（clampWidth 上限 =
-   innerWidth），拖宽一次或恢复旧状态后再被 autoOpenSubagent 自动重开，
-   对话列就会被挤到竖排（2026-09-12 实证）。三段式：面板绝对上限 1100px
-   （文件树 + 预览足够）、窄窗按「视口 − 900px」先让位（1450px 窗口实测
-   面板 550、对话 668）、最低 340px 兜底；对话列 420px 底线最后让位。 */
+/* 工作台面板宽度钳制（比例参照 WorkBuddy 窄窗布局：对话列保底 ~560px 舒适宽度，
+   面板拿余量）。better-sidebar 的拖宽只钳到视口宽，拖宽一次再被 autoOpenSubagent
+   自动重开就会把对话列挤到竖排（2026-09-12 实证）。规则：面板上限 = 视口 − 1000px
+   （图标轨 40 + 侧栏 252 + 对话底线 560 + 间距），窗口窄于 ~1040px 时面板整个
+   隐藏、对话独占——面板先让位，对话列底线最后让位。 */
 body .nArs4W_panel {
-  max-width: clamp(340px, calc(100vw - 900px), 1100px) !important;
+  max-width: calc(100vw - 1000px) !important;
+}
+@media (max-width: 1040px) {
+  body .nArs4W_panel {
+    display: none !important;
+    pointer-events: none !important;
+  }
 }
 body .pI_x6G_centerCol {
-  min-width: 420px;
+  min-width: 560px;
 }
 
 /* 首页卡片行允许换行：四张卡的最小内容宽度 (~650px) 超过窄窗下的对话列时，
