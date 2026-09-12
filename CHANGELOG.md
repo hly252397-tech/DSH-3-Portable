@@ -4,6 +4,11 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.58 Portable Integration — 2026-09-12
+
+- GitHub API rate limiting (HTTP 403/429 from the unauthenticated `releases/latest` call) no longer renders as a red "update failed": the check now keeps the previous conclusion (up-to-date / available, whichever was last confirmed), refreshes the check timestamp with a "rate limited, will retry" note, and only surfaces the `RELEASE_RATE_LIMITED` code. High-frequency checking (restarts × check cycles × manual) exhausts the 60/hour anonymous quota easily — that is a transient condition, not a broken release.
+- Loosened the workbench panel clamp: the 900px absolute cap from 1.0.57 locked the file-visualization panel ("固定死了"). The clamp is now a single hard floor for the conversation — the panel may occupy anything up to the viewport minus 740px (icon rail + sidebar + 420px conversation + gaps), i.e. up to ~1820px on a 2560 screen. The user decides how wide; the conversation floor is the only invariant.
+
 ## 1.0.57 Portable Integration — 2026-09-12
 
 - Refined the workbench panel clamp from the previous release: a pure `70vw` cap still let the panel take 70% of a narrow window (the conversation was left at its 420px floor with home content clipped mid-card). The cap is now `clamp(320px, calc(100vw - 740px), 900px)` — the panel never exceeds 900px in absolute terms, yields space first as the window narrows (measured 494px at a 1250px window), and only bottoms out at 320px. Verified live at 2560/1984/1234 viewports with zero horizontal overflow.

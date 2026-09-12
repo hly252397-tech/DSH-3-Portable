@@ -231,6 +231,8 @@ export class PortableDesktopUpdater {
 
   async check(): Promise<PortableDesktopUpdateState> {
     if (this.running) return this.stateValue
+    // 限流降级要在进入 checking 之前快照上一结论，否则 catch 里读到的已经是 checking。
+    const beforeCheck = this.stateValue
     await this.transition('checking', 2, 0, '正在核对 GitHub Release、版本和制品摘要。')
     try {
       const release = await fetchLatestRelease(this.fetchImpl, this.options.currentVersion, this.releaseSource)
@@ -266,6 +268,20 @@ export class PortableDesktopUpdater {
           slotRelativePath: undefined,
           errorCode: error.code,
         })
+      }
+      // GitHub 未认证 API 的速率限制（HTTP 403/429）同样不是更新器故障：今天高频
+      // 检查（重启 × 检查周期 × 手动）很容易打满 60 次/小时配额。保持检查前的结论
+      // （通常是「已是最新」或「发现新版本」），只刷新检查时间与说明，不渲染成红色失败。
+      if (error instanceof UpdateError && error.code === 'RELEASE_RATE_LIMITED') {
+        const keepPhase: PortableDesktopUpdatePhase = ['checking', 'idle', 'error'].includes(beforeCheck.phase) ? 'none' : beforeCheck.phase
+        return await this.transition(keepPhase, beforeCheck.overallProgress, beforeCheck.stageProgress,
+          'GitHub API 速率限制，本次检查跳过；上一结论保持不变，稍后自动重试。', {
+            lastCheckedAt: new Date().toISOString(),
+            ...(beforeCheck.targetVersion === undefined ? {} : { targetVersion: beforeCheck.targetVersion }),
+            ...(beforeCheck.release === undefined ? {} : { release: beforeCheck.release }),
+            ...(beforeCheck.slotRelativePath === undefined ? {} : { slotRelativePath: beforeCheck.slotRelativePath }),
+            errorCode: error.code,
+          })
       }
       return await this.fail(error instanceof UpdateError ? error.code : 'CHECK_FAILED', error, { lastCheckedAt: new Date().toISOString() })
     }
@@ -750,6 +766,9 @@ async function fetchLatestRelease(fetchImpl: typeof fetch, currentVersion: strin
     headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'DSH-3-Portable-Unified-Updater' },
     signal: AbortSignal.timeout(20_000),
   })
+  // 403/429 = GitHub 未认证配额（60 次/小时/IP）或二级限流：可恢复的暂时状态，
+  // 与「Release 真的坏了」区分开，调用方据此保持上一结论而不是渲染红色失败。
+  if (response.status === 403 || response.status === 429) throw new UpdateError('RELEASE_RATE_LIMITED', `GitHub API 速率限制（HTTP ${response.status}），稍后自动重试。`)
   if (!response.ok) throw new UpdateError('RELEASE_HTTP', `GitHub Release 返回 HTTP ${response.status}。`)
   const release = await response.json() as {
     tag_name?: unknown

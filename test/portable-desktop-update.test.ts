@@ -91,6 +91,41 @@ async function fixture(): Promise<{ archive: Buffer; requestCount: () => number;
   return { archive, requestCount: () => call, root, updater }
 }
 
+test('GitHub 速率限制（403/429）保持上一结论，不渲染成红色更新失败', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-rate-limit-'))
+  try {
+    let status = 403
+    const limited = new PortableDesktopUpdater({
+      portableRoot: root,
+      currentVersion: '1.0.0',
+      fetch: (async () => new Response('rate limited', { status })) as typeof fetch,
+    })
+    await limited.initialize()
+    // 场景一：首次检查就撞上限流——结论落到 none（不是 error），明细说明限流。
+    const first = await limited.check()
+    assert.equal(first.phase, 'none')
+    assert.equal(first.errorCode, 'RELEASE_RATE_LIMITED')
+    assert.match(first.detail, /速率限制/)
+    // 场景二：先有「发现新版本」的结论，再撞上限流——available 结论与 release 原样保留。
+    const real = await fixture()
+    await real.updater.initialize()
+    await real.updater.check()
+    assert.equal(real.updater.state.phase, 'available')
+    const thenLimited = new PortableDesktopUpdater({
+      portableRoot: real.root,
+      currentVersion: '1.0.0',
+      fetch: (async () => new Response('rate limited', { status: 403 })) as typeof fetch,
+    })
+    await thenLimited.initialize()
+    const limitedAfterAvailable = await thenLimited.check()
+    assert.equal(limitedAfterAvailable.phase, 'available')
+    assert.equal(limitedAfterAvailable.release?.version, '1.1.0')
+    assert.equal(limitedAfterAvailable.errorCode, 'RELEASE_RATE_LIMITED')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 test('统一更新器完成检测、下载、构建、部署和健康提交', async () => {
   const { root, updater } = await fixture()
   assert.equal((await updater.check()).phase, 'available')
