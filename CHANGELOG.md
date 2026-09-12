@@ -4,6 +4,10 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.57 Portable Integration — 2026-09-12
+
+- Refined the workbench panel clamp from the previous release: a pure `70vw` cap still let the panel take 70% of a narrow window (the conversation was left at its 420px floor with home content clipped mid-card). The cap is now `clamp(320px, calc(100vw - 740px), 900px)` — the panel never exceeds 900px in absolute terms, yields space first as the window narrows (measured 494px at a 1250px window), and only bottoms out at 320px. Verified live at 2560/1984/1234 viewports with zero horizontal overflow.
+
 ## 1.0.56 Portable Integration — 2026-09-12
 
 - Fixed the subagent "task manager" panel squeezing the conversation into an unusable sliver: better-sidebar clamps its draggable panel width only to the viewport (`clampWidth` max = `innerWidth`), so a wide drag (or a restored stale width) plus the `autoOpenSubagent` auto-open left the conversation column at min-content (text wrapping one character per line). `theme.css` now clamps the workbench panel to 70vw and gives the conversation column a 420px floor; verified against the live DOM by persisting a 2500px panel width and measuring.
