@@ -4,6 +4,10 @@
 
 The five most recent published versions are listed below.
 
+## 1.0.66 Portable Integration — 2026-09-13
+
+- Absorbed item 1 of the Linear DESIGN.md comparison: negative tracking token ladder in theme.css (tight/tighter/display), consumed by the settings/about/shortcuts page headings. Verified live (24px heading: normal → -0.48px) and re-recorded the UI baseline with real measurements (I027).
+
 ## 1.0.65 Portable Integration — 2026-09-12
 
 - Fixed the rc.2 new-frontend (dsh-web-frontend,  module family) workspace tab menu overflowing over the portable sidebar: the menu is fixed-positioned with a JS right-aligned anchor, so a button at the strip's left edge pushed the menu's left rim into the sidebar zone. The theme pins the menu's left to 260px via module-prefix matching, after reviewing the new frontend's CSS source ( rule).

@@ -738,6 +738,10 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
    强调色仍由 theme.js 预设写入的 --accent/--focus-ring/--tint/
    --active-bg/--cta-* 提供，本层只管中性底、边框、圆角与阴影。 */
 :root {
+  /* 负字距阶梯（参考 Linear DESIGN.md：大字号配递进负字距，em 随字号自适应）。 */
+  --chrome-tracking-tight: -0.02em;
+  --chrome-tracking-tighter: -0.03em;
+  --chrome-tracking-display: -0.0375em;
   --chrome-bg: #09090b;
   --chrome-surface: #18181b;
   --chrome-surface-2: #27272a;
