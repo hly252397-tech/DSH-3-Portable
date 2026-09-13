@@ -19,11 +19,11 @@ test('浏览器面板拒绝非有限数、标题栏外小矩形和伪数组', ()
 
 test('浏览器卡片 CSS 坐标按网页缩放转换成 DIP，不受屏幕 DPI 二次影响', () => {
   assert.deepEqual(
-    normalizeBrowserPanelBounds({ x: 936.25, y: 35, width: 763.75, height: 1035 }, 1360, 856, 0.8),
+    normalizeBrowserPanelBounds({ x: 936.25, y: 35, width: 763.75, height: 1035 }, 1920, 856, 0.8),
     { x: 749, y: 28, width: 611, height: 828 },
   )
   assert.deepEqual(
-    normalizeBrowserPanelBounds({ x: 599.2, y: 35.2, width: 488.8, height: 649.6 }, 1360, 856, 1.25),
+    normalizeBrowserPanelBounds({ x: 599.2, y: 35.2, width: 488.8, height: 649.6 }, 1920, 856, 1.25),
     { x: 749, y: 44, width: 611, height: 812 },
   )
   assert.equal(normalizeBrowserPanelBounds({ x: 0, y: 0, width: 500, height: 700 }, 1360, 856, 0.5), undefined)
