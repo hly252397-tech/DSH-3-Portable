@@ -26,6 +26,7 @@ export type ShellActionId =
   | 'zoom-out'
   | 'zoom-reset'
   | 'toggle-fullscreen'
+  | 'toggle-devtools'
   | 'whats-new'
   | 'feedback'
   | 'show-shortcuts'
@@ -98,6 +99,7 @@ export const SHELL_ACTIONS: readonly ShellActionDefinition[] = [
   { id: 'zoom-out', menu: 'view', group: 3, label: text('缩小', 'Zoom Out'), accelerator: 'CmdOrCtrl+-', globalShortcut: true },
   { id: 'zoom-reset', menu: 'view', group: 3, label: text('实际大小', 'Actual Size'), accelerator: 'CmdOrCtrl+0', globalShortcut: true },
   { id: 'toggle-fullscreen', menu: 'view', group: 4, label: text('切换全屏', 'Toggle Full Screen'), accelerator: 'F11', globalShortcut: true },
+  { id: 'toggle-devtools', menu: 'view', group: 5, label: text('开发者工具', 'Developer Tools'), accelerator: 'F12', macAccelerator: 'CmdOrCtrl+Alt+I', globalShortcut: true, keywords: text('开发者模式 调试 控制台 网络 检查元素', 'developer mode debug console network inspect') },
   { id: 'feature-panels', menu: 'view', group: 5, label: text('功能板块', 'Feature Panels'), keywords: text('开发 索引 模块 面板 文件 路径', 'dev index module file path') },
 
   { id: 'whats-new', menu: 'help', group: 0, label: text('新功能', "What's New") },
