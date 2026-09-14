@@ -9,7 +9,10 @@ test('工作台面板宽度被钳制，对话列保留官方内容下限', async
   // 接近全屏的宽度，autoOpenSubagent 自动重开就会把对话列挤到竖排（2026-09-12 实证）。
   // 官方内容下限 680px（clamp(680, 64%, 920) 的下限）→ 面板上限 = 视口 − 1040px，
   // 窗口窄于 1100px 时面板整个隐藏、对话独占。
-  assert.match(css, /body \.nArs4W_panel \{\s*max-width: calc\(100vw - 1040px\) !important;/)
+  // 2026-09-14 起改为**单一来源**：外壳（src/browser-panel-layout.ts）按同一策略常量
+  // （视口 − 1040px）算出上限、折成 CSS px 后经 --dsh-browser-panel-max-width 下发；
+  // 这里的兜底值必须与外壳常量同值（跨模块一致性由 browser-panel-layout.test.ts 钉住）。
+  assert.match(css, /body \.nArs4W_panel \{\s*max-width: var\(--dsh-browser-panel-max-width, calc\(100vw - 1040px\)\) !important;/)
   assert.match(css, /@media \(max-width: 1100px\) \{\s*body \.nArs4W_panel \{\s*display: none !important;/)
   assert.match(css, /body \.pI_x6G_centerCol \{\s*min-width: 680px;/)
   assert.match(css, /body \.dcu-home-cards \{\s*flex-wrap: wrap !important;/)

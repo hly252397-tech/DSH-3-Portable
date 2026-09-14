@@ -651,13 +651,17 @@ body .dcu-root button[aria-label="Collapse sidebar"] {
   pointer-events: none !important;
 }
 
-/* 工作台面板宽度钳制（比例参照 WorkBuddy 窄窗布局：对话列保底 ~560px 舒适宽度，
-   面板拿余量）。better-sidebar 的拖宽只钳到视口宽，拖宽一次再被 autoOpenSubagent
-   自动重开就会把对话列挤到竖排（2026-09-12 实证）。规则：面板上限 = 视口 − 1000px
-   （图标轨 40 + 侧栏 252 + 对话底线 560 + 间距），窗口窄于 ~1040px 时面板整个
-   隐藏、对话独占——面板先让位，对话列底线最后让位。 */
+/* 工作台面板宽度钳制（比例参照 WorkBuddy 窄窗布局：官方内容下限 680px
+   （clamp(680, 64%, 920) 下限）+ 图标轨 40 + 侧栏 252 + 间距 → 视口 − 1040px；
+   窗口窄于 1100px 时面板整个隐藏、对话独占——面板先让位，对话列底线最后让位）。
+   🔴 2026-09-14 修正（单一来源）：这里写的是 CSS px，而外壳（`src/browser-panel-layout.ts`
+   的 MAXIMUM_PANEL_WIDTH_MARGIN）钳的是 DIP —— 单位不同 + 数值曾不一致，缩放下卡片与
+   原生视图能差出上百像素：差出来的那条就是用户看到的右侧空白（卡片白底露出），反过来
+   视图也会压住对话列。现由外壳按同一常量算出上限、**折成 CSS px** 后写成
+   `--dsh-browser-panel-max-width` 下发；变量缺失（旧外壳/独立浏览器）时下面的兜底
+   与外壳常量保持一致。 */
 body .nArs4W_panel {
-  max-width: calc(100vw - 1040px) !important;
+  max-width: var(--dsh-browser-panel-max-width, calc(100vw - 1040px)) !important;
 }
 @media (max-width: 1100px) {
   body .nArs4W_panel {

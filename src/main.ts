@@ -34,7 +34,7 @@ import { isChineseLocale, localizedShellActions, localizedShellMenus, normalizeS
 import { SHELL_BAR_HEIGHT, SHELL_IPC, type BrowserDownloadState, type BrowserPageSnapshot, type BrowserPanelBounds, type BrowserPanelSnapshot, type BrowserShellState, type BrowserTabState, type DshNavigationState, type DshShellActionId, type ShellBootstrap, type ShellMenuPopupRequest, type ShellState } from './shell-contract.js'
 import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayAccessThemePreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeBrowserIpc, mayInvokeFeaturePanelsCopy, mayInvokeShellAction, mayManageBrowserPanel, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility, type ShellRendererKind } from './shell-ipc-policy.js'
 import { FEATURE_PANEL_CATEGORIES, FEATURE_PANELS } from './feature-panels.js'
-import { capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight } from './browser-panel-layout.js'
+import { browserPanelMaxWidthCss, capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight } from './browser-panel-layout.js'
 import { normalizeNativeBrowserRequest } from './native-browser-request.js'
 import { clearStaleDshAuthCookies } from './dsh-session-cookies.js'
 import { DEFAULT_DESKTOP_THEME_PREFERENCES, DESKTOP_THEME_PALETTES, loadDesktopThemePreferences, normalizeDesktopThemeSnapshot, saveDesktopThemePreferences, type DesktopColorScheme, type DesktopThemePreference, type DesktopThemePreferences } from './desktop-theme.js'
@@ -238,6 +238,10 @@ let activeBrowserTabId: string | null = null
 let browserVisible = false
 let browserPanelOccluded = false
 let browserPanelBounds: BrowserPanelBounds | undefined
+/** 上一次下发给页面的面板宽度上限（CSS px）；`-1` 表示本文档尚未下发（导航后需重发）。 */
+let browserPanelMaxCss = -1
+/** 上一次算出的面板宽度（DIP），用于导航后按同一把尺子重新下发。 */
+let browserPanelWidthDip = 0
 let browserPanelOwner: string | undefined
 let browserWidthRatio = BROWSER_DEFAULT_WIDTH_RATIO
 let browserMaximized = false
@@ -1365,6 +1369,21 @@ function requireDshView(): WebContentsView {
   return dshView
 }
 
+/** 把面板宽度上限下发给页面（页面用 `--dsh-browser-panel-max-width` 钳住占位卡片）。
+ *  目的：页面卡片、外壳 chrome、原生页面视图**共用同一把尺子**（此前页面自带
+ *  `100vw - 1040px`、外壳用 `viewport - 900px`，两个数还会差一个缩放因子，
+ *  于是右侧露出卡片白底 / 视图压住对话列）。只写一个 CSS 变量，不进页面业务逻辑。 */
+function publishBrowserPanelMaxWidth(panelWidthDip: number): void {
+  browserPanelWidthDip = panelWidthDip
+  if (dshView === undefined || dshView.webContents.isDestroyed()) return
+  const css = browserPanelMaxWidthCss(panelWidthDip, dshView.webContents.getZoomFactor())
+  if (css <= 0 || css === browserPanelMaxCss) return
+  browserPanelMaxCss = css
+  void dshView.webContents
+    .executeJavaScript(`document.documentElement.style.setProperty('--dsh-browser-panel-max-width', '${css}px')`, true)
+    .catch(() => { browserPanelMaxCss = -1 })
+}
+
 function layoutDshView(window: BrowserWindow): void {
   const bounds = window.getContentBounds()
   if (mainWindowContentSuppressed) {
@@ -1380,6 +1399,7 @@ function layoutDshView(window: BrowserWindow): void {
   }
   const dshHeight = Math.max(0, bounds.height - SHELL_BAR_HEIGHT)
   const panel = browserWorkspacePanelBounds(bounds.width, dshHeight)
+  publishBrowserPanelMaxWidth(panel.width)
   const visible = browserVisible && !browserPanelOccluded && !dshSettingsDialogVisible
     && (browserPanelOwner === undefined || browserPanelBounds !== undefined)
   dshView?.setVisible(true)
@@ -1730,6 +1750,9 @@ async function applyDshDesktopTheme(view: WebContentsView): Promise<void> {
     pending = (async () => {
       await view.webContents.insertCSS(readFileSync(resolveShellAsset('theme.css'), 'utf8'))
       if (!view.webContents.isDestroyed()) view.webContents.send(SHELL_IPC.desktopTheme, desktopThemePayload())
+      // 导航后 DOM 重置（insertCSS 也会失效重插），CSS 变量随之丢失 → 按同一把尺子重发一次。
+      browserPanelMaxCss = -1
+      if (view === dshView && browserPanelWidthDip > 0) publishBrowserPanelMaxWidth(browserPanelWidthDip)
     })()
     dshDocumentThemeLoads.set(view, pending)
   }

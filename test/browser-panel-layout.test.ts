@@ -1,14 +1,40 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import test from 'node:test'
 
-import { capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight } from '../src/browser-panel-layout.js'
+import { MAXIMUM_PANEL_WIDTH_MARGIN, browserPanelMaxWidthCss, capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight } from '../src/browser-panel-layout.js'
 
 test('浏览器面板坐标保持在 DSH 内容视口内', () => {
   assert.deepEqual(
     normalizeBrowserPanelBounds({ x: 900, y: 12, width: 500, height: 700 }, 1360, 860),
-    { x: 900, y: 12, width: 460, height: 700 },
+    { x: 900, y: 12, width: 320, height: 700 },
   )
+})
+
+test('面板宽度上限折成 CSS px：页面卡片与原生视图共用同一把尺子', () => {
+  // 外壳算出的是 DIP，页面吃的是 CSS px —— 必须按网页缩放折算，否则缩放下卡片与视图
+  // 会差出上百像素（2026-09-14 实机截图：右侧露出卡片白底）。
+  assert.equal(browserPanelMaxWidthCss(1320, 1), 1320)
+  assert.equal(browserPanelMaxWidthCss(1320, 0.8), 1650)
+  assert.equal(browserPanelMaxWidthCss(1320, 1.25), 1056)
+  assert.equal(browserPanelMaxWidthCss(120, 1), 280)
+  assert.equal(browserPanelMaxWidthCss(0, 1), 0)
+  assert.equal(browserPanelMaxWidthCss(1320, 0), 0)
+  assert.equal(browserPanelMaxWidthCss(Number.NaN, 1), 0)
+})
+
+test('外壳与页面共用同一套面板宽度策略，不再各写一个常量', async () => {
+  const css = await readFile(join(process.cwd(), 'assets/theme.css'), 'utf8')
+  const start = css.indexOf('body .nArs4W_panel {')
+  assert.notEqual(start, -1, 'theme.css 必须保留工作台面板宽度钳制')
+  const rule = css.slice(start, css.indexOf('}', start) + 1)
+  assert.match(rule, /var\(--dsh-browser-panel-max-width/)
+  const fallback = /calc\(100vw - (\d+)px\)/.exec(rule)?.[1]
+  assert.ok(fallback, 'theme.css 的兜底必须写成 calc(100vw - Npx)')
+  // 这才是本轮修的那个 bug：两侧曾分别写 1040 与 900，且一个是 CSS px、一个是 DIP。
+  assert.equal(Number(fallback), MAXIMUM_PANEL_WIDTH_MARGIN)
+  assert.equal(capBrowserWorkspacePanelWidth(MAXIMUM_PANEL_WIDTH_MARGIN + 400, 99999), 400)
 })
 
 test('浏览器面板拒绝非有限数、标题栏外小矩形和伪数组', () => {
@@ -87,10 +113,14 @@ test('顶部外壳分隔线改用 ::after，避免被 WCO 覆盖在右侧', asyn
 })
 
 test('工作台面板宽度钳制：比例再大也不超过视口余量（对话列保底）', () => {
-  // 用户把比例拖到旧上限 0.75：2560 视口下面板最多 1660（= 2560 - 900 对话保底余量）
-  assert.equal(capBrowserWorkspacePanelWidth(2560, Math.round(2560 * 0.75)), 1660)
-  // 窄窗：1450 视口 → 面板最多 550，对话列保住 ~600
-  assert.equal(capBrowserWorkspacePanelWidth(1450, 1200), 550)
+  // 2026-09-14 统一到页面侧那条策略（依据**官方内容下限 680px**，见 assets/theme.css 与
+  // workbench-panel-clamp.test.ts）：上限 = 视口 − MAXIMUM_PANEL_WIDTH_MARGIN(1040)。
+  // 此前外壳写 900（按 ~560 保底）、页面写 1040（按官方 680），**两侧各写一套且单位还不同**
+  // （DIP vs CSS px）——缩放下会差出上百像素，表现为右侧露出卡片白底或视图压住对话列。
+  // 用户把比例拖到 0.75：2560 视口下面板最多 1520（= 2560 − 1040）
+  assert.equal(capBrowserWorkspacePanelWidth(2560, Math.round(2560 * 0.75)), 2560 - MAXIMUM_PANEL_WIDTH_MARGIN)
+  // 窄窗：1450 视口 → 面板最多 410，对话列保住官方下限
+  assert.equal(capBrowserWorkspacePanelWidth(1450, 1200), 1450 - MAXIMUM_PANEL_WIDTH_MARGIN)
   // 比例本来不大时不加限制
   assert.equal(capBrowserWorkspacePanelWidth(2560, 900), 900)
   // 面板自身最小宽度 280 兜底
