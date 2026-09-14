@@ -15,7 +15,7 @@ const projectRoot = resolve(import.meta.dirname, '..', '..')
 const nodeRoot = join(projectRoot, 'runtime-node')
 const pluginRoot = join(projectRoot, 'runtime-plugins')
 const officialRuntimeRoot = join(projectRoot, 'runtime-dsh')
-const bundledPnpmVersion = '11.24.0'
+const bundledPnpmVersion = '11.26.0'
 
 /** 待清理目录的回收区（与目标同卷，位于便携数据区，不会被 electron-builder 打进包）。 */
 const recycleRoot = join(projectRoot, 'Data', 'Temp', 'prepare-recycle')

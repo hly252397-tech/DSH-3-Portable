@@ -40,6 +40,10 @@ interface SeedPlanInput {
   declaredPackages: readonly string[]
   installedPackages: readonly string[]
   storeExists: boolean
+  /** 实际安装版本。缺省时退化为「只补缺失」，不按基线升级（保持旧行为，便于既有调用方）。 */
+  installedVersions?: readonly { packageName: string; version?: string }[]
+  /** 用户以 link:/file:/portal: 声明的本地包（本地定制插件）：随包基线永不替换它们。 */
+  localLinkPackages?: readonly string[]
 }
 
 interface SeedPnpmOptions {
@@ -87,12 +91,28 @@ export function communitySeedCatalog(catalog: readonly BundledPlugin[]): Bundled
   return catalog.filter((plugin) => !isOfficialProfileDependency(plugin.packageName))
 }
 
-/** 社区插件必须写进 profile dependencies 才能单独更新；套件改为拆成子插件。官方包不进 Web profile。 */
+/** 社区插件必须写进 profile dependencies 才能单独更新；套件改为拆成子插件。官方包不进 Web profile。
+ *
+ * 2026-09-14：随包清单长期陈旧导致「清单落后于实机、离线包把插件装回老版本」，因此补种
+ * 不再只补缺失，还按随包基线升级**低于**基线的已装插件（上游 v1.0.55 的同名行为）。
+ * **两道护栏**：① 已装版本高于或不低于基线时一律不动（只升不降）；② 用户以 `link:`/`file:`
+ * 声明的本地定制包完全不参与基线比较——照基线替换它们等于覆盖用户定制。
+ */
 export function planBundledPluginSeed(input: SeedPlanInput): SeedPlan {
   if (!input.storeExists) return { action: 'skip', reason: 'missing-store' }
   const declared = new Set(input.declaredPackages)
   const community = communitySeedCatalog(input.catalog)
-  const missing = community.filter((plugin) => !declared.has(plugin.packageName))
+  const localLinks = new Set(input.localLinkPackages ?? [])
+  const versions = input.installedVersions === undefined
+    ? undefined
+    : new Map(input.installedVersions.map((item) => [item.packageName, item.version]))
+  const missing = community.filter((plugin) => {
+    if (localLinks.has(plugin.packageName)) return false
+    if (!declared.has(plugin.packageName)) return true
+    if (versions === undefined) return false
+    const installed = versions.get(plugin.packageName)
+    return installed === undefined || compareReleaseVersions(installed, plugin.version) < 0
+  })
   const suitePresent = declared.has(SUITE_PACKAGE) || input.installedPackages.includes(SUITE_PACKAGE)
   if (suitePresent) return { action: 'replace-suite', packages: missing }
   if (missing.length === 0) return { action: 'skip', reason: 'already-installed' }
@@ -554,6 +574,22 @@ async function readInstalledPackageVersions(profileDir: string, names: readonly 
   return installed
 }
 
+/** 用户以 `link:` / `file:` / `portal:` 声明的本地包——本仓库的定制插件全走 `link:local/…`。
+ *  它们必须完全跳过随包基线：照基线「升级」会把本地定制件换成 npm 发布包，等于覆盖用户定制。 */
+async function readLocalLinkPackages(profileDir: string): Promise<string[]> {
+  try {
+    const manifest = JSON.parse(await readFile(join(profileDir, 'package.json'), 'utf8')) as {
+      dependencies?: Record<string, string>
+    }
+    return Object.entries(manifest.dependencies ?? {})
+      .filter(([, spec]) => typeof spec === 'string' && /^(?:link|file|portal):/i.test(spec.trim()))
+      .map(([packageName]) => packageName)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+    throw error
+  }
+}
+
 export async function seedBundledPlugins(options: SeedOptions): Promise<SeedResult> {
   const seeded: string[] = []
   if (options.desktopRuntimeDir !== undefined) {
@@ -684,15 +720,21 @@ async function seedCommunityPlugins(options: SeedOptions): Promise<SeedResult> {
   await ensureProfileScaffold(options.profileDir)
   const { declared, installed } = await readProfilePluginNames(options.profileDir)
   const catalog = options.catalog ?? BUNDLED_PLUGINS
+  const community = communitySeedCatalog(catalog)
+  // 基线升级需要实际安装版本；本地 link/file 定制包单独列出，永不参与基线比较。
+  const installedVersions = await readInstalledPackageVersions(options.profileDir, community.map((plugin) => plugin.packageName))
+  const localLinkPackages = await readLocalLinkPackages(options.profileDir)
   const plan = planBundledPluginSeed({
     catalog,
     declaredPackages: declared,
     installedPackages: installed,
     storeExists: existsSync(options.pluginStoreDir),
+    installedVersions,
+    localLinkPackages,
   })
   const runner = options.runner ?? ((pluginArgs) => runPnpm(options, pluginArgs))
   if (plan.action === 'skip') {
-    await repairIgnoredBundledBuilds(options, communitySeedCatalog(catalog), runner)
+    await repairIgnoredBundledBuilds(options, community, runner)
     return { seeded: [], skipped: plan.reason }
   }
   const storeDir = resolvePnpmStoreDir(options.profileDir, existsSync(options.pluginStoreDir) ? options.pluginStoreDir : undefined)

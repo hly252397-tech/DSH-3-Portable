@@ -27,24 +27,46 @@ export const OFFICIAL_LAUNCH_PEERS: readonly BundledPlugin[] = [
   { packageName: '@deepseek-ai/dsh-timeout', version: OFFICIAL_DSH_VERSION },
   { packageName: '@deepseek-ai/dsh-invariants', version: OFFICIAL_DSH_VERSION },
 ]
-/** 随桌面端离线仓库分发的十个社区插件和插件市场组件。 */
+/** 随桌面端离线仓库分发的社区插件与插件市场组件。
+ *
+ * 2026-09-14 修正：本清单长期陈旧（Codex UI 曾记为 0.2.102，而实机实际已到 1.1.x），
+ * 会使离线包与全新安装把插件装回老版本。现按上游 v1.0.60 的目标版本对齐实机实际，
+ * 并补齐此前缺失的 codex-pet / btw / simplify / code-review / pua / usage-billing。
+ *
+ * 刻意保留的一处例外：
+ * - `dsh-better-sidebar`：本仓库把它作为**本地定制 link** 分发（`link:local/dsh-better-sidebar`），
+ *   版本仍锁 0.18.0；升到上游的 0.19.1 会让基线升级把本地定制件换成 npm 包，
+ *   等于覆盖用户定制。详见 `docs/03-技术架构/UI定制维护契约.md`。
+ * - `@michengai/dsh-automation`：**0.1.42（上游 v1.0.60 目标）**。用户侧的自动化工作台补丁
+ *   （`Customize/Automation-Workbench/build.mjs`）原以 `upstreamHash` 钉死上游 0.1.40 的
+ *   `lib/client.js`，升 0.1.42 后补丁会以「Unsupported automation client」拒绝生效、UI 基线
+ *   也会因该文件漂移而失败（2026-09-14 实测 0.1.42 = b4839315…、0.1.40 = 9319c634…）。
+ *   经用户明确授权，已逐项核对 0.1.42 的三锚点（apply / runtime / 原生页面返回行）各出现 1 次、
+ *   `import_react11` 别名未漂移、退役标记零残留后，把 `upstreamHash` 重钉到 0.1.42 并记录在案。
+ */
 export const BUNDLED_PLUGINS: readonly BundledPlugin[] = [
-  { packageName: '@michengai/dsh-codex-ui', version: '0.2.102' },
-  { packageName: '@michengai/dsh-im-connect', version: '0.1.34' },
-  { packageName: '@michengai/dsh-automation', version: '0.1.27' },
-  { packageName: '@michengai/dsh-skills-manager', version: '0.1.38' },
-  { packageName: '@michengai/dsh-archive-manager', version: '0.1.29' },
-  { packageName: '@michengai/dsh-agency-agents', version: '0.1.30' },
-  { packageName: 'dsh-context', version: '0.41.2' },
+  { packageName: '@michengai/dsh-codex-ui', version: '1.1.7' },
+  { packageName: '@michengai/dsh-im-connect', version: '0.1.49' },
+  { packageName: '@michengai/dsh-automation', version: '0.1.42' },
+  { packageName: '@michengai/dsh-skills-manager', version: '0.1.50' },
+  { packageName: '@michengai/dsh-archive-manager', version: '0.1.42' },
+  { packageName: '@michengai/dsh-agency-agents', version: '0.1.42' },
+  { packageName: '@michengai/dsh-codex-pet', version: '0.1.5' },
+  { packageName: '@michengai/dsh-btw', version: '0.1.7' },
+  { packageName: '@michengai/dsh-simplify', version: '0.1.4' },
+  { packageName: '@michengai/dsh-code-review', version: '0.1.0' },
+  { packageName: '@michengai/dsh-pua', version: '0.3.11' },
+  { packageName: 'dsh-context', version: '0.52.1' },
   { packageName: 'dsh-better-sidebar', version: '0.18.0' },
-  { packageName: 'dsh-mcp-connector', version: '0.2.32' },
-  { packageName: 'dshmarket', version: '1.41.0' },
+  { packageName: 'dsh-mcp-connector', version: '0.2.47' },
+  { packageName: '@kenz1117/dsh-ui-usage-billing', version: '1.3.0' },
+  { packageName: 'dshmarket', version: '1.46.1' },
 ]
 
 /** 离线 store 只放社区插件，官方运行时单独预装，避免安装包把同一份依赖打两遍。 */
 export const STORE_PACKAGES: readonly BundledPlugin[] = BUNDLED_PLUGINS
 
-/** 首次补种的完整清单：官方运行时和十个社区插件/市场组件。 */
+/** 首次补种的完整清单：官方运行时加全部社区插件/市场组件。 */
 export const SEEDED_PACKAGES: readonly BundledPlugin[] = [OFFICIAL_RUNTIME, ...BUNDLED_PLUGINS]
 
 export const OFFICIAL_PROFILE_BUNDLES = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'] as const

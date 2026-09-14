@@ -45,6 +45,75 @@ test('目录插件都已在 profile 中时跳过补种', () => {
   assert.deepEqual(plan, { action: 'skip', reason: 'already-installed' })
 })
 
+test('低于随包基线的已装插件升到基线，高于基线的一律不动', () => {
+  const plan = planBundledPluginSeed({
+    catalog,
+    declaredPackages: catalog.map(item => item.packageName),
+    installedPackages: catalog.map(item => item.packageName),
+    storeExists: true,
+    installedVersions: [
+      { packageName: '@michengai/dsh-codex-ui', version: '0.2.10' },
+      { packageName: '@michengai/dsh-im-connect', version: '0.9.9' },
+    ],
+  })
+  // 只升不降：0.2.10 < 0.2.58 要升；0.9.9 已高于 0.1.10，不得被基线拉回去。
+  assert.deepEqual(plan, {
+    action: 'add',
+    packages: [{ packageName: '@michengai/dsh-codex-ui', version: '0.2.58' }],
+  })
+})
+
+test('link 声明的本地定制包永不参与随包基线，防止被 npm 包替换', () => {
+  const plan = planBundledPluginSeed({
+    catalog,
+    declaredPackages: catalog.map(item => item.packageName),
+    installedPackages: catalog.map(item => item.packageName),
+    storeExists: true,
+    installedVersions: [
+      { packageName: '@michengai/dsh-codex-ui', version: '0.1.0' },
+      { packageName: '@michengai/dsh-im-connect', version: '0.1.10' },
+    ],
+    localLinkPackages: ['@michengai/dsh-codex-ui'],
+  })
+  assert.deepEqual(plan, { action: 'skip', reason: 'already-installed' })
+})
+
+test('补种路径同时做到：非 link 的低于基线要升，link 定制的即使低于基线也不动', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-seed-baseline-'))
+  try {
+    const store = join(root, 'store')
+    const profile = join(root, 'profile')
+    await mkdir(store, { recursive: true })
+    for (const [name, version] of [['@michengai/dsh-codex-ui', '0.1.0'], ['@michengai/dsh-im-connect', '0.1.0']] as const) {
+      const dir = join(profile, 'node_modules', ...name.split('/'))
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, 'package.json'), JSON.stringify({ name, version }), 'utf8')
+    }
+    await writeFile(join(profile, 'package.json'), JSON.stringify({
+      dependencies: {
+        // 本地定制件走 link；另一个是普通 npm 依赖。
+        '@michengai/dsh-codex-ui': 'link:local/dsh-codex-ui',
+        '@michengai/dsh-im-connect': '0.1.0',
+      },
+    }), 'utf8')
+    const calls: string[][] = []
+    const result = await seedBundledPlugins({
+      nodeExecutable: 'node',
+      profileDir: profile,
+      pluginStoreDir: store,
+      catalog,
+      runner: async args => { calls.push([...args]) },
+    })
+    assert.deepEqual(result.seeded, ['@michengai/dsh-im-connect'])
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0]?.includes('@michengai/dsh-im-connect@0.1.10'), true)
+    assert.equal(calls[0]?.some(item => item.startsWith('@michengai/dsh-codex-ui@')), false,
+      'link 定制的插件一旦被基线替换，用户的本地改造就没了')
+  } finally {
+    await removeTempDir(root)
+  }
+})
+
 test('缺少离线仓库时跳过，不阻断桌面启动', () => {
   const plan = planBundledPluginSeed({
     catalog,
@@ -155,6 +224,12 @@ test('版本齐全但构建被记下忽略时，沿用 profile 记录的仓库�
         '@michengai/dsh-im-connect': '0.1.10',
       },
     }), 'utf8')
+    // 场景前提是「版本齐全」：必须真的把包写到 node_modules，否则按随包基线会被判为欠装而重装。
+    for (const [name, version] of [['@michengai/dsh-codex-ui', '0.2.58'], ['@michengai/dsh-im-connect', '0.1.10']] as const) {
+      const dir = join(profile, 'node_modules', ...name.split('/'))
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, 'package.json'), JSON.stringify({ name, version }), 'utf8')
+    }
     await writeFile(join(profile, 'node_modules', '.modules.yaml'), JSON.stringify({
       storeDir: legacyStore,
       ignoredBuilds: ['node-pty@1.0.0'],
@@ -196,6 +271,12 @@ test('版本齐全且构建未被忽略时不做多余安装', async () => {
         '@michengai/dsh-im-connect': '0.1.10',
       },
     }), 'utf8')
+    // 场景前提是「版本齐全」：真的写到 node_modules，否则按随包基线会被判为欠装而重装。
+    for (const [name, version] of [['@michengai/dsh-codex-ui', '0.2.58'], ['@michengai/dsh-im-connect', '0.1.10']] as const) {
+      const dir = join(profile, 'node_modules', ...name.split('/'))
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, 'package.json'), JSON.stringify({ name, version }), 'utf8')
+    }
     await writeFile(join(profile, 'node_modules', '.modules.yaml'), JSON.stringify({
       ignoredBuilds: ['some-other-pkg@1.0.0'],
     }), 'utf8')
