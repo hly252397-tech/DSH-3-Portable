@@ -93,7 +93,6 @@ export function applyPortableEnvironment(paths: PortablePaths, environment: Node
     npm_config_prefix: join(development, 'npm-global'),
     npm_config_userconfig: join(development, 'npmrc'),
     PNPM_HOME: join(development, 'pnpm-home'),
-    PNPM_STORE_DIR: join(development, 'pnpm-store'),
     ELECTRON_CACHE: join(development, 'electron-cache'),
     ELECTRON_BUILDER_CACHE: join(development, 'electron-builder-cache'),
     PLAYWRIGHT_BROWSERS_PATH: join(development, 'playwright'),

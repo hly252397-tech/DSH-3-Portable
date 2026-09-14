@@ -8,7 +8,7 @@ import test from 'node:test'
 import { makeTrackedTempDir as mkdtemp, removeTempDir } from './helpers/tmp.js'
 
 import { OFFICIAL_DSH_VERSION, OFFICIAL_LAUNCH_PEERS, OFFICIAL_RUNTIME, OFFICIAL_RUNTIME_RESOLUTION_MODE, SUITE_PACKAGE, officialDshVersionOverrides } from '../src/bundled-plugins.js'
-import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, ensurePnpm11BuildPolicy, ensureRuntimeResolutionMode, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, needsIgnoredBuildRepair, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, rebasePortablePnpmState, reconcileOfficialRuntimeManifest, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
+import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, ensurePnpm11BuildPolicy, ensureRuntimeResolutionMode, hasUnresolvedStore, isOfflineSeedRequested, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, needsIgnoredBuildRepair, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, rebasePortablePnpmState, reconcileOfficialRuntimeManifest, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, storelessSeedWarning, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
 
 const catalog = [
   { packageName: '@michengai/dsh-codex-ui', version: '0.2.58' },
@@ -338,6 +338,99 @@ test('后续 pnpm 操作沿用 node_modules 记录的 store 目录', async () =>
     await mkdir(join(root, 'node_modules'))
     await writeFile(join(root, 'node_modules', '.modules.yaml'), 'storeDir: D:\\persistent-store\n', 'utf8')
     assert.equal(resolvePnpmStoreDir(root, 'D:\\fallback-store'), 'D:\\persistent-store')
+  } finally {
+    await removeTempDir(root)
+  }
+})
+
+test('安装失败后的重试不得丢掉已知仓库（2026-09-14 UNEXPECTED_STORE 的真因）', async t => {
+  if (isOfflineSeedRequested()) return t.skip('显式离线模式下不重试')
+  const root = await mkdtemp(join(tmpdir(), 'dsh-store-retry-'))
+  try {
+    const packagedStore = join(root, 'plugins', 'store')
+    const recordedStore = join(root, 'recorded-store')
+    const profile = join(root, 'profile')
+    await mkdir(packagedStore, { recursive: true })
+    await mkdir(join(profile, 'node_modules'), { recursive: true })
+    await writeFile(join(profile, 'node_modules', '.modules.yaml'), JSON.stringify({ storeDir: recordedStore }), 'utf8')
+    await writeFile(join(profile, 'package.json'), JSON.stringify({
+      dependencies: { '@michengai/dsh-codex-ui': '0.2.58' },
+    }), 'utf8')
+    const calls: string[][] = []
+    let first = true
+    await seedBundledPlugins({
+      nodeExecutable: 'node',
+      profileDir: profile,
+      pluginStoreDir: packagedStore,
+      catalog,
+      runner: async args => {
+        calls.push([...args])
+        if (first) {
+          first = false
+          throw new Error('模拟首次安装失败（仓库里缺该包）')
+        }
+      },
+    })
+    assert.equal(calls.length, 2)
+    assert.equal(calls[0]?.includes(`--store-dir=${recordedStore}`), true)
+    assert.equal(calls[0]?.includes('--offline'), true)
+    // 旧行为在这里发出的是不带 --store-dir 的命令 → pnpm 改用环境默认仓库 → 与记录不一致即报
+    // ERR_PNPM_UNEXPECTED_STORE（实机 plugin-seed.log）。重试只允许放宽「离线」，不许换仓库。
+    assert.equal(calls[1]?.includes(`--store-dir=${recordedStore}`), true, '重试必须保留已解析到的仓库')
+    assert.equal(calls[1]?.includes('--offline'), false, '重试只放宽离线，不换仓库')
+  } finally {
+    await removeTempDir(root)
+  }
+})
+
+test('机会性构建恢复遇到坏仓库记录只跳过、不发出不带仓库的命令', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-storeless-repair-'))
+  try {
+    const packagedStore = join(root, 'plugins', 'store')
+    const profile = join(root, 'profile')
+    await mkdir(packagedStore, { recursive: true })
+    await mkdir(join(profile, 'node_modules'), { recursive: true })
+    await writeFile(join(profile, 'package.json'), JSON.stringify({
+      dependencies: { '@michengai/dsh-codex-ui': '0.2.58', '@michengai/dsh-im-connect': '0.1.10' },
+    }), 'utf8')
+    for (const [name, version] of [['@michengai/dsh-codex-ui', '0.2.58'], ['@michengai/dsh-im-connect', '0.1.10']] as const) {
+      const dir = join(profile, 'node_modules', ...name.split('/'))
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, 'package.json'), JSON.stringify({ name, version }), 'utf8')
+    }
+    // 版本齐全（计划为 skip）且要求构建恢复，但状态里没有 storeDir
+    await writeFile(join(profile, 'node_modules', '.modules.yaml'), JSON.stringify({ ignoredBuilds: ['node-pty@1.0.0'] }), 'utf8')
+    const calls: string[][] = []
+    const result = await seedBundledPlugins({
+      nodeExecutable: 'node',
+      profileDir: profile,
+      pluginStoreDir: packagedStore,
+      catalog,
+      runner: async args => { calls.push([...args]) },
+    })
+    assert.deepEqual(result, { seeded: [], skipped: 'already-installed' })
+    assert.deepEqual(calls, [])
+  } finally {
+    await removeTempDir(root)
+  }
+})
+
+test('仓库记录可读时护栏不误伤，且只在已有依赖的目录上生效', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-storeless-ok-'))
+  try {
+    const profile = join(root, 'profile')
+    const recorded = join(root, 'recorded-store')
+    await mkdir(join(profile, 'node_modules'), { recursive: true })
+    await writeFile(join(profile, 'node_modules', '.modules.yaml'), JSON.stringify({ storeDir: recorded }), 'utf8')
+    assert.equal(resolvePnpmStoreDir(profile), recorded)
+    assert.equal(hasUnresolvedStore(profile, recorded), false)
+    // 记录文件在但解析不出仓库 → 只告警（提示文案不可为空），不改变行为
+    await writeFile(join(profile, 'node_modules', '.modules.yaml'), '{ not json', 'utf8')
+    assert.equal(resolvePnpmStoreDir(profile, join(root, 'packaged-store')), undefined)
+    assert.equal(hasUnresolvedStore(profile, undefined), true)
+    assert.match(storelessSeedWarning(profile), /默认仓库/)
+    // 全新目录（无 node_modules）即便解析不到仓库也不告警：从零安装不存在仓库不一致
+    assert.equal(hasUnresolvedStore(join(root, 'fresh-profile'), undefined), false)
   } finally {
     await removeTempDir(root)
   }

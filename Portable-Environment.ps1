@@ -52,7 +52,6 @@ function Set-DshPortableEnvironment {
     npm_config_prefix = Join-Path $developmentRoot 'npm-global'
     npm_config_userconfig = Join-Path $developmentRoot 'npmrc'
     PNPM_HOME = Join-Path $developmentRoot 'pnpm-home'
-    PNPM_STORE_DIR = Join-Path $developmentRoot 'pnpm-store'
     ELECTRON_CACHE = Join-Path $developmentRoot 'electron-cache'
     ELECTRON_BUILDER_CACHE = Join-Path $developmentRoot 'electron-builder-cache'
     PLAYWRIGHT_BROWSERS_PATH = Join-Path $developmentRoot 'playwright'

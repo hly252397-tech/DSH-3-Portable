@@ -25,7 +25,10 @@ test('便携环境覆盖 DSH、用户目录、缓存和常见开发工具目录'
   assert.equal(environment.USERPROFILE, paths.home)
   assert.equal(environment.APPDATA, paths.appData)
   assert.equal(environment.TEMP, paths.temp)
-  assert.match(environment.PNPM_STORE_DIR!, /Development[\\/]pnpm-store$/)
+  // PNPM_STORE_DIR 已于 2026-09-14 退役：pnpm 不读这个变量，src/ 里也没有任何读取方
+  // （仓库位置由 profile 的 .modules.yaml 记录 + 启动时注入的 DSH_PNPM_STORE_DIR 决定）。
+  // 这里改钉「它不再被导出」，避免死变量复活。
+  assert.equal(environment.PNPM_STORE_DIR, undefined)
   assert.match(environment.GIT_CONFIG_GLOBAL!, /Development[\\/]gitconfig$/)
 })
 

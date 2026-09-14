@@ -124,6 +124,21 @@ export function shouldUsePackagedStore(targetDir: string): boolean {
   return !existsSync(join(targetDir, 'node_modules'))
 }
 
+/** 已有 node_modules 但解析不到仓库记录 —— 只用于**告警与机会性路径的跳过判断**。
+ *  注意它不等于「必然报错」：pnpm 只在**记录了一个仓库**且与环境默认仓库不一致时才抛
+ *  `ERR_PNPM_UNEXPECTED_STORE`；没有记录时无从比对。真正制造该错误的行为是"重试时把已解析到的
+ *  仓库参数丢掉"（2026-09-14 实机 `plugin-seed.log`），已在本文件所有重试分支改为保留仓库。 */
+export function hasUnresolvedStore(targetDir: string, storeDir: string | undefined): boolean {
+  return storeDir === undefined && existsSync(join(targetDir, 'node_modules'))
+}
+
+/** 缺仓库时的统一提示（保证不静默）。 */
+export function storelessSeedWarning(targetDir: string): string {
+  return `已有依赖的目录解析不到 pnpm 仓库记录，本次按 pnpm 默认仓库执行（记录可读时不会出现此情况）：`
+    + `${join(targetDir, 'node_modules', '.modules.yaml')}`
+    + '。若随后报 ERR_PNPM_UNEXPECTED_STORE，请修复该文件里的 storeDir，或删除 node_modules 后重装。'
+}
+
 export function resolvePnpmStoreDir(targetDir: string, fallback?: string): string | undefined {
   try {
     const modulesStatePath = join(targetDir, 'node_modules', '.modules.yaml')
@@ -460,7 +475,9 @@ export async function applyOfficialRuntimeVersion(options: SeedOptions, version:
   ensureRuntimeResolutionMode(runtimeDir)
   ensureAutoInstallPeersEnabled(runtimeDir)
   const runner = options.runner ?? ((pluginArgs) => runPnpm(options, pluginArgs))
-  await runner(officialRuntimeInstallArgs(runtimeDir, resolvePnpmStoreDir(runtimeDir, options.pluginStoreDir)))
+  const runtimeStoreDir = resolvePnpmStoreDir(runtimeDir, options.pluginStoreDir)
+  if (hasUnresolvedStore(runtimeDir, runtimeStoreDir)) console.warn(storelessSeedWarning(runtimeDir))
+  await runner(officialRuntimeInstallArgs(runtimeDir, runtimeStoreDir))
   if (!isOfficialRuntimeLaunchable(runtimeDir)) {
     throw new Error('官方运行时升级到 ' + version + ' 后仍无法启动。')
   }
@@ -531,6 +548,7 @@ export async function applyPendingProfileUpdates(options: SeedOptions): Promise<
   const runner = options.runner ?? ((args) => runPnpm(options, args))
   if (updates.length > 0) {
     const storeDir = resolvePnpmStoreDir(options.profileDir, options.pluginStoreDir)
+    if (hasUnresolvedStore(options.profileDir, storeDir)) console.warn(storelessSeedWarning(options.profileDir))
     await runner(buildSeedPluginArgs(updates, options.profileDir, storeDir === undefined ? {} : { storeDir }))
     applied.push(...updates.map((item) => item.packageName))
   }
@@ -626,6 +644,7 @@ async function seedOfficialRuntime(options: SeedOptions): Promise<readonly strin
     await ensureRuntimeScaffold(runtimeDir)
     const storeDir = resolvePnpmStoreDir(runtimeDir, existsSync(options.pluginStoreDir) ? options.pluginStoreDir : undefined)
     const useStore = storeDir !== undefined
+    if (hasUnresolvedStore(runtimeDir, storeDir)) console.warn(storelessSeedWarning(runtimeDir))
     const args = buildSeedPluginArgs([OFFICIAL_RUNTIME], runtimeDir, {
       autoInstallPeers: true,
       ...(useStore ? { storeDir, offline: true } : {}),
@@ -634,8 +653,9 @@ async function seedOfficialRuntime(options: SeedOptions): Promise<readonly strin
     try {
       await runner(args)
     } catch (error) {
+      // 重试只放宽「离线」，绝不丢掉已知仓库：丢掉它会改用环境默认仓库，与已装依赖不一致时报 UNEXPECTED_STORE。
       if (useStore && !isOfflineSeedRequested()) {
-        await runner(buildSeedPluginArgs([OFFICIAL_RUNTIME], runtimeDir, { autoInstallPeers: true }))
+        await runner(buildSeedPluginArgs([OFFICIAL_RUNTIME], runtimeDir, { autoInstallPeers: true, storeDir }))
       } else {
         throw error
       }
@@ -653,6 +673,7 @@ async function ensureOfficialLaunchPeers(options: SeedOptions, targetDir: string
   if (missing.length === 0) return []
   const storeDir = resolvePnpmStoreDir(targetDir, existsSync(options.pluginStoreDir) ? options.pluginStoreDir : undefined)
   const useStore = storeDir !== undefined
+  if (hasUnresolvedStore(targetDir, storeDir)) console.warn(storelessSeedWarning(targetDir))
   const args = buildSeedPluginArgs([OFFICIAL_RUNTIME, ...missing], targetDir, {
     autoInstallPeers: true,
     ...(useStore ? { storeDir, offline: true } : {}),
@@ -661,7 +682,7 @@ async function ensureOfficialLaunchPeers(options: SeedOptions, targetDir: string
   try {
     await runner(args)
   } catch (error) {
-    if (useStore && !isOfflineSeedRequested()) await runner(buildSeedPluginArgs([OFFICIAL_RUNTIME, ...missing], targetDir, { autoInstallPeers: true }))
+    if (useStore && !isOfflineSeedRequested()) await runner(buildSeedPluginArgs([OFFICIAL_RUNTIME, ...missing], targetDir, { autoInstallPeers: true, storeDir }))
     else throw error
   }
   const stillMissing = missingOfficialLaunchPeers(targetDir)
@@ -701,10 +722,16 @@ async function repairIgnoredBundledBuilds(
   const statePath = join(options.profileDir, 'node_modules', '.modules.yaml')
   if (catalog.length === 0 || !existsSync(statePath)) return
   if (!needsIgnoredBuildRepair(await readFile(statePath, 'utf8'))) return
+  // 已有 node_modules 的目录禁止改用安装包 store（pnpm 会报 UNEXPECTED_STORE），只沿用
+  // profile 自己记录的仓库；显式离线请求由 buildSeedPluginArgs 统一附加 --offline。
+  // 记录不可读时**直接跳过**：这条分支是机会性构建恢复，不该为它发出不带仓库的命令，
+  // 更不该把「仓库记录坏了」升级成启动失败。
+  const storeDir = resolvePnpmStoreDir(options.profileDir)
+  if (hasUnresolvedStore(options.profileDir, storeDir)) {
+    console.warn(storelessSeedWarning(options.profileDir))
+    return
+  }
   try {
-    // 已有 node_modules 的目录禁止改用安装包 store（pnpm 会报 UNEXPECTED_STORE），只沿用
-    // profile 自己记录的仓库；显式离线请求由 buildSeedPluginArgs 统一附加 --offline。
-    const storeDir = resolvePnpmStoreDir(options.profileDir)
     const installed = await readInstalledPackageVersions(options.profileDir, catalog.map((plugin) => plugin.packageName))
     const packages = catalog.map((plugin) => ({
       ...plugin,
@@ -740,13 +767,17 @@ async function seedCommunityPlugins(options: SeedOptions): Promise<SeedResult> {
   const storeDir = resolvePnpmStoreDir(options.profileDir, existsSync(options.pluginStoreDir) ? options.pluginStoreDir : undefined)
   const useStore = storeDir !== undefined
   const storeOptions = useStore ? { storeDir, offline: true } : {}
+  if (plan.packages.length > 0 && hasUnresolvedStore(options.profileDir, storeDir)) {
+    console.warn(storelessSeedWarning(options.profileDir))
+  }
   if (plan.packages.length > 0) {
     if (useStore) await seedPackagedPluginLockfile(options.profileDir, storeDir)
     const args = buildSeedPluginArgs(plan.packages, options.profileDir, storeOptions)
     try {
       await runner(args)
     } catch (error) {
-      if (useStore && !isOfflineSeedRequested()) await runner(buildSeedPluginArgs(plan.packages, options.profileDir, {}))
+      // 重试只放宽「离线」：保留已知仓库，避免改用环境默认仓库触发 UNEXPECTED_STORE。
+      if (useStore && !isOfflineSeedRequested()) await runner(buildSeedPluginArgs(plan.packages, options.profileDir, { storeDir }))
       else throw error
     }
   }
@@ -754,7 +785,7 @@ async function seedCommunityPlugins(options: SeedOptions): Promise<SeedResult> {
     try {
       await runner(buildSeedRemoveArgs([SUITE_PACKAGE], options.profileDir, storeOptions))
     } catch (error) {
-      if (useStore && !isOfflineSeedRequested()) await runner(buildSeedRemoveArgs([SUITE_PACKAGE], options.profileDir, {}))
+      if (useStore && !isOfflineSeedRequested()) await runner(buildSeedRemoveArgs([SUITE_PACKAGE], options.profileDir, { storeDir }))
       else throw error
     }
   }
