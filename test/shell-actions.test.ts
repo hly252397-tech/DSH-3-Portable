@@ -34,6 +34,8 @@ test('全局快捷键使用同一动作注册表并正确区分平台修饰键',
   assert.equal(shellActionForShortcut({ key: '=', control: true, meta: false, alt: false, shift: true }, 'win32'), 'zoom-in')
   assert.equal(shellActionForShortcut({ key: ',', control: true, meta: false, alt: false, shift: false }, 'win32'), undefined)
   assert.equal(shellActionForShortcut({ key: 'F11', control: false, meta: false, alt: false, shift: false }, 'win32'), 'toggle-fullscreen')
+  assert.equal(shellActionForShortcut({ key: 'F12', control: false, meta: false, alt: false, shift: false }, 'win32'), 'toggle-devtools')
+  assert.equal(shellActionForShortcut({ key: 'i', control: false, meta: true, alt: true, shift: false }, 'darwin'), 'toggle-devtools')
   assert.equal(shellActionForShortcut({ key: 'n', control: false, meta: false, alt: false, shift: false }, 'win32'), undefined)
   assert.equal(shellActionForShortcut({ key: 'b', control: true, meta: false, alt: false, shift: true }, 'win32'), undefined)
 })

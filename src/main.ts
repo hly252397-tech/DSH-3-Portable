@@ -879,6 +879,7 @@ async function startApplication(): Promise<void> {
     } catch (error) {
       const message = error instanceof Error ? error.message : '内置插件补种失败。'
       await writeTextFile(join(app.getPath('userData'), 'plugin-seed.log'), `${message}\n`, 'utf8').catch(() => undefined)
+      await showStartupPluginWarning('seed', message)
     }
     await updateStartupMessage(
       desktopText('内置插件已就绪，正在应用配置…', 'Bundled plugins are ready. Applying configuration…'),
@@ -889,8 +890,8 @@ async function startApplication(): Promise<void> {
       if (updated.length > 0) console.log('已在启动前应用插件更新：' + updated.join('、'))
     } catch (error) {
       const message = error instanceof Error ? error.message : '启动前应用插件更新失败。'
-      await writeTextFile(join(app.getPath('userData'), 'plugin-update.log'), ` ${message}\n`, 'utf8').catch(() => undefined)
-
+      await writeTextFile(join(app.getPath('userData'), 'plugin-update.log'), `${message}\n`, 'utf8').catch(() => undefined)
+      await showStartupPluginWarning('pending', message)
     }
     await updateStartupMessage(
       desktopText('配置已应用，正在检查用户数据…', 'Configuration applied. Checking user data…'),
@@ -1100,6 +1101,27 @@ async function updateStartupMessage(message: string, progress?: number, detail?:
     : (startupProgress = advanceStartupProgress(startupProgress, progress))
   await view.webContents.executeJavaScript(startupStatusScript(message, nextProgress, detail))
     .catch(() => undefined)
+}
+
+/** 内置插件补种 / 待更新失败必须在启动窗口上说出来——只写日志等于对用户静默失败。
+ *  文案刻意不承诺本产品没有的界面：本地外壳没有上游的"恢复页面"，可执行的只有重启、
+ *  查日志与重解压完整便携包。冒烟由错误日志判定成败、不能等人工弹窗，故冒烟运行时不弹。 */
+async function showStartupPluginWarning(kind: 'seed' | 'pending', message: string): Promise<void> {
+  if ((process.env.DSH_DESKTOP_SMOKE_READY_FILE ?? '').trim() !== '') return
+  await dialog.showMessageBox({
+    type: 'warning',
+    title: kind === 'seed'
+      ? desktopText('内置插件更新未完成', 'Bundled plugin update incomplete')
+      : desktopText('插件更新未完成', 'Plugin update incomplete'),
+    message: kind === 'seed'
+      ? desktopText('未能安装此桌面版本配套的插件。', 'Could not install the plugins bundled with this desktop version.')
+      : desktopText('未能应用等待安装的插件更新。', 'Could not apply pending plugin updates.'),
+    detail: desktopText(
+      '将使用现有插件继续启动，功能可能不完整。请检查网络后重新启动应用；若仍然失败，可查看应用数据目录下的 plugin-seed.log / plugin-update.log，或重新解压完整的便携版压缩包。',
+      'Startup will continue with the existing plugins; some features may be incomplete. Check your network and restart the app. If it still fails, check plugin-seed.log / plugin-update.log in the app data directory, or extract a fresh copy of the full portable package.',
+    ) + '\n\n' + message,
+    buttons: [desktopText('继续启动', 'Continue startup')],
+  })
 }
 
 function firstInitializationMessage(): string {
@@ -2290,7 +2312,17 @@ function shellRendererKind(sender: WebContents): ShellRendererKind {
   return 'unknown'
 }
 
+/** 调试"当前正在看的那个页面"：辅助窗口（快捷键/关于/功能面板/设置）各自独立，焦点在它们身上
+ *  就调试它们自己，否则调试工作台内容视图——本地外壳用同一个 dshView 承载启动页与工作台。 */
+function resolveDevToolsContents(): Electron.WebContents | undefined {
+  const focusedAuxiliary = [shortcutsWindow, aboutWindow, featurePanelsWindow, settingsWindow]
+    .find(candidate => candidate !== undefined && !candidate.isDestroyed() && candidate.isFocused())
+  const contents = focusedAuxiliary?.webContents ?? dshView?.webContents
+  return contents === undefined || contents.isDestroyed() ? undefined : contents
+}
+
 function isActionEnabled(id: ShellActionId): boolean {
+  if (id === 'toggle-devtools') return resolveDevToolsContents() !== undefined
   if (id === 'reload') return !isRecycling && lastStartOptions !== undefined && lastSeedOptions !== undefined
   if (id === 'back') return dshNavigationState.canBack
   if (id === 'forward') return dshNavigationState.canForward
@@ -2316,6 +2348,10 @@ function popupShellMenu(request: ShellMenuPopupRequest): Promise<void> {
       template.push({
         label: action.label,
         enabled: isActionEnabled(action.id),
+        // 勾选态必须来自实际内容页，手动关掉调试器后菜单也要跟着回到未勾选。
+        ...(action.id === 'toggle-devtools'
+          ? { type: 'checkbox' as const, checked: resolveDevToolsContents()?.isDevToolsOpened() ?? false }
+          : {}),
         ...(action.acceleratorLabel === undefined ? {} : { accelerator: action.acceleratorLabel }),
         click: () => { runMainTask(Promise.resolve(executeShellAction(action.id))) },
       })
@@ -2441,6 +2477,12 @@ function sendDshAction(id: DshShellActionId): void {
 
 async function executeShellAction(id: ShellActionId): Promise<void> {
   if (!isActionEnabled(id)) return
+  if (id === 'toggle-devtools') {
+    const target = resolveDevToolsContents()
+    if (target?.isDevToolsOpened() === true) target.closeDevTools()
+    else target?.openDevTools({ mode: 'detach', activate: true })
+    return
+  }
   const contents = dshView?.webContents
   if (id === 'new-chat' || id === 'open-folder' || id === 'settings' || id === 'toggle-sidebar' || id === 'find' || id === 'previous-chat' || id === 'next-chat' || id === 'back' || id === 'forward') {
     sendDshAction(id)
