@@ -26,6 +26,7 @@ import { terminateProcessTree } from './process-control.js'
 import { mergeProfileUpdates, officialRuntimeUpdateVersion, parsePendingUpdates, partitionPackageUpdates, resolvePendingUpdatesPath, type ProfilePackageUpdate } from './profile-updates.js'
 import { copyPrebuiltOfficialRuntime } from './runtime-prebuilt.js'
 import { activeQuarantinedProfileBundles } from './profile-quarantine.js'
+import { parsePnpmProgress, type StartupProgress } from './startup-progress.js'
 
 export type SeedSkipReason = 'already-installed' | 'missing-store'
 
@@ -48,6 +49,8 @@ interface SeedPnpmOptions {
 }
 
 interface SeedOptions {
+  /** 启动窗口的实测进度回调：pnpm 的实时输出被解析成 install 阶段计数。 */
+  onProgress?: (progress: StartupProgress) => void
   nodeExecutable: string
   profileDir: string
   pluginStoreDir: string
@@ -929,8 +932,20 @@ function runPnpm(options: SeedOptions, args: readonly string[]): Promise<void> {
       killDeadline = setTimeout(() => finish(timeoutError), 2_000)
     }, options.timeoutMs ?? 300_000)
     timeout.unref?.()
+    // pnpm 的进度行只出现在 stdout；stderr 仍并进输出摘要用于失败诊断。
+    let pendingProgress = ''
+    const collectProgress = (chunk: Buffer): void => {
+      pendingProgress += String(chunk)
+      const lines = pendingProgress.split(/\r?\n/)
+      pendingProgress = lines.pop() ?? ''
+      if (options.onProgress === undefined) return
+      for (const line of lines) {
+        const progress = parsePnpmProgress(line)
+        if (progress !== undefined) options.onProgress(progress)
+      }
+    }
     const collect = (chunk: Buffer): void => { output = (output + String(chunk)).slice(-8_000) }
-    child.stdout?.on('data', collect)
+    child.stdout?.on('data', (chunk: Buffer) => { collect(chunk); collectProgress(chunk) })
     child.stderr?.on('data', collect)
     child.once('error', () => { finish(new Error('无法启动随包 pnpm 补种命令。')) })
     child.once('exit', code => {

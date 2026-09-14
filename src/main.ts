@@ -20,7 +20,7 @@ import { quarantineProfileBundle } from './profile-quarantine.js'
 import { resolveBundledPluginStore, resolvePluginBinDir } from './plugin-toolchain.js'
 import { resolveDshBootstrap, resolveDshRuntime, resolveNodeExecutable } from './runtime.js'
 import { extractPackagedRuntimesInChild, packagedRuntimesNeedExtraction, preparePackagedRuntimeCacheInChild, resolvePackagedRuntimeCache, type RuntimeExtractionProgress } from './extract-runtime.js'
-import { advanceStartupProgress, STARTUP_PROGRESS } from './startup-progress.js'
+import { advanceStartupProgress, formatStartupProgress, STARTUP_PROGRESS, type StartupProgress } from './startup-progress.js'
 import { resolvePrebuiltOfficialRuntime } from './runtime-prebuilt.js'
 import { activateRuntimeSlot, commitRuntimeSlot, readRuntimeSlotPointer, recoverInterruptedRuntimeSwitch, resolveActiveRuntimeDir, rollbackRuntimeSlot, runtimeSlotVersion } from './runtime-slots.js'
 import { buildHarnessRuntimeCandidate, type HarnessRuntimeCandidate } from './harness-runtime-candidate.js'
@@ -838,9 +838,7 @@ async function startApplication(): Promise<void> {
           resourcesDir: process.resourcesPath,
           signal: controller.signal,
           skipOfficial: usingActiveRuntimeSlot,
-          onProgress: progress => {
-            void updateStartupMessage(runtimeExtractionMessage(progress), runtimeExtractionPercentage(progress))
-          },
+          onProgress: reportExtractionProgress,
         })
         runtimeExtractionTask = extraction
         try {
@@ -867,6 +865,7 @@ async function startApplication(): Promise<void> {
     const profileStoreDir = resolvePnpmStoreDir(profileDir, pluginStoreDir)
     const prebuiltRuntimeDir = resolvePrebuiltOfficialRuntime(runtimeOptions)
     const seedOptions = {
+      onProgress: reportSeedProgress,
       nodeExecutable,
       profileDir,
       desktopRuntimeDir,
@@ -1043,9 +1042,9 @@ function installDesktopFaviconReplacement(): void {
   })
 }
 
-function startupStatusScript(message: string, progress: number | undefined): string {
+function startupStatusScript(message: string, progress: number | undefined, detail?: string): string {
   const revision = ++startupStatusRevision
-  const payload = JSON.stringify({ message, progress, revision })
+  const payload = JSON.stringify({ message, progress, detail: detail ?? '', revision })
   return `(() => {
     const next = ${payload};
     const root = document.documentElement;
@@ -1053,6 +1052,11 @@ function startupStatusScript(message: string, progress: number | undefined): str
     if (next.revision < currentRevision) return;
     root.dataset.startupStatusRevision = String(next.revision);
     document.getElementById('msg')?.replaceChildren(document.createTextNode(next.message));
+    const detailNode = document.getElementById('detail');
+    if (detailNode instanceof HTMLElement) {
+      detailNode.textContent = next.detail;
+      detailNode.hidden = next.detail === '';
+    }
     const indicator = document.getElementById('startupProgress');
     const value = document.getElementById('progressValue');
     if (!(indicator instanceof HTMLElement) || !(value instanceof HTMLElement)) return;
@@ -1088,13 +1092,13 @@ async function showStartupWindow(message: string, progress?: number): Promise<vo
   )
 }
 
-async function updateStartupMessage(message: string, progress?: number): Promise<void> {
+async function updateStartupMessage(message: string, progress?: number, detail?: string): Promise<void> {
   const view = requireDshView()
   if (view.webContents.isDestroyed()) return
   const nextProgress = progress === undefined
     ? undefined
     : (startupProgress = advanceStartupProgress(startupProgress, progress))
-  await view.webContents.executeJavaScript(startupStatusScript(message, nextProgress))
+  await view.webContents.executeJavaScript(startupStatusScript(message, nextProgress, detail))
     .catch(() => undefined)
 }
 
@@ -1118,6 +1122,35 @@ function runtimeExtractionPercentage(progress: RuntimeExtractionProgress): numbe
     return progress.state === 'start' ? STARTUP_PROGRESS.runtimeExtractionStarted : STARTUP_PROGRESS.runtimeReady
   }
   return progress.state === 'start' ? STARTUP_PROGRESS.pluginStorePreparationStarted : STARTUP_PROGRESS.pluginStoreReady
+}
+
+/** 实测计量在阶段区间内按完成比例插值，让进度条跟着真实计数推进，而不是只在阶段端点跳变。 */
+function measuredPercentage(start: number, end: number, completed: number | undefined, total: number | undefined): number | undefined {
+  if (typeof completed !== 'number' || typeof total !== 'number' || total <= 0) return undefined
+  const ratio = Math.min(1, Math.max(0, completed / total))
+  return start + (end - start) * ratio
+}
+
+/** 解压子进程的进度：起止沿用阶段文案与区间端点；实测刻度显示"正在校验/解压/写入 + 真实计数"。 */
+function reportExtractionProgress(progress: RuntimeExtractionProgress): void {
+  if (progress.state !== 'progress' || progress.progress === undefined) {
+    void updateStartupMessage(runtimeExtractionMessage(progress), runtimeExtractionPercentage(progress))
+    return
+  }
+  const state = formatStartupProgress(progress.progress, isChineseLocale(desktopLocale()))
+  const start = progress.phase === 'runtime' ? STARTUP_PROGRESS.runtimeExtractionStarted : STARTUP_PROGRESS.pluginStorePreparationStarted
+  const end = progress.phase === 'runtime' ? STARTUP_PROGRESS.runtimeReady : STARTUP_PROGRESS.pluginStoreReady
+  void updateStartupMessage(
+    state.message,
+    measuredPercentage(start, end, state.completed, state.total) ?? startupProgress,
+    state.detail,
+  )
+}
+
+/** 插件播种/待更新：pnpm 只报计数不报总量，因此进度条保持原位，只更新文案与细节行。 */
+function reportSeedProgress(progress: StartupProgress): void {
+  const state = formatStartupProgress(progress, isChineseLocale(desktopLocale()))
+  void updateStartupMessage(state.message, startupProgress, state.detail)
 }
 
 let allowedOrigin = ''

@@ -160,6 +160,19 @@
       text-align: center;
       white-space: pre-wrap;
     }
+    /* 实测计数每约 100ms 刷新一次，刻意放在 aria-live 区域之外并标记 aria-hidden：
+       进度语义由 #startupProgress 的 aria-valuenow 承担，避免读屏器被高频文本更新刷屏。 */
+    #detail {
+      margin: 0;
+      min-height: 1.2em;
+      max-width: 420px;
+      color: var(--chrome-text-muted);
+      opacity: .75;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+    #detail[hidden] { display: none; }
     :root[data-color-scheme="light"]{color-scheme:light}
     :root[data-color-scheme="light"] body{background:var(--chrome-bg);color:var(--chrome-text)}
     :root[data-color-scheme="light"] .whale-fallback{filter:none;opacity:.22}
@@ -198,6 +211,7 @@
     <section class="status" role="status" aria-live="polite" aria-atomic="true">
       <p id="msg">正在启动</p>
     </section>
+    <p id="detail" aria-hidden="true" hidden></p>
   </main>
   <script src="./whale-particles.js"></script>
 </body>

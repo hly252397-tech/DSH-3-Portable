@@ -266,6 +266,9 @@ export const DESKTOP_BRIDGE_FILES = [
   'readiness.js',
   'runtime-archive.js',
   'runtime-prebuilt.js',
+  // plugin-seed.js 在桥接闭包内，它现在导入 startup-progress.js；漏掉这一行会让桥接在运行时
+  // 以 ERR_MODULE_NOT_FOUND 启动失败，而类型检查发现不了（tsc 只看源码树）。
+  'startup-progress.js',
 ] as const
 
 export function resolveDesktopBridgeDir(options: { isPackaged: boolean; appPath: string; resourcesPath: string }): string {
