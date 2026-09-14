@@ -3,7 +3,24 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import test from 'node:test'
 
-import { MAXIMUM_PANEL_WIDTH_MARGIN, MINIMUM_PANEL_VIEWPORT_CSS, browserPanelMaxWidthCss, capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight, shouldHideBrowserPanel } from '../src/browser-panel-layout.js'
+import { MAXIMUM_PANEL_WIDTH_MARGIN, MINIMUM_PANEL_VIEWPORT_CSS, browserPanelMaxWidthCss, capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight, resolveBrowserPageTop, shouldHideBrowserPanel, shouldShowPageTabBar } from '../src/browser-panel-layout.js'
+
+test('单网页时收起顶部标签条：判定与原生视图偏移同源', async () => {
+  // 用户 2026-09-15 截图指出「只有浏览器有」的问题：面板顶部叠了 DSH 标签条 + 网页标签条 +
+  // 导航条三层，只开一个网页时中间那层纯冗余（白吃约 40px）。≥2 个网页行为完全不变。
+  assert.equal(shouldShowPageTabBar(0), false)
+  assert.equal(shouldShowPageTabBar(1), false)
+  assert.equal(shouldShowPageTabBar(2), true)
+  assert.equal(shouldShowPageTabBar(5), true)
+  assert.equal(shouldShowPageTabBar(Number.NaN), true) // 坏数据保持旧行为（显示）
+  // 几何：标签条 40 + 导航条 42 —— 收起时必须只留导航条，否则原生视图错位 40px
+  assert.equal(resolveBrowserPageTop(1, 40, 42), 42)
+  assert.equal(resolveBrowserPageTop(2, 40, 42), 82)
+  // 页面侧只认外壳下发的判定（单一来源），并有对应隐藏规则
+  const panel = await readFile(join(process.cwd(), 'assets/browser-panel.html'), 'utf8')
+  assert.match(panel, /browser\.pageTabBarVisible===false/)
+  assert.match(panel, /\.browser\.single-page-tab \.browser-tabs\{display:none\}/)
+})
 
 test('浏览器面板坐标保持在 DSH 内容视口内', () => {
   assert.deepEqual(

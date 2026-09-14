@@ -31,6 +31,21 @@ export function shouldHideBrowserPanel(viewportDip: number, zoomFactor: number):
   return viewportDip / zoomFactor < MINIMUM_PANEL_VIEWPORT_CSS
 }
 
+/** 是否显示面板顶部那一层**网页标签条**。
+ *  只开一个网页时它是纯冗余（上面已有 DSH 面板自己的标签条）：白吃约 40px 垂直，而"+"会被
+ *  移进导航条，功能零损失；≥2 个网页时行为完全不变。用户 2026-09-15 截图指出「只有浏览器有」
+ *  的正是这一层（文档 40 的「优化 1」，当时因需连 src 几何一起改而列为未实施）。
+ *  ⚠ 几何必须跟同一判定走：原生页面视图的垂直偏移由 resolveBrowserPageTop 算，页面侧只认
+ *  外壳下发的 `pageTabBarVisible` —— 两侧同源，否则页面会整体上下错 40px。 */
+export function shouldShowPageTabBar(tabCount: number): boolean {
+  return !Number.isFinite(tabCount) || tabCount >= 2
+}
+
+/** 原生网页视图的顶部偏移：标签条可见 = 标签条 + 导航条；隐藏 = 仅导航条。 */
+export function resolveBrowserPageTop(tabCount: number, tabsBarHeight: number, navBarHeight: number): number {
+  return (shouldShowPageTabBar(tabCount) ? tabsBarHeight : 0) + navBarHeight
+}
+
 /**
  * Cap a requested browser workspace panel width so the panel never consumes
  * the conversation area: at most `viewportWidth - MAXIMUM_PANEL_WIDTH_MARGIN`

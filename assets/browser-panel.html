@@ -24,6 +24,11 @@
     .browser.loading .browser-nav input{opacity:.6}.browser.loading [data-browser="reload"] img{animation:browser-spin .8s linear infinite}@keyframes browser-spin{to{transform:rotate(360deg)}}
     :root[data-color-scheme="light"]{color-scheme:light;background:var(--chrome-bg);color:var(--chrome-text)}:root[data-color-scheme="light"] .browser{background:var(--browser-surface)}:root[data-color-scheme="light"] .browser img{filter:brightness(0);opacity:.72}
     .browser-tool.optional{display:none}
+    /* 只开一个网页时隐藏这一层网页标签条（省约 40px 垂直；"+" 由 JS 移进导航条，功能零损失）。
+       判定与原生视图的垂直偏移**同源**：外壳下发 state.browser.pageTabBarVisible。
+       用户 2026-09-15 截图指出「只有浏览器有」的正是这层冗余（文档 40 的优化 1）。 */
+    .browser.single-page-tab .browser-tabs{display:none}
+    .browser.single-page-tab .browser-nav .browser-tabs-actions{margin:0}
     @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
   </style>
   <link rel="stylesheet" href="browser-workspace.css">
@@ -72,6 +77,12 @@
       const tabs=Array.isArray(browser.tabs)?browser.tabs:[];const strip=document.getElementById('browser-tabs');strip.replaceChildren();const items=[];
       for(const tab of tabs){const item=document.createElement('div');item.className='tab'+(tab.id===browser.activeId?' active':'')+(tab.crashed?' crashed':'');item.role='tab';item.tabIndex=tab.id===browser.activeId?0:-1;item.ariaSelected=String(tab.id===browser.activeId);item.title=tab.url||'';const icon=document.createElement('span');icon.className='tab-icon';if(tab.favicon){const image=document.createElement('img');image.src=tab.favicon;image.alt='';icon.append(image)}else{const dot=document.createElement('span');dot.className='tab-dot';icon.append(dot)}const label=document.createElement('span');label.className='tab-label';label.textContent=tab.title||tab.url;const close=document.createElement('button');close.className='tab-close';close.ariaLabel=close.title=zh()?'关闭标签页':'Close tab';close.innerHTML='<img src="shell-icons/xmark.svg" alt="">';close.addEventListener('click',event=>{event.stopPropagation();api.browser.closeTab(tab.id)});item.append(icon,label,close);const activate=()=>{if(tab.crashed)api.browser.reload();api.browser.activateTab(tab.id)};item.addEventListener('click',activate);item.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();activate()}else if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();const delta=event.key==='ArrowLeft'?-1:1;items[(items.indexOf(item)+delta+items.length)%items.length]?.focus()}});items.push(item);strip.append(item)}
       const actions=document.getElementById('browser-tabs-actions');actions.replaceChildren();const add=document.createElement('button');add.className='tab-add';add.ariaLabel=add.title=zh()?'新标签页':'New tab';add.innerHTML='<img src="shell-icons/plus.svg" alt="">';add.addEventListener('click',()=>api.browser.newTab(''));actions.append(add);
+      /* 单网页：收起标签条并把"+"搬进导航条（放在地址栏之前），只认外壳下发的判定；
+         多网页：原样恢复。判定同源 ⇒ 页面与原生视图的垂直偏移不会错开 40px。 */
+      const singleTab=browser.pageTabBarVisible===false;host.classList.toggle('single-page-tab',singleTab);
+      const tabsRow=document.querySelector('.browser-tabs'),navRow=document.querySelector('.browser-nav'),addressInput=document.getElementById('browser-address');
+      if(singleTab){if(actions.parentElement!==navRow)navRow.insertBefore(actions,addressInput)}
+      else if(actions.parentElement!==tabsRow)tabsRow.append(actions);
       document.querySelector('[data-browser="back"]').disabled=!browser.canBack;document.querySelector('[data-browser="forward"]').disabled=!browser.canForward;const address=document.getElementById('browser-address');const active=tabs.find(tab=>tab.id===browser.activeId);if(active&&document.activeElement!==address)address.value=active.url;workspace.render(browser)
     }
     function applyState(next){state=next;render(next.browser)}

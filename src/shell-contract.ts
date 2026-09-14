@@ -142,6 +142,8 @@ export interface BrowserShellState {
   readonly downloadsOpen: boolean
   readonly downloadsDrawerHeight: number
   readonly pageZoomPercent: number
+  /** 单网页时页面收起顶部标签条（省约 40px）；几何偏移由外壳用同一判定计算。 */
+  readonly pageTabBarVisible: boolean
   readonly bookmarked: boolean
   readonly downloads: readonly BrowserDownloadState[]
   readonly homepages: readonly string[]

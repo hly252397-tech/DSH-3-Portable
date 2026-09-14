@@ -34,7 +34,7 @@ import { isChineseLocale, localizedShellActions, localizedShellMenus, normalizeS
 import { SHELL_BAR_HEIGHT, SHELL_IPC, type BrowserDownloadState, type BrowserPageSnapshot, type BrowserPanelBounds, type BrowserPanelSnapshot, type BrowserShellState, type BrowserTabState, type DshNavigationState, type DshShellActionId, type ShellBootstrap, type ShellMenuPopupRequest, type ShellState } from './shell-contract.js'
 import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayAccessThemePreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeBrowserIpc, mayInvokeFeaturePanelsCopy, mayInvokeShellAction, mayManageBrowserPanel, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility, type ShellRendererKind } from './shell-ipc-policy.js'
 import { FEATURE_PANEL_CATEGORIES, FEATURE_PANELS } from './feature-panels.js'
-import { browserPanelMaxWidthCss, capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight, shouldHideBrowserPanel } from './browser-panel-layout.js'
+import { browserPanelMaxWidthCss, capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight, resolveBrowserPageTop, shouldHideBrowserPanel, shouldShowPageTabBar } from './browser-panel-layout.js'
 import { normalizeNativeBrowserRequest } from './native-browser-request.js'
 import { clearStaleDshAuthCookies } from './dsh-session-cookies.js'
 import { DEFAULT_DESKTOP_THEME_PREFERENCES, DESKTOP_THEME_PALETTES, loadDesktopThemePreferences, normalizeDesktopThemeSnapshot, saveDesktopThemePreferences, type DesktopColorScheme, type DesktopThemePreference, type DesktopThemePreferences } from './desktop-theme.js'
@@ -617,6 +617,9 @@ function browserShellState(): BrowserShellState {
     downloadsOpen: browserDownloadsOpen,
     downloadsDrawerHeight: browserDownloadsDrawerHeight,
     pageZoomPercent: Math.round(browserPageZoom * 100),
+    // 单网页时页面收起标签条（省约 40px）并把"+"搬进导航条；原生视图的垂直偏移由
+    // resolveBrowserPageTop 用**同一个判定**计算，页面只认这个布尔值 —— 两侧同源，避免错开 40px。
+    pageTabBarVisible: shouldShowPageTabBar(browserTabs.length),
     bookmarked: active !== null && library.bookmarks.some(entry => entry.url === active.url),
     downloads: browserDownloads.map(({ path: _path, url: _url, ...record }) => record),
     homepages: [...configuredBrowserHomepages()],
@@ -1420,7 +1423,7 @@ function layoutDshView(window: BrowserWindow): void {
   dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: bounds.width, height: dshHeight })
   browserPanelView?.setVisible(visible)
   if (visible) browserPanelView?.setBounds({ x: panel.x, y: panel.y + SHELL_BAR_HEIGHT, width: panel.width, height: panel.height })
-  const pageTop = BROWSER_TABS_BAR_HEIGHT + BROWSER_NAV_BAR_HEIGHT
+  const pageTop = resolveBrowserPageTop(browserTabs.length, BROWSER_TABS_BAR_HEIGHT, BROWSER_NAV_BAR_HEIGHT)
   const drawer = resolveBrowserDownloadsDrawerHeight(browserDownloadsOpen, browserDownloads.length, panel.height)
   const pageHeight = Math.max(0, panel.height - pageTop - drawer)
   for (const tab of browserTabs) {
@@ -1532,7 +1535,7 @@ async function captureBrowserPanelSnapshot(): Promise<BrowserPanelSnapshot | nul
   const content = window.getContentBounds()
   const dshHeight = Math.max(0, content.height - SHELL_BAR_HEIGHT)
   const panel = browserWorkspacePanelBounds(content.width, dshHeight)
-  const pageTop = BROWSER_TABS_BAR_HEIGHT + BROWSER_NAV_BAR_HEIGHT
+  const pageTop = resolveBrowserPageTop(browserTabs.length, BROWSER_TABS_BAR_HEIGHT, BROWSER_NAV_BAR_HEIGHT)
   const drawerHeight = resolveBrowserDownloadsDrawerHeight(browserDownloadsOpen, browserDownloads.length, panel.height)
   const pageHeight = Math.max(0, panel.height - pageTop - drawerHeight)
   const active = getActiveBrowserTab()?.view.webContents
@@ -1561,7 +1564,7 @@ async function captureBrowserMenuPageSnapshot(): Promise<BrowserPageSnapshot | n
   const content = window.getContentBounds()
   const dshHeight = Math.max(0, content.height - SHELL_BAR_HEIGHT)
   const panel = browserWorkspacePanelBounds(content.width, dshHeight)
-  const pageTop = BROWSER_TABS_BAR_HEIGHT + BROWSER_NAV_BAR_HEIGHT
+  const pageTop = resolveBrowserPageTop(browserTabs.length, BROWSER_TABS_BAR_HEIGHT, BROWSER_NAV_BAR_HEIGHT)
   const drawerHeight = resolveBrowserDownloadsDrawerHeight(browserDownloadsOpen, browserDownloads.length, panel.height)
   const pageHeight = Math.max(0, panel.height - pageTop - drawerHeight)
   const page = getActiveBrowserTab()?.view.webContents
