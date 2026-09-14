@@ -3,13 +3,33 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import test from 'node:test'
 
-import { MAXIMUM_PANEL_WIDTH_MARGIN, browserPanelMaxWidthCss, capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight } from '../src/browser-panel-layout.js'
+import { MAXIMUM_PANEL_WIDTH_MARGIN, MINIMUM_PANEL_VIEWPORT_CSS, browserPanelMaxWidthCss, capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight, shouldHideBrowserPanel } from '../src/browser-panel-layout.js'
 
 test('浏览器面板坐标保持在 DSH 内容视口内', () => {
   assert.deepEqual(
     normalizeBrowserPanelBounds({ x: 900, y: 12, width: 500, height: 700 }, 1360, 860),
     { x: 900, y: 12, width: 320, height: 700 },
   )
+})
+
+test('窄视口下面板该收手：外壳与页面隐藏阈值共用同一把尺子', async () => {
+  // 2026-09-14 实机第二症状「缩小后又出现了」：页面在 CSS 视口 < 1100px 时把面板
+  // `display:none`（theme.css 的 @media），外壳不知情、仍按最小宽度 280 画原生视图
+  // ⇒「一条 280px 浏览器 + 右边一片白」。判据必须与页面同坐标系（CSS px = DIP ÷ 缩放）。
+  assert.equal(shouldHideBrowserPanel(1088, 1), true)
+  assert.equal(shouldHideBrowserPanel(1360, 1), false)
+  assert.equal(shouldHideBrowserPanel(1088 * 0.8, 0.8), true)
+  assert.equal(shouldHideBrowserPanel(1375, 1.25), false)
+  // 坏数据不隐藏面板（宁可不收手，也不要因坏输入把面板关掉）
+  assert.equal(shouldHideBrowserPanel(0, 1), false)
+  assert.equal(shouldHideBrowserPanel(Number.NaN, 1), false)
+  assert.equal(shouldHideBrowserPanel(1088, 0), false)
+
+  const css = await readFile(join(process.cwd(), 'assets/theme.css'), 'utf8')
+  const media = /@media \(max-width: (\d+)px\) \{\s*body \.nArs4W_panel \{\s*display: none/.exec(css)
+  assert.ok(media, 'theme.css 必须保留窄视口隐藏面板的媒体查询')
+  // 跨模块一致性：外壳常量必须等于页面的媒体查询阈值，否则两侧又会各收各的手
+  assert.equal(Number(media[1]), MINIMUM_PANEL_VIEWPORT_CSS)
 })
 
 test('面板宽度上限折成 CSS px：页面卡片与原生视图共用同一把尺子', () => {

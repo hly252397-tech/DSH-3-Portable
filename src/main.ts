@@ -34,7 +34,7 @@ import { isChineseLocale, localizedShellActions, localizedShellMenus, normalizeS
 import { SHELL_BAR_HEIGHT, SHELL_IPC, type BrowserDownloadState, type BrowserPageSnapshot, type BrowserPanelBounds, type BrowserPanelSnapshot, type BrowserShellState, type BrowserTabState, type DshNavigationState, type DshShellActionId, type ShellBootstrap, type ShellMenuPopupRequest, type ShellState } from './shell-contract.js'
 import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayAccessThemePreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeBrowserIpc, mayInvokeFeaturePanelsCopy, mayInvokeShellAction, mayManageBrowserPanel, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility, type ShellRendererKind } from './shell-ipc-policy.js'
 import { FEATURE_PANEL_CATEGORIES, FEATURE_PANELS } from './feature-panels.js'
-import { browserPanelMaxWidthCss, capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight } from './browser-panel-layout.js'
+import { browserPanelMaxWidthCss, capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight, shouldHideBrowserPanel } from './browser-panel-layout.js'
 import { normalizeNativeBrowserRequest } from './native-browser-request.js'
 import { clearStaleDshAuthCookies } from './dsh-session-cookies.js'
 import { DEFAULT_DESKTOP_THEME_PREFERENCES, DESKTOP_THEME_PALETTES, loadDesktopThemePreferences, normalizeDesktopThemeSnapshot, saveDesktopThemePreferences, type DesktopColorScheme, type DesktopThemePreference, type DesktopThemePreferences } from './desktop-theme.js'
@@ -1384,6 +1384,16 @@ function publishBrowserPanelMaxWidth(panelWidthDip: number): void {
     .catch(() => { browserPanelMaxCss = -1 })
 }
 
+/** 网页缩放一变，两个依赖它的东西都要重算：① 下发到页面的 CSS px 宽度上限（同一 DIP 在不同缩放下
+ *  对应不同 CSS px）② 窄视口隐藏面板的判定（阈值按 CSS px 比较）。
+ *  外壳自己的缩放动作走的是**程序化** `setZoomFactor`，**不会**触发 webContents 的 `zoom-changed`，
+ *  所以那条路径必须显式调用本函数（2026-09-14 实机：缩放后白区复现的根因之一）。 */
+function syncBrowserPanelForZoom(): void {
+  browserPanelMaxCss = -1
+  if (browserPanelWidthDip > 0) publishBrowserPanelMaxWidth(browserPanelWidthDip)
+  if (mainWindow !== undefined) layoutDshView(mainWindow)
+}
+
 function layoutDshView(window: BrowserWindow): void {
   const bounds = window.getContentBounds()
   if (mainWindowContentSuppressed) {
@@ -1400,7 +1410,11 @@ function layoutDshView(window: BrowserWindow): void {
   const dshHeight = Math.max(0, bounds.height - SHELL_BAR_HEIGHT)
   const panel = browserWorkspacePanelBounds(bounds.width, dshHeight)
   publishBrowserPanelMaxWidth(panel.width)
-  const visible = browserVisible && !browserPanelOccluded && !dshSettingsDialogVisible
+  // 页面在窄视口会把整块面板隐藏（theme.css 的 @media max-width:1100px：面板先让位、对话独占）。
+  // 外壳必须用**同一把尺子**一起收手，否则会出现「一条 280px 的浏览器 + 右边一片白」：
+  // 面板已被页面隐藏，原生视图却还在按最小宽度画（2026-09-14 实机截图实证）。阈值按 CSS px 比较。
+  const panelHiddenByViewport = shouldHideBrowserPanel(bounds.width, dshView?.webContents.getZoomFactor() ?? 1)
+  const visible = !panelHiddenByViewport && browserVisible && !browserPanelOccluded && !dshSettingsDialogVisible
     && (browserPanelOwner === undefined || browserPanelBounds !== undefined)
   dshView?.setVisible(true)
   dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: bounds.width, height: dshHeight })
@@ -1638,6 +1652,8 @@ function createWindow(): BrowserWindow {
     event.preventDefault()
     routeDshExternalLink(url)
   })
+  // 键盘/默认加速键等非外壳菜单路径的缩放：仍由事件兜一层，效果与菜单动作一致。
+  view.webContents.on('zoom-changed', () => syncBrowserPanelForZoom())
   installShortcutHandler(window.webContents)
   installShortcutHandler(view.webContents)
   installShortcutHandler(panelView.webContents)
@@ -2641,9 +2657,9 @@ async function executeShellAction(id: ShellActionId): Promise<void> {
   else if (id === 'paste') contents.paste()
   else if (id === 'delete') contents.delete()
   else if (id === 'select-all') contents.selectAll()
-  else if (id === 'zoom-in') contents.setZoomFactor(Math.min(2, contents.getZoomFactor() + 0.1))
-  else if (id === 'zoom-out') contents.setZoomFactor(Math.max(0.5, contents.getZoomFactor() - 0.1))
-  else if (id === 'zoom-reset') contents.setZoomFactor(1)
+  else if (id === 'zoom-in') { contents.setZoomFactor(Math.min(2, contents.getZoomFactor() + 0.1)); syncBrowserPanelForZoom() }
+  else if (id === 'zoom-out') { contents.setZoomFactor(Math.max(0.5, contents.getZoomFactor() - 0.1)); syncBrowserPanelForZoom() }
+  else if (id === 'zoom-reset') { contents.setZoomFactor(1); syncBrowserPanelForZoom() }
   else if (id === 'toggle-fullscreen') mainWindow?.setFullScreen(!(mainWindow?.isFullScreen() ?? false))
   else if (id === 'show-shortcuts') showShortcutsWindow()
   else if (id === 'feature-panels') { showFeaturePanelsWindow(); return }

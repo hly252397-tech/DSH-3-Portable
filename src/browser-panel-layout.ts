@@ -14,12 +14,30 @@ const DOWNLOADS_DRAWER_MAX_HEIGHT = 248
  * 经 `--dsh-browser-panel-max-width` 下发，页面只认这一个值，策略只剩一处。 */
 export const MAXIMUM_PANEL_WIDTH_MARGIN = 1040
 
+/** 面板被页面整块隐藏的视口阈值（**CSS px**），与 `assets/theme.css` 的
+ *  `@media (max-width: 1100px) { body .nArs4W_panel { display: none !important } }` 同值。
+ *  页面在窄视口选择"面板先让位、对话独占"；外壳若不知道这件事，就会继续按最小宽度
+ *  画原生浏览器视图 —— 用户看到的是「一条 280px 的浏览器 + 右边一片白」（2026-09-14 实机截图）。
+ *  两者必须共用同一把尺子，由 `browser-panel-layout.test.ts` 的跨模块一致性用例钉住。 */
+export const MINIMUM_PANEL_VIEWPORT_CSS = 1100
+
+/**
+ * 视口窄到页面会隐藏面板时，外壳是否也应停止绘制浏览器面板。
+ * 比较在 **CSS px** 坐标系里做（与页面的媒体查询同一坐标系）：`视口 DIP ÷ 网页缩放`。
+ * 输入不可信（非有限数、非正数）时返回 false —— 宁可不隐藏，也不要因坏数据把面板关掉。
+ */
+export function shouldHideBrowserPanel(viewportDip: number, zoomFactor: number): boolean {
+  if (!Number.isFinite(viewportDip) || !Number.isFinite(zoomFactor) || viewportDip <= 0 || zoomFactor <= 0) return false
+  return viewportDip / zoomFactor < MINIMUM_PANEL_VIEWPORT_CSS
+}
+
 /**
  * Cap a requested browser workspace panel width so the panel never consumes
- * the conversation area: at most `viewportWidth - 900px` (the remainder keeps
- * the icon rail, the 252px sidebar and a 560px conversation floor), and never
- * below the panel's own 280px minimum (very narrow windows hide the panel
- * through the renderer instead).
+ * the conversation area: at most `viewportWidth - MAXIMUM_PANEL_WIDTH_MARGIN`
+ * (the remainder keeps the icon rail, the 252px sidebar and the official 680px
+ * conversation floor), and never below the panel's own 280px minimum (very
+ * narrow windows hide the panel instead — the page through its media query,
+ * the shell through `shouldHideBrowserPanel`).
  */
 export function capBrowserWorkspacePanelWidth(viewportWidth: number, requestedWidth: number): number {
   const maximum = Math.max(280, viewportWidth - MAXIMUM_PANEL_WIDTH_MARGIN)
@@ -33,7 +51,7 @@ export function capBrowserWorkspacePanelWidth(viewportWidth: number, requestedWi
  * 外壳侧却是 `viewport - 900px` 的 DIP 钳制 —— 两把尺子、两个数、还差一个缩放因子，
  * 于是"卡片宽度"与"原生视图宽度"可以差出上百像素：差出来的那条就是用户看到的
  * 右侧空白（卡片白底露出），反过来视图也会压住对话列。
- * 改成单一来源后，页面只认外壳下发的值，`viewport - 900` 仍是唯一的策略常量。
+ * 改成单一来源后，页面只认外壳下发的值，`viewport - MAXIMUM_PANEL_WIDTH_MARGIN` 是唯一的策略常量。
  */
 export function browserPanelMaxWidthCss(panelWidthDip: number, zoomFactor: number): number {
   if (!Number.isFinite(panelWidthDip) || !Number.isFinite(zoomFactor) || zoomFactor <= 0 || panelWidthDip <= 0) return 0
