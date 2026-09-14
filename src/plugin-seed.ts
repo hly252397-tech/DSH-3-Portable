@@ -8,6 +8,7 @@ import { writeTextFileAtomic, writeTextFileAtomicSync } from './atomic-file.js'
 import {
   ALLOWED_BUILD_PACKAGES,
   BUNDLED_PLUGINS,
+  compareReleaseVersions,
   OFFICIAL_DSH_VERSION,
   OFFICIAL_LAUNCH_PEERS,
   OFFICIAL_PROFILE_BUNDLES,
@@ -491,7 +492,18 @@ export async function applyPendingProfileUpdates(options: SeedOptions): Promise<
     ...declared.map((item) => item.packageName),
     ...community.map((item) => item.packageName),
   ])])
-  const updates = mergeProfileUpdates({ pending: community, declared, installed })
+  // 旧客户端留下的待更新清单可能指向比磁盘上更旧的版本。直接合并会把已经装好的插件降级
+  // （并连带把它的依赖一起降级），所以以「待更新目标」与「实际安装版本」中的较高者为准。
+  // 刻意不用随包清单当版本地板：本仓库的随包插件矩阵滞后于实际部署矩阵（便携版运行时走
+  // 自研 A/B 通道），拿它当基准会反过来覆盖用户与市场的显式升级选择。
+  const installedVersions = new Map(installed.map((item) => [item.packageName, item.version]))
+  const compatiblePending = community.map((plugin) => {
+    const current = installedVersions.get(plugin.packageName)
+    return current !== undefined && compareReleaseVersions(plugin.version, current) < 0
+      ? { ...plugin, version: current }
+      : plugin
+  })
+  const updates = mergeProfileUpdates({ pending: compatiblePending, declared, installed })
   const applied: string[] = []
   const runner = options.runner ?? ((args) => runPnpm(options, args))
   if (updates.length > 0) {
@@ -620,20 +632,69 @@ async function ensureOfficialLaunchPeers(options: SeedOptions, targetDir: string
   return missing.map((plugin) => plugin.packageName)
 }
 
+/** pnpm 会把被 allowBuilds 拦下的构建脚本记进 `node_modules/.modules.yaml` 的 `ignoredBuilds`。
+ *  历史 profile 一旦记下「忽略 node-pty / protobufjs 构建」，此后即使清单补上 allowBuilds，
+ *  补种计划也会因为「版本齐全」判定为 already-installed：包装得上，原生构建却永远缺。
+ *  只认随包 pnpm 11 写出的 JSON 状态；旧版 YAML 不属于这种残留状态。 */
+export function needsIgnoredBuildRepair(modulesState: string): boolean {
+  if (!modulesState.trimStart().startsWith('{')) return false
+  let state: unknown
+  try {
+    state = JSON.parse(modulesState) as unknown
+  } catch {
+    return false
+  }
+  if (state === null || typeof state !== 'object' || !('ignoredBuilds' in state)) return false
+  const ignored = (state as { ignoredBuilds?: unknown }).ignoredBuilds
+  if (!Array.isArray(ignored)) return false
+  return ignored.some((entry) => typeof entry === 'string'
+    && ALLOWED_BUILD_PACKAGES.some((name) => entry.startsWith(`${name}@`)))
+}
+
+/** 让被历史拦下的随包构建真正跑一遍：沿用 profile 已记录的仓库重装同版本包。
+ *  与上游实现的有意差异：失败只告警不抛出。进入这条分支说明 profile 本身已可启动，
+ *  一次机会性的构建恢复不该把它变成启动失败。 */
+async function repairIgnoredBundledBuilds(
+  options: SeedOptions,
+  catalog: readonly BundledPlugin[],
+  runner: (args: readonly string[]) => Promise<void>,
+): Promise<void> {
+  const statePath = join(options.profileDir, 'node_modules', '.modules.yaml')
+  if (catalog.length === 0 || !existsSync(statePath)) return
+  if (!needsIgnoredBuildRepair(await readFile(statePath, 'utf8'))) return
+  try {
+    // 已有 node_modules 的目录禁止改用安装包 store（pnpm 会报 UNEXPECTED_STORE），只沿用
+    // profile 自己记录的仓库；显式离线请求由 buildSeedPluginArgs 统一附加 --offline。
+    const storeDir = resolvePnpmStoreDir(options.profileDir)
+    const installed = await readInstalledPackageVersions(options.profileDir, catalog.map((plugin) => plugin.packageName))
+    const packages = catalog.map((plugin) => ({
+      ...plugin,
+      version: installed.find((item) => item.packageName === plugin.packageName)?.version ?? plugin.version,
+    }))
+    await runner(buildSeedPluginArgs(packages, options.profileDir, storeDir === undefined ? {} : { storeDir }))
+  } catch (error) {
+    console.warn('内置插件构建许可恢复失败，保持现有 profile。', error)
+  }
+}
+
 async function seedCommunityPlugins(options: SeedOptions): Promise<SeedResult> {
   await ensureProfileScaffold(options.profileDir)
   const { declared, installed } = await readProfilePluginNames(options.profileDir)
+  const catalog = options.catalog ?? BUNDLED_PLUGINS
   const plan = planBundledPluginSeed({
-    catalog: options.catalog ?? BUNDLED_PLUGINS,
+    catalog,
     declaredPackages: declared,
     installedPackages: installed,
     storeExists: existsSync(options.pluginStoreDir),
   })
-  if (plan.action === 'skip') return { seeded: [], skipped: plan.reason }
+  const runner = options.runner ?? ((pluginArgs) => runPnpm(options, pluginArgs))
+  if (plan.action === 'skip') {
+    await repairIgnoredBundledBuilds(options, communitySeedCatalog(catalog), runner)
+    return { seeded: [], skipped: plan.reason }
+  }
   const storeDir = resolvePnpmStoreDir(options.profileDir, existsSync(options.pluginStoreDir) ? options.pluginStoreDir : undefined)
   const useStore = storeDir !== undefined
   const storeOptions = useStore ? { storeDir, offline: true } : {}
-  const runner = options.runner ?? ((pluginArgs) => runPnpm(options, pluginArgs))
   if (plan.packages.length > 0) {
     if (useStore) await seedPackagedPluginLockfile(options.profileDir, storeDir)
     const args = buildSeedPluginArgs(plan.packages, options.profileDir, storeOptions)

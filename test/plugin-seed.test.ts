@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 import { OFFICIAL_DSH_VERSION, OFFICIAL_LAUNCH_PEERS, OFFICIAL_RUNTIME, OFFICIAL_RUNTIME_RESOLUTION_MODE, SUITE_PACKAGE, officialDshVersionOverrides } from '../src/bundled-plugins.js'
-import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, ensurePnpm11BuildPolicy, ensureRuntimeResolutionMode, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, rebasePortablePnpmState, reconcileOfficialRuntimeManifest, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
+import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, ensurePnpm11BuildPolicy, ensureRuntimeResolutionMode, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, needsIgnoredBuildRepair, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, rebasePortablePnpmState, reconcileOfficialRuntimeManifest, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
 
 const catalog = [
   { packageName: '@michengai/dsh-codex-ui', version: '0.2.58' },
@@ -122,6 +122,128 @@ test('已有 node_modules 时不得改用安装包 store', async () => {
     const args = buildSeedPluginArgs(catalog, root, {})
     assert.equal(args.some(item => item.startsWith('--store-dir=')), false)
     assert.equal(args.includes('--offline'), false)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('识别 pnpm 记下的被忽略构建，只有命中随包许可名单才要求恢复', () => {
+  assert.equal(needsIgnoredBuildRepair(JSON.stringify({ ignoredBuilds: ['node-pty@1.0.0'] })), true)
+  assert.equal(needsIgnoredBuildRepair(JSON.stringify({ ignoredBuilds: ['protobufjs@7.4.0', 'koffi@2.9.0'] })), true)
+  // 与随包许可名单无关的忽略项不是本修复的对象
+  assert.equal(needsIgnoredBuildRepair(JSON.stringify({ ignoredBuilds: ['some-other-pkg@1.0.0'] })), false)
+  assert.equal(needsIgnoredBuildRepair(JSON.stringify({ hoistPattern: ['*'], ignoredBuilds: [] })), false)
+  assert.equal(needsIgnoredBuildRepair(JSON.stringify({ ignoredBuilds: 'node-pty@1.0.0' })), false)
+  // 旧版 pnpm 的 YAML 状态不属于这种残留状态；损坏内容一律不触发
+  assert.equal(needsIgnoredBuildRepair('ignoredBuilds:\n  - node-pty@1.0.0\n'), false)
+  assert.equal(needsIgnoredBuildRepair('{ not json'), false)
+})
+
+test('版本齐全但构建被记下忽略时，沿用 profile 记录的仓库重跑一次安装', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-seed-repair-'))
+  try {
+    const packagedStore = join(root, 'plugins', 'store')
+    const legacyStore = join(root, 'legacy-store', 'v11')
+    const profile = join(root, 'profile')
+    await mkdir(packagedStore, { recursive: true })
+    await mkdir(join(profile, 'node_modules'), { recursive: true })
+    await writeFile(join(profile, 'package.json'), JSON.stringify({
+      dependencies: {
+        '@michengai/dsh-codex-ui': '0.2.58',
+        '@michengai/dsh-im-connect': '0.1.10',
+      },
+    }), 'utf8')
+    await writeFile(join(profile, 'node_modules', '.modules.yaml'), JSON.stringify({
+      storeDir: legacyStore,
+      ignoredBuilds: ['node-pty@1.0.0'],
+    }), 'utf8')
+    const calls: string[][] = []
+    const result = await seedBundledPlugins({
+      nodeExecutable: 'node',
+      profileDir: profile,
+      pluginStoreDir: packagedStore,
+      catalog,
+      runner: async args => { calls.push([...args]) },
+    })
+    assert.deepEqual(result, { seeded: [], skipped: 'already-installed' })
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0]?.[0], 'add')
+    // 用磁盘上实际安装的版本重装，而不是随包清单里的版本
+    assert.equal(calls[0]?.includes('@michengai/dsh-codex-ui@0.2.58'), true)
+    assert.equal(calls[0]?.includes('@michengai/dsh-im-connect@0.1.10'), true)
+    assert.equal(calls[0]?.includes(`--dir=${profile}`), true)
+    // 已有 node_modules 时绝不改用安装包 store（pnpm 会报 UNEXPECTED_STORE）
+    assert.equal(calls[0]?.includes(`--store-dir=${legacyStore}`), true)
+    assert.equal(calls[0]?.includes(`--store-dir=${packagedStore}`), false)
+    assert.equal(calls[0]?.includes(`--cache-dir=${join(root, 'legacy-store')}`), true)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('版本齐全且构建未被忽略时不做多余安装', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-seed-repair-skip-'))
+  try {
+    const profile = join(root, 'profile')
+    await mkdir(profile, { recursive: true })
+    await mkdir(join(profile, 'node_modules'), { recursive: true })
+    await mkdir(join(root, 'plugins', 'store'), { recursive: true })
+    await writeFile(join(profile, 'package.json'), JSON.stringify({
+      dependencies: {
+        '@michengai/dsh-codex-ui': '0.2.58',
+        '@michengai/dsh-im-connect': '0.1.10',
+      },
+    }), 'utf8')
+    await writeFile(join(profile, 'node_modules', '.modules.yaml'), JSON.stringify({
+      ignoredBuilds: ['some-other-pkg@1.0.0'],
+    }), 'utf8')
+    const calls: string[][] = []
+    const result = await seedBundledPlugins({
+      nodeExecutable: 'node',
+      profileDir: profile,
+      pluginStoreDir: join(root, 'plugins', 'store'),
+      catalog,
+      runner: async args => { calls.push([...args]) },
+    })
+    assert.deepEqual(result, { seeded: [], skipped: 'already-installed' })
+    assert.equal(calls.length, 0)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('旧客户端的 pending 清单不得把已安装的插件降级', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-pending-downgrade-'))
+  try {
+    const profile = join(root, 'profile')
+    const installedDir = join(profile, 'node_modules', '@michengai', 'dsh-codex-ui')
+    await mkdir(installedDir, { recursive: true })
+    await writeFile(join(installedDir, 'package.json'), JSON.stringify({
+      name: '@michengai/dsh-codex-ui',
+      version: '0.2.58',
+    }), 'utf8')
+    await writeFile(join(profile, 'package.json'), JSON.stringify({
+      dependencies: { '@michengai/dsh-codex-ui': '0.2.58' },
+    }), 'utf8')
+    await writeFile(join(profile, '.dsh-pending-updates.json'), JSON.stringify({
+      packages: [
+        { packageName: '@michengai/dsh-codex-ui', version: '0.2.10' },
+        { packageName: '@michengai/dsh-im-connect', version: '0.1.10' },
+      ],
+    }), 'utf8')
+    const calls: string[][] = []
+    const updated = await applyPendingProfileUpdates({
+      nodeExecutable: 'node',
+      profileDir: profile,
+      pluginStoreDir: join(root, 'store'),
+      catalog,
+      runner: async args => { calls.push([...args]) },
+    })
+    assert.deepEqual(updated, ['@michengai/dsh-im-connect'])
+    // 0.2.10 比磁盘上的 0.2.58 更旧：降级被消解，连带不再产生任何 codex-ui 安装动作；
+    // 本来就不低于已安装版本的条目原样保留。
+    assert.equal(calls[0]?.some(item => item.startsWith('@michengai/dsh-codex-ui@')), false)
+    assert.equal(calls[0]?.includes('@michengai/dsh-im-connect@0.1.10'), true)
   } finally {
     await rm(root, { recursive: true, force: true })
   }
