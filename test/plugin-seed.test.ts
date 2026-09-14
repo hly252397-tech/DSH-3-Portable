@@ -179,7 +179,7 @@ test('版本齐全但构建被记下忽略时，沿用 profile 记录的仓库�
     assert.equal(calls[0]?.includes(`--store-dir=${packagedStore}`), false)
     assert.equal(calls[0]?.includes(`--cache-dir=${join(root, 'legacy-store')}`), true)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -210,7 +210,7 @@ test('版本齐全且构建未被忽略时不做多余安装', async () => {
     assert.deepEqual(result, { seeded: [], skipped: 'already-installed' })
     assert.equal(calls.length, 0)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -247,7 +247,7 @@ test('旧客户端的 pending 清单不得把已安装的插件降级', async ()
     assert.equal(calls[0]?.some(item => item.startsWith('@michengai/dsh-codex-ui@')), false)
     assert.equal(calls[0]?.includes('@michengai/dsh-im-connect@0.1.10'), true)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
