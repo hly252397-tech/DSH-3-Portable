@@ -23,11 +23,11 @@ test('theme stays at the committed preset while persistence is pending or reject
   let rejectSave!: (reason: Error) => void
   const h = await themeHarness(() => new Promise((_resolve, reject) => { rejectSave = reject }))
   const saving = h.api.set('lake')
-  assert.equal(h.api.saved(), 'qoder')
+  assert.equal(h.api.saved(), 'deep-sea')
   assert.equal(h.stored.size, 0)
   rejectSave(new Error('disk unavailable'))
   await assert.rejects(saving, /disk unavailable/)
-  assert.equal(h.api.saved(), 'qoder')
+  assert.equal(h.api.saved(), 'deep-sea')
   assert.equal(h.stored.size, 0)
 })
 

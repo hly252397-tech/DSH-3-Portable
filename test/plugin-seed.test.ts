@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
-import { readFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { readFile, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
+
+import { makeTrackedTempDir as mkdtemp, removeTempDir } from './helpers/tmp.js'
 
 import { OFFICIAL_DSH_VERSION, OFFICIAL_LAUNCH_PEERS, OFFICIAL_RUNTIME, OFFICIAL_RUNTIME_RESOLUTION_MODE, SUITE_PACKAGE, officialDshVersionOverrides } from '../src/bundled-plugins.js'
 import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, ensurePnpm11BuildPolicy, ensureRuntimeResolutionMode, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, rebasePortablePnpmState, reconcileOfficialRuntimeManifest, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
@@ -109,7 +111,7 @@ test('seedBundledPlugins 只调用一次 pnpm add，且写入用户 profile', as
     assert.equal(calls[0]?.[0], 'add')
     assert.equal(calls[0]?.includes(`--dir=${profile}`), true)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -123,7 +125,7 @@ test('已有 node_modules 时不得改用安装包 store', async () => {
     assert.equal(args.some(item => item.startsWith('--store-dir=')), false)
     assert.equal(args.includes('--offline'), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -134,7 +136,7 @@ test('后续 pnpm 操作沿用 node_modules 记录的 store 目录', async () =>
     await writeFile(join(root, 'node_modules', '.modules.yaml'), 'storeDir: D:\\persistent-store\n', 'utf8')
     assert.equal(resolvePnpmStoreDir(root, 'D:\\fallback-store'), 'D:\\persistent-store')
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -174,7 +176,7 @@ test('替换旧套件时先安装子插件，安装失败不会先卸载套件',
     assert.equal(calls[0]?.[0], 'add')
     assert.equal(calls.some(args => args[0] === 'remove'), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -186,7 +188,7 @@ test('官方运行时缺启动 peer 时判定为不可启动', async () => {
     assert.equal(isOfficialRuntimeLaunchable(root), false)
     assert.equal(missingOfficialLaunchPeers(root)[0]?.packageName, '@deepseek-ai/cordis-plugin-group')
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -222,7 +224,7 @@ test('官方运行时已装但缺少启动 peer 时会补齐', async () => {
     assert.equal(calls.some(item => item.some(arg => arg.includes('@deepseek-ai/cordis-plugin-group@1.0.2'))), true)
     assert.equal(isOfficialRuntimeLaunchable(runtime), true)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 test('会把已有 workspace 的 autoInstallPeers 打开', async () => {
@@ -235,7 +237,7 @@ test('会把已有 workspace 的 autoInstallPeers 打开', async () => {
     ensureAutoInstallPeersEnabled(root)
     assert.doesNotMatch(await readFile(join(root, 'pnpm-workspace.yaml'), 'utf8'), /['"]false['"]/)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -259,7 +261,7 @@ test('会从 Web profile 依赖里清掉官方包', async () => {
     assert.equal(manifest.dependencies?.['@deepseek-ai/dsh'], undefined)
     assert.deepEqual(manifest.dsh?.profile?.bundles, ['@deepseek-ai/dsh-base'])
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -279,7 +281,7 @@ test('会清掉 Web profile 里的官方 node_modules，避免盖掉运行时', 
     assert.equal(existsSync(official), false)
     assert.equal(existsSync(join(root, 'node_modules', '@deepseek-ai', '.keep')), true)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -311,7 +313,7 @@ test('启动前会按 pending 清单升级社区插件，官方残留条目被�
     // 待更新项，并在之后每次插件更新时被重新合并带回。
     assert.equal(existsSync(join(profile, '.dsh-pending-updates.json')), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -333,7 +335,7 @@ test('只剩官方条目的 pending 文件会被删除，不再反复提示待�
     assert.deepEqual(updated, [])
     assert.equal(existsSync(join(profile, '.dsh-pending-updates.json')), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -374,7 +376,7 @@ test('复制预装官方运行时成功后不再现场 pnpm add', async () => {
     assert.equal(calls.length, 0)
     assert.equal(existsSync(join(runtime, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')), true)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -390,7 +392,7 @@ test('启动前会摘掉磁盘上已经不存在的社区 bundle', async () => {
     const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as { dsh?: { profile?: { bundles?: string[] } } }
     assert.deepEqual(manifest.dsh?.profile?.bundles, ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'])
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -402,7 +404,7 @@ test('桌面内部 bridge bundle 不依赖 profile dependencies 仍会保留', a
     await writeFile(join(root, 'package.json'), JSON.stringify({ dsh: { profile: { bundles: ['dsh-desktop-bridge'] } } }), 'utf8')
     assert.deepEqual(await pruneMissingProfileBundles(root), [])
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -424,7 +426,7 @@ test('先认磁盘上的包，再更新 bundle 列表', async () => {
     assert.equal(result.bundles.includes('ready-plugin'), true)
     assert.equal(result.bundles.includes('dsh-file-upload'), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -447,7 +449,7 @@ test('插件市场禁用 bundle 插件后，启动补种不得把它重新加入
     const result = await finalizeProfileBundlesAfterInstall(root)
     assert.equal(result.bundles.includes('ready-plugin'), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -469,7 +471,7 @@ test('启动补种 pnpm 超时后会终止并返回明确错误', async () => {
       timeoutMs: 30,
     }), /pnpm.*超时/i)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -509,7 +511,7 @@ test('官方 pending 会改运行时目录，不写进 Web profile', async () =>
     const profileManifest = JSON.parse(await readFile(join(profile, 'package.json'), 'utf8')) as { dependencies?: Record<string, string> }
     assert.equal(profileManifest.dependencies?.['@deepseek-ai/dsh'], undefined)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -542,7 +544,7 @@ test('运行时工作区补齐 resolutionMode 且不改动已有内容', async (
     assert.equal(replaced.match(/^resolutionMode:/gm)?.length, 1)
     assert.match(replaced, new RegExp(`^resolutionMode: ${OFFICIAL_RUNTIME_RESOLUTION_MODE}\$`, 'm'))
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -568,7 +570,7 @@ test('pnpm 11 工作区会移除旧构建白名单并保留新的 allowBuilds', 
     assert.match(next, /allowBuilds:\s*\n\s+koffi: true\s*\n\s+node-pty: true/)
     assert.equal((next.match(/^\s+(?:"koffi"|koffi):/gm) ?? []).length, 1)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -602,7 +604,7 @@ test('通过指纹封存的 A/B 运行时槽在启动补种时保持不可变', 
     assert.equal(existsSync(join(runtime, 'package.json')), false)
     assert.equal(existsSync(join(runtime, 'pnpm-workspace.yaml')), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -649,7 +651,7 @@ test('被半改写的活动运行时槽在启动时把描述性清单拉回实�
     assert.equal((await readFile(join(runtime, '.dsh-runtime-fingerprint'), 'utf8')).trim(), 'b'.repeat(64))
     assert.equal(reconcileOfficialRuntimeManifest(runtime), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -665,6 +667,6 @@ test('家族版本混用时不动活动运行时槽清单，交由 A/B 门禁拒
     }
     assert.equal(manifest.dependencies?.['@deepseek-ai/dsh'], '0.1.5-rc.2')
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })

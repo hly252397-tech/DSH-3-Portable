@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
@@ -159,6 +160,16 @@ test('顶栏移除重复浏览器入口且重启确认保持紧凑图标态', as
   assert.doesNotMatch(shell, /id="home-btn"/)
   assert.doesNotMatch(shell, /browser-toggle/)
   assert.doesNotMatch(shell, /confirm-text/)
+  // 2026-09-13 用户改版拍板：重启并入右段工具组（「必须是最左第一个」是上一轮的布局决定，已被覆盖）。
+  // 保护意图不变——全壳唯一一个重启入口、紧凑图标态、两步确认与拒绝文案仍在。
+  const barLeft = shell.slice(shell.indexOf('<div class="bar-left">'), shell.indexOf('<div class="bar-right">'))
+  const barRight = shell.slice(shell.indexOf('<div class="bar-right">'), shell.indexOf('</header>'))
+  assert.match(barLeft, /<div class="bar-left">\s*<button id="back"/)
+  assert.doesNotMatch(barLeft, /id="restart-btn"/)
+  assert.match(barRight, /id="restart-btn"[\s\S]*shell-icons\/power\.svg/)
+  assert.equal((shell.match(/id="restart-btn"/g) ?? []).length, 1)
+  // 同一轮拍板的中段方案 A（居中定宽 320）也钉住，防止静默退回隐藏态
+  assert.match(shell, /\.command-center\{position:absolute;left:50%;top:50%;transform:translate\(-50%,-50%\)[^}]*width:320px/)
   assert.match(shell, /restartConfirming\?\(zh\?'再次点击重启·Esc 取消'/)
   assert.match(shell, /restartBtn\.setAttribute\('aria-pressed','true'\)/)
   assert.match(main, /async function spawnPortableLauncherForRestart\(\)/)
@@ -181,12 +192,14 @@ test('顶栏移除重复浏览器入口且重启确认保持紧凑图标态', as
   assert.match(main, /if \(!await scheduleAppRelaunch\(\)\)/)
 })
 
-test('侧栏全局固定为 252 px，并保留两个切换入口', async () => {
+test('侧栏保留原宽度约束，顶部不恢复重复开关', async () => {
   const shell = await readFile(new URL('../../assets/shell.html', import.meta.url), 'utf8')
   const theme = await readFile(new URL('../../assets/theme.css', import.meta.url), 'utf8')
   const dshPreload = await readFile(new URL('../../src/dsh-view-preload.cts', import.meta.url), 'utf8')
   const workbench = await readFile(new URL('../../Customize/Automation-Workbench/workbench.js', import.meta.url), 'utf8')
-  assert.match(shell, /id="home-panel"[^>]*data-action="toggle-sidebar"/)
+  assert.doesNotMatch(shell, /id="home-panel"|data-action="toggle-sidebar"/)
+  const actions = await readFile(new URL('../../src/shell-actions.ts', import.meta.url), 'utf8')
+  assert.match(actions, /id: 'toggle-sidebar'.*CmdOrCtrl\+B/)
   assert.match(shell, /id="workspace-label"[^>]*data-action="home"/)
   assert.match(theme, /body \.dcu-root,\s*body \.dcu-foot\s*\{\s*width: 252px !important/)
   assert.match(theme, /body \[data-side="sidebar"\]\s*\{\s*display: none !important/)
@@ -282,4 +295,85 @@ test('DSH 主题变化同步到桌面外壳、原生菜单和辅助窗口', asyn
   }
   for (const source of [shell, settings, shortcuts, about]) assert.match(source, /dataset\.colorScheme=value\.colorScheme/)
   assert.match(main, /loadFile\(html, \{ query: desktopThemeQuery\(\) \}\)/)
+})
+
+test('运行时可通过 IPC 请求优雅重启，且复用唯一的重启交接实现', async () => {
+  const source = await readFile(new URL('../../src/main.ts', import.meta.url), 'utf8')
+  // 命中 app-restart 后必须复用既有 requestAppRestart（先调度分离实例再优雅关停），
+  // 不允许出现第二条硬杀/自建重启路径。
+  assert.match(source, /function isAppRestartIpc\(message: unknown\): boolean \{[\s\S]*?'type' in message[\s\S]*?APP_RESTART_IPC/)
+  assert.match(source, /if \(isAppRestartIpc\(message\)\) \{[\s\S]*?runMainTask\(requestAppRestart\(\)\)/)
+  assert.equal((source.match(/function requestAppRestart\(/g) ?? []).length, 1)
+  assert.equal((source.match(/Stop-Process|process\.kill\(/g) ?? []).length, 0)
+})
+
+test('重启按钮宿主半侧提供受令牌保护的本机重启端点', async (t) => {
+  const pluginDir = new URL('../../Data/DSH/profiles/web/local/dsh-restart-button/', import.meta.url)
+  const hostPath = new URL('lib/index.js', pluginDir)
+  if (!existsSync(hostPath)) {
+    t.skip('实机插件产物缺失（CI 全新检出）')
+    return
+  }
+  const host = await readFile(hostPath, 'utf8')
+  const patch = await readFile(new URL('cordis.patch.yml', pluginDir), 'utf8')
+  // 命名导出形态：模块级 inject 才生效，patch 条目只写 id/name/config。
+  assert.match(host, /export const name = 'dsh-restart-button'/)
+  assert.match(host, /export const inject = \['webServer'\]/)
+  assert.match(host, /webServer\.register\(\{\s*kind: 'prefix'/)
+  // 令牌未配置即整体停用；错误令牌必须被拒绝，不能有「无令牌放行」分支。
+  assert.match(host, /token === '' \|\| req\.headers\['x-dsh-agent-token'\] !== token/)
+  assert.match(host, /req\.method !== 'POST'/)
+  // 只上报外壳，不自行关停进程。
+  assert.match(host, /process\.send\?\.\(\{ type: 'app-restart' \}\)/)
+  assert.doesNotMatch(host, /process\.exit\(|process\.kill\(/)
+  assert.match(patch, /config:\s*\n\s*agentToken: '[0-9a-f]{64}'/)
+})
+test('Windows 窗口状态切换先冻结多层内容，稳定后重新布局再显示', async () => {
+  const main = await readFile(new URL('../../src/main.ts', import.meta.url), 'utf8')
+  assert.match(main, /let mainWindowContentSuppressed = false/)
+  assert.match(main, /let mainWindowLayoutDeferred = false/)
+  assert.match(main, /if \(mainWindowContentSuppressed\) \{[\s\S]*?setVisible\(false\)[\s\S]*?broadcastShellState\(\)/)
+  assert.match(main, /if \(mainWindowLayoutDeferred\) \{[\s\S]*?broadcastShellState\(\)/)
+  assert.match(main, /function installWindowSurfaceGuard\(window: BrowserWindow\): void \{[\s\S]*?process\.platform !== 'win32'/)
+  assert.match(main, /const hideSurface = \(hideWindow = false\): void => \{[\s\S]*?if \(hideWindow\) \{[\s\S]*?window\.setOpacity\(0\)[\s\S]*?windowOpacitySuppressed = true[\s\S]*?\}[\s\S]*?setMainWindowContentVisible\(window, false\)/)
+  assert.match(main, /window\.on\('minimize', \(\) => \{\s*hideSurface\(true\)/)
+  assert.match(main, /window\.on\('restore', \(\) => \{[\s\S]*?hideSurface\(true\)[\s\S]*?revealSurfaceWhenStable\(32, true\)/)
+  assert.match(main, /setMainWindowContentVisible\(window, true\)[\s\S]*?if \(restoreWindow \|\| windowOpacitySuppressed\) \{[\s\S]*?window\.setOpacity\(1\)/)
+  assert.match(main, /mainWindowLayoutDeferred = true[\s\S]*?revealSurfaceWhenStable\(\)/)
+  assert.match(main, /window\.on\('maximize', beginDisplayModeTransition\)/)
+  assert.match(main, /window\.on\('unmaximize', beginDisplayModeTransition\)/)
+  assert.match(main, /window\.on\('resized', \(\) => \{[\s\S]*?mainWindowContentSuppressed \|\| mainWindowLayoutDeferred[\s\S]*?revealSurfaceWhenStable\(32, mainWindowContentSuppressed\)/)
+  assert.match(main, /installWindowSurfaceGuard\(window\)/)
+})
+
+test('重启按钮不会把未完成的重启伪装成已完成', async (t) => {
+  const clientPath = new URL('../../Data/DSH/profiles/web/local/dsh-restart-button/lib/client.js', import.meta.url)
+  if (!existsSync(clientPath)) {
+    t.skip('实机插件客户端缺失（CI 全新检出）')
+    return
+  }
+  const client = await readFile(clientPath, 'utf8')
+  assert.match(client, /const RESTART_TIMEOUT_MS = 15_000/)
+  assert.match(client, /state === "starting" \? RESTART_TIMEOUT_MS : 5000/)
+  assert.match(client, /starting: "重启中"/)
+  assert.match(client, /starting: "Restarting"/)
+  assert.match(client, /failed: "重启失败"/)
+  assert.match(client, /setState\("failed"\)/)
+  assert.doesNotMatch(client, /setState\(s => s === "starting" \? "label" : s\)/)
+})
+
+test('浏览器工作区脚本引用的元素在它加载的每个文档里都存在', async () => {
+  // browser-workspace.js 同时被 shell.html（外壳顶栏所在文档）与 browser-panel.html 加载。
+  // 任一 byId 命中 null，create() 里紧跟的 addEventListener 就会抛错，而 shell.html 是在顶层
+  // 调用 create()：整个内联脚本中断 ⇒ 菜单空白、返回/前进/搜索胶囊/重启/桌面设置/检查更新
+  // 全部点不动（2026-09-13 实机故障：漏了 browser-menu-external 一个 id）。
+  const workspace = await readFile(new URL('../../assets/browser-workspace.js', import.meta.url), 'utf8')
+  const ids = [...new Set([...workspace.matchAll(/byId\(\s*'([^']+)'\s*\)/g)].map(match => match[1]))]
+  assert.ok(ids.length > 40, `未解析到浏览器工作区元素 id（只解析出 ${ids.length} 个）`)
+  for (const document of ['shell.html', 'browser-panel.html']) {
+    const html = await readFile(new URL(`../../assets/${document}`, import.meta.url), 'utf8')
+    const missing = ids.filter(id => !html.includes(`id="${id}"`))
+    assert.deepEqual(missing, [], `${document} 缺少 browser-workspace.js 需要的元素：${missing.join(', ')}`)
+  }
+  assert.match(workspace, /elements\.menuExternal\?\.addEventListener\('click'/)
 })

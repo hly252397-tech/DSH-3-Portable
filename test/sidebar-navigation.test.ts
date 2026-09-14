@@ -128,7 +128,8 @@ test('extension browsing keeps one entry: Codex UI launches the standalone workb
   assert.doesNotMatch(source, /id:\s*["']dsh-automation["']/)
   assert.doesNotMatch(source, /SidebarSettingsAction/)
   assert.doesNotMatch(source, /openBuiltInSettings/)
-  assert.match(source, /function AutomationApp[\s\S]*?useEffect[\s\S]*?return openSettingsSection\("automation"/)
+  assert.doesNotMatch(source, /function AutomationApp/)
+  assert.match(source, /function RetiredAutomationTab[\s\S]*?service\.closeTab\(tab\.id, scope\)/)
 })
 
 test('market handoff waits for its tab without clicking the settings section twice', async t => {
@@ -155,31 +156,34 @@ test('market follow-up is cancelled when its owner is disposed', async t => {
   assert.equal(completed, 0); assert.ok(h.cleaned)
 })
 
-test('activity host cleanup supports remount and removes empty hosts from older bundles', async t => {
+// 2026-09-13：活动卡整卡下线，挂载器被退场函数取代。这条用例改钉「退场清理」——
+// 宿主是运行时 insertBefore 进去的普通 div，不在模板里，旧 bundle 或热重载留下的节点
+// 必须被清掉，否则首页会留一个空的 120px 块。
+test('retired activity host is purged so older bundles cannot leave an empty block', async t => {
   if (!haveLiveSpacesClient) return t.skip('实机 sidebar-spaces 产物缺失（CI 全新检出）')
 
-  let mount: () => () => void = () => { throw new Error('module not loaded') }
-  let host: any = { hasChildNodes: () => false, remove() { host = null } }
-  let mounted = 0, unmounted = 0
-  const hero = {
-    querySelector(selector: string) { return selector.includes('activity-host') ? host : {} },
-    insertBefore(next: any) { host = next },
-  }
+  let retire: () => () => void = () => { throw new Error('module not loaded') }
+  const removed: string[] = []
+  let disconnected = 0
+  const leftovers = [
+    { remove() { removed.push('old-a') } },
+    { remove() { removed.push('old-b') } },
+  ]
   const source = (await readFile(spacesClientPath, 'utf8'))
-    .replace('exports.apply = apply;', 'exports.mount = mountHeroActivityGrid; exports.apply = apply;')
+    .replace('exports.apply = apply;', 'exports.retire = retireHeroActivityGrid; exports.apply = apply;')
   const deps = (name: string) => name === 'react' ? { createElement() { return {} } }
-    : name === 'react-dom/client' ? { createRoot() { return { render() { mounted++ }, unmount() { unmounted++ } } } } : {}
+    : name === 'react-dom/client' ? { createRoot() { return { render() {}, unmount() {} } } } : {}
   runInNewContext(source, {
-    window: { __ModuleLoader__: { load(def: any) { mount = def.factory(deps).mount } } },
-    document: { body: {}, querySelectorAll: () => [hero], createElement: () => ({ dataset: {}, isConnected: true, hasChildNodes: () => false, remove() { host = null } }) },
-    MutationObserver: class { observe() {} disconnect() {} }, queueMicrotask(callback: () => void) { callback() },
+    window: { __ModuleLoader__: { load(def: any) { retire = def.factory(deps).retire } } },
+    document: { body: {}, querySelectorAll: (selector: string) => selector.includes('activity-host') ? leftovers : [] },
+    MutationObserver: class { observe() {} disconnect() { disconnected++ } }, queueMicrotask(callback: () => void) { callback() },
   })
-  const dispose = mount()
-  assert.equal(mounted, 1)
-  dispose(); assert.equal(unmounted, 1); assert.equal(host, null)
-  const disposeAgain = mount()
-  assert.equal(mounted, 2)
-  disposeAgain(); assert.equal(unmounted, 2); assert.equal(host, null)
+  const dispose = retire()
+  assert.deepEqual(Array.from(removed), ['old-a', 'old-b'])
+  dispose()
+  assert.equal(disconnected, 1)
+  // 挂载时清一次、卸载时再清一次，两次都必须生效。
+  assert.equal(removed.length, 4)
 })
 
 test('sidebar knowledge entry is a plain tab like its siblings, renamed 知识中心', async t => {

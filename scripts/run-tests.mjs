@@ -20,6 +20,9 @@ import { join, resolve } from 'node:path'
 
 const KEEP_FLAG = '--keep'
 const STALE_MS = 24 * 60 * 60 * 1000
+// Windows 上刚被终止的子进程会短暂占用其工作目录，杀毒/索引也会扫描刚写入的文件，裸删除会偶发
+// EBUSY。回收运行目录时统一带重试（2026-09-13 实证：并发跑全套时单例 EBUSY 让门禁变红）。
+const RM_RETRY = { maxRetries: 10, retryDelay: 50 }
 const root = process.cwd()
 const testDir = resolve(root, 'dist', 'test')
 const keep = process.argv.includes(KEEP_FLAG) || process.env.DSH_TEST_KEEP_TMP === '1'
@@ -42,7 +45,7 @@ function pruneStaleRuns(now) {
     const path = join(runsRoot, entry.name)
     try {
       if (now - statSync(path).mtimeMs > STALE_MS) {
-        rmSync(path, { recursive: true, force: true })
+        rmSync(path, { recursive: true, force: true, ...RM_RETRY })
         removed += 1
       }
     } catch {
@@ -75,7 +78,7 @@ const result = spawnSync(process.execPath, ['--test', '--test-reporter=tap', ...
 const status = result.status ?? 1
 if (status === 0 && !keep) {
   try {
-    rmSync(runDir, { recursive: true, force: true })
+    rmSync(runDir, { recursive: true, force: true, ...RM_RETRY })
     console.log('[test-run] 全绿，已清理本次运行临时目录。')
   } catch (error) {
     console.log(`[test-run] 清理临时目录失败（不影响结果）：${error instanceof Error ? error.message : String(error)}`)

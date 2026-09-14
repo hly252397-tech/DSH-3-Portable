@@ -18,7 +18,9 @@ const oldPage = 'return (0, import_react11.createElement)(AutomationView, { t, p
 const newPage = 'return (0, import_react11.createElement)(portableWorkbench.SettingsLink, { close: props.close });'
 export const sha256 = source => createHash('sha256').update(source).digest('hex')
 
-export function buildWorkbench(source, extension) {
+// Retired by I023/31: this legacy build entry now restores the single native
+// scheduled-tasks page. Never inject workbench.js or its footer launcher again.
+export function buildWorkbench(source, _extension) {
   if (source.includes(begin)) {
     const start = source.indexOf(begin), finish = source.indexOf(end, start);
     if (finish < 0) throw new Error('Incomplete automation workbench patch')
@@ -29,8 +31,7 @@ export function buildWorkbench(source, extension) {
   for (const anchor of [applyAnchor, runtimeAnchor, oldPage]) {
     if (source.split(anchor).length !== 2) throw new Error('Automation contract anchor missing or ambiguous')
   }
-  return source.replace(applyAnchor, begin + extension + '\n' + end + applyAnchor)
-    .replace(runtimeAnchor, runtimeAnchor + installLine).replace(oldPage, newPage)
+  return source
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

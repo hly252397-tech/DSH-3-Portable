@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdtemp, mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
 
 import { PortableDesktopUpdater, physicalFileIsRegular, physicalFileSha256, portableDesktopPointerPath, portableDesktopUpdateRoot, prunePortableDesktopSlots, resolvePortableReleaseSource, stageLocalDesktopBuild } from '../src/portable-desktop-update.js'
+// 用受跟踪的 mkdtemp：测试结束后自动删除临时目录（见 test/helpers/tmp.ts）。
+import { makeTrackedTempDir as mkdtemp } from './helpers/tmp.js'
 
 const requiredFiles = [
   'DSH Codex Desktop.exe',

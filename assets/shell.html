@@ -15,16 +15,18 @@
     .bar::after{content:"";position:absolute;top:100%;left:0;right:0;height:0;border-top:1px solid var(--chrome-border);pointer-events:none}
     html[data-platform="darwin"] .bar{padding-left:78px;padding-right:12px}
     button{-webkit-app-region:no-drag;font:inherit;color:inherit;border:0;background:transparent}
-    .bar-left,.bar-right{display:flex;align-items:center;min-width:0}.bar-left{justify-content:flex-start;gap:2px}.bar-right{display:none}
+    .bar-left,.bar-right{display:flex;align-items:center;min-width:0}.bar-left{justify-content:flex-start;gap:2px}.bar-right{justify-content:flex-end;gap:2px;margin-left:auto}
     .nav{width:30px;height:30px;border-radius:var(--chrome-radius-sm);display:grid;place-items:center;opacity:.78;transition:background .12s,opacity .12s,color .12s}
     .nav:hover:not(:disabled){background:var(--chrome-surface-3);opacity:1}.nav:active:not(:disabled){background:var(--active-bg,var(--chrome-surface-3))}.nav:disabled{opacity:.34}
     .nav[aria-pressed="true"]{background:var(--tint,var(--chrome-surface-2));opacity:1}
     .nav:focus-visible,.menu:focus-visible,.command-center:focus-visible,.workspace-label:focus-visible{outline:none;box-shadow:inset 0 0 0 1px var(--focus-ring,var(--chrome-text-muted))}
     .nav img{width:14px;height:14px;filter:invert(91%) sepia(5%) saturate(80%) hue-rotate(80deg)}
-    .divider{display:none}
+    .divider{flex:none;width:1px;height:18px;background:var(--chrome-border-strong)}
+    .bar-left>.divider{margin-left:6px}
+    .bar-right>.divider{margin:0 6px}
     .workspace-label{display:none}
     .workspace-label:hover{background:var(--chrome-surface-3);color:var(--chrome-text)}
-    .command-center{display:none}
+    .command-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;width:320px;height:28px;padding:0 11px;border:1px solid var(--chrome-border);border-radius:999px;background:var(--chrome-surface-2);font-size:12.5px;color:var(--chrome-text-muted)}
     .command-center:hover{background:var(--chrome-surface-3);color:var(--chrome-text);border-color:var(--chrome-border-strong)}
     .command-center img{width:13px;height:13px;filter:invert(91%) sepia(5%) saturate(80%) hue-rotate(80deg);opacity:.74}
     .command-center span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -60,14 +62,15 @@
     .browser-nav .nav{width:26px;height:26px}
     .browser-nav input{flex:1;min-width:0;height:26px;margin:0 4px;padding:0 9px;border-radius:var(--chrome-radius-sm);border:1px solid var(--chrome-border-strong);background:var(--chrome-bg);color:var(--chrome-text);font-size:12px;outline:none;-webkit-app-region:no-drag;transition:border-color .12s}
     .browser-nav input:focus{border-color:var(--focus-ring,var(--chrome-text-muted))}
-    .menu{height:30px;padding:0 10px;border-radius:var(--chrome-radius-sm);font-size:14px;color:var(--chrome-text-muted)}
+    .menu{height:30px;padding:0 9px;border-radius:var(--chrome-radius-sm);font-size:13px;color:var(--chrome-text-muted)}
     .menu:hover{background:var(--chrome-surface-3);color:var(--chrome-text)}.menu:active{background:var(--active-bg,var(--chrome-surface-3))}.menu[aria-expanded="true"]{background:var(--chrome-surface-2);color:var(--chrome-text)}
     :root[data-color-scheme="light"]{color-scheme:light;background:var(--chrome-bg);color:var(--chrome-text)}
     :root[data-color-scheme="light"] .nav img,:root[data-color-scheme="light"] .command-center img{filter:brightness(0);opacity:.68}
     :root[data-color-scheme="light"] .browser img{filter:brightness(0);opacity:.72}
-    #home-panel img{transform:scaleX(-1)}
     #menus{display:flex;align-items:center;margin-left:10px}
     @media(max-width:720px){.bar{padding-right:144px}.menu{padding:0 7px}}
+    /* 窄窗时中段搜索胶囊会与左段菜单/右段工具组相撞，按可用宽度直接收起（1000px 处左段 276px + 胶囊左缘 340px 仍有 64px 余量） */
+    @media(max-width:1000px){.command-center{display:none}}
     @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
     .nav.restart.confirming{background:#d85b5b20;box-shadow:inset 0 0 0 1px #d85b5b80;opacity:1}
     .nav.restart.confirming:hover{background:#d85b5b2e}
@@ -91,20 +94,20 @@
 <body>
   <header class="bar" aria-label="DSH Codex Desktop">
     <div class="bar-left">
-      <button id="home-panel" class="nav" data-action="toggle-sidebar" title="切换侧边栏" aria-label="切换侧边栏"><img src="shell-icons/panel-right.svg" alt=""></button>
       <button id="back" class="nav" data-action="back" title="返回" aria-label="返回"><img src="shell-icons/arrow-left.svg" alt=""></button>
       <button id="forward" class="nav" data-action="forward" title="前进" aria-label="前进"><img src="shell-icons/arrow-right.svg" alt=""></button>
-      <nav id="menus" aria-label="应用菜单"></nav>
       <span class="divider" aria-hidden="true"></span>
+      <nav id="menus" aria-label="应用菜单"></nav>
       <button id="workspace-label" class="workspace-label" data-action="home" title="DSH 工作台">DSH</button>
     </div>
     <button id="command-center" class="command-center" data-action="find" title="全局搜索" aria-label="全局搜索"><img src="shell-icons/magnifying-glass.svg" alt=""><span>搜索任务、工作区与知识</span></button>
     <div class="bar-right">
       <span id="status" class="status" role="status"></span>
+      <button id="restart-btn" class="nav restart" title="重启应用" aria-label="重启应用" aria-pressed="false"><img src="shell-icons/power.svg" alt=""></button>
+      <span class="divider" aria-hidden="true"></span>
       <button class="nav optional" data-action="find" title="全局搜索" aria-label="全局搜索"><img src="shell-icons/magnifying-glass.svg" alt=""></button>
       <button class="nav optional" data-action="desktop-settings" title="桌面设置" aria-label="桌面设置"><img src="shell-icons/gear.svg" alt=""></button>
       <button id="update-btn" class="nav update-indicator" data-action="check-updates" data-phase="idle" data-busy="false" title="检查更新" aria-label="检查更新"><img src="shell-icons/update.svg" alt=""></button>
-      <button id="restart-btn" class="nav restart" title="重启应用" aria-label="重启应用" aria-pressed="false"><img src="shell-icons/rotate-right.svg" alt=""></button>
     </div>
   </header>
   <section id="browser" class="browser" hidden aria-label="内置浏览器">
@@ -147,6 +150,7 @@
       <hr>
       <button id="browser-menu-downloads" type="button">下载内容</button>
       <button id="browser-menu-library" type="button">浏览器资料与设置</button>
+      <button id="browser-menu-external" type="button">在系统浏览器打开</button>
       <button id="browser-menu-clear" type="button">清除 Cookie、缓存和站点数据</button>
       <button id="browser-menu-close" type="button">关闭网络工作区</button>
     </div>

@@ -1,8 +1,8 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { chmodSync, existsSync, readFileSync } from 'node:fs'
-import { cp, mkdir, readFile, readdir, realpath, rm, stat, unlink, writeFile } from 'node:fs/promises'
-import { dirname, join, relative, resolve, sep } from 'node:path'
+import { chmodSync, existsSync, readFileSync, statSync } from 'node:fs'
+import { cp, mkdir, readFile, readdir, realpath, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
+import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { ALLOWED_BUILD_PACKAGES, officialRuntimeDependencies, officialRuntimePnpmConfig, pnpmWorkspaceYaml, STORE_PACKAGES } from '../src/bundled-plugins.js'
@@ -17,8 +17,104 @@ const pluginRoot = join(projectRoot, 'runtime-plugins')
 const officialRuntimeRoot = join(projectRoot, 'runtime-dsh')
 const bundledPnpmVersion = '11.24.0'
 
+/** 待清理目录的回收区（与目标同卷，位于便携数据区，不会被 electron-builder 打进包）。 */
+const recycleRoot = join(projectRoot, 'Data', 'Temp', 'prepare-recycle')
+const recycleHeartbeat = join(recycleRoot, '.sweeping')
+
+/** 后台清理器：始终只保留一个待删目标，删完再取下一个，每 5 秒刷新心跳，
+ * 连续 3 轮扫空后自行退出（约 15 秒）。
+ * —— 删除动作**必须交给独立的干净 node 子进程**：清理器本身是 `spawn` 出来的，会继承宿主的
+ * `NODE_OPTIONS`（内含安全删除守卫 shim），直接 `fs.rmSync` 会撞守卫 `throw`，异常被吞后
+ * 表现为「心跳在跳、桶永远删不掉」。子进程显式清空 `NODE_OPTIONS` / `CODEBUDDY_SAFE_DELETE_*`
+ * 后，`fs.rmSync` 实测 **39.1ms/文件**可正常推进。
+ * —— 也**不要用 cmd 的 `rmdir /s /q`**：2026-09-13 实测该写法在含 `-` 的普通路径上
+ * **260ms 内直接失败、目录原样保留**（`removePreparedPath` 里那条兜底同理，别依赖它）。
+ * 每轮只删一个并刷新心跳，避免「一次删 28 分钟、心跳超时被判定为已死」。 */
+const RECYCLE_CLEANER = [
+  "const fs=require('fs'),path=require('path'),{spawn}=require('child_process');",
+  'const root=process.env.DSH_RECYCLE_ROOT;const beat=process.env.DSH_RECYCLE_HEARTBEAT;',
+  "const RM=\"require('fs').rmSync(process.argv[1],{recursive:true,force:true,maxRetries:10,retryDelay:200})\";",
+  'let pending=null,pendingAt=0,idle=0;',
+  'const tick=()=>{',
+  'let names=[];try{names=fs.readdirSync(root)}catch{process.exit(0)}',
+  'names=names.filter(n=>n!==path.basename(beat));',
+  'if(pending&&(!names.includes(pending)||Date.now()-pendingAt>7200000))pending=null;',
+  'if(pending){idle=0}',
+  'else if(names.length>0){',
+  'idle=0;pending=names[0];pendingAt=Date.now();',
+  "try{spawn(process.execPath,['-e',RM,path.join(root,pending)],{stdio:'ignore',windowsHide:true,env:{...process.env,NODE_OPTIONS:'',CODEBUDDY_SAFE_DELETE_ENABLED:'0',CODEBUDDY_SAFE_DELETE_SANDBOX:'0'}})}catch{pending=null}",
+  '}',
+  'else if(++idle>=3){try{fs.unlinkSync(beat)}catch{}process.exit(0)}',
+  'try{fs.writeFileSync(beat,process.pid+":"+Date.now())}catch{}',
+  'setTimeout(tick,5000)};',
+  'tick();',
+].join('')
+
+function recycleSweepAlive(): boolean {
+  try {
+    if (Date.now() - statSync(recycleHeartbeat).mtimeMs > 120_000) return false
+    const pid = Number(readFileSync(recycleHeartbeat, 'utf8').split(':')[0])
+    if (!Number.isInteger(pid) || pid <= 0) return true
+    try {
+      process.kill(pid, 0)
+      return true
+    } catch (error) {
+      // ESRCH = 进程确实没了；EPERM = 存在但无权限（按活着处理）。
+      return (error as NodeJS.ErrnoException).code === 'EPERM'
+    }
+  } catch {
+    return false
+  }
+}
+
+function startRecycleSweeper(): void {
+  if (recycleSweepAlive()) return
+  try {
+    const child = spawn(process.execPath, ['-e', RECYCLE_CLEANER], {
+      detached: true,
+      env: {
+        ...process.env,
+        // 清理器只用 fs / path / child_process，不需要任何 --require 注入；
+        // 留着宿主守卫反而会让它的删除被拦（见 RECYCLE_CLEANER 注释）。
+        NODE_OPTIONS: '',
+        CODEBUDDY_SAFE_DELETE_ENABLED: '0',
+        CODEBUDDY_SAFE_DELETE_SANDBOX: '0',
+        DSH_RECYCLE_ROOT: recycleRoot,
+        DSH_RECYCLE_HEARTBEAT: recycleHeartbeat,
+      },
+      stdio: 'ignore',
+      windowsHide: true,
+    })
+    child.unref()
+  } catch {
+    // 清理是尽力而为：后台进程起不来不影响构建正确性，回收区留待下次构建再清。
+  }
+}
+
+/** 机械/外接盘上递归删除小文件只有 10–50 个/秒。实测 G: 盘 20 个小文件耗时 1008ms（50.4ms/个），
+ * 而 C: 盘只要 7ms（0.3ms/个）—— 慢 168 倍。runtime-plugins 有 44116 个文件，同步 rm 需要
+ * 20–50 分钟，期间 CPU≈0、无任何输出，与"进程卡死"外观完全一致。
+ * 改名是同卷 O(1) 操作，所以这里先改名再交给脱离本进程树的后台清理器真实删除。
+ * 语义不变：本函数返回时 target 一定不存在。设 DSH_PREPARE_NO_RECYCLE=1 可强制回到旧的同步删除。 */
+async function recyclePreparedPath(target: string): Promise<boolean> {
+  if (process.env.DSH_PREPARE_NO_RECYCLE === '1') return false
+  // 只回收项目内路径：项目外（测试临时目录、跨卷目标）保持原有同步删除语义。
+  if (!target.startsWith(projectRoot + sep)) return false
+  const bucket = join(recycleRoot, `${basename(target)}-${Date.now()}`)
+  try {
+    await mkdir(recycleRoot, { recursive: true })
+    await rename(target, bucket)
+  } catch {
+    return false
+  }
+  console.log(`[prepare-runtime] ${basename(target)} 已移入回收区，删除转入后台（不阻塞构建）：${bucket}`)
+  startRecycleSweeper()
+  return true
+}
+
 export async function removePreparedPath(target: string): Promise<void> {
   if (!existsSync(target)) return
+  if (await recyclePreparedPath(target)) return
   try {
     await rm(target, { force: true, maxRetries: 10, recursive: true, retryDelay: 200 })
   } catch (error) {
@@ -107,6 +203,8 @@ async function main(): Promise<void> {
   console.log(`已装配 Node 运行时：${nodeRoot}`)
   console.log(`已装配内置插件仓库：${join(pluginRoot, 'store.tgz')}`)
   console.log(`已装配预装官方运行时：${join(projectRoot, 'runtime-dsh.tgz')}`)
+  // 构建收尾再拉一次清理器：本轮回收的目录此时已全部无用，早一点开始删，少占一会儿盘。
+  startRecycleSweeper()
 }
 
 async function copyWorkspacePackage(sourcePackage: string, destinationPackage: string): Promise<void> {

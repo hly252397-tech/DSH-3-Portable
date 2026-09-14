@@ -159,7 +159,7 @@ export interface ShellBootstrap {
   readonly actions: readonly LocalizedShellAction[]
   readonly bundledRuntimeVersion: string
   readonly colorScheme: 'light' | 'dark'
-  readonly themePreset: 'qoder' | 'deep-sea' | 'lake' | 'verde' | 'vermilion' | 'slate' | 'gold'
+  readonly themePreset: 'deep-sea' | 'lake' | 'verde' | 'vermilion' | 'slate' | 'gold'
   readonly featurePanels: {
     readonly categories: readonly { readonly id: string; readonly label: LocalizedText; readonly hint: LocalizedText }[]
     readonly panels: readonly { readonly id: string; readonly name: LocalizedText; readonly file: string; readonly description: LocalizedText; readonly notes?: string; readonly categoryId: string }[]

@@ -32,3 +32,12 @@ test('rc.2 新前端的标签菜单不越出便携侧栏区', async () => {
   assert.match(css, /body \[class\*="_menu_17p4l"\] \{\s*left: 260px !important;/)
   assert.match(css, /right: auto !important;/)
 })
+
+test('便携侧栏保持展开文字和底部动作', async () => {
+  const css = await readFile(join(process.cwd(), 'assets/theme.css'), 'utf8')
+  assert.match(css, /body\[data-color-scheme="light"\]\[data-dsh-preset="qoder"\] \.dcu-root \{[\s\S]*width: 252px !important;/)
+  assert.match(css, /body\[data-color-scheme="light"\]\[data-dsh-preset="qoder"\] \.dcu-footer-actions \{\s*display: flex;/)
+  assert.match(css, /body\[data-color-scheme="light"\]\[data-dsh-preset="qoder"\] \.dcu-settings-seat > button \{\s*width: 100%;/)
+  assert.doesNotMatch(css, /body \.dcu-root > \.dcu-expanded-shell \{\s*display: none !important;/)
+  assert.doesNotMatch(css, /body \.dcu-root \{\s*width: 56px !important;/)
+})

@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, readFile, rm, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
+
+import { makeTrackedTempDir as mkdtemp, removeTempDir } from './helpers/tmp.js'
 
 import { packDirectoryToTarGz, writeDirectoryContentSha256, writeFileSha256 } from '../src/runtime-archive.js'
 import {
@@ -104,7 +106,7 @@ test('已解压过的运行时不会重复解压，内容缺失时会自愈', as
     assert.deepEqual(extractPackagedRuntimes(resources, runtimeDir, storeDir), { official: true, store: false })
     assert.equal(await readFile(join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'), 'utf8'), 'ok')
   } finally {
-    await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+    await removeTempDir(root)
   }
 })
 
@@ -125,7 +127,7 @@ test('不同桌面候选使用内容寻址缓存且不覆盖共享运行时', as
     const second = resolvePackagedRuntimeCache(resources, join(root, 'Data', 'Runtime'))
     assert.notEqual(second.installDir, first.installDir)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -155,7 +157,7 @@ test('相同逻辑内容重新打包后复用同一候选缓存', async () => {
     }
     assert.equal(caches[0], caches[1])
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -173,7 +175,7 @@ test('逻辑内容摘要与解压结果不一致时拒绝候选缓存', async ()
     await writeFile(`${archive}.content-sha256`, `${'a'.repeat(64)}\n`, 'utf8')
     assert.throws(() => extractPackagedRuntimes(resources, join(root, 'runtime'), join(root, 'store')), /解压内容 SHA256/)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -204,7 +206,7 @@ test('便携版通过独立 Node 进程初始化并转发阶段进度', async ()
       { phase: 'plugins', state: 'complete' },
     ])
   } finally {
-    await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+    await removeTempDir(root)
   }
 })
 
@@ -225,7 +227,7 @@ test('运行时初始化超时会等待并清理完整子进程树', async () =>
     await waitForProcessExit(grandchildPid)
   } finally {
     if (grandchildPid !== undefined && isProcessRunning(grandchildPid)) process.kill(grandchildPid, 'SIGKILL')
-    await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+    await removeTempDir(root)
   }
 })
 
@@ -248,7 +250,7 @@ test('主动取消运行时初始化会等待并清理完整子进程树', async
     await waitForProcessExit(grandchildPid)
   } finally {
     if (grandchildPid !== undefined && isProcessRunning(grandchildPid)) process.kill(grandchildPid, 'SIGKILL')
-    await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+    await removeTempDir(root)
   }
 })
 
@@ -272,7 +274,7 @@ test('运行时和插件仓库可以解压到用户数据回退目录', async ()
     assert.equal(await readFile(join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'), 'utf8'), 'ok')
     assert.equal(await readFile(join(storeDir, 'v11', 'keep.txt'), 'utf8'), 'store')
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -290,6 +292,6 @@ test('随包归档被篡改时拒绝解压', async () => {
     await writeFile(archive, 'tampered', 'utf8')
     assert.throws(() => extractPackagedRuntimes(resources, join(root, 'runtime'), join(root, 'store')), /SHA256/)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })

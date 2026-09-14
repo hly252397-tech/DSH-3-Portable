@@ -6,17 +6,19 @@
 
 | 项目 | 当前值 | 用途 |
 |---|---|---|
-| 便携版实现基线 | `@deepseek-ai/dsh 0.1.2-rc.1` | 编译、运行、API 和 Profile 兼容性的最终依据；与 npm latest 稳定线一致 |
+| **实现基线（活动运行时槽）** | `@deepseek-ai/dsh 0.1.5-rc.2`，槽 `Harness/slots/0.1.5-rc.2-fd316e6b895e48c1`（2026-09-11 17:09 提交） | **编译、运行、API 与 Profile 兼容性的最终依据**；上一槽 `0.1.2-rc.1` 保留以支撑回滚。出处：`Data/Runtime/Harness/current.json` |
+| 打包内置运行时（回退） | `@deepseek-ai/dsh 0.1.2-rc.1` | 随桌面安装包分发的**回退**运行时，必须与 `package.json` 的 `config.bundledDshVersion` 一致（门禁脚本强制）。它不是正在使用的运行时；npm `latest` 当前为 `0.1.5-rc.1`，故二者已不再"与 latest 稳定线一致" |
 | 官方审查基线 | `deepseek-ai/deepseek-harness@c291e7961a515f6d7af9304e7fd1d257929aef26` | 检查官方最新架构、开发和测试要求 |
 | 官方审查版本 | `@deepseek-ai/dsh 0.1.5-rc.2` | master 已携带 rc.2 发布；已进受信清单，作为桌面 A/B 更新器的迁移目标 |
-| 运行时迁移目标 | `@deepseek-ai/dsh 0.1.5-rc.2`（受信） | `checkHarnessUpdate` 经 npm integrity + GitHub 标签 commit + 受信清单三重核对后可自动切换；rc.1 保留受信以支撑回滚/降级路径 |
-| 核对日期 | `2026-09-11` | 判断本地规范是否过期 |
+| 运行时迁移目标 | `@deepseek-ai/dsh 0.1.5-rc.2`（受信；`0.1.5-rc.1` 亦受信） | `checkHarnessUpdate` 经 npm integrity + GitHub 标签 commit + 受信清单三重核对后可自动切换；rc.1 保留受信以支撑回滚/降级路径 |
+| npm 标签快照 | `latest=0.1.5-rc.1`、`next=0.1.5-rc.2`、`alpha=0.1.5-alpha.2`（2026-09-13 复核 npm registry） | 更新器发现通道与插件「关于」页展示口径的来源 |
+| 核对日期 | `2026-09-13`（复核；官方 HEAD 未变，仍 `c291e79…`） | 判断本地规范是否过期 |
 
 机器可读记录见 `DeepSeek-Harness-官方兼容基线.json`。
 
 ## 每个功能开始前的强制动作
 
-1. 运行 `App/resources/node/node.exe scripts/verify-dsh-official-baseline.mjs --online`。该命令验证便携版清单、实际运行时版本、官方提交和官方 CLI 版本。
+1. 运行 `App/resources/node/node.exe scripts/verify-dsh-official-baseline.mjs --online`。它校验：① 基线 JSON 与桌面清单的仓库／文档／commit／内置版本一致；② **指针槽里打包的回退运行时** `dsh-runtime.tgz` 的版本与桌面清单一致；③ 历史回退目录 `Data/Runtime/dsh-runtime` **仅在不存在活动槽时**才强校验（有活动槽时允许落后，只给提示）；④ 联网核对官方 HEAD 与官方 CLI 版本。注意：该脚本**不检查活动运行时槽**——活动槽以 `Data/Runtime/Harness/current.json` 为准。
 2. 完整阅读 `DeepSeek-Harness-插件开发规范知识库.md`，再按本功能涉及的子系统阅读官方 Reference/Cookbook 页面和当前内置包的类型声明。
 3. 先分类行为归属：Electron 桌面宿主、DSH 插件、Profile/Bundle、运行时升级、用户数据迁移。只有 DSH 内部能力进入 Cordis 插件树；桌面宿主负责进程、窗口、便携路径和 A/B 部署，不伪装成 Harness 插件。
 4. 若在线检查发现官方 HEAD 变化，先审阅官方 `AGENTS.md`、`docs/architecture.md`、`docs/testing.md` 及受影响子系统，再人工更新本基线和知识库。禁止脚本自动接受新规范。
@@ -46,6 +48,14 @@
   3. **两套版本口径不一致**：codex-ui「关于」页对官方运行时读 npm **`next`** 标签（`0.1.5-rc.2`），外壳更新器只发现 `[alpha, latest]`（`0.1.5-rc.1`），提示与可切换目标天然不同。现把 `next` 纳入发现通道，并将 `0.1.5-rc.2` 加入受信清单（npm integrity 与 `dsh-v0.1.5-rc.2` 标签 commit 已核对），使官方 HEAD、插件 peer 声明（`0.1.5-rc.1 || 0.1.5-rc.2`）与「关于」页展示三处口径一致；`0.1.5-rc.1` 保留受信以支撑回滚与降级。
   4. 附带修复：codex-ui 在安装前写 `.dsh-pending-updates.json`、安装失败不回滚，导致一次失败点击留下永远无法应用的幽灵待更新项（`profile` 安装路径明确拒绝官方包）。`applyPendingProfileUpdates` 现在不再回写官方条目，直接清掉登记文件。
   5. 实机修复：活动槽 `0.1.2-rc.1-2c82a3efc755c12c` 的 `package.json` 被旧实现半改写为 `0.1.5-rc.2`（`node_modules` 仍为 `0.1.2-rc.1`），已用正式写入函数恢复为 `0.1.2-rc.1`；校验该槽重新计算指纹仍等于登记的 `2c82a3ef…`，223 个官方包，槽内容与 `current.json` 记录一致。
+
+## 2026-09-13 复核与文档纠偏（官方无变化）
+
+- **复核结论（实测）**：`scripts/verify-dsh-official-baseline.mjs --online` **PASS / `online=verified`**，官方 HEAD 仍为 `c291e79…`（与基线 JSON 一致，故**无需重新人工审阅官方规范**）；npm `dist-tags` 仍为 `latest=0.1.5-rc.1`、`next=0.1.5-rc.2`、`alpha=0.1.5-alpha.2`。
+- **纠偏 ①（表格）**：原表把「便携版实现基线」写作 `0.1.2-rc.1` 并称"与 npm latest 稳定线一致"，与实际不符——`0.1.2-rc.1` 是**打包内置／回退**运行时，而**活动运行时槽自 2026-09-11 17:09 起为 `0.1.5-rc.2`**（出处 `Data/Runtime/Harness/current.json`，`previous` 为 `0.1.2-rc.1`），且 npm `latest` 已到 `0.1.5-rc.1`。现拆为"实现基线（活动运行时槽）"与"打包内置运行时（回退）"两行，并把"编译／运行／API 依据"明确指向活动槽。
+- **纠偏 ②（强制动作第 1 条）**：原文称该脚本"验证实际运行时版本"，易被读成校验活动槽。按其真实行为重述：校验的是**打包回退运行时**与桌面清单一致、历史回退目录仅在无活动槽时强校验，并指明活动槽以 `current.json` 为准。
+- **纠偏动因**：2026-09-13「执行方工具门」迭代（`docs/01-当前工作/I024-执行方工具门/00-迭代总览.md`）开工核对时被本文档过期表述误导——据其以为实现基线是 `0.1.2-rc.1`，而实际实读类型来自 `0.1.5-rc.2` 槽。
+- **未改动**：机器可读基线 JSON 本身正确，本轮不动（`policy.allowAutomaticBaselineRewrite: false`）；本文件此前的按日审阅记录**一律保持原样不改写**，过期判断以本节为准。
 
 ## 2026-09-10 人工审阅记录
 

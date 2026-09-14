@@ -107,6 +107,8 @@ let themePreferences: DesktopThemePreferences = DEFAULT_DESKTOP_THEME_PREFERENCE
 let dshSettingsDialogVisible = false
 let activeDshWorkCount = 0
 let activeDshWorkChangedAt = Date.now()
+let mainWindowContentSuppressed = false
+let mainWindowLayoutDeferred = false
 const shellActionIds = new Set<string>(SHELL_ACTIONS.map(action => action.id))
 
 interface HarnessUpdaterContext {
@@ -1165,7 +1167,21 @@ function runMainTask(task: Promise<unknown>): void {
 }
 
 
+const APP_RESTART_IPC = 'app-restart'
+
+/** 运行时插件（如智能体重启端点）请求外壳优雅重启：兼容字符串与 {type} 两种形态。 */
+function isAppRestartIpc(message: unknown): boolean {
+  return message === APP_RESTART_IPC
+    || (typeof message === 'object' && message !== null && 'type' in message && (message as { type: unknown }).type === APP_RESTART_IPC)
+}
+
 function handleDshIpc(message: unknown): void {
+  if (isAppRestartIpc(message)) {
+    // 与托盘/菜单的「重启应用」同走 requestAppRestart：先调度分离的新实例，
+    // 再优雅关停（托盘/服务/配置落盘），绝不硬杀进程。
+    runMainTask(requestAppRestart())
+    return
+  }
   if (isRequestHarnessUpdateIpc?.(message) === true) {
     // 「关于」页点“更新”官方运行时时，桥接进程只上报意图：真正的升级必须走
     // A/B 更新器，绝不能原地覆盖正在运行的活动槽。
@@ -1296,6 +1312,17 @@ function requireDshView(): WebContentsView {
 
 function layoutDshView(window: BrowserWindow): void {
   const bounds = window.getContentBounds()
+  if (mainWindowContentSuppressed) {
+    dshView?.setVisible(false)
+    browserPanelView?.setVisible(false)
+    for (const tab of browserTabs) tab.view.setVisible(false)
+    broadcastShellState()
+    return
+  }
+  if (mainWindowLayoutDeferred) {
+    broadcastShellState()
+    return
+  }
   const dshHeight = Math.max(0, bounds.height - SHELL_BAR_HEIGHT)
   const panel = browserWorkspacePanelBounds(bounds.width, dshHeight)
   const visible = browserVisible && !browserPanelOccluded && !dshSettingsDialogVisible
@@ -1313,6 +1340,93 @@ function layoutDshView(window: BrowserWindow): void {
     if (show) tab.view.setBounds({ x: panel.x, y: panel.y + SHELL_BAR_HEIGHT + pageTop, width: panel.width, height: pageHeight })
   }
   broadcastShellState()
+}
+
+function setMainWindowContentVisible(window: BrowserWindow, visible: boolean): void {
+  if (visible) {
+    mainWindowContentSuppressed = false
+    layoutDshView(window)
+    return
+  }
+  mainWindowContentSuppressed = true
+  dshView?.setVisible(false)
+  browserPanelView?.setVisible(false)
+  for (const tab of browserTabs) tab.view.setVisible(false)
+}
+
+function installWindowSurfaceGuard(window: BrowserWindow): void {
+  // Windows animates the native window while each WebContentsView can still
+  // repaint at its old bounds. Hide the child surfaces before minimize,
+  // maximize, or restore starts, then relayout them before revealing the
+  // settled window. The resize listener is registered here before the normal
+  // layout listener so the first maximize/restore frame cannot leak through.
+  if (process.platform !== 'win32') return
+
+  let lastMaximized = window.isMaximized()
+  let revealTimer: NodeJS.Timeout | undefined
+  let transitionGeneration = 0
+  let windowOpacitySuppressed = false
+  const clearRevealTimer = (): void => {
+    if (revealTimer === undefined) return
+    clearTimeout(revealTimer)
+    revealTimer = undefined
+  }
+  const hideSurface = (hideWindow = false): void => {
+    if (window.isDestroyed()) return
+    transitionGeneration += 1
+    clearRevealTimer()
+    if (hideWindow) {
+      window.setOpacity(0)
+      windowOpacitySuppressed = true
+    }
+    setMainWindowContentVisible(window, false)
+  }
+  const revealSurfaceWhenStable = (delayMs = 180, restoreWindow = false): void => {
+    if (window.isDestroyed()) return
+    const generation = ++transitionGeneration
+    clearRevealTimer()
+    const reveal = (): void => {
+      if (window.isDestroyed() || generation !== transitionGeneration) return
+      if (window.isMinimized()) {
+        revealTimer = setTimeout(reveal, 32)
+        return
+      }
+      revealTimer = undefined
+      mainWindowLayoutDeferred = false
+      setMainWindowContentVisible(window, true)
+      if (restoreWindow || windowOpacitySuppressed) {
+        window.setOpacity(1)
+        windowOpacitySuppressed = false
+      }
+    }
+    revealTimer = setTimeout(reveal, delayMs)
+  }
+  const beginDisplayModeTransition = (): void => {
+    lastMaximized = window.isMaximized()
+    // Keep the visible child surfaces during the native maximize/restore
+    // animation. Deferring only the bounds calculation avoids the blank or
+    // icon-only intermediate frame caused by hiding the whole DSH surface.
+    mainWindowLayoutDeferred = true
+    revealSurfaceWhenStable()
+  }
+
+  window.on('resize', () => {
+    const maximized = window.isMaximized()
+    if (maximized !== lastMaximized) beginDisplayModeTransition()
+  })
+  window.on('resized', () => {
+    if (window.isMinimized()) return
+    if (mainWindowContentSuppressed || mainWindowLayoutDeferred) revealSurfaceWhenStable(32, mainWindowContentSuppressed)
+  })
+  window.on('minimize', () => {
+    hideSurface(true)
+  })
+  window.on('restore', () => {
+    hideSurface(true)
+    revealSurfaceWhenStable(32, true)
+  })
+  window.on('maximize', beginDisplayModeTransition)
+  window.on('unmaximize', beginDisplayModeTransition)
 }
 
 function browserWorkspacePanelBounds(viewportWidth: number, viewportHeight: number): BrowserPanelBounds {
@@ -1415,6 +1529,7 @@ function createWindow(): BrowserWindow {
   browserPanelView = panelView
   window.contentView.addChildView(panelView)
   panelView.setVisible(false)
+  installWindowSurfaceGuard(window)
   layoutDshView(window)
   window.on('resize', () => layoutDshView(window))
   window.on('maximize', () => layoutDshView(window))
@@ -1465,6 +1580,8 @@ function createWindow(): BrowserWindow {
       mainWindow = undefined
       dshView = undefined
       browserPanelView = undefined
+      mainWindowContentSuppressed = false
+      mainWindowLayoutDeferred = false
       browserPanelBounds = undefined
       browserPanelOwner = undefined
       browserPanelOccluded = false

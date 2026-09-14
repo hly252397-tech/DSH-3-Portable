@@ -5,7 +5,7 @@ import { writeTextFileAtomic } from './atomic-file.js'
 
 export type DesktopColorScheme = 'light' | 'dark'
 export type DesktopThemePreference = DesktopColorScheme | 'system'
-export type DesktopThemePreset = 'qoder' | 'deep-sea' | 'lake' | 'verde' | 'vermilion' | 'slate' | 'gold'
+export type DesktopThemePreset = 'deep-sea' | 'lake' | 'verde' | 'vermilion' | 'slate' | 'gold'
 
 export interface DesktopThemePreferences {
   readonly schema: 1
@@ -28,11 +28,11 @@ export interface DesktopThemePalette {
 
 export const DEFAULT_DESKTOP_THEME_PREFERENCES: DesktopThemePreferences = {
   schema: 1,
-  preset: 'qoder',
+  preset: 'deep-sea',
 }
 
 export const DESKTOP_THEME_PRESETS: readonly DesktopThemePreset[] = [
-  'qoder', 'deep-sea', 'lake', 'verde', 'vermilion', 'slate', 'gold',
+  'deep-sea', 'lake', 'verde', 'vermilion', 'slate', 'gold',
 ]
 
 export const DESKTOP_THEME_PALETTES: Readonly<Record<DesktopColorScheme, DesktopThemePalette>> = {
