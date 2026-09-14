@@ -346,20 +346,24 @@ test('Windows 窗口状态切换先冻结多层内容，稳定后重新布局再
   assert.match(main, /installWindowSurfaceGuard\(window\)/)
 })
 
-test('重启按钮不会把未完成的重启伪装成已完成', async (t) => {
+test('侧栏底部不再重复注入重启/设置入口，且模块加载形态未变', async (t) => {
+  // 2026-09-14：注销 dsh-restart-button 客户端半侧的侧栏底部注入（与顶栏齿轮重复的入口）。
+  // 原用例钉的是已退役控件的字符串（RESTART_TIMEOUT_MS / setState("starting") 等），按 D-27
+  //「文案/控件随版本退役要连测试一起退役」改为钉新契约——不是删掉了事，而是改钉"不得复活"。
+  //「全壳唯一一个重启入口 + 紧凑图标态 + 两步确认」由本文件
+  //「顶栏移除重复浏览器入口且重启确认保持紧凑图标态」继续覆盖，未丢覆盖。
   const clientPath = new URL('../../Data/DSH/profiles/web/local/dsh-restart-button/lib/client.js', import.meta.url)
   if (!existsSync(clientPath)) {
     t.skip('实机插件客户端缺失（CI 全新检出）')
     return
   }
   const client = await readFile(clientPath, 'utf8')
-  assert.match(client, /const RESTART_TIMEOUT_MS = 15_000/)
-  assert.match(client, /state === "starting" \? RESTART_TIMEOUT_MS : 5000/)
-  assert.match(client, /starting: "重启中"/)
-  assert.match(client, /starting: "Restarting"/)
-  assert.match(client, /failed: "重启失败"/)
-  assert.match(client, /setState\("failed"\)/)
-  assert.doesNotMatch(client, /setState\(s => s === "starting" \? "label" : s\)/)
+  assert.doesNotMatch(client, /RESTART_TIMEOUT_MS|setState\("starting"\)|setState\("failed"\)/)
+  assert.doesNotMatch(client, /sidebar\.footer\.action/)
+  assert.doesNotMatch(client, /slots\.(inject|register)\(/)
+  // 形态必须保持：宿主 cordis.patch.yml 仍按 id 加载它，形态坏了会变成解析失败而不是"什么都不做"。
+  assert.match(client, /function apply\(\) \{\}/)
+  assert.match(client, /inject:\s*\["locale", "slots"\]/)
 })
 
 test('浏览器工作区脚本引用的元素在它加载的每个文档里都存在', async () => {
