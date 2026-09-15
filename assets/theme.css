@@ -824,19 +824,25 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
   container-type: inline-size;
 }
 @container (max-width: 620px) {
+  /* ⚠ 2026-09-15 修正：此前只压父级字号，「专家」「PUA」文字仍在（自看实况截图实证）——
+     文字在带显式字号的后代里，父级 font-size:0 管不到。改为连同后代一起压（SVG 不受字号影响）。 */
   .uV2eYG_card [aria-label^="访问模式"],
+  .uV2eYG_card [aria-label^="访问模式"] *,
   .uV2eYG_card [aria-label*="专家"],
-  .uV2eYG_card [aria-label*="PUA"] {
+  .uV2eYG_card [aria-label*="专家"] *,
+  .uV2eYG_card [aria-label*="PUA"],
+  .uV2eYG_card [aria-label*="PUA"] * {
     font-size: 0 !important;
   }
 }
-/* 黑洞空间图标：把插件那张位图 logo 换成**细线描边**图标，与左侧导航图标同一套风格
-   （2026-09-15 用户指令："这个图标换掉吧，换成和图二风格的"）。
-   形状：**用户 2026-09-15 亲自选定 A「圆 + 倾斜环」**（我渲染三版（16/24/48px 真实尺寸）后由用户挑）。
-   做法：外壳样式换图（content 替换 img 源），**不动插件**；中性灰 #71717a，浅/深色都清晰。 */
-[aria-label*="黑洞"] img,
-[title*="黑洞"] img {
+/* 黑洞空间图标：把插件那张位图 logo 换成**细线描边**图标（用户选定 A 版：圆 + 倾斜环）。
+   ⚠ 2026-09-15 修正：它不是 `img src="*.png"`，而是**内嵌 WebP data-URI**
+   （插件 lib/client.js L23 `BANNER_IMAGE`，前 40 字符唯一）——所以此前按 aria-label/title 找 img 全部落空（自看实证）。
+   改为按 src 前缀精确命中：不猜类名、不依赖 aria-label。 */
+img[src^="data:image/webp;base64,UklGRvaKAABXRUJQVlA4IOqKAACQmwKdASoABgAC"] {
   content: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='5.6'/><ellipse cx='12' cy='12' rx='9.4' ry='3.6' transform='rotate(-20 12 12)'/></svg>") !important;
+  width: 18px !important;
+  height: 18px !important;
   object-fit: contain !important;
 }
 /* ⚠ 2026-09-15 复盘（此处曾有"把模型选择搬出去"的三次尝试，全部回滚）：
