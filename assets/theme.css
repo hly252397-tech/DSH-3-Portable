@@ -776,3 +776,13 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
   --chrome-shadow: 0 1px 2px rgb(0 0 0 / .05);
   --chrome-shadow-pop: 0 4px 16px rgb(0 0 0 / .1);
 }
+
+/* 宠物小卡（插件 @michengai/dsh-codex-pet）安全区兜底：
+   它的位置由插件自己按视口分数算（lib/client.js L1553-1557：left = x·(innerWidth − size − 16)，
+   下限只夹到 0），**没有给左侧图标轨留安全区** ⇒ 分数接近 0 时宠物压在图标轨上、贴着窗口边缘
+   （2026-09-15 用户截图：界面缩放后出现）。
+   外壳只做兜底、不改插件：给一个左边距下限（图标轨 ~66px + 间距）。
+   拖拽不受影响——插件用 getBoundingClientRect 记录分数（同文件 L1593），会把该偏移一并算进去。 */
+.dcp-floating {
+  margin-left: 72px !important;
+}
