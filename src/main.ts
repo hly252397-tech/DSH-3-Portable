@@ -105,6 +105,10 @@ let activeDshColorScheme: DesktopColorScheme = nativeTheme.shouldUseDarkColors ?
 let activeDshThemePreference: DesktopThemePreference = 'system'
 let themePreferences: DesktopThemePreferences = DEFAULT_DESKTOP_THEME_PREFERENCES
 let dshSettingsDialogVisible = false
+/** 用户**显式**要求看浏览器（点 DSH 页面里的链接、或插件调用 browserPanelShow）时置真：
+ *  此时压过"设置页让位"，否则设置页里那些插件链接点开只会落进一个被抑制的面板 = 看起来"进不去浏览器"
+ *  （2026-09-15 实机回归）。每次设置页可见性变化时清零，恢复"被动让位"语义。 */
+let browserPanelRequested = false
 let activeDshWorkCount = 0
 let activeDshWorkChangedAt = Date.now()
 let mainWindowContentSuppressed = false
@@ -539,6 +543,7 @@ function closeBrowserTab(id: string): void {
 function routeDshExternalLink(url: string): void {
   if (isExternalHttpUrl(url, allowedOrigin)) {
     // 建视图是重活，排到微任务队列，避免在导航回调里同步执行
+    browserPanelRequested = true // 用户点链接 = 显式要看浏览器，压过设置页让位
     queueMicrotask(() => { openBrowser(url, true) })
     return
   }
@@ -1419,11 +1424,12 @@ function layoutDshView(window: BrowserWindow): void {
   // 外壳必须用**同一把尺子**一起收手，否则会出现「一条 280px 的浏览器 + 右边一片白」：
   // 面板已被页面隐藏，原生视图却还在按最小宽度画（2026-09-14 实机截图实证）。阈值按 CSS px 比较。
   const panelHiddenByViewport = shouldHideBrowserPanel(bounds.width, dshView?.webContents.getZoomFactor() ?? 1)
-  const visible = !panelHiddenByViewport && browserVisible && !browserPanelOccluded && !dshSettingsDialogVisible
+  const settingsYields = dshSettingsDialogVisible && !browserPanelRequested
+  const visible = !panelHiddenByViewport && browserVisible && !browserPanelOccluded && !settingsYields
     && (browserPanelOwner === undefined || browserPanelBounds !== undefined)
   // 临时调试（定位设置页让位失效）：旗子为真时布局到底算出什么。定位后移除。
   if (dshSettingsDialogVisible) {
-    try { appendFileSync(`${process.env.TEMP ?? '.'}/dsh-settings-debug.log`, `${new Date().toISOString()} layout visible=${visible} flag=${dshSettingsDialogVisible} viewportHide=${panelHiddenByViewport} browserVisible=${browserVisible} occluded=${browserPanelOccluded}\n`, 'utf8') } catch { }
+    try { appendFileSync(`${process.env.TEMP ?? '.'}/dsh-settings-debug.log`, `${new Date().toISOString()} layout visible=${visible} flag=${dshSettingsDialogVisible} requested=${browserPanelRequested} viewportHide=${panelHiddenByViewport} browserVisible=${browserVisible} occluded=${browserPanelOccluded}\n`, 'utf8') } catch { }
   }
   dshView?.setVisible(true)
   dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: bounds.width, height: dshHeight })
@@ -2350,6 +2356,7 @@ function installShellIpc(): void {
     const request = normalizeNativeBrowserRequest(value, allowedOrigin)
     if (browserPanelOwner !== request.owner) browserPanelBounds = undefined
     browserPanelOwner = request.owner
+    browserPanelRequested = true // 显式请求显示面板：压过设置页让位
     browserVisible = true
     browserPanelOccluded = false
     browserMaximized = false
@@ -2437,6 +2444,7 @@ function installShellIpc(): void {
     const visible = value === true
     if (visible !== dshSettingsDialogVisible) {
       dshSettingsDialogVisible = visible
+      browserPanelRequested = false // 设置页可见性一变就回到"被动让位"语义
       relayout()
     }
   })
