@@ -823,3 +823,18 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
 }
+/* 窄档：信息让位、图标留下（2026-09-15 用户："把一些信息拿到方框外面来"）。
+   实测 DOM：按钮文字与图标是**独立子元素**（span.Sh0Q9G_triggerIcon 里是真 svg，带自身 16px 尺寸），
+   所以把容器的 font-size 压到 0 就只收起文字、svg 仍按自身尺寸显示 —— 不猜类名、不碰插件。
+   计价芯片（span.VWh0dG_feeInline）是纯提示，窄档直接让位。 */
+.uV2eYG_card {
+  container-type: inline-size;
+}
+@container (max-width: 620px) {
+  .uV2eYG_modes {
+    font-size: 0 !important;
+  }
+  .VWh0dG_feeInline {
+    display: none !important;
+  }
+}
