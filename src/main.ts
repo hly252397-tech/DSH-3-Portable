@@ -1421,6 +1421,10 @@ function layoutDshView(window: BrowserWindow): void {
   const panelHiddenByViewport = shouldHideBrowserPanel(bounds.width, dshView?.webContents.getZoomFactor() ?? 1)
   const visible = !panelHiddenByViewport && browserVisible && !browserPanelOccluded && !dshSettingsDialogVisible
     && (browserPanelOwner === undefined || browserPanelBounds !== undefined)
+  // 临时调试（定位设置页让位失效）：旗子为真时布局到底算出什么。定位后移除。
+  if (dshSettingsDialogVisible) {
+    try { appendFileSync(`${process.env.TEMP ?? '.'}/dsh-settings-debug.log`, `${new Date().toISOString()} layout visible=${visible} flag=${dshSettingsDialogVisible} viewportHide=${panelHiddenByViewport} browserVisible=${browserVisible} occluded=${browserPanelOccluded}\n`, 'utf8') } catch { }
+  }
   dshView?.setVisible(true)
   dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: bounds.width, height: dshHeight })
   browserPanelView?.setVisible(visible)
@@ -2427,6 +2431,8 @@ function installShellIpc(): void {
   })
   ipcMain.removeAllListeners(SHELL_IPC.dshSettingsVisibility)
   ipcMain.on(SHELL_IPC.dshSettingsVisibility, (event, value: unknown) => {
+    // 临时调试（定位设置页让位失效）：上报是否到达、发送方被谁拒。定位后移除。
+    try { appendFileSync(`${process.env.TEMP ?? '.'}/dsh-settings-debug.log`, `${new Date().toISOString()} ipc value=${String(value)} kind=${shellRendererKind(event.sender)}\n`, 'utf8') } catch { }
     if (!mayReportDshSettingsVisibility(shellRendererKind(event.sender))) return
     const visible = value === true
     if (visible !== dshSettingsDialogVisible) {
