@@ -1412,7 +1412,9 @@ function layoutDshView(window: BrowserWindow): void {
   }
   const dshHeight = Math.max(0, bounds.height - SHELL_BAR_HEIGHT)
   const panel = browserWorkspacePanelBounds(bounds.width, dshHeight)
-  publishBrowserPanelMaxWidth(panel.width)
+  // 下发**钳后**的上限：变量是页面侧唯一的宽度依据，必须与外壳真正执行的钳制同值
+  // （以前下发的是未钳的面板比例宽度 → 等于空操作，页面照旧按自己的上限撑开 → 白带）。
+  publishBrowserPanelMaxWidth(capBrowserWorkspacePanelWidth(bounds.width, panel.width))
   // 页面在窄视口会把整块面板隐藏（theme.css 的 @media max-width:1100px：面板先让位、对话独占）。
   // 外壳必须用**同一把尺子**一起收手，否则会出现「一条 280px 的浏览器 + 右边一片白」：
   // 面板已被页面隐藏，原生视图却还在按最小宽度画（2026-09-14 实机截图实证）。阈值按 CSS px 比较。

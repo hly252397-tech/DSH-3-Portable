@@ -660,8 +660,11 @@ body .dcu-root button[aria-label="Collapse sidebar"] {
    视图也会压住对话列。现由外壳按同一常量算出上限、**折成 CSS px** 后写成
    `--dsh-browser-panel-max-width` 下发；变量缺失（旧外壳/独立浏览器）时下面的兜底
    与外壳常量保持一致。 */
+/* 兜底值与外壳常量同值：**视口 − 640**。页面自带一条同选择器、同 !important 的规则，
+   特异性更高时会胜出（2026-09-15 实测：视口 1384 → 计算 744 = 1384 − 640）。因此外壳的钳制
+   不许比它更紧——外壳用 1040 时，窄窗下视图被钳到 344 而卡仍有 581，右侧露出 237px 白带。 */
 body .nArs4W_panel {
-  max-width: var(--dsh-browser-panel-max-width, calc(100vw - 1040px)) !important;
+  max-width: var(--dsh-browser-panel-max-width, calc(100vw - 640px)) !important;
 }
 @media (max-width: 1100px) {
   body .nArs4W_panel {

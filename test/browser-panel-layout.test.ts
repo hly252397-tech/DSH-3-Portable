@@ -25,7 +25,7 @@ test('单网页时收起顶部标签条：判定与原生视图偏移同源', as
 test('浏览器面板坐标保持在 DSH 内容视口内', () => {
   assert.deepEqual(
     normalizeBrowserPanelBounds({ x: 900, y: 12, width: 500, height: 700 }, 1360, 860),
-    { x: 900, y: 12, width: 320, height: 700 },
+    { x: 900, y: 12, width: 460, height: 700 },
   )
 })
 

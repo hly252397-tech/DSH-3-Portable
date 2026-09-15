@@ -3,16 +3,15 @@ import type { BrowserPanelBounds } from './shell-contract.js'
 const MINIMUM_PANEL_WIDTH = 280
 const MINIMUM_PANEL_HEIGHT = 240
 const DOWNLOADS_DRAWER_MAX_HEIGHT = 248
-/** 浏览器工作台面板的绝对宽度上限：无论比例被拖到多大，面板都不得吃掉
- * 对话区的舒适宽度。
- * 🔴 2026-09-14 与页面侧统一：`assets/theme.css` 对 `body .nArs4W_panel` 的钳制
- * 依据的是**官方内容下限 680px**（`clamp(680, 64%, 920)` 的下限），即"视口 − 1040px"
- * （图标轨 40 + 侧栏 252 + 对话 680 + 间距），该值同时被 `test/workbench-panel-clamp.test.ts`
- * 与 `codex-ui-style-ownership` 系列钉住。此前这里写 900，页面写 1040，**而且一个在 DIP、
- * 一个在 CSS px**——缩放下两者会差出上百像素：卡片比原生视图宽就是用户看到的右侧空白
- * （卡片白底露出），反过来视图会压住对话列。现由外壳按此常量算出上限、折成 CSS px 后
- * 经 `--dsh-browser-panel-max-width` 下发，页面只认这一个值，策略只剩一处。 */
-export const MAXIMUM_PANEL_WIDTH_MARGIN = 1040
+/** 浏览器工作台面板的绝对宽度上限：无论比例被拖到多大，面板都不得吃掉对话区的舒适宽度。
+ *  🔴 **2026-09-15 实测更正（第三次收敛）**：页面自带一条**同选择器、同 `!important`** 的规则
+ *  `body .nArs4W_panel{max-width:calc(100vw - 640px)}`，它在特异性上**胜过** theme.css 里那条
+ *  （真实 DOM 实测：视口 1384 → 计算值 **744 = 1384 − 640**）——也就是说页面真正执行的上限一直是
+ *  **视口 − 640**。外壳若比它钳得更狠（原先的 1040），原生视图就会比页面允许的卡更窄，多出来那条
+ *  正是用户反复看到的"右侧白带"：窄窗下 卡 581 / 视图 344 = **237px 白带**。
+ *  ∴ 两把尺子必须同值，这里改为与页面实际执行值一致：**视口 − 640**。
+ *  （2026-09-14 那轮把 900→1040 是为了对齐"官方内容下限 680"，但页面并不执行它；本轮以实测为准。） */
+export const MAXIMUM_PANEL_WIDTH_MARGIN = 640
 
 /** 面板被页面整块隐藏的视口阈值（**CSS px**），与 `assets/theme.css` 的
  *  `@media (max-width: 1100px) { body .nArs4W_panel { display: none !important } }` 同值。
