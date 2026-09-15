@@ -539,11 +539,25 @@ function closeBrowserTab(id: string): void {
   scheduleBrowserWorkspaceSave()
 }
 
+/** 用户从设置页点链接要看浏览器时，先让 DSH 页面**退出设置页**（点它自己的"返回应用"），
+ *  再显示面板 —— 否则设置页与面板并存互相挤（2026-09-15 实机："你这又回到原来的了"）。
+ *  选中失败也不阻断：覆盖标记仍在，面板会以"压过让位"的方式显示。 */
+function exitDshSettingsPage(): void {
+  const view = dshView
+  if (view === undefined || view.webContents.isDestroyed()) return
+  void view.webContents.executeJavaScript(`(() => {
+    const back = document.querySelector('.dcu-settings-back, [class*="settings-back"]')
+    if (back instanceof HTMLElement) { back.click(); return true }
+    return false
+  })()`).catch(() => undefined)
+}
+
 /** DSH 外链统一路由：http/https 进内置浏览器（新标签页），mailto:/tel: 走系统默认程序。 */
 function routeDshExternalLink(url: string): void {
   if (isExternalHttpUrl(url, allowedOrigin)) {
     // 建视图是重活，排到微任务队列，避免在导航回调里同步执行
     browserPanelRequested = true // 用户点链接 = 显式要看浏览器，压过设置页让位
+    if (dshSettingsDialogVisible) exitDshSettingsPage()
     queueMicrotask(() => { openBrowser(url, true) })
     return
   }
@@ -551,6 +565,7 @@ function routeDshExternalLink(url: string): void {
 }
 
 function openBrowser(url?: string, newTab = false): BrowserTab {
+  browserPanelRequested = true // 任何"打开浏览器"的显式请求都要压过设置页让位（同源情况一并覆盖）
   browserVisible = true
   browserManagerOpen = false
   browserMenuOpen = false
@@ -576,6 +591,8 @@ function createHomepageTabs(): void {
 }
 
 function openHomepageGroup(): void {
+  browserPanelRequested = true // 外壳菜单"主页"也是显式要看浏览器
+  if (dshSettingsDialogVisible) exitDshSettingsPage()
   browserVisible = true
   const homepages = configuredBrowserHomepages()
   let firstTab = getActiveBrowserTab()
@@ -2357,6 +2374,7 @@ function installShellIpc(): void {
     if (browserPanelOwner !== request.owner) browserPanelBounds = undefined
     browserPanelOwner = request.owner
     browserPanelRequested = true // 显式请求显示面板：压过设置页让位
+    if (dshSettingsDialogVisible) exitDshSettingsPage()
     browserVisible = true
     browserPanelOccluded = false
     browserMaximized = false
@@ -2444,7 +2462,9 @@ function installShellIpc(): void {
     const visible = value === true
     if (visible !== dshSettingsDialogVisible) {
       dshSettingsDialogVisible = visible
-      browserPanelRequested = false // 设置页可见性一变就回到"被动让位"语义
+      // 只有"新开设置页"才回到被动让位；退出设置页(retrue→false)时保留覆盖标记，
+      // 否则刚点链接触发的"要看浏览器"会被自己清掉、面板又消失。
+      if (visible) browserPanelRequested = false
       relayout()
     }
   })
