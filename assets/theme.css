@@ -797,6 +797,14 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
 .uV2eYG_row {
   flex-wrap: nowrap !important;
 }
+/* chips（+ / 计数 / 工作区内修改 / 专家 / PUA）**固定尺寸、永不被压扁**。
+   只加 nowrap 而不定收缩优先级时，chips 会被挤压到互相重叠
+   （2026-09-15 用户截图："工作区内修改⌄" 压住 "专家"）——**本条是消重叠的关键**：
+   chips 不动、右侧簇负责收缩，模型名被裁切而不越界。 */
+.uV2eYG_row > button,
+.uV2eYG_row > div:not(.uV2eYG_trailing) {
+  flex: 0 0 auto !important;
+}
 .uV2eYG_trailing {
   flex: 0 1 auto !important;
   min-width: 0 !important;
@@ -805,9 +813,13 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
   min-width: 0 !important;
 }
 ._7KE1Ra_trigger {
+  min-width: 0 !important;
   overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 ._7KE1Ra_trigger * {
+  min-width: 0 !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
