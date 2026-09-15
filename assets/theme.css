@@ -803,6 +803,15 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
 .uV2eYG_trailing {
   flex: 0 1 auto !important;
   min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+/* 换行后第二行从**行首**开始（左对齐）——2026-09-15 用户："你就不能左对齐吗？"。
+   只动"换行时"的表现：单行时右侧簇仍靠右（justify-content:space-between 保持官方行为），
+   换行时该行只有一个子项，space-between 等价于 flex-start ⇒ 左对齐。这里再显式清掉
+   一切自动外边距、并把多行内容对齐到行首，避免任何来源把它推向右侧。 */
+.uV2eYG_row {
+  align-content: flex-start !important;
 }
 ._7KE1Ra_trigger {
   min-width: 96px !important;
