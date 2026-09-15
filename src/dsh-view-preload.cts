@@ -195,9 +195,13 @@ function reportDshSettingsVisibility(): void {
   // ② 整页视图（左侧栏"设置"进入：.dcu-settings-page 全屏、带 data-settings-section）。
   // 2026-09-15 实机定案：整页形态下 [role=dialog] 命中 0，本通路从未触发 → 原生浏览器面板
   // 不让位，把设置页挤在左边（用户截图 + 真实 DOM 实测）。两种形态都必须让位。
-  // offsetParent 校验防止卸载/隐藏后残留误报（面板要能回来）。
-  const settingsPage = document.querySelector<HTMLElement>('.dcu-settings-page, [data-settings-section]')
-  const visible = dshSettingsDialog() !== undefined || (settingsPage !== null && settingsPage.offsetParent !== null)
+  // ⚠ 2026-09-15 实机定案：这里**绝不能**用 offsetParent 校验 —— 设置页是 position:fixed 覆盖层，
+  // 而 fixed 元素的 offsetParent 恒为 null，判定会永远 false。桌面探针实证：DOM 里
+  // .dcu-settings-page 明明存在（hasDcuPage=true），preload 却报 false，唯一解释就是这句守卫。
+  // 关闭设置页时该元素被整块移除（探针 10:29:52 实证 hasDcuPage=false），故"元素存在即可见"
+  // 不会产生残留误报（面板能正常回来）。
+  const visible = dshSettingsDialog() !== undefined
+    || document.querySelector('.dcu-settings-page, [data-settings-section]') !== null
   if (visible === lastReportedDshSettingsVisibility) return
   lastReportedDshSettingsVisibility = visible
   ipcRenderer.send(IPC.dshSettingsVisibility, visible)
