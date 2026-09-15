@@ -2440,6 +2440,34 @@ function installShellIpc(): void {
       relayout()
     }
   })
+  // 临时调试（定位桌面设置页真实 DOM 形态）：**main.ts 独占**，不动受保护的 preload 与 IPC 契约。
+  // 定时 + 站内导航双触发，仅在形态变化时写日志；定位后整块移除。
+  let lastSettingsProbe = ''
+  const probeDshSettingsDom = (): void => {
+    const view = dshView
+    if (view === undefined || view.webContents.isDestroyed()) return
+    void view.webContents.executeJavaScript(`(() => {
+      try {
+        const cls = (selector, limit) => Array.from(document.querySelectorAll(selector)).slice(0, limit)
+          .map(e => e.tagName.toLowerCase() + '.' + String(e.className).split(/\\s+/).filter(Boolean).slice(0, 2).join('.'));
+        return JSON.stringify({
+          href: location.href,
+          dialogCount: document.querySelectorAll('[role="dialog"][aria-modal="true"]').length,
+          hasDcuPage: document.querySelector('.dcu-settings-page') !== null,
+          hasDataSection: document.querySelector('[data-settings-section]') !== null,
+          settingsClasses: cls('[class*="settings"],[class*="Settings"]', 8),
+          bodyChildren: Array.from(document.body.children).slice(0, 8)
+            .map(e => e.tagName.toLowerCase() + '.' + String(e.className).split(/\\s+/).filter(Boolean).slice(0, 1).join('.')),
+        });
+      } catch (error) { return JSON.stringify({ error: String(error) }); }
+    })()`).then((dump: unknown) => {
+      const text = String(dump)
+      if (text === lastSettingsProbe) return
+      lastSettingsProbe = text
+      try { appendFileSync(`${process.env.TEMP ?? '.'}/dsh-settings-debug.log`, `${new Date().toISOString()} probe ${text}\n`, 'utf8') } catch { }
+    }).catch(() => undefined)
+  }
+  setInterval(probeDshSettingsDom, 2000)
   ipcMain.removeAllListeners(SHELL_IPC.dshNotification)
   ipcMain.on(SHELL_IPC.dshNotification, (event, value: unknown) => {
     if (!mayReportDshNotification(shellRendererKind(event.sender))) return
