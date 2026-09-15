@@ -787,21 +787,15 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
   margin-left: 72px !important;
 }
 
-/* 输入区工具栏（codex-ui）——分层降级，保证任何宽度都不重叠：
-   ① 够宽：单行、右侧簇贴右（原样）；
-   ② 变窄：**模型名先被裁切**（不越界压 chips）；
-   ③ 再窄：模型名保留最小可读宽度 96px，仍放不下时**整簇换到第二行并右对齐**
-      （margin-left:auto 在换行后依然生效 ⇒ 第二行右对齐，看起来是有意排版而非错位）；
-   ④ chips（+ / 计数 / 工作区内修改 / 专家 / PUA）**全程 flex:0 0 auto**：固定尺寸、永不被压扁
-      —— 2026-09-15 用户截图里的"工作区内修改⌄ 压住 专家"就是 chips 被挤压造成的，
-      这条是消重叠的关键。
-   实测依据（诊断实例真实 DOM，同页 A/B）：容器 340/280px 时原始布局 rowH 36→69 换行；
-   仅 nowrap 不定优先级时会互相挤压重叠（用户截图）；故改为"优先级 + 保底换行右对齐"。 */
-.uV2eYG_row {
-  flex-wrap: wrap !important;
-  row-gap: 4px;
-  justify-content: space-between !important;
-}
+/* 输入区工具栏（codex-ui）：**只做两件中性的事**，布局沿用官方（flex-wrap:wrap + space-between）：
+   ① chips（+ / 计数 / 工作区内修改 / 专家 / PUA）flex:0 0 auto —— 固定尺寸，防止被挤压后互相重叠
+      （2026-09-15 用户截图："工作区内修改⌄" 压住 "专家" 就是这个原因）；
+   ② 模型名可收缩、按最小可读宽度 96px 截断 —— 防止越界压住发送按钮。
+   ⚠ 教训（2026-09-15，一天内三次返工）：
+   · 加过 `margin-left:auto` 想让换行后右对齐 —— 它在可换行 flex 里会抢走整行剩余空间，
+     **反而把右侧簇提前顶到第二行**，等于我自己制造了要消除的两行；已删除。
+   · 加过 `nowrap` 但没定收缩优先级 —— chips 被压到重叠；已改为 ①。
+   · 加过 @container + font-size:0 收起文字、隐藏 ¥ 芯片 —— 界面被改变但收益有限、用户未要求；已撤回。 */
 .uV2eYG_row > button,
 .uV2eYG_row > div:not(.uV2eYG_trailing) {
   flex: 0 0 auto !important;
@@ -809,7 +803,6 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
 .uV2eYG_trailing {
   flex: 0 1 auto !important;
   min-width: 0 !important;
-  margin-left: auto !important;
 }
 ._7KE1Ra_trigger {
   min-width: 96px !important;
@@ -822,19 +815,4 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
-}
-/* 窄档：信息让位、图标留下（2026-09-15 用户："把一些信息拿到方框外面来"）。
-   实测 DOM：按钮文字与图标是**独立子元素**（span.Sh0Q9G_triggerIcon 里是真 svg，带自身 16px 尺寸），
-   所以把容器的 font-size 压到 0 就只收起文字、svg 仍按自身尺寸显示 —— 不猜类名、不碰插件。
-   计价芯片（span.VWh0dG_feeInline）是纯提示，窄档直接让位。 */
-.uV2eYG_card {
-  container-type: inline-size;
-}
-@container (max-width: 620px) {
-  .uV2eYG_modes {
-    font-size: 0 !important;
-  }
-  .VWh0dG_feeInline {
-    display: none !important;
-  }
 }
