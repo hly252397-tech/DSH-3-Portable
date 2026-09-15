@@ -813,6 +813,23 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
 .uV2eYG_row {
   align-content: flex-start !important;
 }
+/* 窄了就只显图标、宽了图标+文字 —— 2026-09-15 用户设计指令
+   （"都有图标，为什么缩放后显示图标，展开显示图标和文字"）。
+   做法：以输入卡片为容器查询基准；窄档把带图标按钮的**字号压到 0**：
+   文字收起、按钮里的 SVG 图标按自身 width/height 继续显示（此招已验证有效：盾牌图标能留住）。
+   定位用**稳定属性** aria-label（不依赖构建哈希类名）：
+     "访问模式，当前：…" = 工作区内修改； "召唤专家" = 专家； 含 "PUA" = PUA 开关。
+   模型选择不参与（它只剩箭头图标会失去可辨识度），仍走"截断"策略。 */
+.uV2eYG_card {
+  container-type: inline-size;
+}
+@container (max-width: 620px) {
+  .uV2eYG_card [aria-label^="访问模式"],
+  .uV2eYG_card [aria-label*="专家"],
+  .uV2eYG_card [aria-label*="PUA"] {
+    font-size: 0 !important;
+  }
+}
 /* ⚠ 2026-09-15 复盘（此处曾有"把模型选择搬出去"的三次尝试，全部回滚）：
    · 搬去"黑洞空间"那一行（绝对定位 top:-34px）—— 不是用户要的位置；
    · 搬去底部状态行右端（bottom:-26px）—— **绝对定位只会"盖"上去**，压住了「缓存命中/443M」那截文字，
