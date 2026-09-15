@@ -823,9 +823,10 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
 }
 ._7KE1Ra_root {
   position: absolute !important;
-  top: -34px !important;
-  right: 12px !important;
+  bottom: -26px !important;
+  right: 10px !important;
 }
+/* 注：曾把 PUA 芯片挪到这里 —— 对象错了（用户要的是"模型显示"），已回滚：PUA 留在框内原处。 */
 ._7KE1Ra_trigger {
   min-width: 96px !important;
   overflow: hidden !important;
