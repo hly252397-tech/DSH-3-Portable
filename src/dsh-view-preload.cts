@@ -191,7 +191,13 @@ function closeDshSettingsDialogOnEscape(event: KeyboardEvent): void {
 
 let lastReportedDshSettingsVisibility: boolean | undefined
 function reportDshSettingsVisibility(): void {
-  const visible = dshSettingsDialog() !== undefined
+  // 设置有**两种形态**：① 模态弹窗（[role=dialog][aria-modal=true] + 标题"设置"）；
+  // ② 整页视图（左侧栏"设置"进入：.dcu-settings-page 全屏、带 data-settings-section）。
+  // 2026-09-15 实机定案：整页形态下 [role=dialog] 命中 0，本通路从未触发 → 原生浏览器面板
+  // 不让位，把设置页挤在左边（用户截图 + 真实 DOM 实测）。两种形态都必须让位。
+  // offsetParent 校验防止卸载/隐藏后残留误报（面板要能回来）。
+  const settingsPage = document.querySelector<HTMLElement>('.dcu-settings-page, [data-settings-section]')
+  const visible = dshSettingsDialog() !== undefined || (settingsPage !== null && settingsPage.offsetParent !== null)
   if (visible === lastReportedDshSettingsVisibility) return
   lastReportedDshSettingsVisibility = visible
   ipcRenderer.send(IPC.dshSettingsVisibility, visible)
