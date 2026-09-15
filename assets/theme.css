@@ -813,20 +813,13 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
 .uV2eYG_row {
   align-content: flex-start !important;
 }
-/* 力出一孔：把**模型选择**端出输入框，放到框上方那一行右端（与「黑洞空间」同行、贴右）。
-   2026-09-15 用户设计指令："把模型选择拿到对话框外面来，放到对话框右上角，贴右显示，和黑洞放在一行"。
-   依据：._7KE1Ra_root 实测宽 267px，是框内最占宽的子项 —— 它端出去，框内只剩 chips + 发送，
-   挤压/换行这个矛盾从根上消失。定位上下文 = 卡片本身（绝对定位随卡片走，不跟窗口漂）。
-   纯 CSS：不改插件、React 重渲染不会覆盖；下拉菜单仍可点开（蓝军项见文末风险边界）。 */
-.uV2eYG_card {
-  position: relative !important;
-}
-._7KE1Ra_root {
-  position: absolute !important;
-  bottom: -26px !important;
-  right: 10px !important;
-}
-/* 注：曾把 PUA 芯片挪到这里 —— 对象错了（用户要的是"模型显示"），已回滚：PUA 留在框内原处。 */
+/* ⚠ 2026-09-15 复盘（此处曾有"把模型选择搬出去"的三次尝试，全部回滚）：
+   · 搬去"黑洞空间"那一行（绝对定位 top:-34px）—— 不是用户要的位置；
+   · 搬去底部状态行右端（bottom:-26px）—— **绝对定位只会"盖"上去**，压住了「缓存命中/443M」那截文字，
+     真机上直接糊成一片（用户截图实证）⇒ 界面被做坏。
+   根因：**外壳 CSS 无法把元素搬进另一个容器**。官方那行是 flex 布局，CSS 只能覆盖/偏移，不能入流。
+   结论：真正"搬进状态行"必须改插件 DOM/布局（React 控制，外壳补丁会被重渲染覆盖），
+   已停止在外壳侧硬搬。以下只保留两条**中性**规则（防重叠 + 防越界），不再改布局。 */
 ._7KE1Ra_trigger {
   min-width: 96px !important;
   overflow: hidden !important;
