@@ -813,6 +813,19 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
 .uV2eYG_row {
   align-content: flex-start !important;
 }
+/* 力出一孔：把**模型选择**端出输入框，放到框上方那一行右端（与「黑洞空间」同行、贴右）。
+   2026-09-15 用户设计指令："把模型选择拿到对话框外面来，放到对话框右上角，贴右显示，和黑洞放在一行"。
+   依据：._7KE1Ra_root 实测宽 267px，是框内最占宽的子项 —— 它端出去，框内只剩 chips + 发送，
+   挤压/换行这个矛盾从根上消失。定位上下文 = 卡片本身（绝对定位随卡片走，不跟窗口漂）。
+   纯 CSS：不改插件、React 重渲染不会覆盖；下拉菜单仍可点开（蓝军项见文末风险边界）。 */
+.uV2eYG_card {
+  position: relative !important;
+}
+._7KE1Ra_root {
+  position: absolute !important;
+  top: -34px !important;
+  right: 12px !important;
+}
 ._7KE1Ra_trigger {
   min-width: 96px !important;
   overflow: hidden !important;
