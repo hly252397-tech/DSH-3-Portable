@@ -786,3 +786,29 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
 .dcp-floating {
   margin-left: 72px !important;
 }
+
+/* 输入区工具栏（codex-ui）：窄视口/界面缩放后，右侧「模型名 + 发送」整簇会换行到第二行，
+   第一行右半截空、工具栏白高一倍（2026-09-15 用户截图）。
+   实测（诊断实例真实 DOM，同页面 A/B）：.uV2eYG_row 是 display:flex + **flex-wrap:wrap** +
+   justify-content:space-between，右侧 .uV2eYG_trailing(267px) 一旦放不下就整簇换行
+   —— 容器 340/280px 时 rowH 由 36 → 69；打上下面这几条后，340/280px 下 rowH 稳定 36、
+   460/400px 与改前一致（无回归）。
+   策略：**不换行、模型名按需截断**，让发送按钮始终留在行内右侧。 */
+.uV2eYG_row {
+  flex-wrap: nowrap !important;
+}
+.uV2eYG_trailing {
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+}
+.uV2eYG_trailing * {
+  min-width: 0 !important;
+}
+._7KE1Ra_trigger {
+  overflow: hidden !important;
+}
+._7KE1Ra_trigger * {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
