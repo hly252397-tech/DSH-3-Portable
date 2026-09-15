@@ -824,14 +824,17 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
   container-type: inline-size;
 }
 @container (max-width: 620px) {
-  /* ⚠ 2026-09-15 修正：此前只压父级字号，「专家」「PUA」文字仍在（自看实况截图实证）——
-     文字在带显式字号的后代里，父级 font-size:0 管不到。改为连同后代一起压（SVG 不受字号影响）。 */
-  .uV2eYG_card [aria-label^="访问模式"],
-  .uV2eYG_card [aria-label^="访问模式"] *,
-  .uV2eYG_card [aria-label*="专家"],
-  .uV2eYG_card [aria-label*="专家"] *,
-  .uV2eYG_card [aria-label*="PUA"],
-  .uV2eYG_card [aria-label*="PUA"] * {
+  /* ⚠ 2026-09-15 两处修正（自抓图实证）：
+     ① 「专家」文字没收起 —— 其文字在**按钮同级的标签**里，压按钮字号够不着
+        ⇒ 用 `:has(> …)` 找到"包着按钮的那一层芯片容器"，连里面的文字一起收（SVG 有自身尺寸，不受字号影响）。
+     ② 作用域从**整张卡片**缩到**工具行**——此前 `.uV2eYG_card [aria-label*="PUA"] *` 泛匹配，
+        窄档疑似误伤模型块（它只剩图标，可辨识度掉了）。 */
+  .uV2eYG_row *:has(> [aria-label^="访问模式"]),
+  .uV2eYG_row *:has(> [aria-label*="专家"]),
+  .uV2eYG_row *:has(> [aria-label*="PUA"]),
+  .uV2eYG_row [aria-label^="访问模式"], .uV2eYG_row [aria-label^="访问模式"] *,
+  .uV2eYG_row [aria-label*="专家"], .uV2eYG_row [aria-label*="专家"] *,
+  .uV2eYG_row [aria-label*="PUA"], .uV2eYG_row [aria-label*="PUA"] * {
     font-size: 0 !important;
   }
 }
