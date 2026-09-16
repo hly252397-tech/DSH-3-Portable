@@ -132,7 +132,12 @@ window.__ModuleLoader__.load({
       'position:static!important;left:auto!important;top:auto!important;right:auto!important;',
       'margin-left:auto!important;flex:none!important;min-width:0!important}',
       '.dsh-tweaks-lifted ~ .dsh-tweaks-lifted{margin-left:0!important}',
-      '.dbh-dock{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:nowrap!important}',
+      '.dbh-dock{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important}',
+      // 「自适应靠右」：左边那组（黑洞空间 / ＋放进黑洞）**不被压缩**，右边的计价与模型用自动外边距顶到最右；
+      // 宽度不够时 flex-wrap 让它们换到第二行（仍在同一行容器内），不会互相覆盖，也不会把左边挤走。
+      '.dbh-dock > :not(.dsh-tweaks-lifted){flex:0 0 auto!important;min-width:max-content!important}',
+      '.dsh-tweaks-lifted{margin-left:auto!important}',
+      '.dsh-tweaks-lifted ~ .dsh-tweaks-lifted{margin-left:0!important}',
       '.dsh-tweaks-lifted .VWh0dG_triggerPrimary,.dsh-tweaks-lifted .VWh0dG_triggerMetric,.dsh-tweaks-lifted .VWh0dG_triggerYen,',
       '.dsh-tweaks-lifted .VWh0dG_feeInline,.dsh-tweaks-lifted .VWh0dG_triggerLabel{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;',
       'font-size:14px!important;font-weight:600!important;line-height:20px!important;color:inherit!important;',
