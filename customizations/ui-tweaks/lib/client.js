@@ -55,7 +55,27 @@ window.__ModuleLoader__.load({
       '.dcu-foot .VWh0dG_triggerIcon{width:22px!important;height:22px!important}',
       '.dcu-foot .VWh0dG_triggerMetric{font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif!important;',
       'font-size:14px!important;font-weight:600!important;line-height:20px!important;height:auto!important}',
-      '.dcu-foot .VWh0dG_triggerYen{font-size:11px!important}'
+      '.dcu-foot .VWh0dG_triggerYen{font-size:11px!important}',
+      // —— 收起态（图标轨）页脚重合修复（2026-09-16 用户「图二重合了」）——
+      // 先说清因果：对照实验证明**重叠是本来就有的**——停掉本插件样式再量，几何完全相同
+      // （foot 36px、rail [24..60]、gear [44..52]、横向重叠 16px、grid 列 0px 12px 8px）。
+      // codex-ui 的设计意图是「36px 单列纵向堆叠」（.dcu-compact .dcu-foot{width:36px}、
+      // .dcu-settings-seat{width:36px}、按钮 width:100%），但实测列被算成三列，
+      // 圆钮 36px 溢出 12px 格 → 压住 8px 宽的齿轮格，两个字形叠成一团。
+      // 这里把意图落实：收起态改用 flex 纵向堆叠。
+      // 特异性证据（诊断实例枚举全部匹配规则）：压住页脚的是外壳 theme.css 的
+      //   body .dcu-root .dcu-foot:has(.dcu-settings-seat > [data-slot="sidebar.settings"]
+      //        > :not(style):not([data-dcu-settings-trigger]):not([data-dcu-settings-page]):not([data-slot]))
+      //   { display:grid !important }   → 特异性 (0,7,1)
+      // 它按展开态 252px 设计，在 36px 图标轨里把 track 挤成 8px，才造成圆钮压齿轮。
+      // 因此必须**照抄同一条 :has() 链再加一层 .dcu-compact**（→ (0,8,1)）才能压过；
+      // 只写 .dcu-root.dcu-compact（(0,3,1)）会被压回 grid——实测过。
+      'body .dcu-root.dcu-compact .dcu-foot:has(.dcu-settings-seat > [data-slot="sidebar.settings"] > :not(style):not([data-dcu-settings-trigger]):not([data-dcu-settings-page]):not([data-slot])){',
+      'display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important}',
+      'body .dcu-root.dcu-compact .dcu-foot{width:36px!important}',
+      'body .dcu-root.dcu-compact .dcu-foot .VWh0dG_railButton{width:36px!important;height:36px!important;flex:none!important}',
+      'body .dcu-root.dcu-compact .dcu-foot .dcu-settings-trigger{width:36px!important;height:36px!important;min-height:36px!important;',
+      'flex:none!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important}'
     ].join('');
 
     const LIFT = 'dsh-tweaks-lifted';

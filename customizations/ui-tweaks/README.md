@@ -79,7 +79,38 @@
 再验收（本轮已按此对照，数字与观感均成立）。另外 `data-dsh-preset="qoder"` 下外壳另有
 `.dcu-footer-actions{display:flex;flex-direction:column}` 等规则；本机不是 qoder 预设，故未触发。
 
-**未验收项（如实标注）**：App 自身像素未验——用户 App 的左栏处于**收起态**（`.dcu-root.dcu-compact`，
-页脚只渲染 `VWh0dG_railButton`，不渲染本卡），而 Ctrl+B（SendKeys 与 keybd_event 各一次）都未能切换
-其展开态（两次截图 sha256 完全相同，说明窗口内容零变化）。未去改用户界面状态凑验收。
+**未验收项（如实标注）**：App 自身的展开态像素未由我直接抓取——用户 App 的左栏当时处于**收起态**
+（`.dcu-root.dcu-compact`，页脚只渲染 `VWh0dG_railButton`，不渲染本卡），而 Ctrl+B（SendKeys 与
+keybd_event 各一次）都未能切换其展开态（两次截图 sha256 完全相同，说明窗口内容零变化）。
+**该未验项已由用户侧实拍闭合**：用户随后发来的展开态截图（`¥9.70` + 设置，判定"可以了"）
+就是 App 自身渲染结果，证明本插件的热重载通道在 App 里确实生效。
+
+## 收起态（图标轨）页脚重合修复（2026-09-16 用户「图二重合了」）
+
+**因果先说清（对照实验）**：停掉本插件样式再量，收起态几何**完全相同**
+（foot 36px、rail x=24..60、gear x=44..52、横向重叠 16px、`grid-template-columns: 0px 12px 8px`）
+→ **重叠是本来就有的**，不是本插件改出来的（本插件此前只把 `.dcu-foot` 的 `align-items` 由 end 改 center）。
+
+**真凶 = 外壳 `assets/theme.css`**（诊断实例枚举全部匹配规则拿到的地面真相）：
+
+```css
+body .dcu-root .dcu-foot:has(.dcu-settings-seat > [data-slot="sidebar.settings"]
+     > :not(style):not([data-dcu-settings-trigger]):not([data-dcu-settings-page]):not([data-slot]))
+  { display: grid !important }        /* 特异性 (0,7,1) */
+```
+
+它按**展开态 252px** 设计，在 36px 图标轨里把 track 挤成 0/12/8 → 36px 圆钮溢出 12px 格、压住 8px 齿轮格。
+
+**修法（插件侧，免构建免重启）**：照抄同一条 `:has()` 链**再加一层 `.dcu-compact`** → 特异性 (0,8,1)
+压过它，改为 `flex/column` 纵向堆叠、两者各 36px 居中。
+> 试错记录：只写 `.dcu-root.dcu-compact`（(0,3,1)）被压回 grid；只改 `grid-template-columns`
+> 会把齿轮挤到侧栏外 x=72；**照抄 `:has()` 链（(0,5,1)）仍不够**——因为外壳那条 `:has()` 里还有
+> 三个 `:not()`，实际是 (0,7,1)。最终 (0,8,1) 才压过。
+
+**证据**：`evidence/before-compact-footer-20260916.png`（用户图二：弧与齿轮叠成一团）→
+`evidence/accepted-compact-footer-after-20260916.png`（白底同环境下：圆钮在上、齿轮在下，各 36px/24px 独立）。
+
+**已知脆弱点**：本规则与外壳 `:has()` 链耦合——若外壳日后改那条链，本规则会静默失配（退回 grid）。
+届时要么同步改本规则，要么把该规则搬到 `theme.css` 里由外壳单方拥有（代价：改 theme.css 需构建+重启）。
+
 
