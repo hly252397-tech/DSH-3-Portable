@@ -152,8 +152,9 @@ window.__ModuleLoader__.load({
       // hover 才给与导轨图标一致的淡灰反馈，圆角 8px。
       'background-color:transparent!important;border-color:transparent!important;box-shadow:none!important;border-radius:8px!important}',
       '.dsh-tweaks-model:hover{background-color:rgba(127,127,127,.12)!important}',
-      // 「回到底部」悬浮按钮：只位移 + 做成不透明标准按钮，避免半透明时文字透出来显得"糊/被遮挡"（不改行为、不隐藏）
-      '.dsh-tweaks-float{transform:translateY(-14px)!important;background:Canvas!important;',
+      // 「回到底部」悬浮按钮：**往下**挪进"最后一行 ↔ 黑洞行"之间的空隙（往上抬过，仍压在同一列文字上），
+      // 并做成不透明标准按钮（半透明时文字透出来，看着像笔画被切）。不改行为、不隐藏。
+      '.dsh-tweaks-float{transform:translateY(30px)!important;background:Canvas!important;',
       'border:1px solid rgba(0,0,0,.08)!important;box-shadow:0 2px 8px rgba(0,0,0,.10)!important}',
       '.dsh-tweaks-model :not(svg):not(svg *):not(:has(svg)){display:none!important}',
       '.dsh-tweaks-model::before{content:""!important;position:absolute!important;left:0!important;top:0!important;bottom:0!important;margin:auto!important;',
