@@ -125,7 +125,14 @@ window.__ModuleLoader__.load({
       '<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 16 16\' fill=\'none\' stroke=\'%234e5253\' stroke-width=\'1.5\'>',
       '<ellipse cx=\'8\' cy=\'8\' rx=\'7\' ry=\'3.5\' transform=\'rotate(-30 8 8)\'/>',
       '<circle cx=\'8\' cy=\'8\' r=\'2\' fill=\'%234e5253\' stroke=\'none\'/></svg>")!important}',
-      '.dsh-tweaks-lifted{height:28px!important;display:flex!important;align-items:center!important}',
+      '.dsh-tweaks-lifted{height:28px!important;display:flex!important;align-items:center!important;',
+      // 「计价和模型盖住黑洞选项」的根治（2026-09-16 用户）：原来用 position:fixed 贴右，固定定位不看邻居，
+      // 必然可能压住该行自己的「＋放进黑洞」。改为**正常流 + margin-left:auto** 排到最右，
+      // CSS !important 压掉 JS 写的行内 position/left/top，JS 逻辑不动。
+      'position:static!important;left:auto!important;top:auto!important;right:auto!important;',
+      'margin-left:auto!important;flex:none!important;min-width:0!important}',
+      '.dsh-tweaks-lifted ~ .dsh-tweaks-lifted{margin-left:0!important}',
+      '.dbh-dock{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:nowrap!important}',
       '.dsh-tweaks-lifted .VWh0dG_triggerPrimary,.dsh-tweaks-lifted .VWh0dG_triggerMetric,.dsh-tweaks-lifted .VWh0dG_triggerYen,',
       '.dsh-tweaks-lifted .VWh0dG_feeInline,.dsh-tweaks-lifted .VWh0dG_triggerLabel{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;',
       'font-size:14px!important;font-weight:600!important;line-height:20px!important;color:inherit!important;',
