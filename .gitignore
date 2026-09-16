@@ -1,13 +1,12 @@
-# 安装包、运行时和构建输出只保留在本地或 GitHub Release，不提交源码仓库。
-dist/
+﻿# 瀹夎鍖呫€佽繍琛屾椂鍜屾瀯寤鸿緭鍑哄彧淇濈暀鍦ㄦ湰鍦版垨 GitHub Release锛屼笉鎻愪氦婧愮爜浠撳簱銆?dist/
 release/
+release-*/
 runtime/
 runtime-node/
 runtime-plugins/
 node_modules/
 
-# 开发过程产物仅保留在本地。
-coverage/
+# 寮€鍙戣繃绋嬩骇鐗╀粎淇濈暀鍦ㄦ湰鍦般€?coverage/
 *.log
 
 runtime-dsh/
@@ -16,8 +15,7 @@ runtime-dsh.tgz.sha256
 .codegraph/
 _tmp*
 
-# 便携版部署目录：只保留脚本和说明，应用、用户数据、工具链及工作区不提交。
-App/
+# 渚挎惡鐗堥儴缃茬洰褰曪細鍙繚鐣欒剼鏈拰璇存槑锛屽簲鐢ㄣ€佺敤鎴锋暟鎹€佸伐鍏烽摼鍙婂伐浣滃尯涓嶆彁浜ゃ€?App/
 Data/
 Tools/
 Workspace/*
@@ -25,15 +23,13 @@ Workspace/*
 Customize/App-Overlay/*
 !Customize/App-Overlay/.gitkeep
 
-# 用户工作区（中文名）不提交。
-开发空间/
-工作空间/
+# 鐢ㄦ埛宸ヤ綔鍖猴紙涓枃鍚嶏級涓嶆彁浜ゃ€?寮€鍙戠┖闂?
+宸ヤ綔绌洪棿/
 
-# 本地工作产物与无关目录（2026-09-09 基线清理，不入库）
-.tmp/
+# 鏈湴宸ヤ綔浜х墿涓庢棤鍏崇洰褰曪紙2026-09-09 鍩虹嚎娓呯悊锛屼笉鍏ュ簱锛?.tmp/
 .stability-dist/
 artifacts/
-宏建云系统/
+瀹忓缓浜戠郴缁?
 runtime-plugins-stale-*/
 runtime-node-stale-*/
 .opencode/
