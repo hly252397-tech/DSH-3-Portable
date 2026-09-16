@@ -103,7 +103,17 @@ window.__ModuleLoader__.load({
       // 于是两个可见项看着悬在半空。这里只把它 `order:-1` 挪到最前（**不隐藏**任何功能元素），
       // 两个可见项就自然落到栏底。
       'body .dcu-root.dcu-compact .dcu-foot div:empty{order:-1!important}',
-      'body .dcu-root.dcu-compact .dcu-foot .VWh0dG_railButton{width:36px!important;height:36px!important;flex:none!important}'
+      'body .dcu-root.dcu-compact .dcu-foot .VWh0dG_railButton{width:36px!important;height:36px!important;flex:none!important;',
+      // 「用量为什么带个框」：插件给 railButton 默认画了白底 + 1px 圆角边框（卡片语言），
+      // 且 :hover / :focus-visible 会把边框染成 --ds-blue（用户截图里的蓝框即这两态之一）；
+      // 而导轨其余图标都是扁平的、没有盒子。这里拆掉盒子，hover/focus 改成与 .dcu-icon 同一套反馈。
+      // ⚠️ 必须用 background-color 简写以外的长写：`background:transparent` 会把上面那条
+      // background-image（细线仪表盘）一起重置掉，实测 railBgSize 从 16px 16px 掉回 auto、图标消失。
+      'background-color:transparent!important;border-color:transparent!important;border-radius:9px!important;box-shadow:none!important}',
+      'body .dcu-root.dcu-compact .dcu-foot .VWh0dG_railButton:hover{background-color:var(--dcu-sidebar-hover)!important;',
+      'color:var(--dcu-sidebar-primary)!important;border-color:transparent!important;outline:none!important}',
+      'body .dcu-root.dcu-compact .dcu-foot .VWh0dG_railButton:focus-visible{background-color:var(--dcu-sidebar-hover)!important;',
+      'border-color:transparent!important;outline:2px solid var(--dcu-sidebar-primary)!important;outline-offset:-2px!important}'
     ].join('');
 
     const LIFT = 'dsh-tweaks-lifted';
