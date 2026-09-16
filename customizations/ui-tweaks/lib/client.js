@@ -124,7 +124,14 @@ window.__ModuleLoader__.load({
       '.dsh-tweaks-lifted .VWh0dG_feeInline,.dsh-tweaks-lifted .VWh0dG_triggerLabel{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;',
       'font-size:14px!important;font-weight:600!important;line-height:20px!important;color:inherit!important;',
       'background-color:transparent!important;border-color:transparent!important;box-shadow:none!important;',
-      'height:auto!important;min-height:0!important;padding:0!important;border-radius:0!important}'
+      'height:auto!important;min-height:0!important;padding:0!important;border-radius:0!important}',
+      // 收起态图标轨的悬停名称气泡（fixed 定位，避免被 root 的 overflow:hidden 裁掉）
+      '.tw-rail-tip{position:fixed;left:-9999px;top:0;z-index:2147483000;pointer-events:none;opacity:0;',
+      'background:#fff;color:#18181b;border:1px solid rgba(0,0,0,.08);border-radius:8px;',
+      'box-shadow:0 6px 18px rgba(0,0,0,.12);padding:4px 8px;font-size:12px;line-height:16px;',
+      'font-family:Inter,ui-sans-serif,system-ui,"Microsoft YaHei",sans-serif;white-space:nowrap;transition:opacity .12s}',
+      '.tw-rail-tip.on{opacity:1}',
+      'body[data-color-scheme="dark"] .tw-rail-tip{background:#1f1f22;color:#f4f4f5;border-color:rgba(255,255,255,.12)}'
     ].join('');
 
     const LIFT = 'dsh-tweaks-lifted';
@@ -336,9 +343,55 @@ window.__ModuleLoader__.load({
       window.__dshTweaksBrandClick = true;
     }
 
+    // ===== 收起态图标轨：悬停显示功能名称（2026-09-16 用户要求）=====
+    // 关键约束：收起态 root 带 overflow:hidden，气泡用 absolute 会被裁掉 → 用 position:fixed + JS 定位。
+    // 名称来源：优先 aria-label，其次 title，再退到元素/最近按钮的可见文本（收起态文本被隐藏但仍在 DOM 里）。
+    function installRailTooltips() {
+      if (window.__dshTweaksRailTip === true) return;
+      const tip = document.createElement('div');
+      tip.className = 'tw-rail-tip';
+      document.body.appendChild(tip);
+
+      const RAIL_ITEM = '.dcu-root.dcu-compact .dcu-compact-nav .dcu-icon, .dcu-root.dcu-compact .dcu-foot button';
+      const railLabel = (el) => {
+        const scope = el.closest('button,a,[role="button"]') || el;
+        const raw = scope.getAttribute('aria-label') || scope.getAttribute('title') || scope.textContent || '';
+        return raw.replace(/\s+/g, ' ').trim().slice(0, 28);
+      };
+      const place = (el) => {
+        const label = railLabel(el);
+        if (label === '') return false;
+        tip.textContent = label;
+        tip.classList.add('on');
+        const rect = el.getBoundingClientRect();
+        const box = tip.getBoundingClientRect();
+        const left = Math.min(rect.right + 8, window.innerWidth - box.width - 8);
+        const top = Math.max(4, Math.min(rect.top + rect.height / 2 - box.height / 2, window.innerHeight - box.height - 4));
+        tip.style.left = Math.round(left) + 'px';
+        tip.style.top = Math.round(top) + 'px';
+        return true;
+      };
+      const onOver = (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        const item = target.closest(RAIL_ITEM);
+        if (item === null || item.getBoundingClientRect().width === 0) { tip.classList.remove('on'); return; }
+        place(item);
+      };
+      const onOut = (event) => {
+        const target = event.target;
+        if (target instanceof Element && target.closest(RAIL_ITEM) !== null) tip.classList.remove('on');
+      };
+      document.addEventListener('mouseover', onOver, true);
+      document.addEventListener('mouseout', onOut, true);
+      document.addEventListener('scroll', () => tip.classList.remove('on'), true);
+      window.__dshTweaksRailTip = true;
+    }
+
     function apply() {
       injectStyle();
       suppressBrandSingleClick();
+      installRailTooltips();
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', applyAll, { once: true });
       } else {
