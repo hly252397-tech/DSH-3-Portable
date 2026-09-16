@@ -119,7 +119,12 @@ export function planBundledPluginSeed(input: SeedPlanInput): SeedPlan {
   return { action: 'add', packages: missing }
 }
 
-/** 已有 node_modules 的目录禁止改 store-dir，否则 pnpm 报 UNEXPECTED_STORE。 */
+/** 目录里还没有 node_modules 时，才算可以首次指定随包 store。
+ *  注意：`resolvePnpmStoreDir` 已不再用它做「有依赖就不给仓库」的门槛——
+ *  2026-09-16 按用户口径采用上游 480cef2：**没有写出 storeDir 记录就等于没绑过仓库，
+ *  可以安全回落到随包仓库**（只有已写出 storeDir 时才禁止改绑），
+ *  否则内网首启会退到 pnpm 默认仓库、进而去访问 npm 注册表而装不上。
+ *  保留导出：装机判断与既有测试仍按「目录是否已初始化」语义使用它。 */
 export function shouldUsePackagedStore(targetDir: string): boolean {
   return !existsSync(join(targetDir, 'node_modules'))
 }
@@ -159,7 +164,7 @@ export function resolvePnpmStoreDir(targetDir: string, fallback?: string): strin
   } catch {
     // 首次安装还没有 pnpm 状态文件。
   }
-  return shouldUsePackagedStore(targetDir) && fallback ? fallback : undefined
+  return fallback
 }
 
 /** pnpm 状态含绝对 store/virtualStore 路径，U 盘换盘符后统一重定位。 */
@@ -475,7 +480,10 @@ export async function applyOfficialRuntimeVersion(options: SeedOptions, version:
   ensureRuntimeResolutionMode(runtimeDir)
   ensureAutoInstallPeersEnabled(runtimeDir)
   const runner = options.runner ?? ((pluginArgs) => runPnpm(options, pluginArgs))
-  const runtimeStoreDir = resolvePnpmStoreDir(runtimeDir, options.pluginStoreDir)
+  // 官方运行时**不绑随包插件仓**（2026-09-16 实测取证：随包 store 的 metadata 里
+  // 既没有 @deepseek-ai 命名空间、也没有任何 *deepseek* 包；盘上运行时是从 .tgz 解出来的、
+  // 连 .modules.yaml 都没有）。绑上去只会把官方包写进随包仓污染它，离线也照样装不出来。
+  const runtimeStoreDir = resolvePnpmStoreDir(runtimeDir)
   if (hasUnresolvedStore(runtimeDir, runtimeStoreDir)) console.warn(storelessSeedWarning(runtimeDir))
   await runner(officialRuntimeInstallArgs(runtimeDir, runtimeStoreDir))
   if (!isOfficialRuntimeLaunchable(runtimeDir)) {
@@ -642,7 +650,8 @@ async function seedOfficialRuntime(options: SeedOptions): Promise<readonly strin
   }
   if (!existsSync(resolveProfileDshEntry(runtimeDir))) {
     await ensureRuntimeScaffold(runtimeDir)
-    const storeDir = resolvePnpmStoreDir(runtimeDir, existsSync(options.pluginStoreDir) ? options.pluginStoreDir : undefined)
+    // 官方运行时不带随包插件仓回落（理由同上：仓里没有官方包）
+    const storeDir = resolvePnpmStoreDir(runtimeDir)
     const useStore = storeDir !== undefined
     if (hasUnresolvedStore(runtimeDir, storeDir)) console.warn(storelessSeedWarning(runtimeDir))
     const args = buildSeedPluginArgs([OFFICIAL_RUNTIME], runtimeDir, {
@@ -671,7 +680,8 @@ async function ensureOfficialLaunchPeers(options: SeedOptions, targetDir: string
   ensureAutoInstallPeersEnabled(targetDir)
   const missing = missingOfficialLaunchPeers(targetDir)
   if (missing.length === 0) return []
-  const storeDir = resolvePnpmStoreDir(targetDir, existsSync(options.pluginStoreDir) ? options.pluginStoreDir : undefined)
+  // 启动 peer 补齐的对象是官方运行时目录，同样不绑随包插件仓
+  const storeDir = resolvePnpmStoreDir(targetDir)
   const useStore = storeDir !== undefined
   if (hasUnresolvedStore(targetDir, storeDir)) console.warn(storelessSeedWarning(targetDir))
   const args = buildSeedPluginArgs([OFFICIAL_RUNTIME, ...missing], targetDir, {

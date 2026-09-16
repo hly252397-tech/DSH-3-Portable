@@ -160,6 +160,37 @@ test('node_modules 已有插件但未写入 dependencies 时仍要补进 depende
   assert.deepEqual(plan, { action: 'add', packages: [...catalog] })
 })
 
+test('内网首启：profile 有 node_modules 但读不到仓库记录时，走随包仓库离线补种（不再退到 npm）', async () => {
+  // 2026-09-16 用户拍板采用上游 480cef2 口径的真实场景回归：
+  // 换机/换盘后 profile 里已有 node_modules，但 .modules.yaml 缺失或损坏 → 旧行为解析不到仓库，
+  // 发出的 pnpm 命令不带 --store-dir，pnpm 遂用环境默认仓库并去访问 npm 注册表 →
+  // 没外网的机器上插件/专家/技能全部装不上。
+  for (const state of [undefined, '{}\n', 'invalid: [\n']) {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-intranet-store-'))
+    try {
+      const store = join(root, 'bundled-store')
+      const profile = join(root, 'profile')
+      await mkdir(store)
+      await mkdir(join(profile, 'node_modules'), { recursive: true })
+      if (state !== undefined) await writeFile(join(profile, 'node_modules', '.modules.yaml'), state, 'utf8')
+      const calls: string[][] = []
+      await seedBundledPlugins({
+        nodeExecutable: 'node',
+        profileDir: profile,
+        pluginStoreDir: store,
+        catalog,
+        runner: async args => { calls.push([...args]) },
+      })
+      assert.equal(calls.length, 1)
+      assert.equal(calls[0]!.includes('--offline'), true, '必须离线补种，不能去访问注册表')
+      assert.equal(calls[0]!.some(arg => arg === `--store-dir=${store}`), true, '必须用随包仓库')
+      assert.equal(calls[0]!.some(arg => arg.startsWith('--cache-dir=')), true)
+    } finally {
+      await removeTempDir(root)
+    }
+  }
+})
+
 test('seedBundledPlugins 只调用一次 pnpm add，且写入用户 profile', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-seed-'))
   try {
@@ -184,15 +215,32 @@ test('seedBundledPlugins 只调用一次 pnpm add，且写入用户 profile', as
   }
 })
 
-test('已有 node_modules 时不得改用安装包 store', async () => {
+test('没有写出 storeDir 记录时不阻止回落随包仓库，已写出则绝不允许改绑（2026-09-16 口径）', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-store-check-'))
   try {
+    // 装机语义未变：目录是否已初始化仍由 shouldUsePackagedStore 表达
     assert.equal(shouldUsePackagedStore(root), true)
     await mkdir(join(root, 'node_modules'))
     assert.equal(shouldUsePackagedStore(root), false)
-    const args = buildSeedPluginArgs(catalog, root, {})
-    assert.equal(args.some(item => item.startsWith('--store-dir=')), false)
-    assert.equal(args.includes('--offline'), false)
+    const fallback = 'D:\\bundled-store'
+    // 但「没有记录」≠「绑过仓库」：上游 480cef2 口径——可安全回落随包仓库。
+    // 否则内网首启会退到 pnpm 默认仓库、进而访问 npm 注册表而装不上（用户 2026-09-16 拍板采用）
+    assert.equal(resolvePnpmStoreDir(root, fallback), fallback)
+    await writeFile(join(root, 'node_modules', '.modules.yaml'), '{}\n', 'utf8')
+    assert.equal(resolvePnpmStoreDir(root, fallback), fallback)
+    await writeFile(join(root, 'node_modules', '.modules.yaml'), 'invalid: [\n', 'utf8')
+    assert.equal(resolvePnpmStoreDir(root, fallback), fallback)
+    // 已写出 storeDir 时禁止改绑（UNEXPECTED_STORE 的唯一真实触发条件）
+    const recorded = join(root, 'recorded-store')
+    await writeFile(join(root, 'node_modules', '.modules.yaml'), JSON.stringify({ storeDir: recorded }), 'utf8')
+    assert.equal(resolvePnpmStoreDir(root, fallback), recorded)
+    // 没有 fallback 可用时仍返回 undefined：由调用方决定（告警/跳过/默认仓库）
+    await writeFile(join(root, 'node_modules', '.modules.yaml'), 'invalid: [\n', 'utf8')
+    assert.equal(resolvePnpmStoreDir(root), undefined)
+    // 不再按「有 node_modules 就拒绝给仓库」发不带 --store-dir 的命令
+    const args = buildSeedPluginArgs(catalog, root, { storeDir: fallback, offline: true })
+    assert.equal(args.some(item => item.startsWith('--store-dir=')), true)
+    assert.equal(args.includes('--offline'), true)
   } finally {
     await removeTempDir(root)
   }
@@ -424,9 +472,13 @@ test('仓库记录可读时护栏不误伤，且只在已有依赖的目录上�
     await writeFile(join(profile, 'node_modules', '.modules.yaml'), JSON.stringify({ storeDir: recorded }), 'utf8')
     assert.equal(resolvePnpmStoreDir(profile), recorded)
     assert.equal(hasUnresolvedStore(profile, recorded), false)
-    // 记录文件在但解析不出仓库 → 只告警（提示文案不可为空），不改变行为
+    // 记录文件在但解析不出仓库 → 视为未绑过仓库：给了随包仓就回落（2026-09-16 口径），
+    // 没给回落才告警（提示文案不可为空）
     await writeFile(join(profile, 'node_modules', '.modules.yaml'), '{ not json', 'utf8')
-    assert.equal(resolvePnpmStoreDir(profile, join(root, 'packaged-store')), undefined)
+    const packagedStore = join(root, 'packaged-store')
+    assert.equal(resolvePnpmStoreDir(profile, packagedStore), packagedStore)
+    assert.equal(hasUnresolvedStore(profile, packagedStore), false)
+    assert.equal(resolvePnpmStoreDir(profile), undefined)
     assert.equal(hasUnresolvedStore(profile, undefined), true)
     assert.match(storelessSeedWarning(profile), /默认仓库/)
     // 全新目录（无 node_modules）即便解析不到仓库也不告警：从零安装不存在仓库不一致
