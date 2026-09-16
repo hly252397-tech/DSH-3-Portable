@@ -285,6 +285,28 @@ if ($pendingReference) {
     New-Item -ItemType Directory -Path $healthRoot -Force | Out-Null
     Remove-Item -LiteralPath $healthFile,$progressFile -Force -ErrorAction SilentlyContinue
     if (Test-Path -LiteralPath $attemptFile -PathType Leaf) {
+      # 2026-09-16 事故修复（RCA）：两次重启都出现「候选秒退 → 自动回退」，根因是**两个启动器实例在 ~70ms 内并发**：
+      #   实例 B 刚写下 activation-attempt.json，实例 A 立刻读到它 → 走本分支 → 撤销 pending 并启动**旧槽**，
+      #   旧槽的 Chromium 单实例锁随即把实例 B 正在启动的候选挤死（退出码=0），候选部署被毁。
+      # 因此本分支必须先判断「这次尝试是不是**正在进行中**」：
+      #   在途（候选槽进程已起 OR 尝试标记很新）→ 让位退出：不撤指针、不抢启动，把部署权留给在途的那个实例。
+      #   过期（启动器自己崩了/被杀死）→ 保留原有的回退 + 恢复当前槽行为（安全网不变）。
+      $attemptAgeSeconds = [double]::PositiveInfinity
+      try {
+        $attempt = Get-Content -LiteralPath $attemptFile -Raw | ConvertFrom-Json
+        $startedAtRaw = [string]$attempt.startedAt
+        if ($startedAtRaw -ne '') {
+          $attemptAgeSeconds = ([datetime]::UtcNow - [datetime]::Parse($startedAtRaw, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AdjustToUniversal)).TotalSeconds
+        }
+      } catch { }
+      $pendingSlotRelative = ([string]$pendingReference.relativePath) -replace '/', '\'
+      $candidateAlive = @(Get-PortableDesktopProcesses | Where-Object {
+        try { $_.Path -like ('*' + $pendingSlotRelative + '*') } catch { $false }
+      }).Count -gt 0
+      if ($candidateAlive -or $attemptAgeSeconds -lt 90) {
+        Write-LauncherLog "候选部署正在进行中（候选进程存活=$candidateAlive，尝试标记距今 $([math]::Round($attemptAgeSeconds, 1)) 秒），本次重复启动让位退出：$transactionId"
+        exit 0
+      }
       Write-LauncherLog "候选事务已经尝试过且未提交，拒绝重复启动并回退：$transactionId"
       Restore-CurrentDesktopPointer -Pointer $pointer -Detail '候选桌面上次未完成启动验证，已阻止重复尝试并恢复当前槽。' | Out-Null
       if ($currentApplication) {

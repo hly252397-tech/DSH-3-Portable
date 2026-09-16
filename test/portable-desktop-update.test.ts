@@ -605,3 +605,28 @@ test('候选启动用心跳续租且仍受有限绝对超时约束', async () =>
   assert.match(main, /setInterval\(writeHeartbeat, 5_000\)/)
   assert.match(main, /stopDesktopActivationHeartbeat\(\)\s*\r?\n\s*app\.exit\(1\)/)
 })
+
+test('重复启动启动器不得毁掉在途候选部署（2026-09-16 双触发事故回归）', async () => {
+  const launcher = await readFile(new URL('../../Start-DSH-Portable.ps1', import.meta.url), 'utf8')
+  // 在途判定必须先于回退：候选进程存活 OR 尝试标记很新 → 让位退出
+  const inFlight = launcher.indexOf('候选部署正在进行中')
+  const rollback = launcher.indexOf('拒绝重复启动并回退')
+  assert.ok(inFlight > 0, '必须存在「在途让位」分支')
+  assert.ok(rollback > inFlight, '在途判定必须排在回退之前')
+  assert.match(launcher, /candidateAlive/)
+  assert.match(launcher, /attemptAgeSeconds -lt 90/)
+  // 候选进程存活判定要按 pending 槽路径比对，而不是「任意桌面进程」
+  assert.match(launcher, /\$pendingSlotRelative = /)
+  assert.match(launcher, /\$_\.Path -like \('\*' \+ \$pendingSlotRelative \+ '\*'\)/)
+  // 失败安全：尝试标记读不出/时间不可解析 → 视为「过期」，回退到原有安全网
+  assert.match(launcher, /\[double\]::PositiveInfinity/)
+  // 让位分支不得撤销指针、不得抢启动当前槽：截取该分支检查
+  const branch = launcher.slice(inFlight, rollback)
+  assert.doesNotMatch(branch, /Restore-CurrentDesktopPointer/)
+  assert.doesNotMatch(branch, /Start-DesktopApplicationReliable/)
+  assert.match(branch, /exit 0/)
+  // 原有安全网不变：过期后仍然回退并恢复当前槽
+  const after = launcher.slice(rollback, rollback + 700)
+  assert.match(after, /Restore-CurrentDesktopPointer/)
+  assert.match(after, /Start-DesktopApplicationReliable -Executable \$currentApplication/)
+})
