@@ -152,15 +152,18 @@ window.__ModuleLoader__.load({
       // hover 才给与导轨图标一致的淡灰反馈，圆角 8px。
       'background-color:transparent!important;border-color:transparent!important;box-shadow:none!important;border-radius:8px!important}',
       '.dsh-tweaks-model:hover{background-color:rgba(127,127,127,.12)!important}',
-      // 那个灰方块是**内层元素**画的（外层已清仍可见）→ 把模型位内部所有非 svg 节点的底色/边框/阴影一并清零，
-      // 做成真正的透明底图标；hover 反馈仍在**外层**（上面那条），不受影响。
-      '.dsh-tweaks-model *:not(svg):not(svg *){background-color:transparent!important;border-color:transparent!important;box-shadow:none!important}',
+      // 灰方块是**内层元素或其伪元素**画的（只清 background-color 不够）→ 用 background 简写把颜色与图片一起清掉，
+      // 并覆盖 ::before/::after；hover 反馈仍在外层，不受影响。
+      '.dsh-tweaks-model *:not(svg):not(svg *),',
+      '.dsh-tweaks-model *:not(svg):not(svg *)::before,',
+      '.dsh-tweaks-model *:not(svg):not(svg *)::after{',
+      'background:transparent!important;background-image:none!important;border-color:transparent!important;box-shadow:none!important}',
       // 「回到底部」悬浮按钮：**往下**挪进"最后一行 ↔ 黑洞行"之间的空隙（往上抬过，仍压在同一列文字上），
       // 并做成不透明标准按钮（半透明时文字透出来，看着像笔画被切）。不改行为、不隐藏。
       '.dsh-tweaks-float{transform:translateY(30px)!important;background:Canvas!important;',
       'border:1px solid rgba(0,0,0,.08)!important;box-shadow:0 2px 8px rgba(0,0,0,.10)!important}',
       '.dsh-tweaks-model :not(svg):not(svg *):not(:has(svg)){display:none!important}',
-      '.dsh-tweaks-model::before{content:""!important;position:absolute!important;left:0!important;top:0!important;bottom:0!important;margin:auto!important;',
+      '.dsh-tweaks-model::before{content:""!important;position:absolute!important;left:0!important;right:0!important;top:0!important;bottom:0!important;margin:auto!important;',
       'width:16px!important;height:16px!important;pointer-events:none!important;background-repeat:no-repeat!important;background-position:center!important;background-size:16px 16px!important;',
       'background-image:url("data:image/svg+xml;utf8,',
       '<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 16 16\' fill=\'none\' stroke=\'%234e5253\' stroke-width=\'1.5\' stroke-linecap=\'round\'>',
