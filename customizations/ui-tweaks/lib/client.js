@@ -352,7 +352,8 @@ window.__ModuleLoader__.load({
       tip.className = 'tw-rail-tip';
       document.body.appendChild(tip);
 
-      const RAIL_ITEM = '.dcu-root.dcu-compact .dcu-compact-nav .dcu-icon, .dcu-root.dcu-compact .dcu-foot button';
+      // 覆盖两个容器：首项（展开侧边栏）在 .dcu-compact-shell，其余在 .dcu-compact-nav —— 只写 nav 会漏掉第一个（用户实拍指出）。
+      const RAIL_ITEM = '.dcu-root.dcu-compact .dcu-icon, .dcu-root.dcu-compact .dcu-foot button';
       const railLabel = (el) => {
         const scope = el.closest('button,a,[role="button"]') || el;
         const raw = scope.getAttribute('aria-label') || scope.getAttribute('title') || scope.textContent || '';
