@@ -113,7 +113,18 @@ window.__ModuleLoader__.load({
       'body .dcu-root.dcu-compact .dcu-foot .VWh0dG_railButton:hover{background-color:var(--dcu-sidebar-hover)!important;',
       'color:var(--dcu-sidebar-primary)!important;border-color:transparent!important;outline:none!important}',
       'body .dcu-root.dcu-compact .dcu-foot .VWh0dG_railButton:focus-visible{background-color:var(--dcu-sidebar-hover)!important;',
-      'border-color:transparent!important;outline:2px solid var(--dcu-sidebar-primary)!important;outline-offset:-2px!important}'
+      'border-color:transparent!important;outline:2px solid var(--dcu-sidebar-primary)!important;outline-offset:-2px!important}',
+      // —— 黑洞行三修（2026-09-16 用户：黑洞背景不要 / 计价框和模型对齐 / 计价和其他不统一）——
+      // ① 暗底来自插件自身 `.dbh-orb{background:#090e19;border-radius:8px}`（不是我换的细线图标）；
+      // ② 计价胶囊自带 JetBrains Mono 22px 数字 + 999px 填充药丸 + 警示配色，与右侧纯文本模型块不是一套语言；
+      // ③ 胶囊 22px vs 模型 28px，而我按顶对齐 → 中线差 3px；统一高度后顶与中线同时对齐。
+      '.dbh-dock .dbh-orb{background:transparent!important;box-shadow:none!important}',
+      '.dsh-tweaks-lifted{height:28px!important;display:flex!important;align-items:center!important}',
+      '.dsh-tweaks-lifted .VWh0dG_triggerPrimary,.dsh-tweaks-lifted .VWh0dG_triggerMetric,.dsh-tweaks-lifted .VWh0dG_triggerYen,',
+      '.dsh-tweaks-lifted .VWh0dG_feeInline,.dsh-tweaks-lifted .VWh0dG_triggerLabel{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;',
+      'font-size:14px!important;font-weight:600!important;line-height:20px!important;color:inherit!important;',
+      'background-color:transparent!important;border-color:transparent!important;box-shadow:none!important;',
+      'height:auto!important;min-height:0!important;padding:0!important;border-radius:0!important}'
     ].join('');
 
     const LIFT = 'dsh-tweaks-lifted';
