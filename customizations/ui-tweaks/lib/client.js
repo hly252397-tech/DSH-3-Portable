@@ -76,15 +76,34 @@ window.__ModuleLoader__.load({
       // 有不可见子项在贡献高度（实测 hover/popover 之类），而 justify-content:flex-end 对它无效。
       // 所以不追那个子项，改为**只按内容高度排布**（height/min-height 归零 + fit-content），
       // 由导航的 flex:1 把页脚整体顶到栏底，空白自然消失。
-      'height:auto!important;min-height:0!important;padding:4px 0 6px!important;margin:0!important}',
+      'height:auto!important;min-height:0!important;padding:4px 0 6px!important;margin:0 auto!important;width:36px!important}',
+      // 「这一列要对齐」：实测导航图标 36×36 于 [17..53]（中线 35），而页脚用量圆钮在 [7..43]（中线 25，偏左 10px）、
+      // 齿轮 [19..43]（24 宽，中线 31）。原因是页脚只有 36px 宽且**靠左**，而导航是在 54px 轨道里居中。
+      // 修法：页脚宽度 36 + `margin:0 auto` 居中 → 与导航同列；两个子项统一 36px 宽，中心自然一致。
+      'body .dcu-root.dcu-compact .dcu-foot .dcu-settings-trigger{width:36px!important;height:36px!important;min-height:36px!important;',
+      // 实测齿轮被右对齐（[28..52]，中线 40），而导航列中线是 35 → 必须显式居中（align-self + 两侧 auto 外边距）
+      'align-self:center!important;margin-left:auto!important;margin-right:auto!important;',
+      'flex:none!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important}',
+      // 「图标格式要统一」：导航=16px 实心路径，齿轮=16px 细线(stroke1.6)；而用量图标是 26px + 40×40 viewBox
+      // + 四层透明度(0.16/1/0.7/0.38)的分层弧——尺寸与语言都不是一套。这里藏掉插件的分层弧，
+      // 用与齿轮/导航同语言的 16px 细线仪表盘顶上（不改插件逻辑，只改观感）。
+      'body .dcu-root.dcu-compact .dcu-foot .VWh0dG_railButton svg{display:none!important}',
+      'body .dcu-root.dcu-compact .dcu-foot .VWh0dG_railButton{background-image:url("data:image/svg+xml;utf8,',
+      '<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 16 16\' fill=\'none\' stroke=\'%234e5253\' stroke-width=\'1.6\' stroke-linecap=\'round\' stroke-linejoin=\'round\'>',
+      '<path d=\'M2.2 12.3a6.3 6.3 0 1 1 11.6 0\'/><path d=\'M8 12.3 10.6 7.6\'/></svg>")!important;',
+      'background-repeat:no-repeat!important;background-position:center!important;background-size:16px 16px!important}',
+      // 展开态卡片里同一枚仪表盘也统一成细线
+      'body .dcu-root:not(.dcu-compact) .dcu-foot .VWh0dG_triggerIcon svg{display:none!important}',
+      'body .dcu-root:not(.dcu-compact) .dcu-foot .VWh0dG_triggerIcon{background-image:url("data:image/svg+xml;utf8,',
+      '<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 16 16\' fill=\'none\' stroke=\'%234e5253\' stroke-width=\'1.6\' stroke-linecap=\'round\' stroke-linejoin=\'round\'>',
+      '<path d=\'M2.2 12.3a6.3 6.3 0 1 1 11.6 0\'/><path d=\'M8 12.3 10.6 7.6\'/></svg>")!important;',
+      'background-repeat:no-repeat!important;background-position:center!important;background-size:16px 16px!important}',
       // 「为什么不贴底」的真凶：页脚里还排着一个**无类名空 div**（12×24、flex、无文本无背景，
       // 即外壳的连接状态位，视觉上不画任何东西），它排在齿轮**下方**，占走 24px + 6px 间隙 = 30px，
       // 于是两个可见项看着悬在半空。这里只把它 `order:-1` 挪到最前（**不隐藏**任何功能元素），
       // 两个可见项就自然落到栏底。
       'body .dcu-root.dcu-compact .dcu-foot div:empty{order:-1!important}',
-      'body .dcu-root.dcu-compact .dcu-foot .VWh0dG_railButton{width:36px!important;height:36px!important;flex:none!important}',
-      'body .dcu-root.dcu-compact .dcu-foot .dcu-settings-trigger{width:36px!important;height:36px!important;min-height:36px!important;',
-      'flex:none!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important}'
+      'body .dcu-root.dcu-compact .dcu-foot .VWh0dG_railButton{width:36px!important;height:36px!important;flex:none!important}'
     ].join('');
 
     const LIFT = 'dsh-tweaks-lifted';
