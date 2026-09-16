@@ -131,6 +131,12 @@ window.__ModuleLoader__.load({
       'font-size:14px!important;font-weight:600!important;line-height:20px!important;color:inherit!important;',
       'background-color:transparent!important;border-color:transparent!important;box-shadow:none!important;',
       'height:auto!important;min-height:0!important;padding:0!important;border-radius:0!important}',
+      // —— 对话到底部要「渐隐消失」，而不是压在图标上（2026-09-16 用户）——
+      // 根因：输入区这一层背景是透明的，对话滚到底就直接透出来压在黑洞/计价/模型那一行上。
+      // 修法：① 给输入区底色（用 Canvas 系统色，跟随主题，不写死颜色）；② 上沿加一条透明→底色的过渡带，形成渐隐。
+      '.wSkVaW_composerStack{position:relative!important;background:Canvas!important}',
+      '.wSkVaW_composerStack::before{content:""!important;position:absolute!important;left:0!important;right:0!important;',
+      'top:-72px!important;height:72px!important;pointer-events:none!important;background:linear-gradient(to bottom,transparent,Canvas)!important}',
       // 收起态图标轨的悬停名称气泡（fixed 定位，避免被 root 的 overflow:hidden 裁掉）
       '.tw-rail-tip{position:fixed;left:-9999px;top:0;z-index:2147483000;pointer-events:none;opacity:0;',
       'background:#fff;color:#18181b;border:1px solid rgba(0,0,0,.08);border-radius:8px;',
