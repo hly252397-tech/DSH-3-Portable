@@ -45,7 +45,7 @@ test('每个内置插件都钉死精确版本', () => {
   }
   assert.equal(BUNDLED_PLUGINS.find(plugin => plugin.packageName === 'dshmarket')?.version, '1.47.0')
   assert.deepEqual(Object.fromEntries(BUNDLED_PLUGINS.map(plugin => [plugin.packageName, plugin.version])), {
-    '@michengai/dsh-codex-ui': '1.1.10',
+    '@michengai/dsh-codex-ui': '1.1.11',
     '@michengai/dsh-im-connect': '0.1.50',
     // 0.1.44（2026-09-16 用户授权接受 profile 批量升级）：自动化工作台补丁已按授权重钉到 0.1.44 的
     // 三锚点契约（apply / runtime / 原生页面返回行），详见 build.mjs 注释与 I030 记录。
@@ -58,10 +58,10 @@ test('每个内置插件都钉死精确版本', () => {
     '@michengai/dsh-simplify': '0.1.5',
     '@michengai/dsh-code-review': '0.1.2',
     '@michengai/dsh-pua': '0.3.13',
-    'dsh-context': '0.52.1',
+    'dsh-context': '0.53.0',
     'dsh-better-sidebar': '0.18.0',
-    'dsh-mcp-connector': '0.2.47',
-    '@kenz1117/dsh-ui-usage-billing': '1.3.0',
+    'dsh-mcp-connector': '0.2.49',
+    '@kenz1117/dsh-ui-usage-billing': '1.4.0',
     dshmarket: '1.47.0',
   })
 })
@@ -69,7 +69,7 @@ test('每个内置插件都钉死精确版本', () => {
 test('官方 DSH 家族锁在同一个精确版本', () => {
   assert.equal(OFFICIAL_RUNTIME.packageName, '@deepseek-ai/dsh')
   assert.equal(OFFICIAL_RUNTIME.version, OFFICIAL_DSH_VERSION)
-  assert.equal(OFFICIAL_DSH_VERSION, '0.1.2-rc.1')
+  assert.equal(OFFICIAL_DSH_VERSION, '0.1.6-alpha.1')
   assert.equal(seededPackageNames()[0], '@deepseek-ai/dsh')
   assert.equal(OFFICIAL_LAUNCH_PEERS[0]?.packageName, '@deepseek-ai/cordis-plugin-group')
   assert.equal(OFFICIAL_LAUNCH_PEERS[0]?.version, '1.0.2')

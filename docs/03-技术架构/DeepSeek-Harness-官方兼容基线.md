@@ -7,7 +7,7 @@
 | 项目 | 当前值 | 用途 |
 |---|---|---|
 | **实现基线（活动运行时槽）** | `@deepseek-ai/dsh 0.1.5-rc.2`，槽 `Harness/slots/0.1.5-rc.2-fd316e6b895e48c1`（2026-09-11 17:09 提交） | **编译、运行、API 与 Profile 兼容性的最终依据**；上一槽 `0.1.2-rc.1` 保留以支撑回滚。出处：`Data/Runtime/Harness/current.json` |
-| 打包内置运行时（回退） | `@deepseek-ai/dsh 0.1.2-rc.1` | 随桌面安装包分发的**回退**运行时，必须与 `package.json` 的 `config.bundledDshVersion` 一致（门禁脚本强制）。它不是正在使用的运行时；npm `latest` 当前为 `0.1.5-rc.1`，故二者已不再"与 latest 稳定线一致" |
+| 打包内置运行时（回退） | `@deepseek-ai/dsh 0.1.6-alpha.1`（2026-09-16 随上游 v1.0.63 对齐） | 随桌面安装包分发的**回退**运行时，必须与 `package.json` 的 `config.bundledDshVersion` 一致（门禁脚本强制）。它不是正在使用的运行时；npm `latest` 当前为 `0.1.5-rc.1`，故二者已不再"与 latest 稳定线一致" |
 | 官方审查基线 | `deepseek-ai/deepseek-harness@c291e7961a515f6d7af9304e7fd1d257929aef26` | 检查官方最新架构、开发和测试要求 |
 | 官方审查版本 | `@deepseek-ai/dsh 0.1.5-rc.2` | master 已携带 rc.2 发布；已进受信清单，作为桌面 A/B 更新器的迁移目标 |
 | 运行时迁移目标 | `@deepseek-ai/dsh 0.1.5-rc.2`（受信；`0.1.5-rc.1` 亦受信） | `checkHarnessUpdate` 经 npm integrity + GitHub 标签 commit + 受信清单三重核对后可自动切换；rc.1 保留受信以支撑回滚/降级路径 |
@@ -27,7 +27,7 @@
 ## 官方兼容性判定
 
 - 自定义 Harness 行为优先通过 Profile、Bundle、插件、服务、事件和 Client Slot 扩展，不直接改写官方运行时包。
-- 代码必须以已内置 `0.1.2-rc.1` 的实际导出和类型声明为准；官方 `0.1.5-rc.2` 文档只作为迁移预警，运行时经 A/B 切换真正生效前不得假定新 API 存在。
+- 代码必须以**已内置** `0.1.6-alpha.1` 的实际导出和类型声明为准（2026-09-16 由 `0.1.2-rc.1` 对齐上游 v1.0.63 时更新；活动运行时槽仍为 `0.1.5-rc.2`，未切换）；官方文档只作为迁移预警，运行时经 A/B 切换真正生效前不得假定新 API 存在。
 - 运行时升级属于兼容性迁移：需要独立候选、依赖闭包锁定、Profile 真实组合测试、会话格式评估、A/B 切换和自动回滚。
 - 产品可见插件不能只做手工 `ctx.plugin()` 单元测试，必须通过 Loader + Profile 的真实组合路径验证。
 - 用户可见状态只能在事务提交点后发布；失败前不得显示“完成”。
@@ -98,6 +98,23 @@
 - 上游已引入独立官方 Electron 应用、专用 desktop Profile 和无 HTTP 端口的传输；本仓库仍是社区桌面宿主与 web Profile 的组合，不能直接移植其私有桌面协议。
 - 本轮保持已安装 API、Profile 和会话格式，审核重点为真实入口、双方契约、状态提交、失败反馈和 UI 回归。上游重连、排队发送、会话迁移与客户端渲染变化作为兼容风险记录，不自动升级运行时。
 - 验证遵循真实 Loader/应用组合和可观察结果，隔离审核数据与用户 Profile；本次全项目测试由用户明确要求，失败不以修改断言掩盖。
+
+## 2026-09-16：随上游 v1.0.63 对齐内置运行时版本
+
+- **动因**：上游发 `v1.0.63`（commit `079d1df`，范围 `up-v1.0.62..up-v1.0.63` 仅 2 个提交），其中 `7eaade7` 把
+  `bundledDshVersion` / `OFFICIAL_DSH_VERSION` 由 `0.1.5-rc.2` 提到 `0.1.6-alpha.1`。用户明确选择"插件与运行时一起跟进"。
+- **顺带发现的既有漂移**：本仓库 `package.json` 的 `bundledDshVersion` 原为 **`0.1.2-rc.1`**，而**实际在跑的运行时是
+  `0.1.5-rc.2`** —— 声明与实装相差三代。本次按用户决定直接对齐到上游目标 `0.1.6-alpha.1`。
+- **改了什么**：`package.json` 的 `bundledDshVersion`、`src/bundled-plugins.ts` 的 `OFFICIAL_DSH_VERSION`、
+  以及随包矩阵四个插件（codex-ui `1.1.11`、dsh-context `0.53.0`、dsh-mcp-connector `0.2.49`、usage-billing `1.4.0`），
+  连同声明的测试期望与本文档的"当前值"两行。
+- **刻意没跟的**：`dsh-better-sidebar` 保持 `0.18.0`（上游 `0.19.1`）——它是**本地定制 link 分发**，升上游会把
+  定制件换成 npm 包，等于覆盖用户定制（矩阵注释与 UI 契约均如此规定）。
+- **刻意没改的**：`package.json` 的 `version` 仍为便携仓自己的 `1.0.66`；上游的 `1.0.62→1.0.63` 属另一条发布线。
+- **尚未完成（下一步）**：`0.1.6-alpha.1` 的运行时**尚未安装、活动槽仍为 `0.1.5-rc.2`**。按铁律不能原地安装，
+  须走 `request-harness-update` → 外壳 A/B 更新器；并需复核各插件对 `0.1.6-alpha.1` 的 peer 兼容、
+  UI 基线重记（两个升版插件都有客户端产物）与一次全量构建 + 重启验收。
+- **证据**：`docs/01-当前工作/上游1.0.63吸收评估.md`（含镜像抓取通道与"标签名归便携仓、必须按 commit 判定"的踩坑记录）。
 
 
 - <https://github.com/deepseek-ai/deepseek-harness>

@@ -8,7 +8,7 @@ export interface BundledPlugin {
 }
 
 /** 官方 DSH 家族统一锁死的版本。打包和在线升级都按这一个号对齐。 */
-export const OFFICIAL_DSH_VERSION = '0.1.2-rc.1'
+export const OFFICIAL_DSH_VERSION = '0.1.6-alpha.1'
 export const APPLY_PLUGIN_UPDATES_IPC = 'apply-plugin-updates'
 /** 插件（codex-ui「关于」页）请求升级官方运行时。官方运行时不能原地改写正在运行的活动槽，
  * 该请求只转交桌面端 A/B 更新器处理：候选槽 → 影子验证 → 空闲切换 → 观察 → 失败回滚。 */
@@ -45,7 +45,7 @@ export const OFFICIAL_LAUNCH_PEERS: readonly BundledPlugin[] = [
  *   `import_react11` 别名未漂移、退役标记零残留后，把 `upstreamHash` 重钉到 0.1.42 并记录在案。
  */
 export const BUNDLED_PLUGINS: readonly BundledPlugin[] = [
-  { packageName: '@michengai/dsh-codex-ui', version: '1.1.10' },
+  { packageName: '@michengai/dsh-codex-ui', version: '1.1.11' },
   { packageName: '@michengai/dsh-im-connect', version: '0.1.50' },
   { packageName: '@michengai/dsh-automation', version: '0.1.44' },
   { packageName: '@michengai/dsh-skills-manager', version: '0.1.52' },
@@ -56,10 +56,10 @@ export const BUNDLED_PLUGINS: readonly BundledPlugin[] = [
   { packageName: '@michengai/dsh-simplify', version: '0.1.5' },
   { packageName: '@michengai/dsh-code-review', version: '0.1.2' },
   { packageName: '@michengai/dsh-pua', version: '0.3.13' },
-  { packageName: 'dsh-context', version: '0.52.1' },
+  { packageName: 'dsh-context', version: '0.53.0' },
   { packageName: 'dsh-better-sidebar', version: '0.18.0' },
-  { packageName: 'dsh-mcp-connector', version: '0.2.47' },
-  { packageName: '@kenz1117/dsh-ui-usage-billing', version: '1.3.0' },
+  { packageName: 'dsh-mcp-connector', version: '0.2.49' },
+  { packageName: '@kenz1117/dsh-ui-usage-billing', version: '1.4.0' },
   { packageName: 'dshmarket', version: '1.47.0' },
 ]
 

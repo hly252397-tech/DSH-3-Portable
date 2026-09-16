@@ -10,7 +10,7 @@
     "stability": "developer-preview"
   },
   "bundled": {
-    "dshVersion": "0.1.2-rc.1",
+    "dshVersion": "0.1.6-alpha.1",
     "desktopManifest": "package.json",
     "runtimeManifest": "Data/Runtime/dsh-runtime/node_modules/@deepseek-ai/dsh/package.json"
   },
