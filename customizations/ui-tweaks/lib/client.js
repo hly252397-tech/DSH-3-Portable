@@ -119,6 +119,12 @@ window.__ModuleLoader__.load({
       // ② 计价胶囊自带 JetBrains Mono 22px 数字 + 999px 填充药丸 + 警示配色，与右侧纯文本模型块不是一套语言；
       // ③ 胶囊 22px vs 模型 28px，而我按顶对齐 → 中线差 3px；统一高度后顶与中线同时对齐。
       '.dbh-dock .dbh-orb{background:transparent!important;box-shadow:none!important}',
+      // 输入区旁边的黑洞图标统一为「右面板菜单里那一枚」（2026-09-16 用户选 A：以菜单为准）——
+      // 原样取自黑洞插件给右面板注册的图标：倾斜椭圆 rx7/ry3.5 旋转 -30° + 中心实心圆 r2，stroke 1.5。
+      '.dbh-dock .dbh-orb{content:url("data:image/svg+xml;utf8,',
+      '<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 16 16\' fill=\'none\' stroke=\'%234e5253\' stroke-width=\'1.5\'>',
+      '<ellipse cx=\'8\' cy=\'8\' rx=\'7\' ry=\'3.5\' transform=\'rotate(-30 8 8)\'/>',
+      '<circle cx=\'8\' cy=\'8\' r=\'2\' fill=\'%234e5253\' stroke=\'none\'/></svg>")!important}',
       '.dsh-tweaks-lifted{height:28px!important;display:flex!important;align-items:center!important}',
       '.dsh-tweaks-lifted .VWh0dG_triggerPrimary,.dsh-tweaks-lifted .VWh0dG_triggerMetric,.dsh-tweaks-lifted .VWh0dG_triggerYen,',
       '.dsh-tweaks-lifted .VWh0dG_feeInline,.dsh-tweaks-lifted .VWh0dG_triggerLabel{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;',
