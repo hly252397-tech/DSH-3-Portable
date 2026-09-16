@@ -147,7 +147,11 @@ window.__ModuleLoader__.load({
       // ② ::before 画一枚模型图标（芯片造型，16px，与整体细线语言一致）；
       // ③ 固定 26px 窄宽度，长模型名不再把这一行撑到第二行。
       '.dsh-tweaks-model{width:26px!important;min-width:26px!important;max-width:26px!important;height:26px!important;',
-      'padding:0!important;overflow:hidden!important;justify-content:center!important;position:relative!important;cursor:pointer!important}',
+      'padding:0!important;overflow:hidden!important;justify-content:center!important;position:relative!important;cursor:pointer!important;',
+      // 收成 26px 固定盒后，插件自带的底色会露成一个小方块（用户 2026-09-16："为什么背景有个小方块"）→ 底色清零；
+      // hover 才给与导轨图标一致的淡灰反馈，圆角 8px。
+      'background-color:transparent!important;border-color:transparent!important;box-shadow:none!important;border-radius:8px!important}',
+      '.dsh-tweaks-model:hover{background-color:rgba(127,127,127,.12)!important}',
       '.dsh-tweaks-model :not(svg):not(svg *):not(:has(svg)){display:none!important}',
       '.dsh-tweaks-model::before{content:""!important;position:absolute!important;left:0!important;top:0!important;bottom:0!important;margin:auto!important;',
       'width:16px!important;height:16px!important;pointer-events:none!important;background-repeat:no-repeat!important;background-position:center!important;background-size:16px 16px!important;',
