@@ -136,6 +136,11 @@ window.__ModuleLoader__.load({
       // 「自适应靠右」：左边那组（黑洞空间 / ＋放进黑洞）**不被压缩**，右边的计价与模型用自动外边距顶到最右；
       // 宽度不够时 flex-wrap 让它们换到第二行（仍在同一行容器内），不会互相覆盖，也不会把左边挤走。
       '.dbh-dock > :not(.dsh-tweaks-lifted){flex:0 0 auto!important;min-width:max-content!important}',
+      // 撤回「只显示图标」（2026-09-16）：实测模型座**只有文字 + 下拉箭头、没有真图标**，
+      // 藏掉文字后只剩一个 ⌄，整行认不出（用户："我已经看不清这一行了"）。必须保留文字。
+      // 行内已用 flex 流 + nowrap，不会再压盖邻居，因此无需再藏。
+      // 模型名必须完整可读：**不可压缩**（min-width:max-content），一行放不下就换到第二行，绝不被挤成只剩箭头。
+      '.dsh-tweaks-model{flex:0 0 auto!important;min-width:max-content!important}',
       '.dsh-tweaks-lifted{margin-left:auto!important}',
       '.dsh-tweaks-lifted ~ .dsh-tweaks-lifted{margin-left:0!important}',
       '.dsh-tweaks-lifted .VWh0dG_triggerPrimary,.dsh-tweaks-lifted .VWh0dG_triggerMetric,.dsh-tweaks-lifted .VWh0dG_triggerYen,',
@@ -284,12 +289,10 @@ window.__ModuleLoader__.load({
 
       const rightEdge = dr0.right - 8;
       const room = rightEdge - (contentRight + 8);
-      // 两档降级：① 平价 + 模型 一起上去；② 只把模型搬上去（平价留在原行）
-      let items = null;
-      if (chip && chipW + 8 + modelW <= room) items = [chip, model];
-      else if (modelW <= room) items = [model];
-      if (!items) {
-        // 连模型块都放不下（窄窗）→ 原地不动，控件留在输入框里
+      // 2026-09-16 用户要求：模型也要在那一行。**不再降级**——计价与模型一律一起搬进黑洞行；
+      // 一排放不下就靠行内 flex-wrap 换到第二行（仍在同一行容器里），而不是留在输入框里。
+      const items = [chip, model].filter(Boolean);
+      if (items.length === 0) {
         revert(dock, [modelRaw]);
         state('narrow');
         return;
@@ -297,6 +300,11 @@ window.__ModuleLoader__.load({
 
       // 交给行自己的 flex 排：左边那组不被压缩，计价/模型 margin-left:auto 顶到最右；放不下自动换行（仍在行内）。
       for (const el of items) lift(el, dock);
+      // 用户 2026-09-16：「他可以只显示图标」——模型块在黑洞行里只留图标（文字由 CSS 收起，见 .dsh-tweaks-model 规则），
+      // 悬停用原生 title 显示全名。只加类名、不写行内样式，回退时不会留下残留。
+      modelRaw.classList.add('dsh-tweaks-model');
+      const modelText = (modelRaw.textContent || '').replace(/\s+/g, ' ').trim();
+      if (modelText !== '' && !modelRaw.getAttribute('title')) modelRaw.setAttribute('title', modelText);
 
       // 校验不再比对像素坐标（节点现在真的在行里）：只验「挂上了 + 有尺寸 + 没溢出右边界」
       const dr = dock.getBoundingClientRect();
