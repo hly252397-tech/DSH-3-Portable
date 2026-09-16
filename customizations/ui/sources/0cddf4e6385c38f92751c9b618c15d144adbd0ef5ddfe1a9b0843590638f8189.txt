@@ -1,0 +1,841 @@
+:root {
+  --dsh-bg-canvas: #09090b;
+  --dsh-bg-surface-1: #18181b;
+  --dsh-bg-surface-2: #27272a;
+  --dsh-bg-surface-3: #3f3f46;
+  --dsh-text-primary: #fafafa;
+  --dsh-text-secondary: #a1a1aa;
+  --dsh-text-tertiary: #71717a;
+  --dsh-border-subtle: #27272a;
+  --dsh-border-strong: #3f3f46;
+  --dsh-accent: #55a7ff;
+  --dsh-accent-soft: rgba(85, 167, 255, 0.14);
+  --dsh-success: #45c98a;
+  --dsh-warning: #e4b550;
+  --dsh-danger: #ff7373;
+  --dsh-info: #67b4ff;
+  --dsh-chart-1: #55a7ff;
+  --dsh-chart-2: #45c98a;
+  --dsh-chart-3: #e4b550;
+  --dsh-chart-4: #b38cff;
+  --dsh-chart-5: #ff8f70;
+  --dsh-chart-6: #58c7d8;
+  --dsh-chart-7: #d58bc8;
+  --dsh-chart-8: #a8bd68;
+  --dsh-shadow-raised: 0 12px 32px rgba(0, 0, 0, 0.28);
+  --dsh-radius-sm: 8px;
+  --dsh-radius-md: 12px;
+  --dsh-motion: 170ms cubic-bezier(.22, 1, .36, 1);
+}
+
+:root[data-color-scheme="light"] {
+  --dsh-bg-canvas: #ffffff;
+  --dsh-bg-surface-1: #ffffff;
+  --dsh-bg-surface-2: #f4f4f5;
+  --dsh-bg-surface-3: #e4e4e7;
+  --dsh-text-primary: #18181b;
+  --dsh-text-secondary: #52525b;
+  --dsh-text-tertiary: #71717a;
+  --dsh-border-subtle: #e4e4e7;
+  --dsh-border-strong: #d4d4d8;
+  --dsh-accent: #176fd1;
+  --dsh-accent-soft: rgba(23, 111, 209, 0.13);
+  --dsh-success: #168653;
+  --dsh-warning: #a46100;
+  --dsh-danger: #c73535;
+  --dsh-info: #176fd1;
+  --dsh-chart-1: #176fd1;
+  --dsh-chart-2: #168653;
+  --dsh-chart-3: #a46100;
+  --dsh-chart-4: #7452bd;
+  --dsh-chart-5: #c44e32;
+  --dsh-chart-6: #147c8c;
+  --dsh-chart-7: #a34791;
+  --dsh-chart-8: #667f22;
+  --dsh-shadow-raised: 0 12px 32px rgba(27, 49, 60, 0.15);
+}
+
+:root[data-dsh-preset="qoder"] {
+  --dsh-bg-canvas: #09090b;
+  --dsh-bg-surface-1: #18181b;
+  --dsh-bg-surface-2: #27272a;
+  --dsh-bg-surface-3: #3f3f46;
+  --dsh-text-primary: #fafafa;
+  --dsh-text-secondary: #a1a1aa;
+  --dsh-text-tertiary: #71717a;
+  --dsh-border-subtle: #27272a;
+  --dsh-border-strong: #3f3f46;
+  --dsh-accent: #82a88d;
+  --dsh-accent-soft: rgba(130, 168, 141, 0.16);
+  --dsh-success: #6a9955;
+  --dsh-warning: #d7ba7d;
+  --dsh-danger: #f48771;
+  --dsh-info: #75beff;
+  --dsh-shadow-raised: 0 8px 24px rgba(0, 0, 0, 0.36);
+  --dsh-radius-sm: 4px;
+  --dsh-radius-md: 6px;
+}
+
+:root[data-color-scheme="light"][data-dsh-preset="qoder"] {
+  --dsh-bg-canvas: #ffffff;
+  --dsh-bg-surface-1: #ffffff;
+  --dsh-bg-surface-2: #fafafa;
+  --dsh-bg-surface-3: #e4e4e7;
+  --dsh-text-primary: #18181b;
+  --dsh-text-secondary: #52525b;
+  --dsh-text-tertiary: #71717a;
+  --dsh-border-subtle: #e4e4e7;
+  --dsh-border-strong: #d4d4d8;
+  --dsh-accent: #316e50;
+  --dsh-accent-soft: #edf5f1;
+  --dsh-success: #18181b;
+  --dsh-warning: #9b6a19;
+  --dsh-danger: #c43e1c;
+  --dsh-info: #006ab1;
+  --dsh-shadow-raised: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+:root[data-dsh-preset="lake"] { --dsh-accent: #4d8bff; --dsh-accent-soft: rgba(77, 139, 255, 0.15); }
+:root[data-color-scheme="light"][data-dsh-preset="lake"] { --dsh-accent: #0961f6; --dsh-accent-soft: rgba(9, 97, 246, 0.14); }
+:root[data-dsh-preset="verde"] { --dsh-accent: #5cb878; --dsh-accent-soft: rgba(92, 184, 120, 0.15); }
+:root[data-color-scheme="light"][data-dsh-preset="verde"] { --dsh-accent: #1b5523; --dsh-accent-soft: rgba(27, 85, 35, 0.14); }
+:root[data-dsh-preset="vermilion"] { --dsh-accent: #ff6b2b; --dsh-accent-soft: rgba(255, 107, 43, 0.15); }
+:root[data-color-scheme="light"][data-dsh-preset="vermilion"] { --dsh-accent: #e64a00; --dsh-accent-soft: rgba(230, 74, 0, 0.14); }
+:root[data-dsh-preset="slate"] { --dsh-accent: #2fb8d4; --dsh-accent-soft: rgba(47, 184, 212, 0.15); }
+:root[data-color-scheme="light"][data-dsh-preset="slate"] { --dsh-accent: #0c7e94; --dsh-accent-soft: rgba(12, 126, 148, 0.14); }
+:root[data-dsh-preset="gold"] { --dsh-accent: #c9b37e; --dsh-accent-soft: rgba(201, 179, 126, 0.16); }
+:root[data-color-scheme="light"][data-dsh-preset="gold"] { --dsh-accent: #8a7a4e; --dsh-accent-soft: rgba(138, 122, 78, 0.14); }
+
+:root[data-dsh-preset],
+body[data-dsh-preset] {
+  --accent: var(--dsh-accent);
+  --focus-ring: var(--dsh-accent);
+  --focus-border: var(--dsh-accent);
+  --active-bg: var(--dsh-accent-soft);
+  --tint: var(--dsh-accent-soft);
+
+  /* Official DSH semantic-token bridge. These declarations intentionally
+     live on body as well as :root: the upstream palette is body-scoped. */
+  --dsw-alias-bg-base: var(--dsh-bg-canvas) !important;
+  --dsw-alias-bg-layer-1: var(--dsh-bg-canvas) !important;
+  --dsw-alias-bg-layer-2: var(--dsh-bg-surface-1) !important;
+  --dsw-alias-bg-layer-3: var(--dsh-bg-surface-1) !important;
+  --dsw-alias-bg-mask-1: color-mix(in srgb, var(--dsh-bg-canvas) 78%, transparent) !important;
+  --dsw-alias-bg-mask-2: color-mix(in srgb, var(--dsh-bg-canvas) 56%, transparent) !important;
+  --dsw-alias-bg-mask-3: color-mix(in srgb, var(--dsh-bg-canvas) 88%, transparent) !important;
+  --dsw-alias-bg-mask-drop: color-mix(in srgb, var(--dsh-bg-surface-1) 72%, transparent) !important;
+  --dsw-alias-bg-module-platform: var(--dsh-bg-surface-2) !important;
+  --dsw-alias-bg-multi-select: var(--dsh-bg-surface-2) !important;
+  --dsw-alias-bg-overlay: var(--dsh-bg-surface-2) !important;
+  --dsw-alias-bg-skeleton: color-mix(in srgb, var(--dsh-text-primary) 7%, transparent) !important;
+
+  --dsw-alias-label-primary: var(--dsh-text-primary) !important;
+  --dsw-alias-label-primary-bluish: var(--dsh-text-primary) !important;
+  --dsw-alias-label-primary-foreground: var(--dsh-text-primary) !important;
+  --dsw-alias-label-secondary: var(--dsh-text-secondary) !important;
+  --dsw-alias-label-tertiary: var(--dsh-text-tertiary) !important;
+  --dsw-alias-label-caption: var(--dsh-text-tertiary) !important;
+  --dsw-alias-label-dimmed: color-mix(in srgb, var(--dsh-text-tertiary) 62%, transparent) !important;
+  --dsw-alias-label-primary-dimmed: color-mix(in srgb, var(--dsh-text-primary) 44%, transparent) !important;
+
+  --dsw-alias-border-l1: var(--dsh-border-subtle) !important;
+  --dsw-alias-border-l2-darkmode-thin: var(--dsh-border-subtle) !important;
+  --dsw-alias-border-l2: var(--dsh-border-strong) !important;
+  --dsw-alias-border-l3: color-mix(in srgb, var(--dsh-border-strong) 84%, var(--dsh-text-primary)) !important;
+  --dsw-alias-border-l4: color-mix(in srgb, var(--dsh-border-strong) 68%, var(--dsh-text-primary)) !important;
+
+  --dsw-alias-brand-primary: var(--dsh-accent) !important;
+  --dsw-alias-brand-text: var(--dsh-accent) !important;
+  --dsw-alias-state-business-primary: var(--dsh-accent) !important;
+  --dsw-alias-state-business-secondary: color-mix(in srgb, var(--dsh-accent) 14%, var(--dsh-bg-surface-1)) !important;
+  --dsw-alias-state-business-tertiary: var(--dsh-accent-soft) !important;
+  --dsw-alias-button-primary-fill: var(--dsh-accent) !important;
+  --dsw-alias-button-primary-hover: color-mix(in srgb, var(--dsh-accent) 84%, var(--dsh-text-primary)) !important;
+  --dsw-alias-button-primary-dimmed: color-mix(in srgb, var(--dsh-accent) 18%, var(--dsh-bg-surface-1)) !important;
+  --dsw-alias-button-info-fill: var(--dsh-info) !important;
+  --dsw-alias-button-info-hover: color-mix(in srgb, var(--dsh-info) 84%, var(--dsh-text-primary)) !important;
+  --dsw-alias-button-elevated-fill: var(--dsh-bg-surface-1) !important;
+  --dsw-alias-button-floating-fill: var(--dsh-bg-surface-2) !important;
+  --dsw-alias-button-floating-hover: var(--dsh-bg-surface-3) !important;
+  --dsw-alias-button-ghost-active-fill: var(--dsh-accent-soft) !important;
+  --dsw-alias-button-ghost-active-hover: color-mix(in srgb, var(--dsh-accent) 22%, var(--dsh-bg-surface-1)) !important;
+  --dsw-alias-button-ghost-active-border: color-mix(in srgb, var(--dsh-accent) 58%, transparent) !important;
+
+  --dsw-alias-interactive-bg-active: var(--dsh-accent-soft) !important;
+  --dsw-alias-interactive-bg-hover: var(--dsh-bg-surface-2) !important;
+  --dsw-alias-interactive-bg-hover-solid: var(--dsh-bg-surface-3) !important;
+  --dsw-alias-interactive-bg-hover-accent: var(--dsh-accent-soft) !important;
+  --dsw-alias-interactive-bg-hover-danger: color-mix(in srgb, var(--dsh-danger) 14%, transparent) !important;
+
+  --dsw-alias-state-error-primary: var(--dsh-danger) !important;
+  --dsw-alias-state-error-secondary: color-mix(in srgb, var(--dsh-danger) 14%, var(--dsh-bg-surface-1)) !important;
+  --dsw-alias-state-success-primary: var(--dsh-success) !important;
+  --dsw-alias-state-success-secondary: color-mix(in srgb, var(--dsh-success) 14%, var(--dsh-bg-surface-1)) !important;
+  --dsw-alias-state-success-tertiary: color-mix(in srgb, var(--dsh-success) 22%, var(--dsh-bg-surface-1)) !important;
+  --dsw-alias-state-warn-primary: var(--dsh-warning) !important;
+  --dsw-alias-state-warn-label: var(--dsh-warning) !important;
+  --dsw-alias-state-warn-secondary: color-mix(in srgb, var(--dsh-warning) 14%, var(--dsh-bg-surface-1)) !important;
+  --dsw-alias-state-warn-tertiary: color-mix(in srgb, var(--dsh-warning) 22%, var(--dsh-bg-surface-1)) !important;
+
+  --dsw-alias-markdown-code-block: var(--dsh-bg-surface-2) !important;
+  --dsw-alias-markdown-code-block-banner: var(--dsh-bg-surface-3) !important;
+  --dsw-alias-markdown-inline-code: var(--dsh-accent-soft) !important;
+  --dsw-alias-markdown-citation: var(--dsh-accent-soft) !important;
+  --dsw-alias-markdown-tag: var(--dsh-accent-soft) !important;
+  --dsw-alias-markdown-placeholder: var(--dsh-text-tertiary) !important;
+  --dsw-alias-markdown-code-segment-selected: var(--dsh-text-primary) !important;
+  --dsw-alias-markdown-code-segment-unselected: var(--dsh-text-secondary) !important;
+
+  --dsw-alias-scrollbar-bg-l1: color-mix(in srgb, var(--dsh-text-secondary) 30%, transparent) !important;
+  --dsw-alias-scrollbar-bg-l2: color-mix(in srgb, var(--dsh-text-secondary) 38%, transparent) !important;
+  --dsw-alias-scrollbar-hover-l1: color-mix(in srgb, var(--dsh-text-secondary) 52%, transparent) !important;
+  --dsw-alias-scrollbar-hover-l2: color-mix(in srgb, var(--dsh-text-secondary) 62%, transparent) !important;
+  --dsw-alias-toast-bg: var(--dsh-bg-surface-2) !important;
+  --dsw-alias-tooltip-bg: var(--dsh-bg-surface-3) !important;
+
+  --dsw-specific-sidebar-fill: var(--dsh-bg-surface-2) !important;
+  --dsw-specific-sidebar-nav-item-hover: var(--dsh-bg-surface-3) !important;
+  --dsw-specific-sidebar-nav-item-active: var(--dsh-accent-soft) !important;
+  --dsw-specific-sidebar-nav-item-active-accent: var(--dsh-accent) !important;
+  --dsw-specific-menu: var(--dsh-bg-surface-1) !important;
+  --dsw-specific-input-major: var(--dsh-bg-surface-1) !important;
+  --dsw-specific-login-input: var(--dsh-bg-surface-1) !important;
+  --dsw-specific-selector: var(--dsh-bg-surface-2) !important;
+  --dsw-specific-bubble: var(--dsh-bg-surface-2) !important;
+  --dsw-specific-bubble-highlight: var(--dsh-accent-soft) !important;
+  --dsw-specific-tip: var(--dsh-bg-surface-2) !important;
+}
+
+body[data-dsh-preset] {
+  background: var(--dsh-bg-canvas) !important;
+  color: var(--dsh-text-primary);
+}
+
+/* Light surfaces share the canvas; hover and selection keep their own tokens. */
+body[data-color-scheme="light"][data-dsh-preset] {
+  --dsw-specific-sidebar-fill: var(--dsh-bg-canvas) !important;
+}
+
+/* Qoder Work shell: preserve the official DSH slot tree and restyle its
+   geometry so sessions and plugins keep their real runtime behavior. */
+body[data-color-scheme="light"][data-dsh-preset="qoder"] {
+  font-family: Inter, "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .pI_x6G_frame {
+  background: var(--dsh-bg-canvas) !important;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .pI_x6G_sidebarCol {
+  border-right: 0 !important;
+  background: var(--dsh-bg-canvas) !important;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .pI_x6G_centerCol {
+  margin: 0 8px 8px 0;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  background: #fff;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .hHd-Xa_root {
+  --dsh-sidebar-inline-padding: 12px;
+  padding-top: 4px;
+  background: #fafafa !important;
+  font-size: 14px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .hHd-Xa_logoRow {
+  justify-content: flex-start;
+  height: 40px;
+  margin: 0 0 8px;
+  padding: 4px 0;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .hHd-Xa_brand {
+  flex: 0 1 auto;
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid #d4d4d8;
+  border-radius: 999px;
+  background: var(--tint,#f4f4f5);
+  color: var(--accent,#18181b);
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .hHd-Xa_brandIdentity {
+  gap: 6px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .hHd-Xa_brandName {
+  width: auto;
+  height: 22px;
+  font-size: 0;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .hHd-Xa_brandName::after {
+  content: "编程";
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .hHd-Xa_toggle {
+  margin-left: 2px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .hHd-Xa_newSession {
+  justify-content: flex-start;
+  height: 32px;
+  margin: 0 0 2px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-weight: 400;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .hHd-Xa_newSessionLabel {
+  font-size: 0;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .hHd-Xa_newSessionLabel::after {
+  content: "新的任务";
+  font-size: 14px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .bhn1Oq_sectionHeader {
+  justify-content: flex-start;
+  height: 32px;
+  margin: 0 0 6px;
+  padding: 0 4px;
+  border-radius: 6px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .bhn1Oq_sectionLabel {
+  order: 2;
+  max-width: none;
+  color: #18181b;
+  font-size: 0;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .bhn1Oq_sectionLabel::after {
+  content: "搜索";
+  font-size: 14px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .bhn1Oq_searchSlot {
+  order: 1;
+  flex: 0 0 28px;
+  margin-left: 0;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .bhn1Oq_headerActions {
+  order: 3;
+  margin-left: auto;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .hHd-Xa_footArea {
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #d4d4d8;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .hHd-Xa_footerActions {
+  flex-direction: column;
+  gap: 0;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .wSkVaW_root {
+  background: #fff !important;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .wSkVaW_root[data-phase="hero"] .wSkVaW_scrollBody {
+  justify-content: center;
+  padding-top: 22px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .wSkVaW_composerHero {
+  --dsh-composer-card-max-width: 784px;
+  width: min(816px, 100%);
+  gap: 8px;
+  padding-bottom: 12px;
+  transform: translateY(77px);
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .wSkVaW_composerHero > .pXSMma_root { order: 1; }
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .wSkVaW_composerHero > [data-dss-activity-host] { order: 2; }
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .wSkVaW_composerHero > [data-slot="conversation.composer.bar"] > .uV2eYG_root { order: 3; }
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .wSkVaW_composerHero > .wSkVaW_heroWorkspaceRow { order: 4; }
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .pXSMma_root {
+  height: auto;
+  padding: 0 24px 18px;
+  transform: translateY(35px);
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .pXSMma_stack {
+  align-items: center;
+  gap: 8px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .pXSMma_headline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 54px;
+  font-size: 22px;
+  line-height: 30px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .pXSMma_fishHitbox {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) scale(1.35);
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .pXSMma_headlineText {
+  font-size: 0;
+  font-weight: 600;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .pXSMma_headlineText::after {
+  content: "不止于编程";
+  font-size: 22px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .pXSMma_headline::after {
+  content: "用 DSH 创造了不起的事物";
+  color: #71717a;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .pXSMma_previewBadge { display: none; }
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .uV2eYG_card {
+  min-height: 120px;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: none;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .wSkVaW_heroWorkspaceRow {
+  margin-top: 0;
+  padding-left: 20px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .pI_x6G_frame:has(.dss-root) .pI_x6G_centerCol {
+  visibility: hidden;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .pI_x6G_frame:has(.dss-root) .pI_x6G_detailsCol {
+  position: absolute;
+  inset: 0 8px 8px 272px;
+  z-index: 3;
+  width: auto !important;
+  border: 1px solid #e4e4e7 !important;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .pI_x6G_frame:has(.dss-root) .pI_x6G_handle[data-side="details"] {
+  display: none;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dss-root {
+  --dss-bg: #fff;
+  --dss-panel: #fff;
+  --dss-sunken: #fafafa;
+  --dss-line: #e4e4e7;
+  --dss-line-strong: #d4d4d8;
+  --dss-accent: var(--accent,#18181b);
+  --dss-accent-soft: var(--tint,#f4f4f5);
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dss-toolbar {
+  min-height: 48px;
+  padding: 8px 12px;
+  background: #fff;
+}
+
+/* The user profile installs michengai's enhanced sidebar in the official
+   sidebar slot. Keep its behavior, but make that real runtime surface follow
+   the same Qoder workbench geometry as the stock sidebar above. */
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-root {
+  --dcu-sidebar-wide-width: 252px !important;
+  --dcu-sidebar-primary: #18181b;
+  --dcu-sidebar-secondary: #52525b;
+  --dcu-sidebar-tertiary: #71717a;
+  --dcu-sidebar-navigation: #18181b;
+  --dcu-sidebar-icon: #52525b;
+  --dcu-sidebar-hover: #e4e4e7;
+  --dcu-sidebar-border: #d4d4d8;
+  width: 252px !important;
+  background: var(--dsh-bg-canvas) !important;
+  font-family: Inter, "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-expanded-shell {
+  position: relative;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-head {
+  height: 44px;
+  padding: 6px 8px;
+  column-gap: 6px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-brand {
+  width: fit-content;
+  min-width: 68px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid #d4d4d8;
+  border-radius: 999px;
+  background: #f4f4f5;
+  color: #18181b;
+  font-size: 0;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-brand svg {
+  display: none;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-brand::after {
+  content: "编程";
+  font-size: 13px;
+  line-height: 28px;
+  white-space: nowrap;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-head-actions {
+  grid-auto-columns: 28px;
+  column-gap: 4px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-icon {
+  border-radius: 6px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-menu {
+  padding: 2px 8px 8px;
+  gap: 0;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-menu button,
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-footer-link {
+  min-height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  column-gap: 8px;
+  font-size: 14px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-menu > button:nth-of-type(2),
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-menu > button:nth-of-type(3),
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-menu > button:nth-of-type(4),
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-extensions-group,
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-extension-items {
+  display: none;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-head-actions > button:last-child {
+  position: absolute;
+  top: 78px;
+  left: 8px;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  justify-content: start;
+  column-gap: 8px;
+  width: calc(100% - 16px);
+  height: 32px;
+  padding: 0 8px;
+  color: #18181b;
+  text-align: left;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-head-actions > button:last-child::after {
+  content: "搜索";
+  font-size: 14px;
+  line-height: 20px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-menu > button:first-child {
+  margin-bottom: 36px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-workspaces {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top-color: #d4d4d8;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-im-tabs {
+  gap: 18px;
+  margin: 0 12px 8px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-foot {
+  width: 252px !important;
+  gap: 0;
+  padding: 6px 8px 10px;
+  border-top: 1px solid #d4d4d8;
+  background: #fafafa;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-footer-actions > *,
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > button {
+  width: 100%;
+  min-height: 32px;
+  border-radius: 6px;
+}
+
+/* Portable appearance belongs to the shell, outside replaceable plugin packages.
+   Match both expanded and compact rails, irrespective of plugin CSS load order.
+   codex-ui ≥1.1：侧栏与设置页导航改为直接引用 --dcu-sidebar-* 变量（默认 #eef7f5 淡绿），
+   必须整组收敛到便携浅色 zinc 调色板，否则设置页左栏回退淡绿（2026-09-11 实测复发）。 */
+body[data-color-scheme="light"] .dcu-root {
+  background: #ffffff !important;
+  --dcu-sidebar-background: #ffffff !important;
+  --dcu-sidebar-hover: #f4f4f5 !important;
+  --dcu-sidebar-border: #e4e4e7 !important;
+  --dcu-sidebar-primary: #18181b !important;
+  --dcu-sidebar-secondary: #52525b !important;
+  --dcu-sidebar-tertiary: #71717a !important;
+  --dcu-sidebar-navigation: #18181b !important;
+  --dcu-sidebar-icon: #52525b !important;
+}
+
+/* Glass plugins paint an additional surface above the sidebar background. */
+body[data-color-scheme="light"] .dcu-root::before {
+  background: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Keep the previously retired conversation resize controls retired after updates.
+   codex-ui 0.2.x 把命名空间从 data-width-handle 改成 data-dcu-width-handle
+   （2026-09-12 实证：改名后把手以 32px×100% 全列高、z-index 8 复活，
+   挡住对话工作区的点击并可把输入区拖到覆盖整列）。 */
+body [data-width-handle="left"], body [data-width-handle="right"],
+body [data-dcu-width-handle="left"], body [data-dcu-width-handle="right"] {
+  display: none !important;
+  pointer-events: none !important;
+}
+body [data-width-handle="left"]::after, body [data-width-handle="right"]::after,
+body [data-dcu-width-handle="left"]::after, body [data-dcu-width-handle="right"]::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* 侧栏顶排的「收缩侧边栏」按钮退役：收起入口归双击 DSH Logo（desktop 桥），
+   展开入口保留在对话顶栏的「展开侧边栏」按钮。两个语言的 aria 文案都要覆盖。 */
+body .dcu-root button[aria-label="收缩侧边栏"],
+body .dcu-root button[aria-label="Collapse sidebar"] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* 工作台面板宽度钳制（比例参照 WorkBuddy 窄窗布局：官方内容下限 680px
+   （clamp(680, 64%, 920) 下限）+ 图标轨 40 + 侧栏 252 + 间距 → 视口 − 1040px；
+   窗口窄于 1100px 时面板整个隐藏、对话独占——面板先让位，对话列底线最后让位）。
+   🔴 2026-09-14 修正（单一来源）：这里写的是 CSS px，而外壳（`src/browser-panel-layout.ts`
+   的 MAXIMUM_PANEL_WIDTH_MARGIN）钳的是 DIP —— 单位不同 + 数值曾不一致，缩放下卡片与
+   原生视图能差出上百像素：差出来的那条就是用户看到的右侧空白（卡片白底露出），反过来
+   视图也会压住对话列。现由外壳按同一常量算出上限、**折成 CSS px** 后写成
+   `--dsh-browser-panel-max-width` 下发；变量缺失（旧外壳/独立浏览器）时下面的兜底
+   与外壳常量保持一致。 */
+/* 兜底值与外壳常量同值：**视口 − 640**。页面自带一条同选择器、同 !important 的规则，
+   特异性更高时会胜出（2026-09-15 实测：视口 1384 → 计算 744 = 1384 − 640）。因此外壳的钳制
+   不许比它更紧——外壳用 1040 时，窄窗下视图被钳到 344 而卡仍有 581，右侧露出 237px 白带。 */
+body .nArs4W_panel {
+  max-width: var(--dsh-browser-panel-max-width, calc(100vw - 640px)) !important;
+}
+@media (max-width: 1100px) {
+  body .nArs4W_panel {
+    display: none !important;
+    pointer-events: none !important;
+  }
+}
+body .pI_x6G_centerCol {
+  min-width: 680px;
+}
+
+/* 0.1.5-rc.2 新前端（dsh-web-frontend）的工作台标签菜单（_menu_17p4l_444，
+   position:fixed）由 JS 按锚点右对齐计算 left——按钮在标签条左端时菜单左缘
+   会伸进便携侧栏区（2026-09-12 实证）。add 按钮固定在标签条左端（侧栏右缘
+   之外），菜单强制左对齐到侧栏之外即可；类名哈希随构建变化，用前缀匹配。 */
+body [class*="_menu_17p4l"] {
+  left: 260px !important;
+  right: auto !important;
+}
+
+/* 首页卡片行允许换行：官方内容下限 680px 内四张卡 (~650px) 可容纳，
+   换行仅作为更窄窗口下的兜底（正常不再触发）。 */
+body .dcu-home-cards {
+  flex-wrap: wrap !important;
+}
+
+/* 对话内容列恢复官方响应式模型（官方源码：--dsh-chat-content-width =
+   var(--dsh-chat-user-width, clamp(680px, 列宽×64%, 920px))，官方默认随列宽
+   自适应、下限 680）。历史拖拽偏好是固定像素（640px），会盖掉官方响应式——
+   清除之，交还官方模型；对话列底线按官方内容下限提到 680px。 */
+body .wSkVaW_root {
+  --dsh-chat-user-width: unset !important;
+}
+body .pI_x6G_centerCol {
+  min-width: 680px;
+}
+
+/* Fixed 252 px sidebar width across all color schemes and presets. */
+body .dcu-root,
+body .dcu-foot {
+  width: 252px !important;
+}
+
+body .dcu-root {
+  --dcu-sidebar-wide-width: 252px !important;
+}
+
+/* Disable the sidebar drag handle so users cannot resize it wider. */
+body [data-side="sidebar"] {
+  display: none !important;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dss-workbench-nav {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #18181b;
+  font-size: 14px;
+}
+
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dss-workbench-nav:hover,
+body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > button:hover {
+  background: #e4e4e7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dsh-motion: 0ms; }
+}
+
+/* ── 外壳 chrome 令牌（shadcn zinc 冷灰）──────────────────────────
+   仅供外壳 chrome 页面（shell/settings/about/startup/shortcuts/
+   browser-panel）的内联样式与 browser-workspace.css 引用。
+   --dsh-* 仍由 --dsw-alias-* 桥喂给 DSH 应用本体，两者互不影响；
+   强调色仍由 theme.js 预设写入的 --accent/--focus-ring/--tint/
+   --active-bg/--cta-* 提供，本层只管中性底、边框、圆角与阴影。 */
+:root {
+  /* 负字距阶梯（参考 Linear DESIGN.md：大字号配递进负字距，em 随字号自适应）。 */
+  --chrome-tracking-tight: -0.02em;
+  --chrome-tracking-tighter: -0.03em;
+  --chrome-tracking-display: -0.0375em;
+  --chrome-bg: #09090b;
+  --chrome-surface: #18181b;
+  --chrome-surface-2: #27272a;
+  --chrome-surface-3: #3f3f46;
+  --chrome-text: #fafafa;
+  --chrome-text-muted: #a1a1aa;
+  --chrome-text-faint: #71717a;
+  --chrome-border: #27272a;
+  --chrome-border-strong: #3f3f46;
+  --chrome-radius: 8px;
+  --chrome-radius-sm: 6px;
+  --chrome-shadow: 0 1px 2px rgb(0 0 0 / .3);
+  --chrome-shadow-pop: 0 4px 16px rgb(0 0 0 / .32);
+}
+:root[data-color-scheme="light"] {
+  --chrome-bg: #ffffff;
+  --chrome-surface: #ffffff;
+  --chrome-surface-2: #f4f4f5;
+  --chrome-surface-3: #e4e4e7;
+  --chrome-text: #18181b;
+  --chrome-text-muted: #52525b;
+  --chrome-text-faint: #71717a;
+  --chrome-border: #e4e4e7;
+  --chrome-border-strong: #d4d4d8;
+  --chrome-shadow: 0 1px 2px rgb(0 0 0 / .05);
+  --chrome-shadow-pop: 0 4px 16px rgb(0 0 0 / .1);
+}
+
+/* 宠物小卡（插件 @michengai/dsh-codex-pet）安全区兜底：
+   它的位置由插件自己按视口分数算（lib/client.js L1553-1557：left = x·(innerWidth − size − 16)，
+   下限只夹到 0），**没有给左侧图标轨留安全区** ⇒ 分数接近 0 时宠物压在图标轨上、贴着窗口边缘
+   （2026-09-15 用户截图：界面缩放后出现）。
+   外壳只做兜底、不改插件：给一个左边距下限（图标轨 ~66px + 间距）。
+   拖拽不受影响——插件用 getBoundingClientRect 记录分数（同文件 L1593），会把该偏移一并算进去。 */
+.dcp-floating {
+  margin-left: 72px !important;
+}
+
+/* 输入区工具栏（codex-ui）：**只做两件中性的事**，布局沿用官方（flex-wrap:wrap + space-between）：
+   ① chips（+ / 计数 / 工作区内修改 / 专家 / PUA）flex:0 0 auto —— 固定尺寸，防止被挤压后互相重叠
+      （2026-09-15 用户截图："工作区内修改⌄" 压住 "专家" 就是这个原因）；
+   ② 模型名可收缩、按最小可读宽度 96px 截断 —— 防止越界压住发送按钮。
+   ⚠ 教训（2026-09-15，一天内三次返工）：
+   · 加过 `margin-left:auto` 想让换行后右对齐 —— 它在可换行 flex 里会抢走整行剩余空间，
+     **反而把右侧簇提前顶到第二行**，等于我自己制造了要消除的两行；已删除。
+   · 加过 `nowrap` 但没定收缩优先级 —— chips 被压到重叠；已改为 ①。
+   · 加过 @container + font-size:0 收起文字、隐藏 ¥ 芯片 —— 界面被改变但收益有限、用户未要求；已撤回。 */
+.uV2eYG_row > button,
+.uV2eYG_row > div:not(.uV2eYG_trailing) {
+  flex: 0 0 auto !important;
+}
+.uV2eYG_trailing {
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+/* 换行后第二行从**行首**开始（左对齐）——2026-09-15 用户："你就不能左对齐吗？"。
+   只动"换行时"的表现：单行时右侧簇仍靠右（justify-content:space-between 保持官方行为），
+   换行时该行只有一个子项，space-between 等价于 flex-start ⇒ 左对齐。这里再显式清掉
+   一切自动外边距、并把多行内容对齐到行首，避免任何来源把它推向右侧。 */
+.uV2eYG_row {
+  align-content: flex-start !important;
+}
+/* 力出一孔：把**模型选择**端出输入框，放到框上方那一行右端（与「黑洞空间」同行、贴右）。
+   2026-09-15 用户设计指令："把模型选择拿到对话框外面来，放到对话框右上角，贴右显示，和黑洞放在一行"。
+   依据：._7KE1Ra_root 实测宽 267px，是框内最占宽的子项 —— 它端出去，框内只剩 chips + 发送，
+   挤压/换行这个矛盾从根上消失。定位上下文 = 卡片本身（绝对定位随卡片走，不跟窗口漂）。
+   纯 CSS：不改插件、React 重渲染不会覆盖；下拉菜单仍可点开（蓝军项见文末风险边界）。 */
+.uV2eYG_card {
+  position: relative !important;
+}
+._7KE1Ra_root {
+  position: absolute !important;
+  bottom: -26px !important;
+  right: 10px !important;
+}
+/* 注：曾把 PUA 芯片挪到这里 —— 对象错了（用户要的是"模型显示"），已回滚：PUA 留在框内原处。 */
+._7KE1Ra_trigger {
+  min-width: 96px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+._7KE1Ra_trigger * {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}

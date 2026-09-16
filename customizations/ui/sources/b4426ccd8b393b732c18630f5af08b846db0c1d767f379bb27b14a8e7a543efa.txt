@@ -1,0 +1,72 @@
+window.__ModuleLoader__.load({
+  id: "dsh-restart-button",
+  factory: (require) => {
+    const { createElement: h, useState, useEffect, useRef } = require("react");
+    const NS = "dsh-restart-button";
+    const RESTART_TIMEOUT_MS = 15_000;
+    const zh = { label: "重启应用", confirm: "再次点击确认重启", starting: "正在重启…", failed: "重启失败" };
+    const en = { label: "Restart App", confirm: "Click again to restart", starting: "Restarting…", failed: "Restart failed" };
+
+    function RestartButton({ wide = true, t }) {
+      const [state, setState] = useState("label");
+      const executing = useRef(false);
+      const mounted = useRef(true);
+      useEffect(() => {
+        mounted.current = true;
+        return () => { mounted.current = false; };
+      }, []);
+      useEffect(() => {
+        if (state !== "confirm" && state !== "starting") return;
+        const timer = setTimeout(() => {
+          if (!mounted.current) return;
+          if (state === "starting") {
+            executing.current = false;
+            setState("failed");
+          } else {
+            setState("label");
+          }
+        }, state === "starting" ? RESTART_TIMEOUT_MS : 5000);
+        return () => clearTimeout(timer);
+      }, [state]);
+      const bridge = window.dshDesktopShell;
+      if (!bridge || typeof bridge.action !== "function") return null;
+      async function restart() {
+        if (executing.current) return;
+        if (state !== "confirm") { setState("confirm"); return; }
+        executing.current = true;
+        setState("starting");
+        try { await bridge.action("app-restart"); }
+        catch (error) {
+          console.error("[dsh-restart-button] restart failed", error);
+          if (mounted.current) setState("failed");
+        } finally {
+          executing.current = false;
+        }
+      }
+      return h("button", {
+        type: "button", "data-dsh-restart": "true", title: t(state), "aria-label": t(state),
+        "aria-pressed": state === "confirm", disabled: state === "starting",
+        onClick: restart,
+        onBlur: () => setState(s => s === "confirm" ? "label" : s),
+        onKeyDown: e => { if (e.key === "Escape") setState(s => s === "confirm" ? "label" : s); },
+        style: { display: "flex", alignItems: "center", justifyContent: wide ? "flex-start" : "center", gap: 8,
+          width: "100%", minHeight: 30, padding: "5px 8px", boxSizing: "border-box", border: 0, borderRadius: 8,
+          background: state === "confirm" ? "var(--dcu-sidebar-hover,#eee)" : "transparent",
+          color: "var(--dcu-sidebar-navigation,currentColor)", font: "inherit", cursor: "pointer", textAlign: "left" }
+      }, h("svg", { viewBox: "0 0 24 24", width: 16, height: 16, fill: "none", stroke: "currentColor",
+        strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true, style: { flexShrink: 0 } },
+        h("path", { d: "M3 10a9 9 0 1 1 2.7 8M3 4v6h6" })),
+      wide ? h("span", { style: { minWidth: 0, overflowWrap: "anywhere" } }, t(state)) : null);
+    }
+
+    function apply(ctx) {
+      ctx.effect(() => ctx.locale.register(NS, { zh, en }), "dsh-restart-button: dictionaries");
+      const t = ctx.locale.bind(NS);
+      ctx.slots.inject("sidebar.footer.action", () => ctx.slots.register({
+        name: "sidebar.footer.action", id: "dsh-restart-button", order: 90, locale: NS,
+        inject: () => ({ t })
+      }, RestartButton));
+    }
+    return { apply, inject: ["locale", "slots"] };
+  }
+});

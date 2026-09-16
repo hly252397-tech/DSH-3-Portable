@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-09-12T15:53:32.070Z",
+  "note": "docs/01-当前工作/I023-前后端UI全项目审核/31-定时任务与源码入口收敛.md",
+  "evidence": [
+    {
+      "path": "artifacts/entry-consolidation-20260912/results.json",
+      "sha256": "22b524082da3024ba5f89aea9b83a47263948c6c52838700c3197367ca8f28ad",
+      "snapshot": "customizations/ui/evidence/22b524082da3024ba5f89aea9b83a47263948c6c52838700c3197367ca8f28ad.json"
+    }
+  ],
+  "history": "customizations/ui/history/2026-09-12T15-53-32-069Z.json",
+  "files": [
+    {
+      "path": "assets/theme.css",
+      "sha256": "3adafc5e5f90040a9e4f025fd5a2b271e6db816847c59a01cf079f12d07da537",
+      "snapshot": "customizations/ui/sources/3adafc5e5f90040a9e4f025fd5a2b271e6db816847c59a01cf079f12d07da537.txt"
+    },
+    {
+      "path": "src/dsh-view-preload.cts",
+      "sha256": "944792031e9b12cfecf34788d73a4f8e98054b475dd731a656dbaa1c1d04fbde",
+      "snapshot": "customizations/ui/sources/944792031e9b12cfecf34788d73a4f8e98054b475dd731a656dbaa1c1d04fbde.txt"
+    },
+    {
+      "path": "scripts/build-sidebar-spaces-client.mjs",
+      "sha256": "ea043f899b4f5f8e61abd371988a3311da1e46a2e73c43f77a346559f3451a71",
+      "snapshot": "customizations/ui/sources/ea043f899b4f5f8e61abd371988a3311da1e46a2e73c43f77a346559f3451a71.txt"
+    },
+    {
+      "path": "scripts/build-native-browser-card.mjs",
+      "sha256": "b7b984dcc31e5d3ed6417386fcd3f789f774e21ff1857205e7c50c6ac9f096a9",
+      "snapshot": "customizations/ui/sources/b7b984dcc31e5d3ed6417386fcd3f789f774e21ff1857205e7c50c6ac9f096a9.txt"
+    },
+    {
+      "path": "scripts/build-sidebar-layout-compat.mjs",
+      "sha256": "6df8b720c2fe9f8b7027076dfb70c56f868d8360419d73ef4a58a5d326d9a7ec",
+      "snapshot": "customizations/ui/sources/6df8b720c2fe9f8b7027076dfb70c56f868d8360419d73ef4a58a5d326d9a7ec.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.src.js",
+      "sha256": "b17079bf2865d3767e2393852d77722694971b571649fceac5911b587b98ac20",
+      "snapshot": "customizations/ui/sources/b17079bf2865d3767e2393852d77722694971b571649fceac5911b587b98ac20.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.js",
+      "sha256": "0f0deda9468b8d8933cc0572e71fa3d4304fa2a4d9799dad9c2ac6720c853666",
+      "snapshot": "customizations/ui/sources/0f0deda9468b8d8933cc0572e71fa3d4304fa2a4d9799dad9c2ac6720c853666.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/Sidebar.tsx",
+      "sha256": "eafb9e33ee5e7d75f0d849a2455713c0bc4bda245d7e6d983d44eedeafeb071d",
+      "snapshot": "customizations/ui/sources/eafb9e33ee5e7d75f0d849a2455713c0bc4bda245d7e6d983d44eedeafeb071d.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/service.ts",
+      "sha256": "41dbe9eb8ac15f0409c4cee0aa0c1c7aacdecf08a373ddcf5e86b9c5c632e68e",
+      "snapshot": "customizations/ui/sources/41dbe9eb8ac15f0409c4cee0aa0c1c7aacdecf08a373ddcf5e86b9c5c632e68e.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/layout.css",
+      "sha256": "805f003619094d927a326b7b96eb8e63a5f73fa933b1658067062cfabd0a451d",
+      "snapshot": "customizations/ui/sources/805f003619094d927a326b7b96eb8e63a5f73fa933b1658067062cfabd0a451d.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/lib/client.js",
+      "sha256": "6c653eec192b6013b247e42bcf3a3aa930a63e34104433ad3db4490bfbb77eb2",
+      "snapshot": "customizations/ui/sources/6c653eec192b6013b247e42bcf3a3aa930a63e34104433ad3db4490bfbb77eb2.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/portable/browser-view.js",
+      "sha256": "327dc11cb70a47d5191d38c7ffa5dc319e4d33a8af048c4800622e7d8ba19a64",
+      "snapshot": "customizations/ui/sources/327dc11cb70a47d5191d38c7ffa5dc319e4d33a8af048c4800622e7d8ba19a64.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-restart-button/lib/client.js",
+      "sha256": "d1e6e8c7801577c6862ce9c8fbe0ca8a713a591d99f8b1f99672baabdb5d5a97",
+      "snapshot": "customizations/ui/sources/d1e6e8c7801577c6862ce9c8fbe0ca8a713a591d99f8b1f99672baabdb5d5a97.txt"
+    },
+    {
+      "path": "customizations/black-hole/lib/client.js",
+      "sha256": "4b45793f711b66e63b3148e76a4ffa20cdcee30bb9c7639d4640fea9c6236c19",
+      "snapshot": "customizations/ui/sources/4b45793f711b66e63b3148e76a4ffa20cdcee30bb9c7639d4640fea9c6236c19.txt"
+    },
+    {
+      "path": "scripts/restore-scheduled-tasks-entry.mjs",
+      "sha256": "2bcbb90ea95cbd21756fa3daccc7d1eca1d5b5c8e38ef61f25de2bf34d9fb119",
+      "snapshot": "customizations/ui/sources/2bcbb90ea95cbd21756fa3daccc7d1eca1d5b5c8e38ef61f25de2bf34d9fb119.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/node_modules/@michengai/dsh-automation/lib/client.js",
+      "sha256": "63e96dbc9f0609eac2b0a01267cb2322bcf746e2e03761da0f163553b095c576",
+      "snapshot": "customizations/ui/sources/63e96dbc9f0609eac2b0a01267cb2322bcf746e2e03761da0f163553b095c576.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/SideCardSection.tsx",
+      "sha256": "2a3e1ee0fc2050f8790a0aa55109d3a2872f5e7b3d06eaefcb41c585757fa8df",
+      "snapshot": "customizations/ui/sources/2a3e1ee0fc2050f8790a0aa55109d3a2872f5e7b3d06eaefcb41c585757fa8df.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-black-hole/lib/client.js",
+      "sha256": "4b45793f711b66e63b3148e76a4ffa20cdcee30bb9c7639d4640fea9c6236c19",
+      "snapshot": "customizations/ui/sources/4b45793f711b66e63b3148e76a4ffa20cdcee30bb9c7639d4640fea9c6236c19.txt"
+    }
+  ]
+}

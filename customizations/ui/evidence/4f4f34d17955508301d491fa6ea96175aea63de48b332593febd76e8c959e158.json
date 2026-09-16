@@ -1,0 +1,27 @@
+{
+    "status":  "pass",
+    "generatedAt":  "2026-09-15T11:11:55.4619597+08:00",
+    "results":  [
+                    {
+                        "detail":  "hit=false",
+                        "ok":  true,
+                        "name":  "设置未开：.dcu-settings-page/[data-settings-section] 未命中（面板应保持）"
+                    },
+                    {
+                        "detail":  "hit=true cls=dcu-settings-page w=1384",
+                        "ok":  true,
+                        "name":  "设置页打开：命中 .dcu-settings-page，宽 1384=全视口（面板应让位）"
+                    },
+                    {
+                        "detail":  "hit=false",
+                        "ok":  true,
+                        "name":  "点返回应用后：再次未命中（面板应回来，无残留误报）"
+                    },
+                    {
+                        "detail":  "核查A 真实 DOM 实测 0 命中，即故障复现",
+                        "ok":  true,
+                        "name":  "负向对照（旧判定）：设置页形态下 [role=dialog][aria-modal=true] 命中 0（核查A实测）→ 旧通路从未触发"
+                    }
+                ],
+    "method":  "诊断实例(127.0.0.1:61794, 活动槽 c7573c78) 真实 DOM：注入线上同款规则前，先验证新谓词选择器三态"
+}

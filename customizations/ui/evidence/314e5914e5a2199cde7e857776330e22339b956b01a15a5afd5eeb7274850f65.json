@@ -1,0 +1,48 @@
+{
+ "status": "pass",
+ "results": [
+  {
+   "label": "rc2-menu-clamp-verification",
+   "groups": [
+    {
+     "s": "wSkVaW_crumbs",
+     "x": 85,
+     "y": 10,
+     "w": 439,
+     "h": 28,
+     "right": 524,
+     "bottom": 38
+    },
+    {
+     "s": "wSkVaW_headerActions",
+     "x": 85,
+     "y": 44,
+     "w": 76,
+     "h": 28,
+     "right": 161,
+     "bottom": 72
+    },
+    {
+     "s": "pI_x6G_centerCol",
+     "x": 68,
+     "y": 6,
+     "w": 566,
+     "h": 844,
+     "right": 634,
+     "bottom": 850
+    },
+    {
+     "s": "dcu-root dcu-compact",
+     "x": 7,
+     "y": 7,
+     "w": 54,
+     "h": 842,
+     "right": 61,
+     "bottom": 849
+    }
+   ],
+   "overflow": 0,
+   "note": "CDP 实机测量 v1.0.63 槽 + theme.css 钳制注入"
+  }
+ ]
+}

@@ -1,0 +1,314 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "label": "normal",
+      "rows": [
+        {
+          "s": ".wSkVaW_heroWorkspaceRow",
+          "x": 410,
+          "y": 814.09375,
+          "w": 768,
+          "bottom": 850.09375,
+          "right": 1178,
+          "radius": "0px",
+          "border": "0px",
+          "shadow": "none",
+          "scrollWidth": 768,
+          "clientWidth": 768
+        },
+        {
+          "s": ".dss-activity",
+          "x": 410,
+          "y": 462.09375,
+          "w": 768,
+          "bottom": 622.09375,
+          "right": 1178,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 766,
+          "clientWidth": 766
+        },
+        {
+          "s": ".uV2eYG_card",
+          "x": 410,
+          "y": 638.09375,
+          "w": 768,
+          "bottom": 798.09375,
+          "right": 1178,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 766,
+          "clientWidth": 766
+        }
+      ]
+    },
+    {
+      "label": "with-panel",
+      "rows": [
+        {
+          "s": ".wSkVaW_heroWorkspaceRow",
+          "x": 101,
+          "y": 862.09375,
+          "w": 638,
+          "bottom": 898.09375,
+          "right": 739,
+          "radius": "0px",
+          "border": "0px",
+          "shadow": "none",
+          "scrollWidth": 638,
+          "clientWidth": 638
+        },
+        {
+          "s": ".dss-activity",
+          "x": 101,
+          "y": 530.09375,
+          "w": 638,
+          "bottom": 680.09375,
+          "right": 739,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 636,
+          "clientWidth": 636
+        },
+        {
+          "s": ".uV2eYG_card",
+          "x": 101,
+          "y": 696.09375,
+          "w": 638,
+          "bottom": 846.09375,
+          "right": 739,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 636,
+          "clientWidth": 636
+        }
+      ]
+    },
+    {
+      "label": "compact-sidebar",
+      "rows": [
+        {
+          "s": ".wSkVaW_heroWorkspaceRow",
+          "x": 285,
+          "y": 962.09375,
+          "w": 454,
+          "bottom": 998.09375,
+          "right": 739,
+          "radius": "0px",
+          "border": "0px",
+          "shadow": "none",
+          "scrollWidth": 454,
+          "clientWidth": 454
+        },
+        {
+          "s": ".dss-activity",
+          "x": 285,
+          "y": 530.09375,
+          "w": 454,
+          "bottom": 730.09375,
+          "right": 739,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 452,
+          "clientWidth": 452
+        },
+        {
+          "s": ".uV2eYG_card",
+          "x": 285,
+          "y": 746.09375,
+          "w": 454,
+          "bottom": 946.09375,
+          "right": 739,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 452,
+          "clientWidth": 452
+        }
+      ]
+    },
+    {
+      "label": "zoom-0.8",
+      "rows": [
+        {
+          "s": ".wSkVaW_heroWorkspaceRow",
+          "x": 295.9765625,
+          "y": 894.609375,
+          "w": 768.02734375,
+          "bottom": 930.60546875,
+          "right": 1064.00390625,
+          "radius": "0px",
+          "border": "0px",
+          "shadow": "none",
+          "scrollWidth": 768,
+          "clientWidth": 768
+        },
+        {
+          "s": ".dss-activity",
+          "x": 295.9765625,
+          "y": 542.6171875,
+          "w": 768.02734375,
+          "bottom": 702.6171875,
+          "right": 1064.00390625,
+          "radius": "10px",
+          "border": "1.25px",
+          "shadow": "none",
+          "scrollWidth": 766,
+          "clientWidth": 766
+        },
+        {
+          "s": ".uV2eYG_card",
+          "x": 295.9765625,
+          "y": 718.61328125,
+          "w": 768.02734375,
+          "bottom": 878.61328125,
+          "right": 1064.00390625,
+          "radius": "10px",
+          "border": "1.25px",
+          "shadow": "none",
+          "scrollWidth": 766,
+          "clientWidth": 766
+        }
+      ]
+    },
+    {
+      "label": "zoom-1.25",
+      "rows": [
+        {
+          "s": ".wSkVaW_heroWorkspaceRow",
+          "x": 101.9375,
+          "y": 969.2750244140625,
+          "w": 444.4624938964844,
+          "bottom": 1005.2750244140625,
+          "right": 546.3999938964844,
+          "radius": "0px",
+          "border": "0px",
+          "shadow": "none",
+          "scrollWidth": 444,
+          "clientWidth": 444
+        },
+        {
+          "s": ".dss-activity",
+          "x": 101.9375,
+          "y": 537.2750244140625,
+          "w": 444.4624938964844,
+          "bottom": 737.2750244140625,
+          "right": 546.3999938964844,
+          "radius": "10px",
+          "border": "0.8px",
+          "shadow": "none",
+          "scrollWidth": 443,
+          "clientWidth": 443
+        },
+        {
+          "s": ".uV2eYG_card",
+          "x": 101.9375,
+          "y": 753.2750244140625,
+          "w": 444.4624938964844,
+          "bottom": 953.2750244140625,
+          "right": 546.3999938964844,
+          "radius": "10px",
+          "border": "0.8px",
+          "shadow": "none",
+          "scrollWidth": 443,
+          "clientWidth": 443
+        }
+      ]
+    },
+    {
+      "label": "zoom-1.5",
+      "rows": [
+        {
+          "s": ".wSkVaW_heroWorkspaceRow",
+          "x": 100.66667175292969,
+          "y": 1049.3958740234375,
+          "w": 266.66668701171875,
+          "bottom": 1085.3958740234375,
+          "right": 367.33335876464844,
+          "radius": "0px",
+          "border": "0px",
+          "shadow": "none",
+          "scrollWidth": 267,
+          "clientWidth": 267
+        },
+        {
+          "s": ".dss-activity",
+          "x": 100.66667175292969,
+          "y": 617.3958740234375,
+          "w": 266.66668701171875,
+          "bottom": 817.3958740234375,
+          "right": 367.33335876464844,
+          "radius": "10px",
+          "border": "0.666667px",
+          "shadow": "none",
+          "scrollWidth": 265,
+          "clientWidth": 265
+        },
+        {
+          "s": ".uV2eYG_card",
+          "x": 100.66667175292969,
+          "y": 833.3958740234375,
+          "w": 266.66668701171875,
+          "bottom": 1033.3958740234375,
+          "right": 367.33335876464844,
+          "radius": "10px",
+          "border": "0.666667px",
+          "shadow": "none",
+          "scrollWidth": 265,
+          "clientWidth": 265
+        }
+      ]
+    },
+    {
+      "label": "wide",
+      "rows": [
+        {
+          "s": ".wSkVaW_heroWorkspaceRow",
+          "x": 407.984375,
+          "y": 880,
+          "w": 768,
+          "bottom": 916,
+          "right": 1175.984375,
+          "radius": "0px",
+          "border": "0px",
+          "shadow": "none",
+          "scrollWidth": 768,
+          "clientWidth": 768
+        },
+        {
+          "s": ".dss-activity",
+          "x": 407.984375,
+          "y": 528,
+          "w": 768,
+          "bottom": 688,
+          "right": 1175.984375,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 766,
+          "clientWidth": 766
+        },
+        {
+          "s": ".uV2eYG_card",
+          "x": 407.984375,
+          "y": 704,
+          "w": 768,
+          "bottom": 864,
+          "right": 1175.984375,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 766,
+          "clientWidth": 766
+        }
+      ]
+    }
+  ],
+  "noMessagesSent": true
+}

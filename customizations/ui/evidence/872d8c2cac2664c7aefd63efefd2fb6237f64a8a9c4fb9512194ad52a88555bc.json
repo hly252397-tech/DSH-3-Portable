@@ -1,0 +1,32 @@
+{
+  "status": "pass",
+  "generatedAt": "2026-09-15T20:30:00Z",
+  "method": "诊断实例（dsh web，当前活动槽）真实 DOM 查询 + 同页面 A/B 对照（压窄容器复现 / 打补丁验证）",
+  "scene": "用户实机截图：输入区工具栏折成两行——左侧 chips 在第一行，右侧「模型名 + 发送」整簇掉到第二行，第一行右半截空、工具栏白高一倍",
+  "results": [
+    {
+      "name": "DOM 事实（真名与布局）",
+      "ok": true,
+      "detail": "div.uV2eYG_row w=677 h=36；计算样式 display:flex、flex-wrap:wrap、justify-content:space-between、gap=5px；子级含 chips（display:contents）与 div.uV2eYG_trailing w=267（内含模型按钮 button._7KE1Ra_trigger w=223 + 发送按钮 w=28）；父级 div.uV2eYG_card w=679。"
+    },
+    {
+      "name": "故障复现（压窄容器）",
+      "ok": true,
+      "detail": "把 .uV2eYG_card 依次限制到 460/400/340/280px：340px 与 280px 时 rowH 由 36 → 69，右侧簇 trailingY=721 而其它按钮 minY=688 ⇒ wrapped=true，与用户截图一致。"
+    },
+    {
+      "name": "补丁验证（同一页面、同一容器宽度）",
+      "ok": true,
+      "detail": "追加 .uV2eYG_row{flex-wrap:nowrap} + .uV2eYG_trailing{flex:0 1 auto;min-width:0} + 模型名截断后：340px 与 280px 下 rowH 稳定 36、wrapped=false；460/400px 下与改前一致（无回归）。"
+    },
+    {
+      "name": "落点（外壳侧，不改插件）",
+      "ok": true,
+      "detail": "写入 assets/theme.css（外壳注入的样式表），与既有 .nArs4W_panel / .pI_x6G_centerCol / .wSkVaW_root 等按构建哈希类名定位的做法一致；插件更新后若类名变化，该规则自然失效、不影响功能。"
+    }
+  ],
+  "pending": [
+    "运行时确认待用户重启后目视：窄窗/缩放后工具栏应保持单行、模型名按需截断；发送按钮始终在行内右侧。",
+    "同类隐患（同一套 wrap 模式）：底部状态行、输入区上沿 chip 排——本轮先用同一条思路扫过再决定是否一并收。"
+  ]
+}

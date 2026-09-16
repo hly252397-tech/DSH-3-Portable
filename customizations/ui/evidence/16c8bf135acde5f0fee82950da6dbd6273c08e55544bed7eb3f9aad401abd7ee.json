@@ -1,0 +1,32 @@
+{
+  "status": "pass",
+  "generatedAt": "2026-09-15T10:35:00Z",
+  "method": "桌面主进程探针（main.ts 用 dshView.webContents.executeJavaScript 读真实 DOM，日志 Data\\Temp\\dsh-settings-debug.log）+ 谓词真值推演",
+  "scene": "用户在真实桌面应用中打开设置页（整页形态），probe 每 2 秒采样，仅在形态变化时记录",
+  "results": [
+    {
+      "name": "故障复现（旧谓词）：设置页 DOM 存在，preload 却判定 false",
+      "ok": true,
+      "detail": "10:29:46 probe hasDcuPage=true / hasDataSection=true（.dcu-settings-page 在 DOM 内）；同一时段日志仅有 10:29:33 ipc value=false，无 value=true。旧谓词 = (el!==null && el.offsetParent!==null)，第一项为 true 而整体为 false ⇒ el.offsetParent===null，即设置页是 position:fixed 覆盖层（fixed 元素 offsetParent 恒为 null）——这就是失效根因。"
+    },
+    {
+      "name": "关闭设置页后元素被整块移除（证明去掉 offsetParent 守卫不会残留误报）",
+      "ok": true,
+      "detail": "10:29:52 probe hasDcuPage=false / hasDataSection=false ⇒ 用「元素存在即视为可见」在关闭时会自动回到 false，浏览器面板能正常回来。"
+    },
+    {
+      "name": "新谓词真值自洽（打开 true / 关闭 false）",
+      "ok": true,
+      "detail": "document.querySelector('.dcu-settings-page, [data-settings-section]') !== null 在 10:29:46 为 true、在 10:29:52 为 false，与两次 probe 采样一一对应。"
+    },
+    {
+      "name": "链路其余环节已排除（此前实测）",
+      "ok": true,
+      "detail": "IPC 到达主进程且准入通过（日志 kind=dsh）；外壳消费端 main.ts:1422 旗子为真即隐藏面板与页面视图，且全仓无「复显」调用点（browserPanelView.setVisible 仅三处，均为按 visible 计算）。"
+    }
+  ],
+  "pending": [
+    "端到端确认待用户重启后进行：预期日志出现 ipc value=true 且 layout visible=false；用户目视设置页独占全宽、浏览器面板让位。",
+    "本轮探针与调试日志属临时插桩（提交 20c52d6 / 0ae94f2 及本轮的 ipc 调试行），确认修复后需一并移除。"
+  ]
+}

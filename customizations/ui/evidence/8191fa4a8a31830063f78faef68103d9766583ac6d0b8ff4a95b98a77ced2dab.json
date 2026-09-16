@@ -1,0 +1,51 @@
+{
+  "status": "pass",
+  "authority": "127.0.0.1:58535",
+  "results": [
+    {
+      "label": "initial home",
+      "cards": {
+        "cards": [
+          {
+            "phase": "hero",
+            "host": true
+          }
+        ],
+        "blackHoleMounted": false
+      }
+    },
+    {
+      "label": "first open after 100ms",
+      "cards": {
+        "cards": [],
+        "blackHoleMounted": true
+      }
+    },
+    {
+      "label": "first open after 700ms",
+      "cards": {
+        "cards": [],
+        "blackHoleMounted": true
+      }
+    },
+    {
+      "label": "close black hole panel",
+      "cards": {
+        "cards": [
+          {
+            "phase": "hero",
+            "host": true
+          }
+        ],
+        "blackHoleMounted": false
+      }
+    },
+    {
+      "label": "second open",
+      "cards": {
+        "cards": [],
+        "blackHoleMounted": true
+      }
+    }
+  ]
+}

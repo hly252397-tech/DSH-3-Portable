@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-09-12T15:24:12.138Z",
+  "note": "docs/01-当前工作/I023-前后端UI全项目审核/25-卡片菜单黑洞图标对齐.md",
+  "evidence": [
+    {
+      "path": "artifacts/card-menu-icons-20260912/results.json",
+      "sha256": "82d1f2e6b0324befc117997a1b2f6536af0b8018ec22521d5c2e3ff64efaee20",
+      "snapshot": "customizations/ui/evidence/82d1f2e6b0324befc117997a1b2f6536af0b8018ec22521d5c2e3ff64efaee20.json"
+    }
+  ],
+  "history": "customizations/ui/history/2026-09-12T15-24-12-136Z.json",
+  "files": [
+    {
+      "path": "assets/theme.css",
+      "sha256": "3adafc5e5f90040a9e4f025fd5a2b271e6db816847c59a01cf079f12d07da537",
+      "snapshot": "customizations/ui/sources/3adafc5e5f90040a9e4f025fd5a2b271e6db816847c59a01cf079f12d07da537.txt"
+    },
+    {
+      "path": "src/dsh-view-preload.cts",
+      "sha256": "944792031e9b12cfecf34788d73a4f8e98054b475dd731a656dbaa1c1d04fbde",
+      "snapshot": "customizations/ui/sources/944792031e9b12cfecf34788d73a4f8e98054b475dd731a656dbaa1c1d04fbde.txt"
+    },
+    {
+      "path": "scripts/build-sidebar-spaces-client.mjs",
+      "sha256": "ea043f899b4f5f8e61abd371988a3311da1e46a2e73c43f77a346559f3451a71",
+      "snapshot": "customizations/ui/sources/ea043f899b4f5f8e61abd371988a3311da1e46a2e73c43f77a346559f3451a71.txt"
+    },
+    {
+      "path": "scripts/build-native-browser-card.mjs",
+      "sha256": "b7b984dcc31e5d3ed6417386fcd3f789f774e21ff1857205e7c50c6ac9f096a9",
+      "snapshot": "customizations/ui/sources/b7b984dcc31e5d3ed6417386fcd3f789f774e21ff1857205e7c50c6ac9f096a9.txt"
+    },
+    {
+      "path": "scripts/build-sidebar-layout-compat.mjs",
+      "sha256": "3c3d160b9fa3f37ae8e2257eafd97c38fc912560024c6e99d7ee7d462f04c43e",
+      "snapshot": "customizations/ui/sources/3c3d160b9fa3f37ae8e2257eafd97c38fc912560024c6e99d7ee7d462f04c43e.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.src.js",
+      "sha256": "92542d226b4c1dede4901007f1eeb606ba80bd8c9b82031b122552b9ca8cc9fb",
+      "snapshot": "customizations/ui/sources/92542d226b4c1dede4901007f1eeb606ba80bd8c9b82031b122552b9ca8cc9fb.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.js",
+      "sha256": "691088d3a3480affdf9bd0af3f911f38b5c19a52c29d708ea0663565b5bd34ab",
+      "snapshot": "customizations/ui/sources/691088d3a3480affdf9bd0af3f911f38b5c19a52c29d708ea0663565b5bd34ab.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/Sidebar.tsx",
+      "sha256": "eafb9e33ee5e7d75f0d849a2455713c0bc4bda245d7e6d983d44eedeafeb071d",
+      "snapshot": "customizations/ui/sources/eafb9e33ee5e7d75f0d849a2455713c0bc4bda245d7e6d983d44eedeafeb071d.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/service.ts",
+      "sha256": "41dbe9eb8ac15f0409c4cee0aa0c1c7aacdecf08a373ddcf5e86b9c5c632e68e",
+      "snapshot": "customizations/ui/sources/41dbe9eb8ac15f0409c4cee0aa0c1c7aacdecf08a373ddcf5e86b9c5c632e68e.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/layout.css",
+      "sha256": "805f003619094d927a326b7b96eb8e63a5f73fa933b1658067062cfabd0a451d",
+      "snapshot": "customizations/ui/sources/805f003619094d927a326b7b96eb8e63a5f73fa933b1658067062cfabd0a451d.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/lib/client.js",
+      "sha256": "e3afe3bf2168f21cfce4dfc6611c24e29fec11cf5c0b8871f15be8bc435336c8",
+      "snapshot": "customizations/ui/sources/e3afe3bf2168f21cfce4dfc6611c24e29fec11cf5c0b8871f15be8bc435336c8.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/portable/browser-view.js",
+      "sha256": "327dc11cb70a47d5191d38c7ffa5dc319e4d33a8af048c4800622e7d8ba19a64",
+      "snapshot": "customizations/ui/sources/327dc11cb70a47d5191d38c7ffa5dc319e4d33a8af048c4800622e7d8ba19a64.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-restart-button/lib/client.js",
+      "sha256": "d1e6e8c7801577c6862ce9c8fbe0ca8a713a591d99f8b1f99672baabdb5d5a97",
+      "snapshot": "customizations/ui/sources/d1e6e8c7801577c6862ce9c8fbe0ca8a713a591d99f8b1f99672baabdb5d5a97.txt"
+    },
+    {
+      "path": "customizations/black-hole/lib/client.js",
+      "sha256": "5261733bff5d18c5711f80163144cc587ea3febb09a0329a84de3b069181e2b8",
+      "snapshot": "customizations/ui/sources/5261733bff5d18c5711f80163144cc587ea3febb09a0329a84de3b069181e2b8.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-black-hole/lib/client.js",
+      "sha256": "5261733bff5d18c5711f80163144cc587ea3febb09a0329a84de3b069181e2b8",
+      "snapshot": "customizations/ui/sources/5261733bff5d18c5711f80163144cc587ea3febb09a0329a84de3b069181e2b8.txt"
+    }
+  ]
+}

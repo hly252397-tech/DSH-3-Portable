@@ -1,0 +1,42 @@
+{
+    "status":  "pass",
+    "source":  "artifacts/restart-button-20260912/results.json (原样字段映射 checks-\u003eresults，内容未增删)",
+    "results":  [
+                    {
+                        "name":  "actual Profile Loader",
+                        "status":  "pass"
+                    },
+                    {
+                        "name":  "actual preload IPC to isolated handler",
+                        "status":  "pass"
+                    },
+                    {
+                        "name":  "confirmation",
+                        "status":  "pass"
+                    },
+                    {
+                        "name":  "escape",
+                        "status":  "pass"
+                    },
+                    {
+                        "name":  "failure feedback",
+                        "status":  "pass"
+                    },
+                    {
+                        "name":  "settings return",
+                        "status":  "pass"
+                    },
+                    {
+                        "name":  "reload single entry",
+                        "status":  "pass"
+                    },
+                    {
+                        "name":  "4 zoom levels",
+                        "status":  "pass"
+                    }
+                ],
+    "errors":  [
+
+               ],
+    "limitation":  "User desktop restart was not executed."
+}

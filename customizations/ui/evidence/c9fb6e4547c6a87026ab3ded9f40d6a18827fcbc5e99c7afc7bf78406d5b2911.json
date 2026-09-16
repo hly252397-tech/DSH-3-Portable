@@ -1,0 +1,356 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "label": "normal",
+      "rows": [
+        {
+          "s": ".wSkVaW_heroWorkspaceRow",
+          "x": 410,
+          "y": 747.046875,
+          "w": 768,
+          "bottom": 783.046875,
+          "right": 1178,
+          "radius": "0px",
+          "border": "0px",
+          "shadow": "none",
+          "scrollWidth": 768,
+          "clientWidth": 768
+        },
+        {
+          "s": ".dss-activity",
+          "x": 410,
+          "y": 475.046875,
+          "w": 768,
+          "bottom": 595.046875,
+          "right": 1178,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 766,
+          "clientWidth": 766
+        },
+        {
+          "s": ".uV2eYG_card",
+          "x": 410,
+          "y": 611.046875,
+          "w": 768,
+          "bottom": 731.046875,
+          "right": 1178,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 766,
+          "clientWidth": 766
+        }
+      ],
+      "toolbar": {
+        "x": 411,
+        "y": 694.046875,
+        "width": 766,
+        "height": 36
+      }
+    },
+    {
+      "label": "with-panel",
+      "rows": [
+        {
+          "s": ".wSkVaW_heroWorkspaceRow",
+          "x": 101,
+          "y": 805.09375,
+          "w": 638,
+          "bottom": 841.09375,
+          "right": 739,
+          "radius": "0px",
+          "border": "0px",
+          "shadow": "none",
+          "scrollWidth": 638,
+          "clientWidth": 638
+        },
+        {
+          "s": ".dss-activity",
+          "x": 101,
+          "y": 548.09375,
+          "w": 638,
+          "bottom": 660.59375,
+          "right": 739,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 636,
+          "clientWidth": 636
+        },
+        {
+          "s": ".uV2eYG_card",
+          "x": 101,
+          "y": 676.59375,
+          "w": 638,
+          "bottom": 789.09375,
+          "right": 739,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 636,
+          "clientWidth": 636
+        }
+      ],
+      "toolbar": {
+        "x": 102,
+        "y": 752.09375,
+        "width": 636,
+        "height": 36
+      }
+    },
+    {
+      "label": "compact-sidebar",
+      "rows": [
+        {
+          "s": ".wSkVaW_heroWorkspaceRow",
+          "x": 285,
+          "y": 880.09375,
+          "w": 454,
+          "bottom": 916.09375,
+          "right": 739,
+          "radius": "0px",
+          "border": "0px",
+          "shadow": "none",
+          "scrollWidth": 454,
+          "clientWidth": 454
+        },
+        {
+          "s": ".dss-activity",
+          "x": 285,
+          "y": 548.09375,
+          "w": 454,
+          "bottom": 698.09375,
+          "right": 739,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 452,
+          "clientWidth": 452
+        },
+        {
+          "s": ".uV2eYG_card",
+          "x": 285,
+          "y": 714.09375,
+          "w": 454,
+          "bottom": 864.09375,
+          "right": 739,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 452,
+          "clientWidth": 452
+        }
+      ],
+      "toolbar": {
+        "x": 286,
+        "y": 827.09375,
+        "width": 452,
+        "height": 36
+      }
+    },
+    {
+      "label": "zoom-0.8",
+      "rows": [
+        {
+          "s": ".wSkVaW_heroWorkspaceRow",
+          "x": 295.9765625,
+          "y": 854.609375,
+          "w": 768.02734375,
+          "bottom": 890.60546875,
+          "right": 1064.00390625,
+          "radius": "0px",
+          "border": "0px",
+          "shadow": "none",
+          "scrollWidth": 768,
+          "clientWidth": 768
+        },
+        {
+          "s": ".dss-activity",
+          "x": 295.9765625,
+          "y": 582.6171875,
+          "w": 768.02734375,
+          "bottom": 702.6171875,
+          "right": 1064.00390625,
+          "radius": "10px",
+          "border": "1.25px",
+          "shadow": "none",
+          "scrollWidth": 766,
+          "clientWidth": 766
+        },
+        {
+          "s": ".uV2eYG_card",
+          "x": 295.9765625,
+          "y": 718.61328125,
+          "w": 768.02734375,
+          "bottom": 838.61328125,
+          "right": 1064.00390625,
+          "radius": "10px",
+          "border": "1.25px",
+          "shadow": "none",
+          "scrollWidth": 766,
+          "clientWidth": 766
+        }
+      ],
+      "toolbar": {
+        "x": 297.2265625,
+        "y": 801.38671875,
+        "width": 765.52734375,
+        "height": 35.9765625
+      }
+    },
+    {
+      "label": "zoom-1.25",
+      "rows": [
+        {
+          "s": ".wSkVaW_heroWorkspaceRow",
+          "x": 101.9375,
+          "y": 869.2750244140625,
+          "w": 444.4624938964844,
+          "bottom": 905.2750244140625,
+          "right": 546.3999938964844,
+          "radius": "0px",
+          "border": "0px",
+          "shadow": "none",
+          "scrollWidth": 444,
+          "clientWidth": 444
+        },
+        {
+          "s": ".dss-activity",
+          "x": 101.9375,
+          "y": 537.2750244140625,
+          "w": 444.4624938964844,
+          "bottom": 687.2750244140625,
+          "right": 546.3999938964844,
+          "radius": "10px",
+          "border": "0.8px",
+          "shadow": "none",
+          "scrollWidth": 443,
+          "clientWidth": 443
+        },
+        {
+          "s": ".uV2eYG_card",
+          "x": 101.9375,
+          "y": 703.2750244140625,
+          "w": 444.4624938964844,
+          "bottom": 853.2750244140625,
+          "right": 546.3999938964844,
+          "radius": "10px",
+          "border": "0.8px",
+          "shadow": "none",
+          "scrollWidth": 443,
+          "clientWidth": 443
+        }
+      ],
+      "toolbar": {
+        "x": 102.73750305175781,
+        "y": 816.4750366210938,
+        "width": 442.86253356933594,
+        "height": 36
+      }
+    },
+    {
+      "label": "zoom-1.5",
+      "rows": [
+        {
+          "s": ".wSkVaW_heroWorkspaceRow",
+          "x": 100.66667175292969,
+          "y": 949.3958740234375,
+          "w": 266.66668701171875,
+          "bottom": 985.3958740234375,
+          "right": 367.33335876464844,
+          "radius": "0px",
+          "border": "0px",
+          "shadow": "none",
+          "scrollWidth": 267,
+          "clientWidth": 267
+        },
+        {
+          "s": ".dss-activity",
+          "x": 100.66667175292969,
+          "y": 617.3958740234375,
+          "w": 266.66668701171875,
+          "bottom": 767.3958740234375,
+          "right": 367.33335876464844,
+          "radius": "10px",
+          "border": "0.666667px",
+          "shadow": "none",
+          "scrollWidth": 265,
+          "clientWidth": 265
+        },
+        {
+          "s": ".uV2eYG_card",
+          "x": 100.66667175292969,
+          "y": 783.3958740234375,
+          "w": 266.66668701171875,
+          "bottom": 933.3958740234375,
+          "right": 367.33335876464844,
+          "radius": "10px",
+          "border": "0.666667px",
+          "shadow": "none",
+          "scrollWidth": 265,
+          "clientWidth": 265
+        }
+      ],
+      "toolbar": {
+        "x": 101.33333587646484,
+        "y": 863.7291870117188,
+        "width": 265.3333511352539,
+        "height": 69
+      }
+    },
+    {
+      "label": "wide",
+      "rows": [
+        {
+          "s": ".wSkVaW_heroWorkspaceRow",
+          "x": 407.984375,
+          "y": 840,
+          "w": 768,
+          "bottom": 876,
+          "right": 1175.984375,
+          "radius": "0px",
+          "border": "0px",
+          "shadow": "none",
+          "scrollWidth": 768,
+          "clientWidth": 768
+        },
+        {
+          "s": ".dss-activity",
+          "x": 407.984375,
+          "y": 568,
+          "w": 768,
+          "bottom": 688,
+          "right": 1175.984375,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 766,
+          "clientWidth": 766
+        },
+        {
+          "s": ".uV2eYG_card",
+          "x": 407.984375,
+          "y": 704,
+          "w": 768,
+          "bottom": 824,
+          "right": 1175.984375,
+          "radius": "10px",
+          "border": "1px",
+          "shadow": "none",
+          "scrollWidth": 766,
+          "clientWidth": 766
+        }
+      ],
+      "toolbar": {
+        "x": 408.984375,
+        "y": 787,
+        "width": 766,
+        "height": 36
+      }
+    }
+  ],
+  "noMessagesSent": true
+}

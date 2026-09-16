@@ -1,0 +1,26 @@
+import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+export function restoreScheduledTasksEntry(source) {
+  const native = 'return (0, import_react11.createElement)(AutomationView, { t, permissionT, modelT, runtime, closeSettings: props.close });'
+  const old = 'return (0, import_react11.createElement)(portableWorkbench.SettingsLink, { close: props.close });'
+  const start = source.indexOf('function installPortableAutomationWorkbench(')
+  const end = source.indexOf('function apply(ctx) {', start)
+  if (source.includes(native) && start < 0 && !source.includes('portableWorkbench')) return source
+  if (start < 0 || end < start || source.split(old).length !== 2) throw new Error('Automation client changed: review settings component and footer ownership before applying')
+  const call = /^  const portableWorkbench = installPortableAutomationWorkbench\([^\n]+\);\r?\n/m
+  if (!call.test(source)) throw new Error('Automation workbench registration changed')
+  return (source.slice(0, start) + source.slice(end)).replace(call, '').replace(old, native)
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const file = resolve('Data/DSH/profiles/web/node_modules/@michengai/dsh-automation/lib/client.js')
+  const before = await readFile(file, 'utf8'), after = restoreScheduledTasksEntry(before)
+  if (before !== after) {
+    const backup = resolve('Data/Development/automation-entry-backups', String(Date.now()))
+    await mkdir(backup, { recursive: true }); await copyFile(file, resolve(backup, 'client.js'))
+    await writeFile(file, after)
+  }
+  console.log(before === after ? 'Scheduled tasks entry already restored' : 'Restored scheduled-tasks page; removed standalone footer launcher. Task data unchanged.')
+}

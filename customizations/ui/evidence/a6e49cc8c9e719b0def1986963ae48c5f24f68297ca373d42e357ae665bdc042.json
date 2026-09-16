@@ -1,0 +1,787 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "check": "profile 实际加载的插件目录与本次检验的目录是同一份（junction 解析一致）",
+      "ok": true,
+      "detail": {
+        "declared": "G:\\DSH-3-Portable\\Data\\DSH\\profiles\\web\\node_modules\\dsh-sidebar-spaces",
+        "inspected": "G:\\DSH-3-Portable\\Data\\DSH\\profiles\\web\\local\\dsh-sidebar-spaces"
+      }
+    },
+    {
+      "check": "反向对照：改动前的 FOOTER_NAV_CSS 确实含以死属性为目标的规则（证明本验证台不是空跑）",
+      "ok": true,
+      "detail": {
+        "count": 7,
+        "selectors": [
+          "body .dcu-root .dcu-foot:has(.dcu-settings-seat > [data-slot=\"sidebar.",
+          "body .dcu-root .dcu-foot :is([data-daw-launcher],[data-dsh-restart],.d",
+          "body .dcu-root .dcu-foot :is([data-daw-launcher],[data-dsh-restart],.d",
+          "body .dcu-root .dcu-foot :is([data-daw-launcher],[data-dsh-restart],.d",
+          "body .dcu-root .dcu-foot :is([data-daw-launcher],[data-dsh-restart],.d",
+          "body .dcu-root .dcu-foot [data-dsh-restart] > span",
+          "body .dcu-root.dcu-compact .dcu-foot :is([data-daw-launcher],[data-dsh"
+        ]
+      }
+    },
+    {
+      "check": "当前源码 FOOTER_NAV_CSS 中不存在任何以死属性为目标的规则",
+      "ok": true,
+      "detail": {
+        "count": 0,
+        "selectors": []
+      }
+    },
+    {
+      "check": "生成物 client.js 的 FOOTER_NAV_CSS 与源 client.src.js 逐字一致",
+      "ok": true
+    },
+    {
+      "check": "生成物 client.js 与源的「有效规则集」一致",
+      "ok": true
+    },
+    {
+      "check": "原始规则数：改动后恰好少 2 条（只以死属性为目标的两条被删）",
+      "ok": true,
+      "detail": {
+        "rawPreRules": 20,
+        "rawCurRules": 18,
+        "delta": 2
+      }
+    },
+    {
+      "check": "有效规则集：把 :is(死属性…, .dcu-settings-trigger) 归一化后，前后逐条同序完全一致",
+      "ok": true,
+      "detail": "{\"preRules\":18,\"curRules\":18,\"firstDiff\":null}"
+    },
+    {
+      "check": "真 Chrome：改动前模块成功挂出 <style data-plugin=\"dsh-sidebar-spaces\">",
+      "ok": true,
+      "detail": {
+        "mounted": true,
+        "cssLength": 56639
+      }
+    },
+    {
+      "check": "真 Chrome：当前模块成功挂出同一张样式表（插件入口未被本次改动破坏）",
+      "ok": true,
+      "detail": {
+        "mounted": true,
+        "cssLength": 56069
+      }
+    },
+    {
+      "check": "真 Chrome：当前模块 apply() 的每个 effect 都正常执行，无错误逃逸",
+      "ok": true,
+      "detail": {
+        "effectErrors": []
+      }
+    },
+    {
+      "check": "真 Chrome：改动前挂出的样式表含死属性规则（反向对照）",
+      "ok": true,
+      "detail": {
+        "count": 7
+      }
+    },
+    {
+      "check": "真 Chrome：当前挂出的样式表不含任何死属性规则",
+      "ok": true,
+      "detail": {
+        "count": 0,
+        "selectors": []
+      }
+    },
+    {
+      "check": "真 Chrome：两版挂出的样式表在「去掉死规则」后逐条同序等价（浏览器最终生效文本层面）",
+      "ok": true,
+      "detail": "{\"preRules\":383,\"curRules\":383,\"delta\":0,\"firstDiff\":null}"
+    },
+    {
+      "measurement": "A-实机形态（设置插槽仅原生设置项）",
+      "pre": {
+        "foot": {
+          "w": 1264,
+          "h": 52,
+          "x": 8,
+          "y": 8,
+          "display": "flex",
+          "fontSize": "16px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "trigger": {
+          "w": 620,
+          "h": 36,
+          "x": 644,
+          "y": 16,
+          "display": "grid",
+          "fontSize": "13px",
+          "borderRadius": "8px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgb(240, 240, 240)"
+        },
+        "icon": {
+          "w": 16,
+          "h": 16,
+          "x": 652,
+          "y": 26,
+          "display": "block",
+          "fontSize": "13px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "stateChip": null,
+        "dead": null
+      },
+      "cur": {
+        "foot": {
+          "w": 1264,
+          "h": 52,
+          "x": 8,
+          "y": 8,
+          "display": "flex",
+          "fontSize": "16px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "trigger": {
+          "w": 620,
+          "h": 36,
+          "x": 644,
+          "y": 16,
+          "display": "grid",
+          "fontSize": "13px",
+          "borderRadius": "8px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgb(240, 240, 240)"
+        },
+        "icon": {
+          "w": 16,
+          "h": 16,
+          "x": 652,
+          "y": 26,
+          "display": "block",
+          "fontSize": "13px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "stateChip": null,
+        "dead": null
+      }
+    },
+    {
+      "check": "A-实机形态（设置插槽仅原生设置项）：场景本身有效（底栏实际布局为 flex）",
+      "ok": true,
+      "detail": {
+        "preDisplay": "flex",
+        "curDisplay": "flex"
+      }
+    },
+    {
+      "check": "A-实机形态（设置插槽仅原生设置项）：设置项测量值非空（防止桩件失效导致空跑）",
+      "ok": true,
+      "detail": {
+        "trigger": {
+          "w": 620,
+          "h": 36,
+          "x": 644,
+          "y": 16,
+          "display": "grid",
+          "fontSize": "13px",
+          "borderRadius": "8px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgb(240, 240, 240)"
+        },
+        "icon": {
+          "w": 16,
+          "h": 16,
+          "x": 652,
+          "y": 26,
+          "display": "block",
+          "fontSize": "13px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "check": "A-实机形态（设置插槽仅原生设置项）：改动前后渲染几何完全一致",
+      "ok": true
+    },
+    {
+      "check": "契约值：设置项 36px 高、图标 16px、字号 13px、圆角 8px（改动后仍满足）",
+      "ok": true,
+      "detail": {
+        "trigger": {
+          "w": 620,
+          "h": 36,
+          "x": 644,
+          "y": 16,
+          "display": "grid",
+          "fontSize": "13px",
+          "borderRadius": "8px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgb(240, 240, 240)"
+        },
+        "icon": {
+          "w": 16,
+          "h": 16,
+          "x": 652,
+          "y": 26,
+          "display": "block",
+          "fontSize": "13px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "measurement": "B-设置插槽含第三方状态项（:has() 三列生效态）",
+      "pre": {
+        "foot": {
+          "w": 1264,
+          "h": 80,
+          "x": 8,
+          "y": 8,
+          "display": "grid",
+          "fontSize": "16px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "trigger": {
+          "w": 56,
+          "h": 36,
+          "x": 16,
+          "y": 16,
+          "display": "grid",
+          "fontSize": "13px",
+          "borderRadius": "8px",
+          "gridColumn": "3",
+          "backgroundColor": "rgb(240, 240, 240)"
+        },
+        "icon": {
+          "w": 16,
+          "h": 16,
+          "x": 20,
+          "y": 26,
+          "display": "block",
+          "fontSize": "13px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "stateChip": {
+          "w": 60,
+          "h": 28,
+          "x": 16,
+          "y": 52,
+          "display": "inline-flex",
+          "fontSize": "16px",
+          "borderRadius": "0px",
+          "gridColumn": "2",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "dead": null
+      },
+      "cur": {
+        "foot": {
+          "w": 1264,
+          "h": 80,
+          "x": 8,
+          "y": 8,
+          "display": "grid",
+          "fontSize": "16px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "trigger": {
+          "w": 56,
+          "h": 36,
+          "x": 16,
+          "y": 16,
+          "display": "grid",
+          "fontSize": "13px",
+          "borderRadius": "8px",
+          "gridColumn": "3",
+          "backgroundColor": "rgb(240, 240, 240)"
+        },
+        "icon": {
+          "w": 16,
+          "h": 16,
+          "x": 20,
+          "y": 26,
+          "display": "block",
+          "fontSize": "13px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "stateChip": {
+          "w": 60,
+          "h": 28,
+          "x": 16,
+          "y": 52,
+          "display": "inline-flex",
+          "fontSize": "16px",
+          "borderRadius": "0px",
+          "gridColumn": "2",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "dead": null
+      }
+    },
+    {
+      "check": "B-设置插槽含第三方状态项（:has() 三列生效态）：场景本身有效（底栏实际布局为 grid）",
+      "ok": true,
+      "detail": {
+        "preDisplay": "grid",
+        "curDisplay": "grid"
+      }
+    },
+    {
+      "check": "B-设置插槽含第三方状态项（:has() 三列生效态）：设置项测量值非空（防止桩件失效导致空跑）",
+      "ok": true,
+      "detail": {
+        "trigger": {
+          "w": 56,
+          "h": 36,
+          "x": 16,
+          "y": 16,
+          "display": "grid",
+          "fontSize": "13px",
+          "borderRadius": "8px",
+          "gridColumn": "3",
+          "backgroundColor": "rgb(240, 240, 240)"
+        },
+        "icon": {
+          "w": 16,
+          "h": 16,
+          "x": 20,
+          "y": 26,
+          "display": "block",
+          "fontSize": "13px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "check": "B-设置插槽含第三方状态项（:has() 三列生效态）：改动前后渲染几何完全一致",
+      "ok": true
+    },
+    {
+      "measurement": "C-紧凑态 dcu-compact",
+      "pre": {
+        "foot": {
+          "w": 36,
+          "h": 56,
+          "x": 622,
+          "y": 8,
+          "display": "flex",
+          "fontSize": "16px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "trigger": {
+          "w": 36,
+          "h": 36,
+          "x": 622,
+          "y": 20,
+          "display": "grid",
+          "fontSize": "13px",
+          "borderRadius": "8px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgb(240, 240, 240)"
+        },
+        "icon": {
+          "w": 16,
+          "h": 16,
+          "x": 632,
+          "y": 30,
+          "display": "block",
+          "fontSize": "13px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "stateChip": null,
+        "dead": null
+      },
+      "cur": {
+        "foot": {
+          "w": 36,
+          "h": 56,
+          "x": 622,
+          "y": 8,
+          "display": "flex",
+          "fontSize": "16px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "trigger": {
+          "w": 36,
+          "h": 36,
+          "x": 622,
+          "y": 20,
+          "display": "grid",
+          "fontSize": "13px",
+          "borderRadius": "8px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgb(240, 240, 240)"
+        },
+        "icon": {
+          "w": 16,
+          "h": 16,
+          "x": 632,
+          "y": 30,
+          "display": "block",
+          "fontSize": "13px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "stateChip": null,
+        "dead": null
+      }
+    },
+    {
+      "check": "C-紧凑态 dcu-compact：场景本身有效（底栏实际布局为 flex）",
+      "ok": true,
+      "detail": {
+        "preDisplay": "flex",
+        "curDisplay": "flex"
+      }
+    },
+    {
+      "check": "C-紧凑态 dcu-compact：设置项测量值非空（防止桩件失效导致空跑）",
+      "ok": true,
+      "detail": {
+        "trigger": {
+          "w": 36,
+          "h": 36,
+          "x": 622,
+          "y": 20,
+          "display": "grid",
+          "fontSize": "13px",
+          "borderRadius": "8px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgb(240, 240, 240)"
+        },
+        "icon": {
+          "w": 16,
+          "h": 16,
+          "x": 632,
+          "y": 30,
+          "display": "block",
+          "fontSize": "13px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "check": "C-紧凑态 dcu-compact：改动前后渲染几何完全一致",
+      "ok": true
+    },
+    {
+      "measurement": "D-反向对照：底栏确有死属性按钮",
+      "pre": {
+        "foot": {
+          "w": 1264,
+          "h": 88,
+          "x": 8,
+          "y": 8,
+          "display": "flex",
+          "fontSize": "16px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "trigger": {
+          "w": 620,
+          "h": 36,
+          "x": 644,
+          "y": 34,
+          "display": "grid",
+          "fontSize": "13px",
+          "borderRadius": "8px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgb(240, 240, 240)"
+        },
+        "icon": {
+          "w": 16,
+          "h": 16,
+          "x": 652,
+          "y": 44,
+          "display": "block",
+          "fontSize": "13px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "stateChip": null,
+        "dead": {
+          "restart": {
+            "w": 620,
+            "h": 36,
+            "x": 16,
+            "y": 16,
+            "display": "grid",
+            "fontSize": "13px",
+            "borderRadius": "8px",
+            "gridColumn": "auto",
+            "backgroundColor": "rgb(240, 240, 240)"
+          },
+          "daw": {
+            "w": 620,
+            "h": 36,
+            "x": 16,
+            "y": 52,
+            "display": "grid",
+            "fontSize": "13px",
+            "borderRadius": "8px",
+            "gridColumn": "auto",
+            "backgroundColor": "rgb(240, 240, 240)"
+          }
+        }
+      },
+      "cur": {
+        "foot": {
+          "w": 1264,
+          "h": 68,
+          "x": 8,
+          "y": 8,
+          "display": "flex",
+          "fontSize": "16px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "trigger": {
+          "w": 620,
+          "h": 36,
+          "x": 644,
+          "y": 24,
+          "display": "grid",
+          "fontSize": "13px",
+          "borderRadius": "8px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgb(240, 240, 240)"
+        },
+        "icon": {
+          "w": 16,
+          "h": 16,
+          "x": 652,
+          "y": 34,
+          "display": "block",
+          "fontSize": "13px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "stateChip": null,
+        "dead": {
+          "restart": {
+            "w": 620,
+            "h": 26,
+            "x": 16,
+            "y": 16,
+            "display": "block",
+            "fontSize": "13.3333px",
+            "borderRadius": "0px",
+            "gridColumn": "auto",
+            "backgroundColor": "rgb(240, 240, 240)"
+          },
+          "daw": {
+            "w": 620,
+            "h": 26,
+            "x": 16,
+            "y": 42,
+            "display": "block",
+            "fontSize": "13.3333px",
+            "borderRadius": "0px",
+            "gridColumn": "auto",
+            "backgroundColor": "rgb(240, 240, 240)"
+          }
+        }
+      }
+    },
+    {
+      "check": "D-反向对照：底栏确有死属性按钮：场景本身有效（底栏实际布局为 flex）",
+      "ok": true,
+      "detail": {
+        "preDisplay": "flex",
+        "curDisplay": "flex"
+      }
+    },
+    {
+      "check": "D-反向对照：底栏确有死属性按钮：设置项测量值非空（防止桩件失效导致空跑）",
+      "ok": true,
+      "detail": {
+        "trigger": {
+          "w": 620,
+          "h": 36,
+          "x": 644,
+          "y": 24,
+          "display": "grid",
+          "fontSize": "13px",
+          "borderRadius": "8px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgb(240, 240, 240)"
+        },
+        "icon": {
+          "w": 16,
+          "h": 16,
+          "x": 652,
+          "y": 34,
+          "display": "block",
+          "fontSize": "13px",
+          "borderRadius": "0px",
+          "gridColumn": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "check": "D-反向对照：底栏确有死属性按钮：两版对死属性按钮的渲染必须不同（证明被删规则原本在生效）",
+      "ok": true,
+      "detail": {
+        "pre": {
+          "restart": {
+            "w": 620,
+            "h": 36,
+            "x": 16,
+            "y": 16,
+            "display": "grid",
+            "fontSize": "13px",
+            "borderRadius": "8px",
+            "gridColumn": "auto",
+            "backgroundColor": "rgb(240, 240, 240)"
+          },
+          "daw": {
+            "w": 620,
+            "h": 36,
+            "x": 16,
+            "y": 52,
+            "display": "grid",
+            "fontSize": "13px",
+            "borderRadius": "8px",
+            "gridColumn": "auto",
+            "backgroundColor": "rgb(240, 240, 240)"
+          }
+        },
+        "cur": {
+          "restart": {
+            "w": 620,
+            "h": 26,
+            "x": 16,
+            "y": 16,
+            "display": "block",
+            "fontSize": "13.3333px",
+            "borderRadius": "0px",
+            "gridColumn": "auto",
+            "backgroundColor": "rgb(240, 240, 240)"
+          },
+          "daw": {
+            "w": 620,
+            "h": 26,
+            "x": 16,
+            "y": 42,
+            "display": "block",
+            "fontSize": "13.3333px",
+            "borderRadius": "0px",
+            "gridColumn": "auto",
+            "backgroundColor": "rgb(240, 240, 240)"
+          }
+        }
+      }
+    },
+    {
+      "check": "D-反向对照：底栏确有死属性按钮：改动前把两个死属性按钮都按 36px 底栏按钮渲染，改动后不再接管",
+      "ok": true,
+      "detail": {
+        "preRestart": 36,
+        "preDaw": 36,
+        "curRestart": 26,
+        "curDaw": 26
+      }
+    },
+    {
+      "check": "D-反向对照：底栏确有死属性按钮：原生设置项的尺寸/字号/圆角两版一致（底栏高度差只由死属性按钮自身高度造成）",
+      "ok": true,
+      "detail": {
+        "pre": {
+          "trigger": {
+            "w": 620,
+            "h": 36,
+            "x": 644,
+            "y": 34,
+            "display": "grid",
+            "fontSize": "13px",
+            "borderRadius": "8px",
+            "gridColumn": "auto",
+            "backgroundColor": "rgb(240, 240, 240)"
+          },
+          "icon": {
+            "w": 16,
+            "h": 16,
+            "x": 652,
+            "y": 44,
+            "display": "block",
+            "fontSize": "13px",
+            "borderRadius": "0px",
+            "gridColumn": "auto",
+            "backgroundColor": "rgba(0, 0, 0, 0)"
+          },
+          "footHeight": 88
+        },
+        "cur": {
+          "trigger": {
+            "w": 620,
+            "h": 36,
+            "x": 644,
+            "y": 24,
+            "display": "grid",
+            "fontSize": "13px",
+            "borderRadius": "8px",
+            "gridColumn": "auto",
+            "backgroundColor": "rgb(240, 240, 240)"
+          },
+          "icon": {
+            "w": 16,
+            "h": 16,
+            "x": 652,
+            "y": 34,
+            "display": "block",
+            "fontSize": "13px",
+            "borderRadius": "0px",
+            "gridColumn": "auto",
+            "backgroundColor": "rgba(0, 0, 0, 0)"
+          },
+          "footHeight": 68
+        }
+      }
+    }
+  ],
+  "scope": "离屏渲染：盘内真 Chrome 152；改动前=受保护快照 customizations/ui/sources/b59a9ec9….txt，改动后=盘上运行件。两版均经真实 window.__ModuleLoader__.load 形态执行真实 apply()，取浏览器实际挂载的 <style data-plugin=\"dsh-sidebar-spaces\"> 文本。宿主 ctx（effect/inject/sessions/workspaces）、require() 三模块桩、底栏 DOM 复刻为已声明的桩件；DOM 复刻按 UI 定制维护契约「底部导航」行的类名书写，非实机 DOM 抓取。",
+  "artifacts": {
+    "harness": ".tmp/verify-sidebar-dead-rules/harness.html",
+    "source": "Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.src.js",
+    "built": "Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.js"
+  },
+  "generatedAt": "2026-09-15T13:31:56.703Z"
+}

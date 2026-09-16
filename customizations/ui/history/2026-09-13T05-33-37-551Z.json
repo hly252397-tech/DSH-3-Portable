@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-09-13T05:33:37.551Z",
+  "note": "docs/01-当前工作/I027-rc2新前端布局适配/00-迭代总览.md",
+  "evidence": [
+    {
+      "path": "customizations/ui/evidence/4e43392744c69ad63d97fd2b87b1706de70db9f1ea0d2783e4990581f8a074f5.json",
+      "sha256": "e01853597250847a8e1d3b221d6ea4bdfd2b29886c669348bb4c39abcf829c51",
+      "snapshot": "customizations/ui/evidence/e01853597250847a8e1d3b221d6ea4bdfd2b29886c669348bb4c39abcf829c51.json"
+    }
+  ],
+  "history": "customizations/ui/history/2026-09-13T05-33-37-551Z.json",
+  "files": [
+    {
+      "path": "assets/theme.css",
+      "sha256": "e74ee759f40b5e806f32f640fb4d85201edb75e514e19cdd3283447109bf7e59",
+      "snapshot": "customizations/ui/sources/e74ee759f40b5e806f32f640fb4d85201edb75e514e19cdd3283447109bf7e59.txt"
+    },
+    {
+      "path": "assets/shell.html",
+      "sha256": "f3fc84f51422916932b1d97d9ea65187bbe4c300364abad44ae76730b7a96b8e",
+      "snapshot": "customizations/ui/sources/f3fc84f51422916932b1d97d9ea65187bbe4c300364abad44ae76730b7a96b8e.txt"
+    },
+    {
+      "path": "src/dsh-view-preload.cts",
+      "sha256": "944792031e9b12cfecf34788d73a4f8e98054b475dd731a656dbaa1c1d04fbde",
+      "snapshot": "customizations/ui/sources/944792031e9b12cfecf34788d73a4f8e98054b475dd731a656dbaa1c1d04fbde.txt"
+    },
+    {
+      "path": "scripts/build-sidebar-spaces-client.mjs",
+      "sha256": "ea043f899b4f5f8e61abd371988a3311da1e46a2e73c43f77a346559f3451a71",
+      "snapshot": "customizations/ui/sources/ea043f899b4f5f8e61abd371988a3311da1e46a2e73c43f77a346559f3451a71.txt"
+    },
+    {
+      "path": "scripts/build-native-browser-card.mjs",
+      "sha256": "b7b984dcc31e5d3ed6417386fcd3f789f774e21ff1857205e7c50c6ac9f096a9",
+      "snapshot": "customizations/ui/sources/b7b984dcc31e5d3ed6417386fcd3f789f774e21ff1857205e7c50c6ac9f096a9.txt"
+    },
+    {
+      "path": "scripts/build-sidebar-layout-compat.mjs",
+      "sha256": "6df8b720c2fe9f8b7027076dfb70c56f868d8360419d73ef4a58a5d326d9a7ec",
+      "snapshot": "customizations/ui/sources/6df8b720c2fe9f8b7027076dfb70c56f868d8360419d73ef4a58a5d326d9a7ec.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.src.js",
+      "sha256": "f9b4beef19182a4b56cb618e5a012134ea6934cb45274338f582d43080ce86dd",
+      "snapshot": "customizations/ui/sources/f9b4beef19182a4b56cb618e5a012134ea6934cb45274338f582d43080ce86dd.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.js",
+      "sha256": "4880e3a6da6a8a37d780723ad791baf9877e06fb3e6c5dc1bf104cd1bb777b33",
+      "snapshot": "customizations/ui/sources/4880e3a6da6a8a37d780723ad791baf9877e06fb3e6c5dc1bf104cd1bb777b33.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/Sidebar.tsx",
+      "sha256": "eafb9e33ee5e7d75f0d849a2455713c0bc4bda245d7e6d983d44eedeafeb071d",
+      "snapshot": "customizations/ui/sources/eafb9e33ee5e7d75f0d849a2455713c0bc4bda245d7e6d983d44eedeafeb071d.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/service.ts",
+      "sha256": "41dbe9eb8ac15f0409c4cee0aa0c1c7aacdecf08a373ddcf5e86b9c5c632e68e",
+      "snapshot": "customizations/ui/sources/41dbe9eb8ac15f0409c4cee0aa0c1c7aacdecf08a373ddcf5e86b9c5c632e68e.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/layout.css",
+      "sha256": "805f003619094d927a326b7b96eb8e63a5f73fa933b1658067062cfabd0a451d",
+      "snapshot": "customizations/ui/sources/805f003619094d927a326b7b96eb8e63a5f73fa933b1658067062cfabd0a451d.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/lib/client.js",
+      "sha256": "6c653eec192b6013b247e42bcf3a3aa930a63e34104433ad3db4490bfbb77eb2",
+      "snapshot": "customizations/ui/sources/6c653eec192b6013b247e42bcf3a3aa930a63e34104433ad3db4490bfbb77eb2.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/portable/browser-view.js",
+      "sha256": "327dc11cb70a47d5191d38c7ffa5dc319e4d33a8af048c4800622e7d8ba19a64",
+      "snapshot": "customizations/ui/sources/327dc11cb70a47d5191d38c7ffa5dc319e4d33a8af048c4800622e7d8ba19a64.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-restart-button/lib/client.js",
+      "sha256": "d1e6e8c7801577c6862ce9c8fbe0ca8a713a591d99f8b1f99672baabdb5d5a97",
+      "snapshot": "customizations/ui/sources/d1e6e8c7801577c6862ce9c8fbe0ca8a713a591d99f8b1f99672baabdb5d5a97.txt"
+    },
+    {
+      "path": "customizations/black-hole/lib/client.js",
+      "sha256": "efae653eb3b4ed9b611738b139af4089107f14c09fc37acdeb119f132baa9618",
+      "snapshot": "customizations/ui/sources/efae653eb3b4ed9b611738b139af4089107f14c09fc37acdeb119f132baa9618.txt"
+    },
+    {
+      "path": "scripts/restore-scheduled-tasks-entry.mjs",
+      "sha256": "b44bdb27320eb91ec6420d5c31dcdc94e9a65b59df86c8c9a1b956c658ce5736",
+      "snapshot": "customizations/ui/sources/b44bdb27320eb91ec6420d5c31dcdc94e9a65b59df86c8c9a1b956c658ce5736.txt"
+    },
+    {
+      "path": "Customize/Automation-Workbench/build.mjs",
+      "sha256": "d9b91ab020713acd7a01042595b8d82f083f91d89136c0eb0a78ad30cff8d3be",
+      "snapshot": "customizations/ui/sources/d9b91ab020713acd7a01042595b8d82f083f91d89136c0eb0a78ad30cff8d3be.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/node_modules/@michengai/dsh-automation/lib/client.js",
+      "sha256": "9319c634786e5d7ea3421eb1a4a8067ca87b55d02f99b5c861d2457401ac7830",
+      "snapshot": "customizations/ui/sources/9319c634786e5d7ea3421eb1a4a8067ca87b55d02f99b5c861d2457401ac7830.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/SideCardSection.tsx",
+      "sha256": "2a3e1ee0fc2050f8790a0aa55109d3a2872f5e7b3d06eaefcb41c585757fa8df",
+      "snapshot": "customizations/ui/sources/2a3e1ee0fc2050f8790a0aa55109d3a2872f5e7b3d06eaefcb41c585757fa8df.txt"
+    },
+    {
+      "path": "Data/DSH/profiles/web/local/dsh-black-hole/lib/client.js",
+      "sha256": "efae653eb3b4ed9b611738b139af4089107f14c09fc37acdeb119f132baa9618",
+      "snapshot": "customizations/ui/sources/efae653eb3b4ed9b611738b139af4089107f14c09fc37acdeb119f132baa9618.txt"
+    }
+  ]
+}

@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DSH Codex Desktop</title>
+
+  <script>document.documentElement.dataset.platform=window.dshShell.platform;const __theme=new URLSearchParams(location.search).get('theme');document.documentElement.dataset.colorScheme=__theme?__theme:(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')</script>
+  <link rel="stylesheet" href="theme.css">
+  <script src="theme.js"></script>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,"Segoe UI","Microsoft YaHei UI",sans-serif;background:var(--chrome-bg);color:var(--chrome-text)}
+    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}
+    .bar{position:relative;-webkit-app-region:drag;height:44px;display:flex;align-items:center;padding:0 146px 0 17px;background:var(--chrome-surface);user-select:none}
+    .bar::after{content:"";position:absolute;top:100%;left:0;right:0;height:0;border-top:1px solid var(--chrome-border);pointer-events:none}
+    html[data-platform="darwin"] .bar{padding-left:78px;padding-right:12px}
+    button{-webkit-app-region:no-drag;font:inherit;color:inherit;border:0;background:transparent}
+    .bar-left,.bar-right{display:flex;align-items:center;min-width:0}.bar-left{justify-content:flex-start;gap:2px}.bar-right{justify-content:flex-end;gap:2px;margin-left:auto}
+    .nav{width:30px;height:30px;border-radius:var(--chrome-radius-sm);display:grid;place-items:center;opacity:.78;transition:background .12s,opacity .12s,color .12s}
+    .nav:hover:not(:disabled){background:var(--chrome-surface-3);opacity:1}.nav:active:not(:disabled){background:var(--active-bg,var(--chrome-surface-3))}.nav:disabled{opacity:.34}
+    .nav[aria-pressed="true"]{background:var(--tint,var(--chrome-surface-2));opacity:1}
+    .nav:focus-visible,.menu:focus-visible,.command-center:focus-visible,.workspace-label:focus-visible{outline:none;box-shadow:inset 0 0 0 1px var(--focus-ring,var(--chrome-text-muted))}
+    .nav img{width:14px;height:14px;filter:invert(91%) sepia(5%) saturate(80%) hue-rotate(80deg)}
+    .divider{flex:none;width:1px;height:18px;background:var(--chrome-border-strong)}
+    .bar-left>.divider{margin-left:6px}
+    .bar-right>.divider{margin:0 6px}
+    .workspace-label{display:none}
+    .workspace-label:hover{background:var(--chrome-surface-3);color:var(--chrome-text)}
+    .command-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;width:320px;height:28px;padding:0 11px;border:1px solid var(--chrome-border);border-radius:999px;background:var(--chrome-surface-2);font-size:12.5px;color:var(--chrome-text-muted)}
+    .command-center:hover{background:var(--chrome-surface-3);color:var(--chrome-text);border-color:var(--chrome-border-strong)}
+    .command-center img{width:13px;height:13px;filter:invert(91%) sepia(5%) saturate(80%) hue-rotate(80deg);opacity:.74}
+    .command-center span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .status{max-width:180px;margin-right:5px;font-size:11px;color:var(--chrome-text-faint);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+    .browser{position:fixed;top:44px;right:0;display:flex;flex-direction:column;z-index:5;background:var(--chrome-surface);border-left:1px solid var(--chrome-border)}
+    .browser[hidden]{display:none}
+    .browser-resizer{position:absolute;z-index:3;top:0;bottom:0;left:-5px;width:10px;cursor:col-resize;outline:none;-webkit-app-region:no-drag}
+    .browser-resizer::after{content:"";position:absolute;top:0;bottom:0;left:4px;width:2px;background:transparent;transition:background .12s}.browser-resizer:hover::after,.browser-resizer:focus-visible::after,.browser-resizer.dragging::after{background:var(--accent,var(--chrome-text-muted))}
+    .browser-resizer[hidden]{display:none}
+    .browser img{width:14px;height:14px;filter:invert(91%) sepia(5%) saturate(80%) hue-rotate(80deg)}
+    .browser-tabs{display:flex;align-items:center;gap:2px;height:38px;padding:3px 4px}
+    .browser-tabs-list{display:flex;align-items:center;gap:2px;min-width:0;flex:1;overflow-x:auto;scrollbar-width:none}
+    .browser-tabs-list::-webkit-scrollbar{display:none}
+    .browser-tabs-actions{display:flex;align-items:center;flex:none;margin-left:2px}
+    .browser-tabs .tab{display:flex;align-items:center;gap:6px;max-width:200px;min-width:0;height:30px;padding:0 6px 0 8px;border-radius:var(--chrome-radius-sm);color:var(--chrome-text-muted);background:transparent;cursor:default;user-select:none;flex:none}
+    .browser-tabs .tab:hover{background:color-mix(in srgb,var(--chrome-surface-2) 60%,transparent);color:var(--chrome-text)}
+    .browser-tabs .tab.active{background:var(--chrome-surface-2);color:var(--chrome-text)}
+    .browser-tabs .tab:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus-ring,var(--chrome-text-muted))}
+    .browser-tabs .tab.crashed .tab-label{opacity:.5;text-decoration:line-through}
+    .browser-tabs .tab-icon{width:14px;height:14px;flex:none;display:grid;place-items:center}
+    .browser-tabs .tab-icon img{width:14px;height:14px;filter:none}
+    .browser-tabs .tab-dot{width:8px;height:8px;border-radius:50%;background:var(--chrome-text-faint)}
+    .browser-tabs .tab-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+    .browser-tabs .tab-close{width:20px;height:20px;border-radius:5px;display:grid;place-items:center;flex:none}
+    .browser-tabs .tab-close:hover{background:var(--chrome-surface-3)}
+    .browser-tabs .tab-close img{width:10px;height:10px;pointer-events:none}
+    .browser-tabs .tab-add{width:26px;height:26px;border-radius:var(--chrome-radius-sm);display:grid;place-items:center;flex:none}
+    .browser-tabs .tab-add:hover{background:var(--chrome-surface-2)}
+    .browser.loading .browser-nav input{opacity:.6}
+    .browser.loading [data-browser="reload"] img{animation:browser-spin .8s linear infinite}
+    @keyframes browser-spin{to{transform:rotate(360deg)}}
+    .browser-nav{display:flex;align-items:center;gap:2px;height:36px;padding:0 6px;border-top:1px solid var(--chrome-border)}
+    .browser-nav .nav{width:26px;height:26px}
+    .browser-nav input{flex:1;min-width:0;height:26px;margin:0 4px;padding:0 9px;border-radius:var(--chrome-radius-sm);border:1px solid var(--chrome-border-strong);background:var(--chrome-bg);color:var(--chrome-text);font-size:12px;outline:none;-webkit-app-region:no-drag;transition:border-color .12s}
+    .browser-nav input:focus{border-color:var(--focus-ring,var(--chrome-text-muted))}
+    .menu{height:30px;padding:0 9px;border-radius:var(--chrome-radius-sm);font-size:13px;color:var(--chrome-text-muted)}
+    .menu:hover{background:var(--chrome-surface-3);color:var(--chrome-text)}.menu:active{background:var(--active-bg,var(--chrome-surface-3))}.menu[aria-expanded="true"]{background:var(--chrome-surface-2);color:var(--chrome-text)}
+    :root[data-color-scheme="light"]{color-scheme:light;background:var(--chrome-bg);color:var(--chrome-text)}
+    :root[data-color-scheme="light"] .nav img,:root[data-color-scheme="light"] .command-center img{filter:brightness(0);opacity:.68}
+    :root[data-color-scheme="light"] .browser img{filter:brightness(0);opacity:.72}
+    #menus{display:flex;align-items:center;margin-left:10px}
+    @media(max-width:720px){.bar{padding-right:144px}.menu{padding:0 7px}}
+    /* 窄窗时中段搜索胶囊会与左段菜单/右段工具组相撞，按可用宽度直接收起（1000px 处左段 276px + 胶囊左缘 340px 仍有 64px 余量） */
+    @media(max-width:1000px){.command-center{display:none}}
+    @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+    .nav.restart.confirming{background:#d85b5b20;box-shadow:inset 0 0 0 1px #d85b5b80;opacity:1}
+    .nav.restart.confirming:hover{background:#d85b5b2e}
+    .nav.restart.confirming img{filter:brightness(0) saturate(100%) invert(52%) sepia(54%) saturate(1935%) hue-rotate(322deg) brightness(91%) contrast(88%)}
+    .nav.restart.spinning{opacity:.6;pointer-events:none}
+    .nav.restart.spinning img{animation:dsh-restart-spin .7s linear infinite}
+    @keyframes dsh-restart-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+    :root[data-color-scheme="light"] .nav.restart.confirming{background:#b4231812;box-shadow:inset 0 0 0 1px #b423185c}
+    :root[data-color-scheme="light"] .nav.restart.confirming:hover{background:#b423181f}
+    .nav.update-indicator{position:relative;--update-progress:0}
+    .nav.update-indicator::before{content:"";position:absolute;inset:2px;border-radius:50%;background:conic-gradient(var(--accent,#6ea8ff) calc(var(--update-progress)*1turn),transparent 0);opacity:0;transition:opacity .15s}
+    .nav.update-indicator::after{content:"";position:absolute;right:2px;top:2px;width:7px;height:7px;border:2px solid var(--chrome-surface);border-radius:50%;background:var(--accent,#6ea8ff);opacity:0;transform:scale(.7);transition:opacity .15s,transform .15s}
+    .nav.update-indicator[data-phase="available"]::after,.nav.update-indicator[data-phase="ready"]::after{opacity:1;transform:scale(1)}
+    .nav.update-indicator[data-busy="true"]::before{opacity:1}
+    .nav.update-indicator[data-phase="error"]::after,.nav.update-indicator[data-phase="rolled-back"]::after{opacity:1;transform:scale(1);background:#d85b5b}
+    .nav.update-indicator[data-phase="completed"]::after{opacity:1;transform:scale(1);background:#4db87a}
+    .nav.update-indicator>img{position:relative;z-index:1}
+  </style>
+  <link rel="stylesheet" href="browser-workspace.css">
+</head>
+<body>
+  <header class="bar" aria-label="DSH Codex Desktop">
+    <div class="bar-left">
+      <button id="back" class="nav" data-action="back" title="返回" aria-label="返回"><img src="shell-icons/arrow-left.svg" alt=""></button>
+      <button id="forward" class="nav" data-action="forward" title="前进" aria-label="前进"><img src="shell-icons/arrow-right.svg" alt=""></button>
+      <span class="divider" aria-hidden="true"></span>
+      <nav id="menus" aria-label="应用菜单"></nav>
+      <button id="workspace-label" class="workspace-label" data-action="home" title="DSH 工作台">DSH</button>
+    </div>
+    <button id="command-center" class="command-center" data-action="find" title="全局搜索" aria-label="全局搜索"><img src="shell-icons/magnifying-glass.svg" alt=""><span>搜索任务、工作区与知识</span></button>
+    <div class="bar-right">
+      <span id="status" class="status" role="status"></span>
+      <button id="restart-btn" class="nav restart" title="重启应用" aria-label="重启应用" aria-pressed="false"><img src="shell-icons/power.svg" alt=""></button>
+      <span class="divider" aria-hidden="true"></span>
+      <button class="nav optional" data-action="find" title="全局搜索" aria-label="全局搜索"><img src="shell-icons/magnifying-glass.svg" alt=""></button>
+      <button class="nav optional" data-action="desktop-settings" title="桌面设置" aria-label="桌面设置"><img src="shell-icons/gear.svg" alt=""></button>
+      <button id="update-btn" class="nav update-indicator" data-action="check-updates" data-phase="idle" data-busy="false" title="检查更新" aria-label="检查更新"><img src="shell-icons/update.svg" alt=""></button>
+    </div>
+  </header>
+  <section id="browser" class="browser" hidden aria-label="内置浏览器">
+    <div id="browser-resizer" class="browser-resizer" role="separator" aria-orientation="vertical" aria-label="调整浏览器宽度" tabindex="0"></div>
+    <div class="browser-tabs">
+      <div class="browser-tabs-list" id="browser-tabs" role="tablist"></div>
+      <span class="browser-tabs-actions" id="browser-tabs-actions" role="presentation"></span>
+    </div>
+    <div class="browser-nav">
+      <button class="nav" data-browser="back" title="后退" aria-label="后退"><img src="shell-icons/arrow-left.svg" alt=""></button>
+      <button class="nav" data-browser="forward" title="前进" aria-label="前进"><img src="shell-icons/arrow-right.svg" alt=""></button>
+      <button class="nav" data-browser="reload" title="重新加载" aria-label="重新加载"><img src="shell-icons/rotate-right.svg" alt=""></button>
+      <input id="browser-address" type="text" spellcheck="false" autocomplete="off" placeholder="">
+      <button class="nav" data-browser="home" title="主页" aria-label="主页"><img src="shell-icons/home.svg" alt=""></button>
+      <button id="browser-bookmark" class="browser-tool" type="button" title="收藏当前页" aria-label="收藏当前页">收藏</button>
+      <button id="browser-library" class="browser-tool optional" type="button" title="浏览器资料与设置">资料</button>
+      <button id="browser-downloads" class="browser-tool optional" type="button" title="下载内容" aria-pressed="false">下载</button>
+      <button id="browser-external" class="browser-tool optional" type="button" title="在系统浏览器打开">外部</button>
+      <button id="browser-more" class="browser-tool" type="button" title="更多功能" aria-haspopup="menu" aria-expanded="false">更多</button>
+    </div>
+    <form id="browser-find" class="browser-find" hidden role="search" aria-label="在页面中查找">
+      <input id="browser-find-input" type="search" autocomplete="off" placeholder="在页面中查找">
+      <span id="browser-find-count" class="browser-find-count">0/0</span>
+      <button id="browser-find-prev" class="browser-tool" type="button">上一个</button>
+      <button id="browser-find-next" class="browser-tool" type="button">下一个</button>
+      <button id="browser-find-close" class="browser-tool" type="button">关闭</button>
+    </form>
+    <div id="browser-overflow" class="browser-overflow" hidden role="menu" aria-label="浏览器功能菜单">
+      <button id="browser-menu-find" type="button">在页面中查找</button>
+      <button id="browser-menu-print" type="button">打印当前页面</button>
+      <button id="browser-menu-screenshot" type="button">截取页面并保存到便携盘</button>
+      <button id="browser-menu-devtools" type="button">开发者工具</button>
+      <hr>
+      <div class="zoom-row" role="group" aria-label="页面缩放">
+        <button id="browser-zoom-out" type="button">−</button>
+        <span id="browser-zoom-value" class="zoom-value">100%</span>
+        <button id="browser-zoom-in" type="button">＋</button>
+        <button id="browser-zoom-reset" type="button">重置</button>
+      </div>
+      <hr>
+      <button id="browser-menu-downloads" type="button">下载内容</button>
+      <button id="browser-menu-library" type="button">浏览器资料与设置</button>
+      <button id="browser-menu-external" type="button">在系统浏览器打开</button>
+      <button id="browser-menu-clear" type="button">清除 Cookie、缓存和站点数据</button>
+      <button id="browser-menu-close" type="button">关闭网络工作区</button>
+    </div>
+    <aside id="browser-download-drawer" class="browser-downloads" hidden aria-label="下载内容">
+      <header class="browser-drawer-header">
+        <div><strong>下载内容</strong><span>文件保存在便携盘 Downloads 文件夹</span></div>
+        <div class="browser-drawer-actions">
+          <button id="browser-download-folder" class="browser-tool" type="button">打开文件夹</button>
+          <button id="browser-download-clear" class="browser-tool danger" type="button">清空记录</button>
+          <button id="browser-download-close" class="browser-tool" type="button">收起</button>
+        </div>
+      </header>
+      <div id="browser-download-list" class="browser-download-list"></div>
+    </aside>
+    <section id="browser-manager" class="browser-manager" hidden aria-label="浏览器资料与设置">
+      <header class="browser-manager-header">
+        <div><strong>浏览器资料与设置</strong><span id="browser-manager-status">独立配置 · 密码由系统安全存储加密</span></div>
+        <div class="browser-manager-actions"><button id="browser-manager-close" class="browser-tool" type="button">关闭</button></div>
+      </header>
+      <div class="browser-manager-body">
+        <section class="browser-card wide">
+          <div class="browser-card-heading"><div><strong>迁移浏览器数据</strong><span>Codex、Edge 或 Chrome；复制历史、收藏、Cookie、密码、自动填充和兼容扩展</span></div></div>
+          <div id="browser-sources" class="browser-source-list"></div>
+          <div id="browser-import-note" class="browser-note"></div>
+        </section>
+        <section class="browser-card wide">
+          <div class="browser-card-heading"><div><strong>首页组</strong><span>每行一个地址；新标签使用第一项</span></div></div>
+          <form id="browser-homepage-form" class="browser-form">
+            <textarea id="browser-homepages" class="browser-field" spellcheck="false" aria-label="首页组"></textarea>
+            <button class="browser-tool primary" type="submit">保存</button>
+            <button id="browser-homepage-open" class="browser-tool" type="button">打开整组</button>
+            <button id="browser-homepage-reset" class="browser-tool" type="button">恢复默认</button>
+          </form>
+          <div id="browser-homepage-note" class="browser-note"></div>
+        </section>
+        <section class="browser-card">
+          <div class="browser-card-heading"><div><strong>历史记录</strong><span id="browser-history-count">0 条</span></div><button id="browser-history-clear" class="browser-tool danger" type="button">清空</button></div>
+          <input id="browser-history-filter" class="browser-field" type="search" placeholder="搜索历史记录">
+          <div id="browser-history-list" class="browser-manager-list"></div>
+        </section>
+        <section id="browser-bookmark-card" class="browser-card" tabindex="-1">
+          <div class="browser-card-heading"><div><strong>收藏夹</strong><span id="browser-bookmark-count">0 条</span></div><button id="browser-bookmark-clear" class="browser-tool danger" type="button">清空</button></div>
+          <div id="browser-bookmark-list" class="browser-manager-list"></div>
+        </section>
+        <section class="browser-card wide">
+          <div class="browser-card-heading"><div><strong>密码与自动填充</strong><span>密码以系统安全存储加密后写入便携盘</span></div><button id="browser-autofill" class="browser-tool" type="button">填充当前页</button></div>
+          <form id="browser-credential-form" class="browser-form">
+            <input id="browser-credential-origin" class="browser-field" type="url" required placeholder="https://example.com">
+            <input id="browser-credential-username" class="browser-field" autocomplete="off" placeholder="用户名">
+            <input id="browser-credential-password" class="browser-field" type="password" autocomplete="new-password" required placeholder="密码">
+            <button class="browser-tool primary" type="submit">加密保存</button>
+          </form>
+          <div id="browser-credential-list" class="browser-manager-list"></div>
+          <div id="browser-autofill-note" class="browser-note"></div>
+        </section>
+        <section class="browser-card">
+          <div class="browser-card-heading"><div><strong>扩展</strong><span>迁移兼容的 Chrome 解压扩展；开关立即应用到当前浏览器会话</span></div></div>
+          <div id="browser-extension-list" class="browser-manager-list"></div>
+        </section>
+        <section class="browser-card">
+          <div class="browser-card-heading"><div><strong>浏览器运行时</strong><span>由桌面 A/B 更新器统一更新和回滚</span></div><button id="browser-runtime-check" class="browser-tool" type="button">检查</button></div>
+          <div id="browser-runtime-info" class="browser-note">正在读取版本…</div>
+          <div class="browser-switches">
+            <label><input id="browser-history-enabled" type="checkbox">保存浏览历史</label>
+            <label><input id="browser-import-retry" type="checkbox">启动时重试未完成迁移</label>
+            <label><input id="browser-extensions-load" type="checkbox">启动时加载已启用扩展</label>
+          </div>
+        </section>
+      </div>
+    </section>
+  </section>
+  <script src="browser-workspace.js"></script>
+  <script>
+    const api=window.dshShell;let bootstrap;let state;let openMenu;let restartConfirming=false;let restartExecuting=false;let restartConfirmTimer=null;
+    const fullBrowser=window.DshBrowserWorkspace.create(api,{getState:()=>state});
+    const menuHost=document.getElementById('menus');const status=document.getElementById('status');
+    function shellZh(){return bootstrap?.locale?.startsWith('zh')??navigator.language.toLowerCase().startsWith('zh')}
+    function renderStatus(){const zh=shellZh();status.textContent=restartExecuting?(zh?'正在重启…':'Restarting…'):restartConfirming?(zh?'再次点击重启·Esc 取消':'Click restart again · Esc to cancel'):state?.reloading?(zh?'正在重新加载…':'Reloading…'):(state?.zoomPercent&&state.zoomPercent!==100?state.zoomPercent+'%':'')}
+    function applyState(next){state=next;document.getElementById('back').disabled=!next.canBack;document.getElementById('forward').disabled=!next.canForward;renderStatus();renderBrowser(next.browser)}
+    function applyBootstrap(value){bootstrap=value;document.documentElement.lang=value.locale;document.documentElement.dataset.colorScheme=value.colorScheme;document.documentElement.style.colorScheme=value.colorScheme;const zh=value.locale.startsWith('zh');const back=document.getElementById('back');const forward=document.getElementById('forward');const updateBtn=document.getElementById('update-btn');const restartBtn=document.getElementById('restart-btn');const commandCenter=document.getElementById('command-center');back.title=back.ariaLabel=zh?'返回':'Back';forward.title=forward.ariaLabel=zh?'前进':'Forward';updateBtn.title=updateBtn.ariaLabel=zh?'检查更新':'Check for updates';restartBtn.title=restartBtn.ariaLabel=zh?'重启应用':'Restart App';commandCenter.title=commandCenter.ariaLabel=zh?'全局搜索':'Global search';commandCenter.querySelector('span').textContent=zh?'搜索任务、工作区与知识':'Search tasks, workspaces and knowledge';document.getElementById('workspace-label').textContent=zh?'DSH 工作台':'DSH Workbench';document.getElementById('browser-address').placeholder=zh?'输入网址…':'Enter address…';menuHost.setAttribute('aria-label',zh?'应用菜单':'Application menu');menuHost.replaceChildren();for(const menu of value.menus){const button=document.createElement('button');button.className='menu';button.textContent=menu.label;button.setAttribute('aria-haspopup','menu');button.setAttribute('aria-expanded','false');button.addEventListener('click',()=>showMenu(button,menu.id));menuHost.append(button)}applyState(state??value.state)}
+    function renderDesktopUpdate(value){
+      if(!value||!value.status)return;const button=document.getElementById('update-btn'),update=value.status,phase=String(update.kind||'idle');
+      const busy=['checking','downloading','verifying','building','deploying','validating'].includes(phase);const overall=Math.max(0,Math.min(100,Number(update.overallProgress)||0));
+      button.dataset.phase=phase;button.dataset.busy=String(busy);button.style.setProperty('--update-progress',String(overall/100));button.disabled=busy||value.packaged===false;
+      const zh=shellZh();const labels={idle:zh?'检查更新':'Check for updates',checking:zh?'正在检查更新':'Checking for updates',none:zh?'当前已是最新版本':'Up to date',available:zh?'发现新版本，点击查看':'Update available; click to review',downloading:zh?'正在下载':'Downloading',verifying:zh?'正在验证':'Verifying',building:zh?'正在构建候选':'Building candidate',ready:zh?'候选已就绪，点击部署':'Candidate ready; click to deploy',deploying:zh?'正在部署':'Deploying',validating:zh?'正在启动验证':'Validating startup',completed:zh?'更新已完成':'Update completed',['rolled-back']:zh?'更新失败，已自动回滚':'Update failed and rolled back',error:zh?'更新失败，点击查看':'Update failed; click to review'};
+      const detail=typeof update.detail==='string'&&update.detail?update.detail:labels[phase]||labels.idle;const title=busy?detail+' · '+Math.round(overall)+'%':detail;button.title=button.ariaLabel=title;
+    }
+    function renderBrowser(browser){
+      const host=document.getElementById('browser');
+      if(!browser||typeof browser!=='object'||!browser.visible){host.hidden=true;host.classList.remove('loading');return}
+      host.hidden=false;
+      if(browser.maximized){
+        host.style.left='0';host.style.right='0';host.style.top='44px';host.style.width='100%';
+      }else if(browser.panel&&typeof browser.panel==='object'&&typeof browser.panel.x==='number'){
+        host.style.right='auto';
+        host.style.left=Math.round(browser.panel.x)+'px';
+        host.style.top=(44+Math.round(browser.panel.y))+'px';
+        host.style.width=Math.max(280,Math.round(browser.panel.width))+'px';
+      }else{
+        host.style.left='';host.style.top='';host.style.right='0';
+        host.style.width=Math.max(280,Math.round(window.innerWidth*(browser.widthRatio||0.36)))+'px';
+      }
+      host.classList.toggle('loading',browser.loading===true);
+      const resizer=document.getElementById('browser-resizer');resizer.hidden=browser.maximized===true||Boolean(browser.panel);resizer.setAttribute('aria-valuenow',String(Math.round((browser.widthRatio||0.36)*100)));
+      const zh=shellZh();
+      const tabs=Array.isArray(browser.tabs)?browser.tabs:[];
+      const strip=document.getElementById('browser-tabs');
+      strip.replaceChildren();
+      const items=[];
+      for(const tab of tabs){
+        const item=document.createElement('div');item.className='tab'+(tab.id===browser.activeId?' active':'')+(tab.crashed?' crashed':'');item.setAttribute('role','tab');item.tabIndex=tab.id===browser.activeId?0:-1;item.setAttribute('aria-selected',String(tab.id===browser.activeId));item.title=(tab.url||'')+(tab.crashed?(zh?'（已崩溃，可点击重载）':' (crashed, click to reload)'):'');
+        const iconHolder=document.createElement('span');iconHolder.className='tab-icon';
+        if(tab.favicon){const favicon=document.createElement('img');favicon.src=tab.favicon;favicon.alt='';favicon.loading='lazy';iconHolder.append(favicon)}
+        else{const dot=document.createElement('span');dot.className='tab-dot';iconHolder.append(dot)}
+        item.append(iconHolder);
+        const label=document.createElement('span');label.className='tab-label';label.textContent=tab.title||tab.url;item.append(label);
+        const close=document.createElement('button');close.className='tab-close';close.title=zh?'关闭标签页':'Close tab';close.setAttribute('aria-label',close.title);
+        const closeImg=document.createElement('img');closeImg.src='shell-icons/xmark.svg';closeImg.alt='';close.append(closeImg);
+        close.addEventListener('click',(event)=>{event.stopPropagation();api.browser.closeTab(tab.id)});
+        item.append(close);
+        const activate=()=>{if(tab.crashed)api.browser.reload();api.browser.activateTab(tab.id)};
+        item.addEventListener('click',activate);
+        item.addEventListener('keydown',(event)=>{
+          if(event.key==='Enter'||event.key===' '){event.preventDefault();activate()}
+          else if(event.key==='ArrowLeft'||event.key==='ArrowRight'){
+            event.preventDefault();
+            const delta=event.key==='ArrowLeft'?-1:1;
+            const target=items[(items.indexOf(item)+delta+items.length)%items.length];
+            if(target){target.focus()}
+          }
+        });
+        items.push(item);
+        strip.append(item);
+      }
+      const actionsHost=document.getElementById('browser-tabs-actions');
+      actionsHost.replaceChildren();
+      const add=document.createElement('button');add.className='tab-add';add.title=zh?'新标签页':'New tab';add.setAttribute('aria-label',add.title);
+      const addImg=document.createElement('img');addImg.src='shell-icons/plus.svg';addImg.alt='';add.append(addImg);
+      add.addEventListener('click',()=>api.browser.newTab(''));
+      actionsHost.append(add);
+      const maxBtn=document.createElement('button');maxBtn.className='tab-add';
+      maxBtn.title=maxBtn.ariaLabel=zh?(browser.maximized?'还原':'最大化'):(browser.maximized?'Restore':'Maximize');
+      const maxImg=document.createElement('img');maxImg.src=browser.maximized?'shell-icons/browser-restore.svg':'shell-icons/browser-maximize.svg';maxImg.alt='';maxBtn.append(maxImg);
+      maxBtn.addEventListener('click',()=>api.browser.toggleMaximize());
+      actionsHost.append(maxBtn);
+      document.querySelector('[data-browser="back"]').disabled=!browser.canBack;
+      document.querySelector('[data-browser="forward"]').disabled=!browser.canForward;
+      const address=document.getElementById('browser-address');
+      const active=tabs.find(tab=>tab.id===browser.activeId);
+      if(active&&document.activeElement!==address)address.value=active.url;
+      fullBrowser.render(browser);
+    }
+    function clearOpenMenu(button=openMenu){if(!button)return;button.setAttribute('aria-expanded','false');if(openMenu===button)openMenu=undefined}
+    async function showMenu(button,menu){clearOpenMenu();button.setAttribute('aria-expanded','true');openMenu=button;const rect=button.getBoundingClientRect();try{await api.popupMenu({menu,x:Math.round(rect.left),y:Math.round(rect.bottom)})}finally{clearOpenMenu(button)}}
+    // Native Windows menus can consume the initial outside click. If the
+    // click is subsequently delivered to the shell, clear immediately too.
+    document.addEventListener('pointerdown',event=>{if(openMenu&&event.target!==openMenu)clearOpenMenu()},true);window.addEventListener('blur',()=>clearOpenMenu());
+    document.querySelectorAll('[data-action]').forEach(button=>button.addEventListener('click',()=>api.action(button.dataset.action)));
+    // 重启按钮：两步确认（移植自旧版空间板块外壳）——首次点击进入红底确认态，
+    // 5s 内再次点击执行，Esc 或超时取消；执行期间图标旋转并禁点。
+    const restartBtn=document.getElementById('restart-btn');
+    function cancelRestartConfirm(){if(!restartConfirming)return;restartConfirming=false;clearTimeout(restartConfirmTimer);restartBtn.classList.remove('confirming');restartBtn.setAttribute('aria-pressed','false');restartBtn.title=restartBtn.ariaLabel=shellZh()?'重启应用':'Restart App';renderStatus()}
+    restartBtn.addEventListener('click',async()=>{
+      if(!restartConfirming){
+        restartConfirming=true;restartBtn.classList.add('confirming');restartBtn.setAttribute('aria-pressed','true');renderStatus();
+        restartBtn.title=restartBtn.ariaLabel=shellZh()?'再次点击确认重启（Esc 取消）':'Click again to confirm restart (Esc to cancel)';
+        restartConfirmTimer=setTimeout(cancelRestartConfirm,5000);
+      }else{
+        clearTimeout(restartConfirmTimer);restartConfirming=false;restartExecuting=true;
+        restartBtn.classList.remove('confirming');restartBtn.classList.add('spinning');restartBtn.setAttribute('aria-pressed','false');renderStatus();
+        restartBtn.title=restartBtn.ariaLabel=shellZh()?'正在重启…':'Restarting…';restartBtn.disabled=true;
+        await api.action('app-restart');
+      }
+    });
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){cancelRestartConfirm();if(state?.browser?.visible&&state.browser.maximized)api.browser.toggleMaximize()}});
+    document.querySelectorAll('[data-browser]').forEach(button=>button.addEventListener('click',()=>{
+      const action=button.dataset.browser;
+      if(action==='back')api.browser.back();
+      else if(action==='forward')api.browser.forward();
+      else if(action==='reload')api.browser.reload();
+      else if(action==='home')api.browser.openHomepages();
+    }));
+    const browserAddress=document.getElementById('browser-address');
+    browserAddress.addEventListener('keydown',event=>{
+      if(event.key==='Enter'){const value=browserAddress.value.trim();if(value)api.browser.navigate(value);browserAddress.blur()}
+      else if(event.key==='Escape'){const active=state?.browser?.tabs?.find(tab=>tab.id===state.browser.activeId);if(active)browserAddress.value=active.url;browserAddress.blur()}
+    });
+    const browserResizer=document.getElementById('browser-resizer');let resizeFrame=0,pendingRatio=0;
+    function sendBrowserRatio(ratio){pendingRatio=ratio;if(resizeFrame)return;resizeFrame=requestAnimationFrame(()=>{resizeFrame=0;api.browser.setRatio(pendingRatio)})}
+    browserResizer.addEventListener('pointerdown',event=>{if(browserResizer.hidden)return;event.preventDefault();browserResizer.classList.add('dragging');browserResizer.setPointerCapture(event.pointerId)});
+    browserResizer.addEventListener('pointermove',event=>{if(!browserResizer.hasPointerCapture(event.pointerId))return;sendBrowserRatio((window.innerWidth-event.clientX)/window.innerWidth)});
+    browserResizer.addEventListener('pointerup',event=>{if(browserResizer.hasPointerCapture(event.pointerId))browserResizer.releasePointerCapture(event.pointerId);browserResizer.classList.remove('dragging');sendBrowserRatio((window.innerWidth-event.clientX)/window.innerWidth)});
+    browserResizer.addEventListener('pointercancel',()=>browserResizer.classList.remove('dragging'));
+    browserResizer.addEventListener('dblclick',()=>api.browser.toggleMaximize());
+    browserResizer.addEventListener('keydown',event=>{if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;event.preventDefault();const current=state?.browser?.widthRatio||0.36;api.browser.setRatio(current+(event.key==='ArrowLeft'?0.03:-0.03))});
+    window.addEventListener('resize',()=>{if(state)renderBrowser(state.browser)});
+    api.getBootstrap().then(value=>{document.documentElement.dataset.platform=value.platform;applyBootstrap(value)});api.onBootstrap(applyBootstrap);
+    api.getDesktopUpdateState().then(renderDesktopUpdate);api.onDesktopUpdateState(renderDesktopUpdate);
+    api.onState(applyState);
+  </script>
+
+</body>
+</html>

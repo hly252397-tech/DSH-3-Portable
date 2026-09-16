@@ -12,10 +12,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 // apply / runtime / 原生页面返回行逐项核对各出现 1 次、import_react11 别名未漂移、
 // PORTABLE_AUTOMATION_WORKBENCH / data-daw-launcher / installPortableAutomationWorkbench
 // 零残留，与工作台挂接面无关，重钉（旧锚点 0.1.40 = 9319c634…，实测 0.1.42 = b4839315…）。
-// 0.1.44（2026-09-16 profile 被批量升级到 0.1.44，经用户明确授权接受新版）：
-// 同样逐项核对——三锚点各出现 1 次、三个退役标记零残留、import_react11 别名在位（6 处），
-// 与工作台挂接面无关，重钉（旧锚点 0.1.42 = b4839315…，实测 0.1.44 = cd0bfb30…）。
-export const upstreamHash = 'cd0bfb30ab049aacdcd0672571b81fdf7416a171919c779c55ca17b346587321'
+export const upstreamHash = 'b4839315c00b1a4b7f6a17de58e5a9b1f6cc1b274bb5e63fac9875807582ea67'
 const begin = '// PORTABLE_AUTOMATION_WORKBENCH_BEGIN\n'
 const end = '// PORTABLE_AUTOMATION_WORKBENCH_END\n'
 const applyAnchor = 'function apply(ctx) {'

@@ -45,22 +45,22 @@ export const OFFICIAL_LAUNCH_PEERS: readonly BundledPlugin[] = [
  *   `import_react11` 别名未漂移、退役标记零残留后，把 `upstreamHash` 重钉到 0.1.42 并记录在案。
  */
 export const BUNDLED_PLUGINS: readonly BundledPlugin[] = [
-  { packageName: '@michengai/dsh-codex-ui', version: '1.1.7' },
-  { packageName: '@michengai/dsh-im-connect', version: '0.1.49' },
-  { packageName: '@michengai/dsh-automation', version: '0.1.42' },
-  { packageName: '@michengai/dsh-skills-manager', version: '0.1.50' },
-  { packageName: '@michengai/dsh-archive-manager', version: '0.1.42' },
-  { packageName: '@michengai/dsh-agency-agents', version: '0.1.42' },
-  { packageName: '@michengai/dsh-codex-pet', version: '0.1.5' },
-  { packageName: '@michengai/dsh-btw', version: '0.1.7' },
-  { packageName: '@michengai/dsh-simplify', version: '0.1.4' },
-  { packageName: '@michengai/dsh-code-review', version: '0.1.0' },
-  { packageName: '@michengai/dsh-pua', version: '0.3.11' },
+  { packageName: '@michengai/dsh-codex-ui', version: '1.1.10' },
+  { packageName: '@michengai/dsh-im-connect', version: '0.1.50' },
+  { packageName: '@michengai/dsh-automation', version: '0.1.44' },
+  { packageName: '@michengai/dsh-skills-manager', version: '0.1.52' },
+  { packageName: '@michengai/dsh-archive-manager', version: '0.1.43' },
+  { packageName: '@michengai/dsh-agency-agents', version: '0.1.43' },
+  { packageName: '@michengai/dsh-codex-pet', version: '0.1.6' },
+  { packageName: '@michengai/dsh-btw', version: '0.1.8' },
+  { packageName: '@michengai/dsh-simplify', version: '0.1.5' },
+  { packageName: '@michengai/dsh-code-review', version: '0.1.2' },
+  { packageName: '@michengai/dsh-pua', version: '0.3.13' },
   { packageName: 'dsh-context', version: '0.52.1' },
   { packageName: 'dsh-better-sidebar', version: '0.18.0' },
   { packageName: 'dsh-mcp-connector', version: '0.2.47' },
   { packageName: '@kenz1117/dsh-ui-usage-billing', version: '1.3.0' },
-  { packageName: 'dshmarket', version: '1.46.1' },
+  { packageName: 'dshmarket', version: '1.47.0' },
 ]
 
 /** 离线 store 只放社区插件，官方运行时单独预装，避免安装包把同一份依赖打两遍。 */

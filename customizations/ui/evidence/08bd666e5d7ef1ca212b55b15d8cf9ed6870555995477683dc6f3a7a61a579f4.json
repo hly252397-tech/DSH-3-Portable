@@ -1,0 +1,525 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "check": "client.js 与 client.src.js 逐字节等价（验证对象就是运行件）",
+      "ok": true
+    },
+    {
+      "check": "装配后样式里不再出现 dss-activity 选择器",
+      "ok": true,
+      "detail": {
+        "occurrences": 0
+      }
+    },
+    {
+      "check": "装配后样式仍保留卡片高度变量",
+      "ok": true
+    },
+    {
+      "check": "装配后样式仍保留输入卡 min-height 绑定",
+      "ok": true
+    },
+    {
+      "check": "retireHeroActivityGrid 源码可完整提取",
+      "ok": true
+    },
+    {
+      "check": "1920px：页面里不存在 .dss-activity 元素",
+      "ok": true,
+      "detail": {
+        "count": 0
+      }
+    },
+    {
+      "check": "1920px：遗留宿主不再被渲染成卡片",
+      "ok": true,
+      "detail": {
+        "height": 0,
+        "radius": "0px",
+        "order": "0"
+      }
+    },
+    {
+      "check": "1920px：输入卡仍受 min-height 约束",
+      "ok": true,
+      "detail": {
+        "height": 120,
+        "minHeight": "120px"
+      }
+    },
+    {
+      "check": "1920px：输入卡保持圆角且不超出内容列",
+      "ok": true,
+      "detail": {
+        "radius": "10px",
+        "cardW": 768,
+        "heroW": 816
+      }
+    },
+    {
+      "check": "1920px：内容列宽等于文档基线的 768px",
+      "ok": true,
+      "detail": {
+        "cardW": 768
+      }
+    },
+    {
+      "check": "1920px：无横向溢出",
+      "ok": true,
+      "detail": {
+        "overflowX": 0
+      }
+    },
+    {
+      "measurement": "layout",
+      "viewport": 1920,
+      "activityCards": 0,
+      "hostsBeforeRetire": 1,
+      "cardMinHeight": "120px",
+      "card": {
+        "w": 768,
+        "h": 120
+      },
+      "cardRadius": "10px",
+      "host": {
+        "w": 768,
+        "h": 0
+      },
+      "hostRadius": "0px",
+      "hostOrder": "0",
+      "hero": {
+        "w": 816,
+        "h": 463
+      },
+      "overflowX": 0
+    },
+    {
+      "check": "1440px：页面里不存在 .dss-activity 元素",
+      "ok": true,
+      "detail": {
+        "count": 0
+      }
+    },
+    {
+      "check": "1440px：遗留宿主不再被渲染成卡片",
+      "ok": true,
+      "detail": {
+        "height": 0,
+        "radius": "0px",
+        "order": "0"
+      }
+    },
+    {
+      "check": "1440px：输入卡仍受 min-height 约束",
+      "ok": true,
+      "detail": {
+        "height": 120,
+        "minHeight": "120px"
+      }
+    },
+    {
+      "check": "1440px：输入卡保持圆角且不超出内容列",
+      "ok": true,
+      "detail": {
+        "radius": "10px",
+        "cardW": 768,
+        "heroW": 816
+      }
+    },
+    {
+      "check": "1440px：内容列宽等于文档基线的 768px",
+      "ok": true,
+      "detail": {
+        "cardW": 768
+      }
+    },
+    {
+      "check": "1440px：无横向溢出",
+      "ok": true,
+      "detail": {
+        "overflowX": 0
+      }
+    },
+    {
+      "measurement": "layout",
+      "viewport": 1440,
+      "activityCards": 0,
+      "hostsBeforeRetire": 1,
+      "cardMinHeight": "120px",
+      "card": {
+        "w": 768,
+        "h": 120
+      },
+      "cardRadius": "10px",
+      "host": {
+        "w": 768,
+        "h": 0
+      },
+      "hostRadius": "0px",
+      "hostOrder": "0",
+      "hero": {
+        "w": 816,
+        "h": 463
+      },
+      "overflowX": 0
+    },
+    {
+      "check": "1366px：页面里不存在 .dss-activity 元素",
+      "ok": true,
+      "detail": {
+        "count": 0
+      }
+    },
+    {
+      "check": "1366px：遗留宿主不再被渲染成卡片",
+      "ok": true,
+      "detail": {
+        "height": 0,
+        "radius": "0px",
+        "order": "0"
+      }
+    },
+    {
+      "check": "1366px：输入卡仍受 min-height 约束",
+      "ok": true,
+      "detail": {
+        "height": 120,
+        "minHeight": "120px"
+      }
+    },
+    {
+      "check": "1366px：输入卡保持圆角且不超出内容列",
+      "ok": true,
+      "detail": {
+        "radius": "10px",
+        "cardW": 768,
+        "heroW": 816
+      }
+    },
+    {
+      "check": "1366px：内容列宽等于文档基线的 768px",
+      "ok": true,
+      "detail": {
+        "cardW": 768
+      }
+    },
+    {
+      "check": "1366px：无横向溢出",
+      "ok": true,
+      "detail": {
+        "overflowX": 0
+      }
+    },
+    {
+      "measurement": "layout",
+      "viewport": 1366,
+      "activityCards": 0,
+      "hostsBeforeRetire": 1,
+      "cardMinHeight": "120px",
+      "card": {
+        "w": 768,
+        "h": 120
+      },
+      "cardRadius": "10px",
+      "host": {
+        "w": 768,
+        "h": 0
+      },
+      "hostRadius": "0px",
+      "hostOrder": "0",
+      "hero": {
+        "w": 816,
+        "h": 463
+      },
+      "overflowX": 0
+    },
+    {
+      "check": "1120px：页面里不存在 .dss-activity 元素",
+      "ok": true,
+      "detail": {
+        "count": 0
+      }
+    },
+    {
+      "check": "1120px：遗留宿主不再被渲染成卡片",
+      "ok": true,
+      "detail": {
+        "height": 0,
+        "radius": "0px",
+        "order": "0"
+      }
+    },
+    {
+      "check": "1120px：输入卡仍受 min-height 约束",
+      "ok": true,
+      "detail": {
+        "height": 120,
+        "minHeight": "120px"
+      }
+    },
+    {
+      "check": "1120px：输入卡保持圆角且不超出内容列",
+      "ok": true,
+      "detail": {
+        "radius": "10px",
+        "cardW": 768,
+        "heroW": 816
+      }
+    },
+    {
+      "check": "1120px：内容列宽等于文档基线的 768px",
+      "ok": true,
+      "detail": {
+        "cardW": 768
+      }
+    },
+    {
+      "check": "1120px：无横向溢出",
+      "ok": true,
+      "detail": {
+        "overflowX": 0
+      }
+    },
+    {
+      "measurement": "layout",
+      "viewport": 1120,
+      "activityCards": 0,
+      "hostsBeforeRetire": 1,
+      "cardMinHeight": "120px",
+      "card": {
+        "w": 768,
+        "h": 120
+      },
+      "cardRadius": "10px",
+      "host": {
+        "w": 768,
+        "h": 0
+      },
+      "hostRadius": "0px",
+      "hostOrder": "0",
+      "hero": {
+        "w": 816,
+        "h": 463
+      },
+      "overflowX": 0
+    },
+    {
+      "check": "900px：页面里不存在 .dss-activity 元素",
+      "ok": true,
+      "detail": {
+        "count": 0
+      }
+    },
+    {
+      "check": "900px：遗留宿主不再被渲染成卡片",
+      "ok": true,
+      "detail": {
+        "height": 0,
+        "radius": "0px",
+        "order": "0"
+      }
+    },
+    {
+      "check": "900px：输入卡仍受 min-height 约束",
+      "ok": true,
+      "detail": {
+        "height": 120,
+        "minHeight": "120px"
+      }
+    },
+    {
+      "check": "900px：输入卡保持圆角且不超出内容列",
+      "ok": true,
+      "detail": {
+        "radius": "10px",
+        "cardW": 768,
+        "heroW": 816
+      }
+    },
+    {
+      "check": "900px：无横向溢出",
+      "ok": true,
+      "detail": {
+        "overflowX": 0
+      }
+    },
+    {
+      "measurement": "layout",
+      "viewport": 900,
+      "activityCards": 0,
+      "hostsBeforeRetire": 1,
+      "cardMinHeight": "120px",
+      "card": {
+        "w": 768,
+        "h": 120
+      },
+      "cardRadius": "10px",
+      "host": {
+        "w": 768,
+        "h": 0
+      },
+      "hostRadius": "0px",
+      "hostOrder": "0",
+      "hero": {
+        "w": 816,
+        "h": 463
+      },
+      "overflowX": 0
+    },
+    {
+      "check": "768px：页面里不存在 .dss-activity 元素",
+      "ok": true,
+      "detail": {
+        "count": 0
+      }
+    },
+    {
+      "check": "768px：遗留宿主不再被渲染成卡片",
+      "ok": true,
+      "detail": {
+        "height": 0,
+        "radius": "0px",
+        "order": "0"
+      }
+    },
+    {
+      "check": "768px：输入卡仍受 min-height 约束",
+      "ok": true,
+      "detail": {
+        "height": 113,
+        "minHeight": "112.5px"
+      }
+    },
+    {
+      "check": "768px：输入卡保持圆角且不超出内容列",
+      "ok": true,
+      "detail": {
+        "radius": "10px",
+        "cardW": 702,
+        "heroW": 748
+      }
+    },
+    {
+      "check": "768px：无横向溢出",
+      "ok": true,
+      "detail": {
+        "overflowX": 0
+      }
+    },
+    {
+      "measurement": "layout",
+      "viewport": 768,
+      "activityCards": 0,
+      "hostsBeforeRetire": 1,
+      "cardMinHeight": "112.5px",
+      "card": {
+        "w": 702,
+        "h": 113
+      },
+      "cardRadius": "10px",
+      "host": {
+        "w": 702,
+        "h": 0
+      },
+      "hostRadius": "0px",
+      "hostOrder": "0",
+      "hero": {
+        "w": 748,
+        "h": 456
+      },
+      "overflowX": 0
+    },
+    {
+      "check": "480px：页面里不存在 .dss-activity 元素",
+      "ok": true,
+      "detail": {
+        "count": 0
+      }
+    },
+    {
+      "check": "480px：遗留宿主不再被渲染成卡片",
+      "ok": true,
+      "detail": {
+        "height": 0,
+        "radius": "0px",
+        "order": "0"
+      }
+    },
+    {
+      "check": "480px：输入卡仍受 min-height 约束",
+      "ok": true,
+      "detail": {
+        "height": 150,
+        "minHeight": "150px"
+      }
+    },
+    {
+      "check": "480px：输入卡保持圆角且不超出内容列",
+      "ok": true,
+      "detail": {
+        "radius": "10px",
+        "cardW": 431,
+        "heroW": 460
+      }
+    },
+    {
+      "check": "480px：无横向溢出",
+      "ok": true,
+      "detail": {
+        "overflowX": 0
+      }
+    },
+    {
+      "measurement": "layout",
+      "viewport": 480,
+      "activityCards": 0,
+      "hostsBeforeRetire": 1,
+      "cardMinHeight": "150px",
+      "card": {
+        "w": 431,
+        "h": 150
+      },
+      "cardRadius": "10px",
+      "host": {
+        "w": 431,
+        "h": 0
+      },
+      "hostRadius": "0px",
+      "hostOrder": "0",
+      "hero": {
+        "w": 460,
+        "h": 493
+      },
+      "overflowX": 0
+    },
+    {
+      "check": "执行 retireHeroActivityGrid 后遗留宿主被移除",
+      "ok": true,
+      "detail": {
+        "hostsAfterPurge": 0,
+        "disposeIsFunction": true
+      }
+    },
+    {
+      "check": "退场函数返回可用的清理句柄",
+      "ok": true,
+      "detail": {
+        "hostsAfterPurge": 0,
+        "disposeIsFunction": true
+      }
+    },
+    {
+      "check": "清理后页面仍无活动卡元素",
+      "ok": true,
+      "detail": {
+        "activityCards": 0
+      }
+    }
+  ],
+  "scope": "离屏渲染：真 Chrome 152（便携盘内）+ 模块自身 CSS 常量（按 apply() 顺序装配）+ 模块自身 retireHeroActivityGrid 源码；宿主 DOM 骨架与 --dsh-* / --dsw-alias-* 令牌为声明的复刻",
+  "artifacts": {
+    "harness": ".tmp/verify-removal/harness.html"
+  },
+  "generatedAt": "2026-09-13T13:11:37.354Z"
+}

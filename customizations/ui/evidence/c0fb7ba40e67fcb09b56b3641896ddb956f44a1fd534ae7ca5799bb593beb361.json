@@ -1,0 +1,123 @@
+{
+  "status": "pass",
+  "generatedAt": "2026-09-14T15:56:32.820Z",
+  "chrome": "G:\\DSH-3-Portable\\宏建云系统\\browsers\\chrome-152.0.7977.64\\chrome.exe",
+  "results": [
+    {
+      "name": "真实 theme.css 在窄 CSS 视口下隐藏面板，且外壳判定逐点一致",
+      "ok": true,
+      "detail": "1360css@1x: 页面显示/外壳显示 · 1600css@1x: 页面显示/外壳显示 · 2560css@1x: 页面显示/外壳显示 · 1700css@0.8x: 页面显示/外壳显示 · 2000css@0.8x: 页面显示/外壳显示 · 3200css@0.8x: 页面显示/外壳显示 · 1088css@1.25x: 页面隐藏/外壳隐藏 · 1280css@1.25x: 页面显示/外壳显示 · 2048css@1.25x: 页面显示/外壳显示"
+    },
+    {
+      "name": "负向对照（**按修复前外壳策略复算**）：没有这层镜像时出现「280px 浏览器条 + 右侧空白」",
+      "ok": true,
+      "detail": "复算错位 3 组，最大 280 DIP；页面侧为实测（真实 theme.css 的 display:none），外壳侧按修复前\"只钳宽度、不镜像隐藏\"的策略推算"
+    },
+    {
+      "name": "修复后：窄视口两侧一起收手，错位为 0",
+      "ok": true,
+      "detail": "9 个组合全部为 0"
+    }
+  ],
+  "measurements": [
+    {
+      "zoom": 1,
+      "dipViewport": 1360,
+      "cssViewport": 1360,
+      "panelFallback": 320,
+      "panelWithVar": 320,
+      "pageHides": false,
+      "shellHides": false,
+      "gapBefore": 0,
+      "gapAfter": 0
+    },
+    {
+      "zoom": 1,
+      "dipViewport": 1600,
+      "cssViewport": 1600,
+      "panelFallback": 560,
+      "panelWithVar": 560,
+      "pageHides": false,
+      "shellHides": false,
+      "gapBefore": 0,
+      "gapAfter": 0
+    },
+    {
+      "zoom": 1,
+      "dipViewport": 2560,
+      "cssViewport": 2560,
+      "panelFallback": 900,
+      "panelWithVar": 900,
+      "pageHides": false,
+      "shellHides": false,
+      "gapBefore": 0,
+      "gapAfter": 0
+    },
+    {
+      "zoom": 0.8,
+      "dipViewport": 1360,
+      "cssViewport": 1700,
+      "panelFallback": 660,
+      "panelWithVar": 400,
+      "pageHides": false,
+      "shellHides": false,
+      "gapBefore": 208,
+      "gapAfter": 0
+    },
+    {
+      "zoom": 0.8,
+      "dipViewport": 1600,
+      "cssViewport": 2000,
+      "panelFallback": 900,
+      "panelWithVar": 700,
+      "pageHides": false,
+      "shellHides": false,
+      "gapBefore": 160,
+      "gapAfter": 0
+    },
+    {
+      "zoom": 0.8,
+      "dipViewport": 2560,
+      "cssViewport": 3200,
+      "panelFallback": 900,
+      "panelWithVar": 900,
+      "pageHides": false,
+      "shellHides": false,
+      "gapBefore": 0,
+      "gapAfter": 0
+    },
+    {
+      "zoom": 1.25,
+      "dipViewport": 1360,
+      "cssViewport": 1088,
+      "panelFallback": 0,
+      "panelWithVar": 0,
+      "pageHides": true,
+      "shellHides": true,
+      "gapBefore": 280,
+      "gapAfter": 0
+    },
+    {
+      "zoom": 1.25,
+      "dipViewport": 1600,
+      "cssViewport": 1280,
+      "panelFallback": 240,
+      "panelWithVar": 448,
+      "pageHides": false,
+      "shellHides": false,
+      "gapBefore": 0,
+      "gapAfter": 0
+    },
+    {
+      "zoom": 1.25,
+      "dipViewport": 2560,
+      "cssViewport": 2048,
+      "panelFallback": 900,
+      "panelWithVar": 900,
+      "pageHides": false,
+      "shellHides": false,
+      "gapBefore": 0,
+      "gapAfter": 0
+    }
+  ]
+}

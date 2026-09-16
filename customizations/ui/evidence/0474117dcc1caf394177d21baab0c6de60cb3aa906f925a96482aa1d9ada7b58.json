@@ -1,0 +1,71 @@
+{
+  "status": "pass",
+  "generatedAt": "2026-09-15T00:01:10.953Z",
+  "inputs": {
+    "measuredViewport": 1384,
+    "measuredPanel": 581,
+    "appMarginFromLiveDom": 640,
+    "ratio": 0.4198
+  },
+  "results": [
+    {
+      "name": "负向对照（旧常量 1040）：复现实机那条白带",
+      "ok": true,
+      "detail": "视口 1384 → 卡 581 / 视图 344 / 白带 **237**（实机实测正是 237）"
+    },
+    {
+      "name": "修复后（常量 640 = 页面实际执行值）：白带为 0",
+      "ok": true,
+      "detail": "视口 1384: 卡 581 = 视图 581；视口 1600: 卡 672 = 视图 672；视口 2560: 卡 1075 = 视图 1075"
+    },
+    {
+      "name": "宽窗口无回归（2560 下新旧都为 0）",
+      "ok": true,
+      "detail": "旧 0 / 新 0"
+    }
+  ],
+  "measurements": [
+    {
+      "margin": 1040,
+      "viewport": 1384,
+      "card": 581,
+      "view": 344,
+      "band": 237
+    },
+    {
+      "margin": 1040,
+      "viewport": 1600,
+      "card": 672,
+      "view": 560,
+      "band": 112
+    },
+    {
+      "margin": 1040,
+      "viewport": 2560,
+      "card": 1075,
+      "view": 1075,
+      "band": 0
+    },
+    {
+      "margin": 640,
+      "viewport": 1384,
+      "card": 581,
+      "view": 581,
+      "band": 0
+    },
+    {
+      "margin": 640,
+      "viewport": 1600,
+      "card": 672,
+      "view": 672,
+      "band": 0
+    },
+    {
+      "margin": 640,
+      "viewport": 2560,
+      "card": 1075,
+      "view": 1075,
+      "band": 0
+    }
+  ]
+}

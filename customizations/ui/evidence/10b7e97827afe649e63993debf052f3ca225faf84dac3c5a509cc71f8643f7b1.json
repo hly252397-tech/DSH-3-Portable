@@ -1,0 +1,186 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "label": "expanded",
+      "footer": {
+        "x": 7,
+        "y": 775,
+        "w": 238,
+        "h": 53,
+        "right": 245,
+        "bottom": 828
+      },
+      "buttons": [
+        {
+          "x": 15,
+          "y": 784,
+          "w": 107,
+          "h": 36,
+          "right": 122,
+          "bottom": 820,
+          "label": "重启应用",
+          "textFits": true,
+          "hit": true
+        },
+        {
+          "x": 130,
+          "y": 784,
+          "w": 107,
+          "h": 36,
+          "right": 237,
+          "bottom": 820,
+          "label": "设置",
+          "textFits": true,
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "zoom 0.8",
+      "footer": {
+        "x": 7.24609375,
+        "y": 983.28125,
+        "w": 237.5,
+        "h": 53.22265625,
+        "right": 244.74609375,
+        "bottom": 1036.50390625
+      },
+      "buttons": [
+        {
+          "x": 15.234375,
+          "y": 992.51953125,
+          "w": 106.7578125,
+          "h": 35.99609375,
+          "right": 121.9921875,
+          "bottom": 1028.515625,
+          "label": "重启应用",
+          "textFits": true,
+          "hit": true
+        },
+        {
+          "x": 129.98046875,
+          "y": 992.51953125,
+          "w": 106.77734375,
+          "h": 35.99609375,
+          "right": 236.7578125,
+          "bottom": 1028.515625,
+          "label": "设置",
+          "textFits": true,
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "zoom 1.25",
+      "footer": {
+        "x": 6.800000190734863,
+        "y": 608.4000244140625,
+        "w": 238.40000915527344,
+        "h": 52.79999923706055,
+        "right": 245.2000093460083,
+        "bottom": 661.200023651123
+      },
+      "buttons": [
+        {
+          "x": 14.800000190734863,
+          "y": 617.2000122070312,
+          "w": 107.20000457763672,
+          "h": 36,
+          "right": 122.00000476837158,
+          "bottom": 653.2000122070312,
+          "label": "重启应用",
+          "textFits": true,
+          "hit": true
+        },
+        {
+          "x": 130,
+          "y": 617.2000122070312,
+          "w": 107.20000457763672,
+          "h": 36,
+          "right": 237.20000457763672,
+          "bottom": 653.2000122070312,
+          "label": "设置",
+          "textFits": true,
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "zoom 1.5",
+      "footer": {
+        "x": 16,
+        "y": 450,
+        "w": 36,
+        "h": 92,
+        "right": 52,
+        "bottom": 542
+      },
+      "buttons": [
+        {
+          "x": 16,
+          "y": 458,
+          "w": 36,
+          "h": 36,
+          "right": 52,
+          "bottom": 494,
+          "label": "重启应用",
+          "textFits": true,
+          "hit": true
+        },
+        {
+          "x": 16,
+          "y": 498,
+          "w": 36,
+          "h": 36,
+          "right": 52,
+          "bottom": 534,
+          "label": "设置",
+          "textFits": true,
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "confirm/cancel and isolated restart bridge passed; real desktop untouched"
+    },
+    {
+      "label": "settings opens and returns"
+    },
+    {
+      "label": "compact",
+      "footer": {
+        "x": 16,
+        "y": 728,
+        "w": 36,
+        "h": 92,
+        "right": 52,
+        "bottom": 820
+      },
+      "buttons": [
+        {
+          "x": 16,
+          "y": 736,
+          "w": 36,
+          "h": 36,
+          "right": 52,
+          "bottom": 772,
+          "label": "重启应用",
+          "textFits": true,
+          "hit": true
+        },
+        {
+          "x": 16,
+          "y": 776,
+          "w": 36,
+          "h": 36,
+          "right": 52,
+          "bottom": 812,
+          "label": "设置",
+          "textFits": true,
+          "hit": true
+        }
+      ]
+    }
+  ]
+}

@@ -43,26 +43,26 @@ test('每个内置插件都钉死精确版本', () => {
       true,
     )
   }
-  assert.equal(BUNDLED_PLUGINS.find(plugin => plugin.packageName === 'dshmarket')?.version, '1.46.1')
+  assert.equal(BUNDLED_PLUGINS.find(plugin => plugin.packageName === 'dshmarket')?.version, '1.47.0')
   assert.deepEqual(Object.fromEntries(BUNDLED_PLUGINS.map(plugin => [plugin.packageName, plugin.version])), {
-    '@michengai/dsh-codex-ui': '1.1.7',
-    '@michengai/dsh-im-connect': '0.1.49',
-    // 0.1.42（上游 v1.0.60 目标）：用户的自动化工作台补丁已按授权重钉到 0.1.42 的
+    '@michengai/dsh-codex-ui': '1.1.10',
+    '@michengai/dsh-im-connect': '0.1.50',
+    // 0.1.44（2026-09-16 用户授权接受 profile 批量升级）：自动化工作台补丁已按授权重钉到 0.1.44 的
     // 三锚点契约（apply / runtime / 原生页面返回行），详见 build.mjs 注释与 I030 记录。
-    '@michengai/dsh-automation': '0.1.42',
-    '@michengai/dsh-skills-manager': '0.1.50',
-    '@michengai/dsh-archive-manager': '0.1.42',
-    '@michengai/dsh-agency-agents': '0.1.42',
-    '@michengai/dsh-codex-pet': '0.1.5',
-    '@michengai/dsh-btw': '0.1.7',
-    '@michengai/dsh-simplify': '0.1.4',
-    '@michengai/dsh-code-review': '0.1.0',
-    '@michengai/dsh-pua': '0.3.11',
+    '@michengai/dsh-automation': '0.1.44',
+    '@michengai/dsh-skills-manager': '0.1.52',
+    '@michengai/dsh-archive-manager': '0.1.43',
+    '@michengai/dsh-agency-agents': '0.1.43',
+    '@michengai/dsh-codex-pet': '0.1.6',
+    '@michengai/dsh-btw': '0.1.8',
+    '@michengai/dsh-simplify': '0.1.5',
+    '@michengai/dsh-code-review': '0.1.2',
+    '@michengai/dsh-pua': '0.3.13',
     'dsh-context': '0.52.1',
     'dsh-better-sidebar': '0.18.0',
     'dsh-mcp-connector': '0.2.47',
     '@kenz1117/dsh-ui-usage-billing': '1.3.0',
-    dshmarket: '1.46.1',
+    dshmarket: '1.47.0',
   })
 })
 

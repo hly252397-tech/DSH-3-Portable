@@ -1,0 +1,370 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "label": "initial restored state",
+      "native": false,
+      "cards": false,
+      "bottom": false,
+      "main": {
+        "x": 252,
+        "right": 1338,
+        "width": 1086
+      },
+      "panel": null,
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "native files opens",
+      "native": true,
+      "cards": false,
+      "bottom": false,
+      "main": {
+        "x": 252,
+        "right": 733,
+        "width": 481
+      },
+      "panel": null,
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "native document from real file tree",
+      "native": true,
+      "cards": false,
+      "bottom": false,
+      "main": {
+        "x": 252,
+        "right": 733,
+        "width": 481
+      },
+      "panel": null,
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "card toggle collapses native",
+      "native": false,
+      "cards": true,
+      "bottom": false,
+      "main": {
+        "x": 68.015625,
+        "right": 774,
+        "width": 705.984375
+      },
+      "panel": {
+        "x": 780,
+        "right": 1344,
+        "width": 564
+      },
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "card file preview",
+      "native": false,
+      "cards": true,
+      "bottom": false,
+      "main": {
+        "x": 68,
+        "right": 774,
+        "width": 706
+      },
+      "panel": {
+        "x": 780,
+        "right": 1344,
+        "width": 564
+      },
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "native reopens and collapses cards",
+      "native": true,
+      "cards": false,
+      "bottom": false,
+      "main": {
+        "x": 251.890625,
+        "right": 733.203125,
+        "width": 481.3125
+      },
+      "panel": null,
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "native collapses by button",
+      "native": false,
+      "cards": false,
+      "bottom": false,
+      "main": {
+        "x": 252,
+        "right": 1338,
+        "width": 1086
+      },
+      "panel": null,
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "cards reopen by button",
+      "native": false,
+      "cards": true,
+      "bottom": false,
+      "main": {
+        "x": 68,
+        "right": 774,
+        "width": 706
+      },
+      "panel": {
+        "x": 780,
+        "right": 1344,
+        "width": 564
+      },
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "bottom coexists with card",
+      "native": false,
+      "cards": true,
+      "bottom": true,
+      "main": {
+        "x": 68,
+        "right": 774,
+        "width": 706
+      },
+      "panel": {
+        "x": 780,
+        "right": 1344,
+        "width": 564
+      },
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "native does not close bottom",
+      "native": true,
+      "cards": false,
+      "bottom": true,
+      "main": {
+        "x": 251.71875,
+        "right": 733.578125,
+        "width": 481.859375
+      },
+      "panel": null,
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "native zoom 0.8",
+      "native": true,
+      "cards": false,
+      "bottom": false,
+      "main": {
+        "x": 251.9921875,
+        "right": 1069.00390625,
+        "width": 817.01171875
+      },
+      "panel": null,
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "cards zoom 0.8",
+      "native": false,
+      "cards": true,
+      "bottom": false,
+      "main": {
+        "x": 251.9921875,
+        "right": 1110,
+        "width": 858.0078125
+      },
+      "panel": {
+        "x": 1116.015625,
+        "right": 1680,
+        "width": 563.984375
+      },
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "native zoom 1.25",
+      "native": true,
+      "cards": false,
+      "bottom": false,
+      "main": {
+        "x": 252,
+        "right": 667.6875,
+        "width": 415.6875
+      },
+      "panel": null,
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "cards zoom 1.25",
+      "native": false,
+      "cards": true,
+      "bottom": false,
+      "main": {
+        "x": 68,
+        "right": 581.2000122070312,
+        "width": 513.2000122070312
+      },
+      "panel": {
+        "x": 587.2000122070312,
+        "right": 1075.2000122070312,
+        "width": 488
+      },
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "native zoom 1.5",
+      "native": true,
+      "cards": false,
+      "bottom": false,
+      "main": {
+        "x": 68,
+        "right": 682.3021240234375,
+        "width": 614.3021240234375
+      },
+      "panel": null,
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "cards zoom 1.5",
+      "native": false,
+      "cards": true,
+      "bottom": false,
+      "main": {
+        "x": 68,
+        "right": 402,
+        "width": 334
+      },
+      "panel": {
+        "x": 408,
+        "right": 896,
+        "width": 488
+      },
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "reload native restored",
+      "native": false,
+      "cards": true,
+      "bottom": false,
+      "main": {
+        "x": 68,
+        "right": 774,
+        "width": 706
+      },
+      "panel": {
+        "x": 780,
+        "right": 1344,
+        "width": 564
+      },
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "after reload card opens",
+      "native": false,
+      "cards": true,
+      "bottom": false,
+      "main": {
+        "x": 68,
+        "right": 774,
+        "width": 706
+      },
+      "panel": {
+        "x": 780,
+        "right": 1344,
+        "width": 564
+      },
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    },
+    {
+      "label": "reload cards restored",
+      "native": false,
+      "cards": true,
+      "bottom": false,
+      "main": {
+        "x": 68,
+        "right": 774,
+        "width": 706
+      },
+      "panel": {
+        "x": 780,
+        "right": 1344,
+        "width": 564
+      },
+      "nativePanel": {
+        "x": 0,
+        "right": 0,
+        "width": 0
+      }
+    }
+  ],
+  "realProfile": true,
+  "noMessagesSent": true
+}

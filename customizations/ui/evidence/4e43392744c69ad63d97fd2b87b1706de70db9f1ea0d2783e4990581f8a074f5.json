@@ -1,0 +1,26 @@
+{
+ "status": "pass",
+ "results": [
+  {
+   "label": "tracking-tokens-verification",
+   "overflow": 0,
+   "groups": [
+    {
+     "s": "settings h1 (24px)",
+     "before": "normal",
+     "after": "-0.48px",
+     "token": "var(--chrome-tracking-tight) = -0.02em"
+    },
+    {
+     "s": "about h1",
+     "token": "var(--chrome-tracking-tight,-.02em)"
+    },
+    {
+     "s": "shortcuts h1",
+     "token": "var(--chrome-tracking-tight,-.02em) added"
+    }
+   ],
+   "note": "CDP 实机测量 v1.0.63 槽 settings 窗口 h1：normal→-0.48px（0.02em×24px 精确）"
+  }
+ ]
+}

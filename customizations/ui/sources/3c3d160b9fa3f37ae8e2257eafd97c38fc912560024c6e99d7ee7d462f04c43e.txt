@@ -1,0 +1,28 @@
+import { readFile, writeFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
+
+// The local fork ships a prebuilt client. Preserve its native-browser patch
+// and lazy chunks while applying the same host compatibility as Sidebar.tsx.
+const file = resolve('Data/DSH/profiles/web/local/dsh-better-sidebar/lib/client.js')
+let client = await readFile(file, 'utf8')
+const before = 'document.querySelector("#root [data-slot=\\"conversation\\"]")?.parentElement'
+const after = '(document.querySelector("#root [data-slot=\\"main\\"]")?.parentElement ?? document.querySelector("#root [data-slot=\\"conversation\\"]")?.parentElement ?? document.querySelector("#root [data-dsh-frame] > [data-pane=\\"conversation\\"]") ?? void 0)'
+if (!client.includes(after)) {
+  if (client.split(before).length !== 2) throw new Error('Sidebar locator changed; review host compatibility before rebuilding')
+  client = client.replace(before, after)
+}
+// Apply to the embedded layout stylesheet, including dragging/reduced motion.
+const oldSelector = '#root :has(> [data-slot=\\"conversation\\"])'
+const newSelector = '#root :is(:has(> [data-slot=\\"conversation\\"]),:has(> [data-slot=\\"main\\"]))'
+if (!client.includes(newSelector) && !client.includes(oldSelector)) throw new Error('Sidebar layout stylesheet changed')
+client = client.replaceAll(oldSelector, newSelector)
+// Public local-fork action for coordination with the official right panel.
+const serviceAnchor = '\t\t\t\tsubscribeState,\n'
+const panelAction = '\t\t\t\tsetPanelOpen: (open) => { store.reduce(state => state.panelOpen === open ? state : { ...state, panelOpen: open }); },\n'
+client = client.replaceAll('\r\n', '\n')
+if (!client.includes(panelAction)) {
+  if (client.split(serviceAnchor).length !== 2) throw new Error('Sidebar service changed; review panel coordination before rebuilding')
+  client = client.replace(serviceAnchor, serviceAnchor + panelAction)
+}
+await writeFile(file, client)
+console.log('Updated local sidebar host layout compatibility')
