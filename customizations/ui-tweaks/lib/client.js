@@ -210,29 +210,31 @@ window.__ModuleLoader__.load({
 
     const saved = new Map();
 
-    function lift(el, targetLeft, targetTop) {
-      if (!saved.has(el)) saved.set(el, el.getAttribute('style'));
-      el.classList.add(LIFT);
-      el.style.position = 'fixed';
-      el.style.left = Math.round(targetLeft) + 'px';
-      el.style.top = Math.round(targetTop) + 'px';
-      el.style.margin = '0';
-      // fixed 的视口坐标理论值＝目标值；若祖先带 transform 会整体偏移，量一次修回来
-      for (let pass = 0; pass < 2; pass++) {
-        const r = el.getBoundingClientRect();
-        const dx = targetLeft - r.left;
-        const dy = targetTop - r.top;
-        if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) break;
-        el.style.left = Math.round(parseFloat(el.style.left) + dx) + 'px';
-        el.style.top = Math.round(parseFloat(el.style.top) + dy) + 'px';
+    // 2026-09-16 改：**真正把节点搬进黑洞那一行**，不再用固定定位（固定定位不看邻居，必然可能压住「＋放进黑洞」）。
+    // 记住原父节点与下一个兄弟，回退时原位插回。
+    function lift(el, dock) {
+      if (!saved.has(el)) {
+        saved.set(el, { style: el.getAttribute('style'), parent: el.parentElement, next: el.nextElementSibling });
       }
+      el.classList.add(LIFT);
+      el.style.removeProperty('position');
+      el.style.removeProperty('left');
+      el.style.removeProperty('top');
+      el.style.removeProperty('margin');
+      if (el.parentElement !== dock) dock.appendChild(el);
     }
 
     function unLift(el) {
       const prev = saved.get(el);
       el.classList.remove(LIFT);
-      if (prev !== null && prev !== undefined) el.setAttribute('style', prev);
-      else el.removeAttribute('style');
+      if (prev) {
+        if (prev.style !== null && prev.style !== undefined) el.setAttribute('style', prev.style);
+        else el.removeAttribute('style');
+        if (prev.parent && prev.parent.isConnected && el.parentElement !== prev.parent) {
+          const anchor = prev.next && prev.next.parentElement === prev.parent ? prev.next : null;
+          prev.parent.insertBefore(el, anchor);
+        }
+      }
       saved.delete(el);
     }
 
@@ -293,25 +295,18 @@ window.__ModuleLoader__.load({
         return;
       }
 
-      const widths = items.map((el) => (el === model ? modelW : chipW));
-      const topEdge = dr0.top + Math.max(0, (dr0.height - mh) / 2);
-      let cursor = rightEdge;
-      for (let i = items.length - 1; i >= 0; i--) {
-        lift(items[i], cursor - widths[i], topEdge);
-        cursor -= widths[i] + 8;
-      }
+      // 交给行自己的 flex 排：左边那组不被压缩，计价/模型 margin-left:auto 顶到最右；放不下自动换行（仍在行内）。
+      for (const el of items) lift(el, dock);
 
-      // 可见性校验（用当下的黑洞行矩形，避免 React 重排后拿旧值判）
+      // 校验不再比对像素坐标（节点现在真的在行里）：只验「挂上了 + 有尺寸 + 没溢出右边界」
       const dr = dock.getBoundingClientRect();
-      const band = dr.top + Math.max(0, (dr.height - mh) / 2);
       const bad = [];
       for (let i = 0; i < items.length; i++) {
-        const r = items[i].getBoundingClientRect();
-        const inView = r.left >= 0 && r.right <= window.innerWidth + 1 && r.top >= 0 && r.bottom <= window.innerHeight + 1;
-        const onBand = Math.abs(r.top - band) <= 14 && r.right <= dr.right + 2 && r.left >= Math.min(dr.left - 60, 0);
-        if (!inView) bad.push(`offview[${i}]`);
-        else if (!onBand) bad.push(`band[${i}]dy=${Math.round(r.top - band)}r=${Math.round(r.right)}/${Math.round(dr.right)}`);
-        else if (r.width < 8 || r.height < 8) bad.push(`tiny[${i}]`);
+        const el = items[i];
+        if (!dock.contains(el)) { bad.push(`detached[${i}]`); continue; }
+        const r = el.getBoundingClientRect();
+        if (r.width < 8 || r.height < 8) bad.push(`tiny[${i}]`);
+        else if (r.right > dr.right + 2) bad.push(`overflow[${i}]`);
       }
       if (bad.length > 0) {
         revert(dock, items);
