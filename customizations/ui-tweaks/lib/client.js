@@ -119,6 +119,11 @@ window.__ModuleLoader__.load({
       // ② 计价胶囊自带 JetBrains Mono 22px 数字 + 999px 填充药丸 + 警示配色，与右侧纯文本模型块不是一套语言；
       // ③ 胶囊 22px vs 模型 28px，而我按顶对齐 → 中线差 3px；统一高度后顶与中线同时对齐。
       '.dbh-dock .dbh-orb{background:transparent!important;box-shadow:none!important}',
+      // 「新建会话这里」修（2026-09-16 用户）：空白态里黑洞那一行被挤进输入框那一行、压在占位文字上。
+      // 实测（诊断实例）：它的槽容器是 display:contents，内容直接参与 composerStack 的纵向 flex，
+      // 且 DOM 顺序**在输入行之前** → 只要让槽容器独占一整行，它就回到输入框上方（与会话态一致）；
+      // 不能用 order:-1（那会跑到标题/卡片上面去）。
+      '.wSkVaW_composerHero [data-slot="conversation.input.dock"]{display:block!important;width:100%!important;flex:0 0 100%!important}',
       // 「做成这样」（2026-09-16 用户：空白态那一行要跟会话态同格式）：
       // 空白态是黑洞插件的 hero 变体——orb 带径向渐变圆底 + 光环、`放进黑洞`带紫色胶囊；
       // 会话态是裸图标 + 纯文字。这里用更高特异性 + 简写把两者压平（背景图/阴影/边框/圆角一起清）。
