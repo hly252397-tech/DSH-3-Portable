@@ -119,11 +119,9 @@ window.__ModuleLoader__.load({
       // ② 计价胶囊自带 JetBrains Mono 22px 数字 + 999px 填充药丸 + 警示配色，与右侧纯文本模型块不是一套语言；
       // ③ 胶囊 22px vs 模型 28px，而我按顶对齐 → 中线差 3px；统一高度后顶与中线同时对齐。
       '.dbh-dock .dbh-orb{background:transparent!important;box-shadow:none!important}',
-      // 「新建会话这里」修（2026-09-16 用户）：空白态里黑洞那一行被挤进输入框那一行、压在占位文字上。
-      // 实测（诊断实例）：它的槽容器是 display:contents，内容直接参与 composerStack 的纵向 flex，
-      // 且 DOM 顺序**在输入行之前** → 只要让槽容器独占一整行，它就回到输入框上方（与会话态一致）；
-      // 不能用 order:-1（那会跑到标题/卡片上面去）。
-      '.wSkVaW_composerHero [data-slot="conversation.input.dock"]{display:block!important;width:100%!important;flex:0 0 100%!important}',
+      // 【2026-09-16 撤回】这里曾用 CSS 强行让空白态的槽容器独占一行——实测这是**错的**：
+      // 它会顶掉插件的 headline/卡片并把那一行推到顶部（用户实拍："这是现在的样子"）。插件**自己**有摆放开关
+      // `data-dbh-dock-placement="stacked"`（叠在输入框上方，就是正确样式）——改由 JS 写那个属性，CSS 不再插手。
       // 「做成这样」（2026-09-16 用户：空白态那一行要跟会话态同格式）：
       // 空白态是黑洞插件的 hero 变体——orb 带径向渐变圆底 + 光环、`放进黑洞`带紫色胶囊；
       // 会话态是裸图标 + 纯文字。这里用更高特异性 + 简写把两者压平（背景图/阴影/边框/圆角一起清）。
@@ -144,10 +142,11 @@ window.__ModuleLoader__.load({
       'position:static!important;left:auto!important;top:auto!important;right:auto!important;',
       'margin-left:auto!important;flex:none!important;min-width:0!important}',
       '.dsh-tweaks-lifted ~ .dsh-tweaks-lifted{margin-left:0!important}',
-      '.dbh-dock{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important}',
+      // 只在「我的搬运生效时」（存在 seat = 会话态）才改 dock 布局：空白态一律交给插件自己的摆放规则。
+      '.dbh-dock:has(.dsh-tweaks-seat){display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important}',
       // 「自适应靠右」：左边那组（黑洞空间 / ＋放进黑洞）**不被压缩**，右边的计价与模型用自动外边距顶到最右；
       // 宽度不够时 flex-wrap 让它们换到第二行（仍在同一行容器内），不会互相覆盖，也不会把左边挤走。
-      '.dbh-dock > :not(.dsh-tweaks-lifted){flex:0 0 auto!important;min-width:max-content!important}',
+      '.dbh-dock:has(.dsh-tweaks-seat) > :not(.dsh-tweaks-lifted){flex:0 0 auto!important;min-width:max-content!important}',
       // 撤回「只显示图标」（2026-09-16）：实测模型座**只有文字 + 下拉箭头、没有真图标**，
       // 藏掉文字后只剩一个 ⌄，整行认不出（用户："我已经看不清这一行了"）。必须保留文字。
       // 行内已用 flex 流 + nowrap，不会再压盖邻居，因此无需再藏。
@@ -184,7 +183,7 @@ window.__ModuleLoader__.load({
       '<path d=\'M6.2 9h3.6\'/></svg>")!important}',
       // 「调」（2026-09-16 用户）：目标是让黑洞行四项回到一行 —— 只缩计价胶囊的字号/内边距并收紧行内间距，
       // **不删任何信息**（"平价"保留，只是变紧凑），模型名不做任何裁剪。
-      '.dbh-dock{gap:6px!important}',
+      '.dbh-dock:has(.dsh-tweaks-seat){gap:6px!important}',
       '.dsh-tweaks-lifted .VWh0dG_feeInline{font-size:11px!important;height:18px!important;padding:0 4px!important}',
       '.dsh-tweaks-lifted .VWh0dG_triggerMetric{font-size:13px!important;line-height:18px!important}',
       '.dsh-tweaks-lifted .VWh0dG_triggerYen{font-size:11px!important;line-height:18px!important}',
@@ -199,13 +198,15 @@ window.__ModuleLoader__.load({
       // —— 对话到底部要「渐隐消失」，而不是压在图标上（2026-09-16 用户）——
       // 根因：输入区这一层背景是透明的，对话滚到底就直接透出来压在黑洞/计价/模型那一行上。
       // 修法：① 给输入区底色（用 Canvas 系统色，跟随主题，不写死颜色）；② 上沿加一条透明→底色的过渡带，形成渐隐。
-      '.wSkVaW_composerStack{position:relative!important;background:Canvas!important}',
-      '.wSkVaW_composerStack::before{content:""!important;position:absolute!important;left:0!important;right:0!important;',
+      // 【审查 P3】官方给 hero 同一元素同时挂 `composerStack`+`composerHero` 两个类，所以这两条必须排除 hero，
+      // 否则空白态也会被铺上不透明 Canvas 底 + 14px 渐隐带。
+      '.wSkVaW_composerStack:not(.wSkVaW_composerHero){position:relative!important;background:Canvas!important}',
+      '.wSkVaW_composerStack:not(.wSkVaW_composerHero)::before{content:""!important;position:absolute!important;left:0!important;right:0!important;',
       'top:-14px!important;height:14px!important;pointer-events:none!important;background:linear-gradient(to bottom,transparent,Canvas)!important}',
       // 同一问题在「黑洞那一行」上还有一份：它可能不在 composerStack 的覆盖范围内（2026-09-16 用户图二：对话文字压住
       // 黑洞空间/放进黑洞 那行）。`.dbh-dock` 是实测存在的锚点，直接给它底色 + 同款渐隐带。
-      '.dbh-dock{position:relative!important;background:Canvas!important;z-index:2!important}',
-      '.dbh-dock::before{content:""!important;position:absolute!important;left:0!important;right:0!important;',
+      '.dbh-dock:has(.dsh-tweaks-seat){position:relative!important;background:Canvas!important;z-index:2!important}',
+      '.dbh-dock:has(.dsh-tweaks-seat)::before{content:""!important;position:absolute!important;left:0!important;right:0!important;',
       'top:-10px!important;height:10px!important;pointer-events:none!important;background:linear-gradient(to bottom,transparent,Canvas)!important}',
       // 收起态图标轨的悬停名称气泡（fixed 定位，避免被 root 的 overflow:hidden 裁掉）
       '.tw-rail-tip{position:fixed;left:-9999px;top:0;z-index:2147483000;pointer-events:none;opacity:0;',
@@ -344,12 +345,25 @@ window.__ModuleLoader__.load({
       if (dock) dock.style.removeProperty('padding-right');
     }
 
+    // 【2026-09-16 按独立审查（Zcode）撤回】这里曾写 `data-dbh-dock-placement="stacked"` 想翻转空白态摆放——
+    // 那是**黑洞插件的输出**不是输入：它每次 sync 都先 removeAttribute 再按实测宽度重算（dsh-black-hole:932/949），
+    // 且 `stacked` 只切 CSS 分支、坐标来自它按另一分支算出的变量 ⇒ 两个写者互抢 + 混合态。
+    // 结论：空白态摆放**完全交给黑洞插件自己**，本插件不写、不碰。
+
     function applyAll() {
       injectStyle();
       const dock = findDock();
       if (!dock) { state('nodock'); return; }
+      // 【审查 P2】空白态（hero）显式短路：不能靠 `:has(.dsh-tweaks-seat)` 兜底——hero 里几何守卫会退化放行
+      // （dock 父节点是 display:contents，宽度 0×0 → 只剩 `width>=260` 在判），搬运会在 hero 里建 seat，
+      // 于是所有收窄过的规则又被 `:has()` 命中。所以这里直接不动、并回退任何既有搬运。
+      if (dock.closest('.wSkVaW_composerHero')) {
+        revert(dock, [findModelSeat()]);
+        state('hero');
+        return;
+      }
       const modelRaw = findModelSeat();
-      if (!modelRaw) { state('nomodel'); return; }
+      if (!modelRaw) { revert(dock, []); state('nomodel'); return; }
       const dr0 = dock.getBoundingClientRect();
       // 只认「横跨输入区的那一行」：hero/欢迎态下 .dbh-dock 只是标题旁的一枚小胶囊，那种情况一律不动。
       const stack = dock.parentElement;
