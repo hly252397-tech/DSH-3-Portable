@@ -311,8 +311,34 @@ window.__ModuleLoader__.load({
       setInterval(tick, 1500);
     }
 
+    // ===== 侧栏标题区：取消「单击」动作，只保留「双击」（2026-09-16 用户要求）=====
+    // 事实：dsh-desktop-bridge 只在 document 捕获阶段注册了 **dblclick**（.dcu-brand → toggleSidebar）；
+    // 单击动作来自 codex-ui 的原生绑定，仍在生效。用户要求：这里只留双击。
+    // 做法：捕获阶段拦掉品牌区内的 click（stopImmediatePropagation 让后注册的 React/插件处理器收不到），
+    // **完全不碰 dblclick**（浏览器在第二次点击后仍会派发 dblclick，与 click 的拦截互不影响）。
+    // 例外：点在品牌区内的交互控件（如搜索按钮）上必须放行，否则会把搜索点死。
+    function suppressBrandSingleClick() {
+      if (window.__dshTweaksBrandClick === true) return;
+      const interactiveSelector = 'button,a,input,select,textarea,[role="button"],[role="link"],[role="tab"]';
+      const onClickCapture = (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        const brand = target.closest('.dcu-brand');
+        if (brand === null) return;
+        const interactive = target.closest(interactiveSelector);
+        // 点在品牌自身（或其非交互子元素）→ 拦掉单击；点在内部交互控件（搜索等）→ 放行
+        if (interactive !== null && interactive !== brand) return;
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+      };
+      document.addEventListener('click', onClickCapture, true);
+      window.__dshTweaksBrandClick = true;
+    }
+
     function apply() {
       injectStyle();
+      suppressBrandSingleClick();
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', applyAll, { once: true });
       } else {
