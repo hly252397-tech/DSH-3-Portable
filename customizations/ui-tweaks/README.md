@@ -56,3 +56,30 @@
 - `evidence/accepted-dock-row-wide-20260916.png`：1376px 宽窗口，黑洞行右端＝`峰时 ¥30.4  DeepSeek-V41-Fl… ⌄`，单行不重叠。
 - `evidence/accepted-narrow-fallback-20260916.png`：1150px 窄窗，放不下 → 自动降级（胶囊留在输入行），不压字不换行。
 - 取数方式：`scripts/look-ui.ps1` 只抓应用窗口矩形（临时置顶再抓，抓完取消置顶），再用 `read_image` 自己判。
+
+## 侧栏页脚用量卡降噪（2026-09-16 用户「这里太丑了」）
+
+**病点（实测计算样式，不是感觉）**：
+
+| 项 | 改前 | 改后 |
+| --- | --- | --- |
+| 数值 `9.10` | 22px / 600 / **JetBrains Mono** | **14px / 600 / Inter** |
+| 卡片 | 146×**50px**，白底 78% + 1px 边框 + 阴影 + 12px 圆角 | 146×**36px**，背景/边框/阴影全透明，9px 圆角 |
+| 图标 | 32px | 22px |
+| 与「设置」对齐 | 卡顶 719 vs 设置…基线不齐（`.dcu-foot` 是 `align-items:end`） | 同轴 719（改 `center`） |
+
+同伴是 36px 扁平幽灵按钮 `button.dcu-settings-trigger`，而卡片 50px + 盒子装饰 → 两种视觉语言并排 = 丑。
+**作用域只限 `.dcu-foot`**，插件仪表盘里的大数字保持原设计。
+
+证据：`evidence/before-sidebar-footer-20260916.png`（用户原始截图）→ `evidence/accepted-sidebar-footer-after-20260916.png`（改后）。
+
+⚠️ **验收环境口径（重要）**：诊断实例**没有**外壳 `assets/theme.css`，而该文件在浅色下强制
+`body[data-color-scheme="light"] .dcu-root{background:#fff!important}`（诊断实例默认淡绿底）。
+所以只在诊断实例里看图会**误判**——必须先把 `theme.css` 以 `text/css` 喂进去 + 设 `data-color-scheme=light`
+再验收（本轮已按此对照，数字与观感均成立）。另外 `data-dsh-preset="qoder"` 下外壳另有
+`.dcu-footer-actions{display:flex;flex-direction:column}` 等规则；本机不是 qoder 预设，故未触发。
+
+**未验收项（如实标注）**：App 自身像素未验——用户 App 的左栏处于**收起态**（`.dcu-root.dcu-compact`，
+页脚只渲染 `VWh0dG_railButton`，不渲染本卡），而 Ctrl+B（SendKeys 与 keybd_event 各一次）都未能切换
+其展开态（两次截图 sha256 完全相同，说明窗口内容零变化）。未去改用户界面状态凑验收。
+

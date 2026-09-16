@@ -41,7 +41,21 @@ window.__ModuleLoader__.load({
       'content:url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2371717a\' stroke-width=\'1.6\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><circle cx=\'12\' cy=\'12\' r=\'5.6\'/><ellipse cx=\'12\' cy=\'12\' rx=\'9.4\' ry=\'3.6\' transform=\'rotate(-20 12 12)\'/></svg>")!important;',
       'width:18px!important;height:18px!important;object-fit:contain!important}',
       // —— 被搬上去的块：保持可点、别被压扁 ——
-      '.dsh-tweaks-lifted{position:fixed!important;z-index:60!important;pointer-events:auto!important;flex:none!important;margin:0!important}'
+      '.dsh-tweaks-lifted{position:fixed!important;z-index:60!important;pointer-events:auto!important;flex:none!important;margin:0!important}',
+      // —— 侧栏页脚用量卡降噪（2026-09-16 用户「这里太丑了」）——
+      // 实测病点：数值 22px/600/JetBrains Mono（旁边「设置」13px Inter → 字号跳三级 + 换字体，像塞了张
+      // 大字报）；卡片 146×50px 带边框/背景/阴影/12px 圆角，而同伴是 36px 扁平幽灵按钮；
+      // .dcu-foot 又是 grid + align-items:end → 两者基线不对齐、重心歪。
+      // 作用域**只限页脚**（.dcu-foot），插件仪表盘里的大数字保持原设计不动。
+      '.dcu-foot{align-items:center!important;gap:4px!important}',
+      '.dcu-foot .VWh0dG_triggerWrap{height:auto!important}',
+      '.dcu-foot .VWh0dG_trigger{height:36px!important;padding:4px 8px!important;border-radius:9px!important;',
+      'background:transparent!important;border-color:transparent!important;box-shadow:none!important;gap:6px!important}',
+      '.dcu-foot .VWh0dG_trigger:hover{background:rgba(127,127,127,.12)!important}',
+      '.dcu-foot .VWh0dG_triggerIcon{width:22px!important;height:22px!important}',
+      '.dcu-foot .VWh0dG_triggerMetric{font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif!important;',
+      'font-size:14px!important;font-weight:600!important;line-height:20px!important;height:auto!important}',
+      '.dcu-foot .VWh0dG_triggerYen{font-size:11px!important}'
     ].join('');
 
     const LIFT = 'dsh-tweaks-lifted';
