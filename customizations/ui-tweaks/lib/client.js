@@ -1,0 +1,249 @@
+// dsh-ui-tweaks —— 客户端：① 界面样式覆盖 ② 把「输入框工具行」右侧的
+// 【平价消耗胶囊 + 模型选择】搬到「黑洞空间」那一行的右端（贴右、同一行）
+// ③ 客户端热重载：轮询宿主 /ui-tweaks/reload-token，令牌变了只刷新页面。
+//
+// 为什么放在插件里（而不是外壳 assets/theme.css）：
+//   外壳 theme.css 在**不可变槽**里，改一行要构建 + 重启 App；
+//   插件目录 Data/DSH/profiles/web/local/** 是**可变**的，改完刷新页面即生效。
+//
+// 真实 DOM 锚点（来源＝官方/插件源码，不是猜的）：
+//   · 黑洞空间那一行： `.dbh-dock`   ← dsh-black-hole 注册在 conversation.input.dock
+//   · 输入区容器：     `.wSkVaW_composerStack`（dock 行与输入卡片是它的兄弟）
+//   · 输入卡片：       `.uV2eYG_card` / 行 `.uV2eYG_row` / 右侧 `.uV2eYG_trailing`
+//   · 模型选择座位：   `._7KE1Ra_root` ← @deepseek-ai/dsh-client-ui-model-selection（slot conversation.input.model）
+//   · 平价消耗胶囊：   usage-billing 注入 conversation.input.right，文案「平价 / 峰时」+「¥…」
+//
+// 定位策略（踩过的三个坑都在这）：
+//   1) 用 position:fixed + 视口坐标（黑洞行右端 - 8px，垂直居中），落位后量一次把线性偏差修回来。
+//      坑 A：曾经用 `right:14px`（视口右缘）→ 控件被送出可视区；改为按黑洞行右端算。
+//      坑 B：曾经用 position:absolute 从卡片里往外放 → 会被祖先 overflow 裁掉；fixed 逃得掉。
+//      坑 C：槽位外层可能是 display:contents（rect 全 0）→ 先解析出真正有盒子的内层元素再搬。
+//   2) 收尾做**可见性校验**：视口内 + 贴在黑洞行那条横带（±14px）+ 有实际尺寸；
+//      校验不过 → 清掉内联样式整块回退，控件留在输入框原位（宁可不动，绝不弄丢控件）。
+//
+// 热重载（2026-09-15 用户指出「重启后会话就停了」之后的机制修复）：
+//   外壳的 `.dsh-reload-request` 是**整运行时回收**，会杀掉正在对话的 DSH；
+//   页面刷新足够（bundle 每次请求现读磁盘）。所以这里轮询宿主令牌，变化即 location.reload()，
+//   并且只在输入框为空时刷新（不打断/不丢草稿）。
+window.__ModuleLoader__.load({
+  id: 'dsh-ui-tweaks',
+  factory: () => {
+    const module = { exports: {} };
+
+    const CSS = [
+      // —— 输入框工具行：不允许挤压，允许尾部容器收缩（防止芯片互相压住）——
+      '.uV2eYG_row>button,.uV2eYG_row>div:not(.uV2eYG_trailing){flex:0 0 auto!important}',
+      '.uV2eYG_trailing{flex:0 1 auto!important;min-width:0!important}',
+      // 模型名过长时截断，别把黑洞行撑开
+      '._7KE1Ra_trigger{max-width:150px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}',
+      // —— 黑洞图标：细线风格（圆 + 斜环），与左侧导航图标一致 ——
+      'img[src^="data:image/webp;base64,UklGRvaKAABXRUJQVlA4IOqKAACQmwKdASoABgAC"]{',
+      'content:url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2371717a\' stroke-width=\'1.6\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><circle cx=\'12\' cy=\'12\' r=\'5.6\'/><ellipse cx=\'12\' cy=\'12\' rx=\'9.4\' ry=\'3.6\' transform=\'rotate(-20 12 12)\'/></svg>")!important;',
+      'width:18px!important;height:18px!important;object-fit:contain!important}',
+      // —— 被搬上去的块：保持可点、别被压扁 ——
+      '.dsh-tweaks-lifted{position:fixed!important;z-index:60!important;pointer-events:auto!important;flex:none!important;margin:0!important}'
+    ].join('');
+
+    const LIFT = 'dsh-tweaks-lifted';
+    const state = (v) => { document.documentElement.dataset.tw = v; };
+
+    function injectStyle() {
+      if (document.getElementById('dsh-ui-tweaks-style')) return;
+      const style = document.createElement('style');
+      style.id = 'dsh-ui-tweaks-style';
+      style.textContent = CSS;
+      (document.head || document.documentElement).appendChild(style);
+    }
+
+    /** 「黑洞空间」那一行。找不到返回 null（那就什么都不做）。 */
+    const findDock = () => document.querySelector('.dbh-dock');
+
+    /** 模型选择座位（真实类名，来自官方 model-selection 包）。 */
+    const findModelSeat = () => document.querySelector('._7KE1Ra_root');
+
+    /** 「平价消耗胶囊」：usage-billing 注入 conversation.input.right（在 .uV2eYG_trailing 里），
+     *  实测锚点＝内层 span 的 `aria-label="本轮 ¥x · 会话 ¥y"`（比猜文案稳），退回文案兜底；
+     *  再上溯到输入行的直接子节点作为搬运单位。 */
+    function findCostChip() {
+      const trailing = document.querySelector('.uV2eYG_trailing');
+      if (!trailing) return null;
+      const hit = trailing.querySelector('[aria-label^="本轮 "]')
+        || [...trailing.querySelectorAll('*')].find(
+          (el) => el.children.length === 0 && /^(平价|峰时|¥)/.test((el.textContent || '').trim())
+        );
+      if (!hit) return null;
+      let node = hit;
+      while (node.parentElement && node.parentElement !== trailing) node = node.parentElement;
+      return node.parentElement === trailing ? node : null;
+    }
+
+    /** 解析出真正有盒子的元素：槽位外层可能是 display:contents（rect 全 0），往下找内层。 */
+    function boxOf(el) {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      if (r.width > 4 && r.height > 4) return el;
+      for (const child of el.children) {
+        const found = boxOf(child);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    const saved = new Map();
+
+    function lift(el, targetLeft, targetTop) {
+      if (!saved.has(el)) saved.set(el, el.getAttribute('style'));
+      el.classList.add(LIFT);
+      el.style.position = 'fixed';
+      el.style.left = Math.round(targetLeft) + 'px';
+      el.style.top = Math.round(targetTop) + 'px';
+      el.style.margin = '0';
+      // fixed 的视口坐标理论值＝目标值；若祖先带 transform 会整体偏移，量一次修回来
+      for (let pass = 0; pass < 2; pass++) {
+        const r = el.getBoundingClientRect();
+        const dx = targetLeft - r.left;
+        const dy = targetTop - r.top;
+        if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) break;
+        el.style.left = Math.round(parseFloat(el.style.left) + dx) + 'px';
+        el.style.top = Math.round(parseFloat(el.style.top) + dy) + 'px';
+      }
+    }
+
+    function unLift(el) {
+      const prev = saved.get(el);
+      el.classList.remove(LIFT);
+      if (prev !== null && prev !== undefined) el.setAttribute('style', prev);
+      else el.removeAttribute('style');
+      saved.delete(el);
+    }
+
+    function revert(dock, els) {
+      for (const el of els) if (el && saved.has(el)) unLift(el);
+      if (dock) dock.style.removeProperty('padding-right');
+    }
+
+    function applyAll() {
+      injectStyle();
+      const dock = findDock();
+      if (!dock) { state('nodock'); return; }
+      const modelRaw = findModelSeat();
+      if (!modelRaw) { state('nomodel'); return; }
+      const dr0 = dock.getBoundingClientRect();
+      // 只认「横跨输入区的那一行」：hero/欢迎态下 .dbh-dock 只是标题旁的一枚小胶囊，那种情况一律不动。
+      const stack = dock.parentElement;
+      const stackW = stack ? stack.getBoundingClientRect().width : 0;
+      const fullRow = stackW > 4 ? dr0.width >= stackW * 0.6 : dr0.width >= 260;
+      if (dr0.width < 160 || dr0.height < 12 || dr0.top < 0 || !fullRow) {
+        revert(dock, [modelRaw]);
+        state('skip');
+        return;
+      }
+
+      const model = boxOf(modelRaw);
+      if (!model) {
+        revert(dock, [modelRaw]);
+        state('nomodel');
+        return;
+      }
+      const chipRaw = findCostChip();
+      const chip = chipRaw && chipRaw !== modelRaw && !dock.contains(chipRaw) ? boxOf(chipRaw) : null;
+      const modelW = Math.round(model.getBoundingClientRect().width) || 90;
+      const mh = model.getBoundingClientRect().height || 28;
+      const chipW = chip ? Math.round(chip.getBoundingClientRect().width) || 80 : 0;
+
+      // 黑洞行自己已有的内容（黑洞空间 / ＋放进黑洞 …）右边界。
+      // 绝对定位块**不参与**行内布局，所以这里绝不给行加 padding：
+      // 加过一次 → 行内换行、行被撑高、顶进上面的状态条（2026-09-16 实拍）。
+      let contentRight = dr0.left;
+      for (const child of dock.children) {
+        if (child === model || child === chip) continue;
+        const cr = child.getBoundingClientRect();
+        if (cr.width > 4 && cr.height > 4) contentRight = Math.max(contentRight, cr.right);
+      }
+
+      const rightEdge = dr0.right - 8;
+      const room = rightEdge - (contentRight + 8);
+      // 两档降级：① 平价 + 模型 一起上去；② 只把模型搬上去（平价留在原行）
+      let items = null;
+      if (chip && chipW + 8 + modelW <= room) items = [chip, model];
+      else if (modelW <= room) items = [model];
+      if (!items) {
+        // 连模型块都放不下（窄窗）→ 原地不动，控件留在输入框里
+        revert(dock, [modelRaw]);
+        state('narrow');
+        return;
+      }
+
+      const widths = items.map((el) => (el === model ? modelW : chipW));
+      const topEdge = dr0.top + Math.max(0, (dr0.height - mh) / 2);
+      let cursor = rightEdge;
+      for (let i = items.length - 1; i >= 0; i--) {
+        lift(items[i], cursor - widths[i], topEdge);
+        cursor -= widths[i] + 8;
+      }
+
+      // 可见性校验（用当下的黑洞行矩形，避免 React 重排后拿旧值判）
+      const dr = dock.getBoundingClientRect();
+      const band = dr.top + Math.max(0, (dr.height - mh) / 2);
+      const bad = [];
+      for (let i = 0; i < items.length; i++) {
+        const r = items[i].getBoundingClientRect();
+        const inView = r.left >= 0 && r.right <= window.innerWidth + 1 && r.top >= 0 && r.bottom <= window.innerHeight + 1;
+        const onBand = Math.abs(r.top - band) <= 14 && r.right <= dr.right + 2 && r.left >= Math.min(dr.left - 60, 0);
+        if (!inView) bad.push(`offview[${i}]`);
+        else if (!onBand) bad.push(`band[${i}]dy=${Math.round(r.top - band)}r=${Math.round(r.right)}/${Math.round(dr.right)}`);
+        else if (r.width < 8 || r.height < 8) bad.push(`tiny[${i}]`);
+      }
+      if (bad.length > 0) {
+        revert(dock, items);
+        state('reverted');
+        return;
+      }
+      state('moved');
+    }
+
+    // ===== 热重载：宿主令牌变了就刷新页面（DSH 运行时不动，会话不丢）=====
+    const TOKEN_URL = '/ui-tweaks/reload-token';
+    function clientInputBusy() {
+      const editable = document.querySelector('[contenteditable="true"]');
+      if (editable && (editable.innerText || '').trim() !== '') return true;
+      return false;
+    }
+    function watchClientBundle() {
+      let seen = null;
+      const tick = async () => {
+        try {
+          const response = await fetch(TOKEN_URL, { cache: 'no-store' });
+          if (!response.ok) return;
+          const body = await response.json();
+          if (!body || body.ok !== true || typeof body.token !== 'number' || body.token <= 0) return;
+          if (seen === null) { seen = body.token; return; }
+          if (body.token === seen) return;
+          if (clientInputBusy()) return; // 输入框有内容就不刷，别丢草稿
+          seen = body.token;
+          window.location.reload();
+        } catch { /* 宿主没起来就下次再试 */ }
+      };
+      tick();
+      setInterval(tick, 1500);
+    }
+
+    function apply() {
+      injectStyle();
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyAll, { once: true });
+      } else {
+        applyAll();
+      }
+      const mo = new MutationObserver(() => { applyAll(); });
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+      window.addEventListener('resize', applyAll);
+      setInterval(applyAll, 4000); // 轻量兜底：React 重渲染后仍能纠正
+      watchClientBundle();
+    }
+
+    module.exports.apply = apply;
+    module.exports.inject = [];
+    return module.exports;
+  }
+});
