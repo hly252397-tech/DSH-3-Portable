@@ -132,7 +132,7 @@ window.__ModuleLoader__.load({
       'position:static!important;left:auto!important;top:auto!important;right:auto!important;',
       'margin-left:auto!important;flex:none!important;min-width:0!important}',
       '.dsh-tweaks-lifted ~ .dsh-tweaks-lifted{margin-left:0!important}',
-      '.dbh-dock{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important}',
+      '.dbh-dock{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important;overflow:visible!important}',
       // 「自适应靠右」：左边那组（黑洞空间 / ＋放进黑洞）**不被压缩**，右边的计价与模型用自动外边距顶到最右；
       // 宽度不够时 flex-wrap 让它们换到第二行（仍在同一行容器内），不会互相覆盖，也不会把左边挤走。
       '.dbh-dock > :not(.dsh-tweaks-lifted){flex:0 0 auto!important;min-width:max-content!important}',
@@ -187,7 +187,7 @@ window.__ModuleLoader__.load({
       // —— 对话到底部要「渐隐消失」，而不是压在图标上（2026-09-16 用户）——
       // 根因：输入区这一层背景是透明的，对话滚到底就直接透出来压在黑洞/计价/模型那一行上。
       // 修法：① 给输入区底色（用 Canvas 系统色，跟随主题，不写死颜色）；② 上沿加一条透明→底色的过渡带，形成渐隐。
-      '.wSkVaW_composerStack{position:relative!important;background:Canvas!important}',
+      '.wSkVaW_composerStack{position:relative!important;background:Canvas!important;overflow:visible!important}',
       '.wSkVaW_composerStack::before{content:""!important;position:absolute!important;left:0!important;right:0!important;',
       'top:-14px!important;height:14px!important;pointer-events:none!important;background:linear-gradient(to bottom,transparent,Canvas)!important}',
       // 同一问题在「黑洞那一行」上还有一份：它可能不在 composerStack 的覆盖范围内（2026-09-16 用户图二：对话文字压住
