@@ -119,6 +119,13 @@ window.__ModuleLoader__.load({
       // ② 计价胶囊自带 JetBrains Mono 22px 数字 + 999px 填充药丸 + 警示配色，与右侧纯文本模型块不是一套语言；
       // ③ 胶囊 22px vs 模型 28px，而我按顶对齐 → 中线差 3px；统一高度后顶与中线同时对齐。
       '.dbh-dock .dbh-orb{background:transparent!important;box-shadow:none!important}',
+      // 「做成这样」（2026-09-16 用户：空白态那一行要跟会话态同格式）：
+      // 空白态是黑洞插件的 hero 变体——orb 带径向渐变圆底 + 光环、`放进黑洞`带紫色胶囊；
+      // 会话态是裸图标 + 纯文字。这里用更高特异性 + 简写把两者压平（背景图/阴影/边框/圆角一起清）。
+      'body .wSkVaW_composerHero .dbh-dock .dbh-orb, body .dbh-dock .dbh-orb{',
+      'background:transparent!important;background-image:none!important;box-shadow:none!important;border-radius:0!important}',
+      'body .wSkVaW_composerHero .dbh-dock .dbh-dock-wrap > button{',
+      'background:transparent!important;border-color:transparent!important;border-radius:0!important;padding:0!important;box-shadow:none!important}',
       // 输入区旁边的黑洞图标统一为「右面板菜单里那一枚」（2026-09-16 用户选 A：以菜单为准）——
       // 原样取自黑洞插件给右面板注册的图标：倾斜椭圆 rx7/ry3.5 旋转 -30° + 中心实心圆 r2，stroke 1.5。
       '.dbh-dock .dbh-orb{content:url("data:image/svg+xml;utf8,',
@@ -132,7 +139,7 @@ window.__ModuleLoader__.load({
       'position:static!important;left:auto!important;top:auto!important;right:auto!important;',
       'margin-left:auto!important;flex:none!important;min-width:0!important}',
       '.dsh-tweaks-lifted ~ .dsh-tweaks-lifted{margin-left:0!important}',
-      '.dbh-dock{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important;overflow:visible!important}',
+      '.dbh-dock{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important}',
       // 「自适应靠右」：左边那组（黑洞空间 / ＋放进黑洞）**不被压缩**，右边的计价与模型用自动外边距顶到最右；
       // 宽度不够时 flex-wrap 让它们换到第二行（仍在同一行容器内），不会互相覆盖，也不会把左边挤走。
       '.dbh-dock > :not(.dsh-tweaks-lifted){flex:0 0 auto!important;min-width:max-content!important}',
@@ -187,7 +194,7 @@ window.__ModuleLoader__.load({
       // —— 对话到底部要「渐隐消失」，而不是压在图标上（2026-09-16 用户）——
       // 根因：输入区这一层背景是透明的，对话滚到底就直接透出来压在黑洞/计价/模型那一行上。
       // 修法：① 给输入区底色（用 Canvas 系统色，跟随主题，不写死颜色）；② 上沿加一条透明→底色的过渡带，形成渐隐。
-      '.wSkVaW_composerStack{position:relative!important;background:Canvas!important;overflow:visible!important}',
+      '.wSkVaW_composerStack{position:relative!important;background:Canvas!important}',
       '.wSkVaW_composerStack::before{content:""!important;position:absolute!important;left:0!important;right:0!important;',
       'top:-14px!important;height:14px!important;pointer-events:none!important;background:linear-gradient(to bottom,transparent,Canvas)!important}',
       // 同一问题在「黑洞那一行」上还有一份：它可能不在 composerStack 的覆盖范围内（2026-09-16 用户图二：对话文字压住
