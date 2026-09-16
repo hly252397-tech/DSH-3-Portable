@@ -267,10 +267,20 @@ window.__ModuleLoader__.load({
       return seat;
     }
 
+    // 「如果没有就不显示」：revert 时**无条件移除座位**并把里面节点原位放回（2026-09-16 用户 B）。
+    // 实测空白/欢迎态 .dbh-dock 里残留一个 8px 宽 seat（里面是被压成 8px 的残余节点，所以按"可见性"判断会漏掉）。
     function dropSeatIfEmpty(dock) {
       if (!dock) return;
       for (const child of [...dock.children]) {
-        if (child.classList && child.classList.contains(SEAT) && child.childElementCount === 0) child.remove();
+        if (!child.classList || !child.classList.contains(SEAT)) continue;
+        for (const el of [...child.children]) {
+          const prev = saved.get(el);
+          if (prev && prev.parent && prev.parent.isConnected && el.parentElement !== prev.parent) {
+            const anchor = prev.next && prev.next.parentElement === prev.parent ? prev.next : null;
+            prev.parent.insertBefore(el, anchor);
+          }
+        }
+        child.remove();
       }
     }
 
