@@ -142,7 +142,20 @@ window.__ModuleLoader__.load({
       // 模型名必须完整可读：**不可压缩**（min-width:max-content），一行放不下就换到第二行，绝不被挤成只剩箭头。
       // 模型名可读且不撑破一行：给 min-width:0（允许省略号截断），而不是 max-content
       // —— max-content 会让它按**完整模型名**占宽（实测因此被挤到第二行）。
-      '.dsh-tweaks-model{flex:0 1 auto!important;min-width:0!important}',
+      // 模型位收成一枚「图标」（用户 2026-09-16：把模型名做成图标，点它可下拉看模型列表）
+      // ① 只藏纯文字节点；svg 与"含 svg 的容器"一律保留 → 原来的点击元素与下拉箭头都还在，点击行为不变；
+      // ② ::before 画一枚模型图标（芯片造型，16px，与整体细线语言一致）；
+      // ③ 固定 26px 窄宽度，长模型名不再把这一行撑到第二行。
+      '.dsh-tweaks-model{width:26px!important;min-width:26px!important;max-width:26px!important;height:26px!important;',
+      'padding:0!important;overflow:hidden!important;justify-content:center!important;position:relative!important;cursor:pointer!important}',
+      '.dsh-tweaks-model :not(svg):not(svg *):not(:has(svg)){display:none!important}',
+      '.dsh-tweaks-model::before{content:""!important;position:absolute!important;left:0!important;top:0!important;bottom:0!important;margin:auto!important;',
+      'width:16px!important;height:16px!important;pointer-events:none!important;background-repeat:no-repeat!important;background-position:center!important;background-size:16px 16px!important;',
+      'background-image:url("data:image/svg+xml;utf8,',
+      '<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 16 16\' fill=\'none\' stroke=\'%234e5253\' stroke-width=\'1.5\' stroke-linecap=\'round\'>',
+      '<rect x=\'2.2\' y=\'4.6\' width=\'11.6\' height=\'8.8\' rx=\'2.2\'/>',
+      '<path d=\'M5.8 4.6V3.4c0-.7.6-1.2 1.2-1.2h2c.7 0 1.2.5 1.2 1.2v1.2\'/>',
+      '<path d=\'M6.2 9h3.6\'/></svg>")!important}',
       // 「调」（2026-09-16 用户）：目标是让黑洞行四项回到一行 —— 只缩计价胶囊的字号/内边距并收紧行内间距，
       // **不删任何信息**（"平价"保留，只是变紧凑），模型名不做任何裁剪。
       '.dbh-dock{gap:6px!important}',
