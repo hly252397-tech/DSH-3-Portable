@@ -140,9 +140,18 @@ window.__ModuleLoader__.load({
       // 藏掉文字后只剩一个 ⌄，整行认不出（用户："我已经看不清这一行了"）。必须保留文字。
       // 行内已用 flex 流 + nowrap，不会再压盖邻居，因此无需再藏。
       // 模型名必须完整可读：**不可压缩**（min-width:max-content），一行放不下就换到第二行，绝不被挤成只剩箭头。
-      '.dsh-tweaks-model{flex:0 0 auto!important;min-width:max-content!important}',
-      '.dsh-tweaks-lifted{margin-left:auto!important}',
-      '.dsh-tweaks-lifted ~ .dsh-tweaks-lifted{margin-left:0!important}',
+      // 模型名可读且不撑破一行：给 min-width:0（允许省略号截断），而不是 max-content
+      // —— max-content 会让它按**完整模型名**占宽（实测因此被挤到第二行）。
+      '.dsh-tweaks-model{flex:0 1 auto!important;min-width:0!important}',
+      // 「调」（2026-09-16 用户）：目标是让黑洞行四项回到一行 —— 只缩计价胶囊的字号/内边距并收紧行内间距，
+      // **不删任何信息**（"平价"保留，只是变紧凑），模型名不做任何裁剪。
+      '.dbh-dock{gap:6px!important}',
+      '.dsh-tweaks-lifted .VWh0dG_feeInline{font-size:11px!important;height:18px!important;padding:0 4px!important}',
+      '.dsh-tweaks-lifted .VWh0dG_triggerMetric{font-size:13px!important;line-height:18px!important}',
+      '.dsh-tweaks-lifted .VWh0dG_triggerYen{font-size:11px!important;line-height:18px!important}',
+      // seat 容器承载「整体贴右」：内部计价与模型并排（nowrap），所以**不会再互相断行**。
+      '.dsh-tweaks-seat{display:flex!important;align-items:center!important;gap:8px!important;',
+      'margin-left:auto!important;flex:0 0 auto!important;flex-wrap:nowrap!important}',
       '.dsh-tweaks-lifted .VWh0dG_triggerPrimary,.dsh-tweaks-lifted .VWh0dG_triggerMetric,.dsh-tweaks-lifted .VWh0dG_triggerYen,',
       '.dsh-tweaks-lifted .VWh0dG_feeInline,.dsh-tweaks-lifted .VWh0dG_triggerLabel{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;',
       'font-size:14px!important;font-weight:600!important;line-height:20px!important;color:inherit!important;',
@@ -215,8 +224,29 @@ window.__ModuleLoader__.load({
 
     const saved = new Map();
 
-    // 2026-09-16 改：**真正把节点搬进黑洞那一行**，不再用固定定位（固定定位不看邻居，必然可能压住「＋放进黑洞」）。
-    // 记住原父节点与下一个兄弟，回退时原位插回。
+    // 2026-09-16 结构修正：计价与模型放进**内层 seat 容器**，`margin-left:auto` 挂在这个容器上。
+    // 之前直接给计价挂 auto 外边距 → Chromium 断行时把 auto 当成已占用，模型永远放不下、被挤到第二行。
+    // 现在容器整体贴右，容器内部两件并排（flex 默认 nowrap），不会再互相断行。
+    const SEAT = 'dsh-tweaks-seat';
+
+    function ensureSeat(dock) {
+      let seat = null;
+      for (const child of dock.children) if (child.classList && child.classList.contains(SEAT)) { seat = child; break; }
+      if (!seat) {
+        seat = document.createElement('div');
+        seat.className = SEAT;
+        dock.appendChild(seat);
+      }
+      return seat;
+    }
+
+    function dropSeatIfEmpty(dock) {
+      if (!dock) return;
+      for (const child of [...dock.children]) {
+        if (child.classList && child.classList.contains(SEAT) && child.childElementCount === 0) child.remove();
+      }
+    }
+
     function lift(el, dock) {
       if (!saved.has(el)) {
         saved.set(el, { style: el.getAttribute('style'), parent: el.parentElement, next: el.nextElementSibling });
@@ -226,7 +256,8 @@ window.__ModuleLoader__.load({
       el.style.removeProperty('left');
       el.style.removeProperty('top');
       el.style.removeProperty('margin');
-      if (el.parentElement !== dock) dock.appendChild(el);
+      const seat = ensureSeat(dock);
+      if (el.parentElement !== seat) seat.appendChild(el);
     }
 
     function unLift(el) {
@@ -245,6 +276,7 @@ window.__ModuleLoader__.load({
 
     function revert(dock, els) {
       for (const el of els) if (el && saved.has(el)) unLift(el);
+      dropSeatIfEmpty(dock);
       if (dock) dock.style.removeProperty('padding-right');
     }
 
