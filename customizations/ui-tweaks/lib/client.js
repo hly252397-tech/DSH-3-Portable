@@ -179,12 +179,12 @@ window.__ModuleLoader__.load({
       // 修法：① 给输入区底色（用 Canvas 系统色，跟随主题，不写死颜色）；② 上沿加一条透明→底色的过渡带，形成渐隐。
       '.wSkVaW_composerStack{position:relative!important;background:Canvas!important}',
       '.wSkVaW_composerStack::before{content:""!important;position:absolute!important;left:0!important;right:0!important;',
-      'top:-28px!important;height:28px!important;pointer-events:none!important;background:linear-gradient(to bottom,transparent,Canvas)!important}',
+      'top:-14px!important;height:14px!important;pointer-events:none!important;background:linear-gradient(to bottom,transparent,Canvas)!important}',
       // 同一问题在「黑洞那一行」上还有一份：它可能不在 composerStack 的覆盖范围内（2026-09-16 用户图二：对话文字压住
       // 黑洞空间/放进黑洞 那行）。`.dbh-dock` 是实测存在的锚点，直接给它底色 + 同款渐隐带。
       '.dbh-dock{position:relative!important;background:Canvas!important;z-index:2!important}',
       '.dbh-dock::before{content:""!important;position:absolute!important;left:0!important;right:0!important;',
-      'top:-20px!important;height:20px!important;pointer-events:none!important;background:linear-gradient(to bottom,transparent,Canvas)!important}',
+      'top:-10px!important;height:10px!important;pointer-events:none!important;background:linear-gradient(to bottom,transparent,Canvas)!important}',
       // 收起态图标轨的悬停名称气泡（fixed 定位，避免被 root 的 overflow:hidden 裁掉）
       '.tw-rail-tip{position:fixed;left:-9999px;top:0;z-index:2147483000;pointer-events:none;opacity:0;',
       'background:#fff;color:#18181b;border:1px solid rgba(0,0,0,.08);border-radius:8px;',
