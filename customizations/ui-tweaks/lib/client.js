@@ -152,6 +152,9 @@ window.__ModuleLoader__.load({
       // hover 才给与导轨图标一致的淡灰反馈，圆角 8px。
       'background-color:transparent!important;border-color:transparent!important;box-shadow:none!important;border-radius:8px!important}',
       '.dsh-tweaks-model:hover{background-color:rgba(127,127,127,.12)!important}',
+      // 那个灰方块是**内层元素**画的（外层已清仍可见）→ 把模型位内部所有非 svg 节点的底色/边框/阴影一并清零，
+      // 做成真正的透明底图标；hover 反馈仍在**外层**（上面那条），不受影响。
+      '.dsh-tweaks-model *:not(svg):not(svg *){background-color:transparent!important;border-color:transparent!important;box-shadow:none!important}',
       // 「回到底部」悬浮按钮：**往下**挪进"最后一行 ↔ 黑洞行"之间的空隙（往上抬过，仍压在同一列文字上），
       // 并做成不透明标准按钮（半透明时文字透出来，看着像笔画被切）。不改行为、不隐藏。
       '.dsh-tweaks-float{transform:translateY(30px)!important;background:Canvas!important;',
