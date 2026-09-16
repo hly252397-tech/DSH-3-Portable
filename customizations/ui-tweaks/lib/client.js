@@ -71,8 +71,17 @@ window.__ModuleLoader__.load({
       // 因此必须**照抄同一条 :has() 链再加一层 .dcu-compact**（→ (0,8,1)）才能压过；
       // 只写 .dcu-root.dcu-compact（(0,3,1)）会被压回 grid——实测过。
       'body .dcu-root.dcu-compact .dcu-foot:has(.dcu-settings-seat > [data-slot="sidebar.settings"] > :not(style):not([data-dcu-settings-trigger]):not([data-dcu-settings-page]):not([data-slot])){',
-      'display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important}',
-      'body .dcu-root.dcu-compact .dcu-foot{width:36px!important}',
+      'display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;',
+      // 贴底：实测收起态页脚高 130px 但可见内容只到 714（齿轮底），下方多出 30px 空白 —— 页脚里
+      // 有不可见子项在贡献高度（实测 hover/popover 之类），而 justify-content:flex-end 对它无效。
+      // 所以不追那个子项，改为**只按内容高度排布**（height/min-height 归零 + fit-content），
+      // 由导航的 flex:1 把页脚整体顶到栏底，空白自然消失。
+      'height:auto!important;min-height:0!important;padding:4px 0 6px!important;margin:0!important}',
+      // 「为什么不贴底」的真凶：页脚里还排着一个**无类名空 div**（12×24、flex、无文本无背景，
+      // 即外壳的连接状态位，视觉上不画任何东西），它排在齿轮**下方**，占走 24px + 6px 间隙 = 30px，
+      // 于是两个可见项看着悬在半空。这里只把它 `order:-1` 挪到最前（**不隐藏**任何功能元素），
+      // 两个可见项就自然落到栏底。
+      'body .dcu-root.dcu-compact .dcu-foot div:empty{order:-1!important}',
       'body .dcu-root.dcu-compact .dcu-foot .VWh0dG_railButton{width:36px!important;height:36px!important;flex:none!important}',
       'body .dcu-root.dcu-compact .dcu-foot .dcu-settings-trigger{width:36px!important;height:36px!important;min-height:36px!important;',
       'flex:none!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important}'
