@@ -76,7 +76,8 @@
     .nav.restart.confirming:hover{background:#d85b5b2e}
     .nav.restart.confirming img{filter:brightness(0) saturate(100%) invert(52%) sepia(54%) saturate(1935%) hue-rotate(322deg) brightness(91%) contrast(88%)}
     .nav.restart.spinning{opacity:.6;pointer-events:none}
-    .nav.restart.spinning img{animation:dsh-restart-spin .7s linear infinite}
+    /* 2026-09-16 用户要求：重启时图标不要转圈。保留变暗 + 不可点作为忙碌提示，去掉旋转动画。 */
+    .nav.restart.spinning img{animation:none}
     @keyframes dsh-restart-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
     :root[data-color-scheme="light"] .nav.restart.confirming{background:#b4231812;box-shadow:inset 0 0 0 1px #b423185c}
     :root[data-color-scheme="light"] .nav.restart.confirming:hover{background:#b423181f}
