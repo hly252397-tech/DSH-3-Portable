@@ -152,6 +152,9 @@ window.__ModuleLoader__.load({
       // hover 才给与导轨图标一致的淡灰反馈，圆角 8px。
       'background-color:transparent!important;border-color:transparent!important;box-shadow:none!important;border-radius:8px!important}',
       '.dsh-tweaks-model:hover{background-color:rgba(127,127,127,.12)!important}',
+      // 「回到底部」悬浮按钮：只位移 + 做成不透明标准按钮，避免半透明时文字透出来显得"糊/被遮挡"（不改行为、不隐藏）
+      '.dsh-tweaks-float{transform:translateY(-14px)!important;background:Canvas!important;',
+      'border:1px solid rgba(0,0,0,.08)!important;box-shadow:0 2px 8px rgba(0,0,0,.10)!important}',
       '.dsh-tweaks-model :not(svg):not(svg *):not(:has(svg)){display:none!important}',
       '.dsh-tweaks-model::before{content:""!important;position:absolute!important;left:0!important;top:0!important;bottom:0!important;margin:auto!important;',
       'width:16px!important;height:16px!important;pointer-events:none!important;background-repeat:no-repeat!important;background-position:center!important;background-size:16px 16px!important;',
@@ -291,8 +294,23 @@ window.__ModuleLoader__.load({
       saved.delete(el);
     }
 
-    function revert(dock, els) {
-      for (const el of els) if (el && saved.has(el)) unLift(el);
+    // 「回到底部」悬浮按钮（官方前端渲染，类名未知、不在 codex-ui/theme.css 里）会压住正文最后一行。
+    // 按**几何特征**定位：小尺寸 + 纯图标（无文字）+ 已定位 + 紧贴在黑洞行上方。只加类，CSS 里把它抬高 16px。
+    function markFloatingButtons(dock) {
+      const dr = dock.getBoundingClientRect();
+      for (const el of document.querySelectorAll('button,[role="button"]')) {
+        const s = getComputedStyle(el);
+        if (s.position !== 'fixed' && s.position !== 'absolute') continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < 12 || r.width > 48 || r.height < 12 || r.height > 48) continue;
+        if ((el.textContent || '').trim() !== '') continue;
+        if (!el.querySelector('svg')) continue;
+        if (r.bottom > dr.top + 4 || r.right < dr.left) continue;
+        el.classList.add('dsh-tweaks-float');
+      }
+    }
+
+    function revert(dock, els) {      for (const el of els) if (el && saved.has(el)) unLift(el);
       dropSeatIfEmpty(dock);
       if (dock) dock.style.removeProperty('padding-right');
     }
@@ -354,6 +372,8 @@ window.__ModuleLoader__.load({
       modelRaw.classList.add('dsh-tweaks-model');
       const modelText = (modelRaw.textContent || '').replace(/\s+/g, ' ').trim();
       if (modelText !== '' && !modelRaw.getAttribute('title')) modelRaw.setAttribute('title', modelText);
+      markFloatingButtons(dock);
+      state('moved');
 
       // 校验不再比对像素坐标（节点现在真的在行里）：只验「挂上了 + 有尺寸 + 没溢出右边界」
       const dr = dock.getBoundingClientRect();
