@@ -1,20 +1,20 @@
 {
   "schema": 1,
-  "recordedAt": "2026-09-18T16:57:16.300Z",
-  "note": "docs/01-当前工作/I027-P3Tiny旧货监控插件/03-验收报告.md",
+  "recordedAt": "2026-09-18T15:27:16.350Z",
+  "note": "docs/03-技术架构/UI定制维护契约.md",
   "evidence": [
     {
-      "path": "customizations/ui/evidence/28c6b6f84d1096a8c9f1a9a6899699b2e9b495f2b3c5026fcc2cb5b08c1c075f.json",
-      "sha256": "104aeefa81c33d356dc71af54e1f9e79fa2162c91ef610f1949036aa04aad6dc",
-      "snapshot": "customizations/ui/evidence/104aeefa81c33d356dc71af54e1f9e79fa2162c91ef610f1949036aa04aad6dc.json"
+      "path": "Data/artifacts/ui-discipline-lint-2026-09-18T15-27-15-759Z/results.json",
+      "sha256": "4c80d436cf111af0209a12c930e2f0e1260d19312b45c7ddef16aaea424238aa",
+      "snapshot": "customizations/ui/evidence/4c80d436cf111af0209a12c930e2f0e1260d19312b45c7ddef16aaea424238aa.json"
     }
   ],
-  "history": "customizations/ui/history/2026-09-18T16-57-16-299Z.json",
+  "history": "customizations/ui/history/2026-09-18T15-27-16-349Z.json",
   "files": [
     {
       "path": "assets/theme.css",
-      "sha256": "b4a70ad52d7da098885523b1fa0d9b947b51dbc2f6e1e435bbba1021e0ca849c",
-      "snapshot": "customizations/ui/sources/b4a70ad52d7da098885523b1fa0d9b947b51dbc2f6e1e435bbba1021e0ca849c.txt"
+      "sha256": "aabc2f21268e48cccf494493e7fc534c5abca3bf2aaf2303d5a0d10f5b367e08",
+      "snapshot": "customizations/ui/sources/aabc2f21268e48cccf494493e7fc534c5abca3bf2aaf2303d5a0d10f5b367e08.txt"
     },
     {
       "path": "assets/shell.html",
@@ -93,13 +93,13 @@
     },
     {
       "path": "Customize/Automation-Workbench/build.mjs",
-      "sha256": "608902642a8f3f1743659e3247c139346ab94239d17ecc228f80b1f402057229",
-      "snapshot": "customizations/ui/sources/608902642a8f3f1743659e3247c139346ab94239d17ecc228f80b1f402057229.txt"
+      "sha256": "b809fa299def15a4899529df55ddd5be89b2eb92727baf401156dbe44955bd28",
+      "snapshot": "customizations/ui/sources/b809fa299def15a4899529df55ddd5be89b2eb92727baf401156dbe44955bd28.txt"
     },
     {
       "path": "Data/DSH/profiles/web/node_modules/@michengai/dsh-automation/lib/client.js",
-      "sha256": "2fd9a405af13b722c1e14483cf2052194afbebc25dfebd0592887a70ff148e3d",
-      "snapshot": "customizations/ui/sources/2fd9a405af13b722c1e14483cf2052194afbebc25dfebd0592887a70ff148e3d.txt"
+      "sha256": "cd0bfb30ab049aacdcd0672571b81fdf7416a171919c779c55ca17b346587321",
+      "snapshot": "customizations/ui/sources/cd0bfb30ab049aacdcd0672571b81fdf7416a171919c779c55ca17b346587321.txt"
     },
     {
       "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/SideCardSection.tsx",

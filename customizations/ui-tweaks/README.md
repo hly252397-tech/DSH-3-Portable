@@ -113,4 +113,90 @@ body .dcu-root .dcu-foot:has(.dcu-settings-seat > [data-slot="sidebar.settings"]
 **已知脆弱点**：本规则与外壳 `:has()` 链耦合——若外壳日后改那条链，本规则会静默失配（退回 grid）。
 届时要么同步改本规则，要么把该规则搬到 `theme.css` 里由外壳单方拥有（代价：改 theme.css 需构建+重启）。
 
+## 空白态（欢迎页）与会话态**完全统一**：那一行的位置 + 外观（2026-09-17）
 
+**用户要求（两轮）**：① 截图圈出输入卡片左下角的「模型选择器」＝红框1、标题行下面「👁 黑洞空间 ｜ ＋ 放进黑洞」右侧空白＝红框2，
+原话「把红框1挪到2的位置」；② 交付后追问「能不能做到全局对话统一呢，这个区域」，并拍板 **「位置+外观都统一成会话态」**。
+
+**改动前的事实（探针实测，非推测）**：红框1 ＝ `._7KE1Ra_root`（`conversation.input.model` 槽，
+`IconDataOutline16` + 模型名 + `IconChevronDownOutline14`），在空白态因 2026-09-16 遗留的
+`.dsh-tweaks-model`（26px 图标态）而只剩图标；输入行放不下 → `flex-wrap` 把它连同行尾的发送键换到第二行。
+红框2 ＝ `.dbh-dock`（`dsh-black-hole` 注册在 `conversation.input.dock`）——**同一个元素**两种状态位置不同：
+会话态在输入卡片正上方；空白态被插件 `observeHomeDockPlacement()` 用 `left/top:var(--dbh-home-dock-*)`
+**绝对定位**到标题旁（宽屏 `inline`）/标题下一行（窄窗 `stacked`），还给标题加 `--dbh-home-title-shift` 左移。
+
+**改法**：① 删掉 `applyAll()` 里「空白态一律短路」，空白态也走同一条 `lift()`；空白态几何守卫换成
+「有最小尺寸 + 行里确实有 `.dbh-btn`」（原 `width>=260 / 横跨输入区` 在空白态恒不成立：父级是 `display:contents`，`stackW=0`）。
+② 把那一行**拉回正常流**并统一外观：`…dbh-home-dock-host:has(.dsh-tweaks-seat) .dbh-dock{position:static; width:calc(100% - 2*留白); max-width:卡片最大宽; margin:0 auto}`，
+标题 `transform:none`，并去掉首页变体的 1px 竖分隔线 / 紫色胶囊 / 弱化字色，改成与会话态同一套按钮形态。
+
+**四个必须记住的坑（都在代码注释里）**：
+1. 旧规则 `.dbh-dock:has(.dsh-tweaks-seat){position:relative!important}` 会压过黑洞插件的**非 important**
+   `position:absolute` → dock 被甩到 y=930（视口外）。已加 `:not(.dbh-home-dock-host *)` 只作用于会话态。
+2. 落点靠**插件自己的 order**：`composerStack` 是 column flex，卡片 `order:3`、工作区条 `order:4`，这一行缺省 `order:0`
+   ⇒ 静态化后自然落在「标题内容之后、输入卡片之前」。**不要**给这一行写 `order`，那是插件的输出域。
+3. 行宽必须**照抄卡片算式**（`calc(100% - 2*var(--dsh-composer-side-clearance))` 再受 `--dsh-composer-card-max-width` 限制 + `margin:0 auto`），
+   否则座位（`margin-left:auto`）会贴到比卡片更靠右的位置；实测两种视口下「模型右缘 − 卡片右缘 = 0」。
+4. 仍**不写** `data-dbh-dock-placement` 与 `--dbh-home-dock-*`（插件每次 sync 先删后按实测重算，两个写者会互抢）。
+   另：插件首页摆放效果在它自己休眠时（页面重载后偶发不注册 observer）会让这一行落到「正常流」分支——
+   两种分支下本插件的落点与外观一致（都已实测），所以不依赖插件状态。
+
+**验收证据（2026-09-17）**：
+- `evidence/before-hero-model-in-composer-20260917.png`：用户截图裁剪（红框1 在输入卡片第二行、红框2 空白）。
+- `evidence/accepted-hero-unified-1384-20260917.png`：1384px 视口实拍——黑洞行**紧贴输入卡片上方**，行尾是模型图标，
+  输入行 `[+ 📎 权限 专家 PUA | ↑]`，工作区条仍在卡片下方。
+- `evidence/accepted-hero-unified-984-20260917.png`：984px 视口同形态。
+- `evidence/accepted-active-dock-row-20260917.png`：会话态（应用窗口实机）行尾仍是 `平价 ¥51.2 + 模型图标`，未回归。
+- DOM 实测（`dsh web` 诊断实例，同一 Profile/运行时槽，已补 `settings.yaml` 复现主题属性）：
+  1384px `dock 101,391 661x32 pos=static` vs 卡片 `101,439 661x113` → 左右差 0、间距 16px、模型右缘差 0、`row=[tools|发送]`、`headline transform=none`；
+  984px `dock 138,374 768x32` vs 卡片 `138,422 768x120` → 左右差 0、模型右缘差 0；按钮 `color rgb(15,17,21)/pad 6px 8px/radius 8px/minH 32px`、`::before content:none`。
+- 旧的两张「stacked / inline 各自形态」截图（`accepted-hero-narrow-stacked-*`、`accepted-hero-wide-inline-*`）保留为**历史中间态**，
+  它们记录的 `--dsh-tw-hero-dock-width` 做法已被本轮替换（见 git 历史与契约 §8）。
+- 取数方式：`scripts/look-ui.ps1`（应用窗口最大化时需 `-AllowFullScreen`）＋ 诊断实例读 DOM；探针只用于定位，已删除。
+
+
+
+## 中缝白带根治：#root 让位镜像上游状态帽（2026-09-17 用户「修复这里」第三轮）
+
+**故障**：对话列与右栏之间一条全高空白竖带（红框 x≈697-862 即此区域）。探针实测 69px：
+#root 让位 629px、面板渲染只 560px（修复前一轮是 594/560=34px 变体）。上一轮删掉的
+x=818/825 两根 1px 缝线本轮已确认消失（像素扫描无全高线列）。
+
+**根因（不在本插件，在 dsh-better-sidebar 自己）**：包内两条规则系互相矛盾——
+面板侧 `/* seam-exact */` 块按内容状态给 `max-width` 帽（editorPlaceholder→420px /
+paneEmptyCards→560px / 其余 none），布局推送侧 layout.css 却让 #root 按
+`var(--dsh-sidebar-width)` 全值让位。持久化宽度 629 在空卡片态被压到 560 ⇒
+69px 让位-渲染差 = 白带。panelDiag：inlineWidth 629 / computedWidth 560 / maxWidth 560。
+
+**失败尝试（如实记录）**：本轮曾在线上副本加 `installReserveSync()`（MutationObserver +
+400ms 稳定闸 + 4s 兜底，把渲染宽度写回变量）——真机稳态实测无效：writeGeometry 是另一个
+写入者、会把全值写回去，自愈永远慢一拍；且探针只在页面加载后 0.5s/2s 采样，**永远拍不到
+稳态**（验证盲区差点造成"已修"误判）。整段已删，panelDiag.syncInstalled 字段随之移除。
+
+**改法（确定性 CSS，无 JS、无时序）**：把上游两条 `:has()` 状态帽**逐条镜像**到 #root——
+
+```
+html body:has(.nArs4W_panel .nArs4W_editorPlaceholder) #root{margin-right:min(var(--dsh-sidebar-width,0px),420px)!important;width:calc(100% - min(var(--dsh-sidebar-width,0px),420px))!important}
+html body:has(.nArs4W_panel .nArs4W_paneEmptyCards)   #root{margin-right:min(var(--dsh-sidebar-width,0px),560px)!important;width:calc(100% - min(var(--dsh-sidebar-width,0px),560px))!important}
+```
+
+让位与渲染从此共用同一公式，任何状态/视口/拖拽中间帧都不可能分叉；收起态变量=0，min 后
+仍 0。`body:has(...)` 不依赖面板 DOM 挂载位置；!important + (1,0,3) 压过上游 #root (1,0,0)。
+**脆弱点**：上游给 `.nArs4W_panel` 新增状态帽时这里必须同步加一条，否则该状态白带复发
+（与缝线修复的 :has() 耦合同类）。
+
+**顺带核实（地雷登记）**：`node_modules/dsh-better-sidebar/lib/client.js` 存在既往会话的
+**原位补丁**（writeGeometry 内「2026-09-17 修复：收起时…width=0」注释 + `/* seam-exact */`
+块含 `body .pI_x6G_frame` 宿主样式）。插件更新/重装会冲掉它们 ⇒ 收起态 280px 空条与无帽态
+白带会复发，届时先查这里。
+
+**验收（2026-09-17 真机 1360×1000）**：
+- 部署即热重载（22:45:08 写入 → 22:45:11 探针）：rootMarginRight **560** / rootWidth **800** /
+  panelRect **[800,560]** —— 面板左缘 = 对话列右缘，零缝。
+- `scripts/verify-adaptive-layout.mjs --refresh` **7/8 PASS**（修复前同日 3/8、5/8）：
+  「无 body 带」✓「两框贴合 800=800」✓「拖动柄中点 797≈800」✓。
+- 证据：`evidence/seam-strip-before-adaptive-verify-20260917.json`（FAIL 态数字）→
+  `evidence/seam-strip-after-adaptive-verify-20260917.json`（PASS 态）+
+  `evidence/accepted-seam-zoom-20260917.png`（边界 2× 放大：无竖线、无色差断层）。
+- 未决项（顺手发现，非本轮引入、不代改）：有后台任务时「3 个后台任务」徽标被挤成竖排
+  （左上 x≈118，43×114），修复前轮次即复现，待另立任务。

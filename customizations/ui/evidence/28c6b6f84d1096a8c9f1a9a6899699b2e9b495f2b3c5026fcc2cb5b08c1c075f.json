@@ -1,0 +1,16 @@
+{
+ "status": "pass",
+ "results": [
+  {
+   "label": "toggle-cluster-retirement",
+   "groups": [
+    {
+     "s": "body [data-dsh-toggle-cluster]{display:none !important}",
+     "src": "assets/theme.css",
+     "renderSite": "lib/client.js no-session early-return (data-dsh-toggle-cluster)"
+    }
+   ],
+   "note": "规则依据渲染点源码实核；部署后 CDP 复验"
+  }
+ ]
+}

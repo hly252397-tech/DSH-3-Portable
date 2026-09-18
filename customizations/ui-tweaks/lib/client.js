@@ -25,6 +25,7 @@
 //   外壳的 `.dsh-reload-request` 是**整运行时回收**，会杀掉正在对话的 DSH；
 //   页面刷新足够（bundle 每次请求现读磁盘）。所以这里轮询宿主令牌，变化即 location.reload()，
 //   并且只在输入框为空时刷新（不打断/不丢草稿）。
+// 2026-09-17 触发一次页面重载：把已被修好的 better-sidebar 客户端 bundle 载入（修复同形字污染导致的定制右栏消失）
 window.__ModuleLoader__.load({
   id: 'dsh-ui-tweaks',
   factory: () => {
@@ -56,6 +57,18 @@ window.__ModuleLoader__.load({
       '.dcu-foot .VWh0dG_triggerMetric{font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif!important;',
       'font-size:14px!important;font-weight:600!important;line-height:20px!important;height:auto!important}',
       '.dcu-foot .VWh0dG_triggerYen{font-size:11px!important}',
+      // （2026-09-18 22:1x 撤销「收起态让位归零安全网」）原网：body[data-dsh-sidebar-collapsed] #root{margin:0/width:100%!important}。
+      // 撤因（真机探针实测）：该 body 属性与面板可见性存在状态不同步——属性在场、面板也开着时，
+      // 网把让位清零，面板（仍在渲染 488px）整个盖到对话上，即用户「这个边界」截图的真相。
+      // 收起白带的根因已在生成器侧修复（html:has 规则加 :not(.nArs4W_panelHidden) 作用域），此网冗余且有害。
+      // —— 窄对话列：长内联代码芯片必须折行而不是被右缘裁切（2026-09-18 用户双宽度截图）——
+      // 根因：官方 markdown 把内联 code 渲染成 display:inline-flex（原子内联盒，永不跨行折断）；
+      // 容器 ._markdown_* 虽有 overflow-wrap:anywhere，但对原子内联盒无效 ⇒ 对话列一窄，
+      // 超出容器的芯片内容被整体裁掉（实测：普通文字正常换行、唯独芯片被切半）。
+      // 修法：芯片限宽 100% + 内部允许按字符折行——外观仍是整颗药丸，宽列时零变化；
+      // 选择器用 [class*="_markdown_"] 对 CSS-module 哈希稳健，body 前缀抬特异性稳赢官方 (0,1,2)。
+      'body [class*="_markdown_"] :not(pre)>code{max-width:100%!important;white-space:pre-wrap!important;overflow-wrap:anywhere!important}',
+      // —— 连接状态指示器由 JS hideConnectionIndicator() 处理（CSS module 哈希不含 "_indicator_" 字面量）——
       // —— 收起态（图标轨）页脚重合修复（2026-09-16 用户「图二重合了」）——
       // 先说清因果：对照实验证明**重叠是本来就有的**——停掉本插件样式再量，几何完全相同
       // （foot 36px、rail [24..60]、gear [44..52]、横向重叠 16px、grid 列 0px 12px 8px）。
@@ -147,6 +160,33 @@ window.__ModuleLoader__.load({
       // 「自适应靠右」：左边那组（黑洞空间 / ＋放进黑洞）**不被压缩**，右边的计价与模型用自动外边距顶到最右；
       // 宽度不够时 flex-wrap 让它们换到第二行（仍在同一行容器内），不会互相覆盖，也不会把左边挤走。
       '.dbh-dock:has(.dsh-tweaks-seat) > :not(.dsh-tweaks-lifted){flex:0 0 auto!important;min-width:max-content!important}',
+      // —— 空白态（欢迎页）与会话态**完全统一**（用户 2026-09-17 拍板：「位置+外观都统一成会话态」）——
+      // 事实：黑洞插件在空白态把这一行**绝对定位**在标题旁（宽窗 inline）/标题下一行（窄窗 stacked），
+      // 会话态它则是输入卡片正上方那一行（契约 I026/02 的要求）。这里把空白态也拉回**正常流**：
+      //   · composerStack 是 column flex，插件给卡片 `order:3`、工作区条 `order:4`，而这一行 order 缺省=0
+      //     ⇒ 静态化后它自然落在「标题内容之后、输入卡片之前」＝与会话态同一位置（工作区条仍在卡片下方）；
+      //   · 宽度照抄输入卡片的算式（可用宽 − 两侧留白，再受卡片最大宽限制并居中），座位才能贴到卡片右缘；
+      //   · 外观去掉插件首页变体（1px 竖分隔线 + 紫色胶囊 + 弱化字色），回到与会话一致的普通按钮。
+      // ⚠️ 仍不写 `data-dbh-dock-placement`：那是插件的输出（它每次 sync 先删后按实测重算）。
+      // 作用域统一带 `:has(.dsh-tweaks-seat)`：只有我们真的把座位放进去时才改这一行；搬运被回退时
+      // 它立刻回到插件自己的摆放与样式，不留残留。
+      '.wSkVaW_composerHero.dbh-home-dock-host:has(.dsh-tweaks-seat) .dbh-dock{',
+      'position:static!important;left:auto!important;top:auto!important;right:auto!important;z-index:auto!important;',
+      'width:calc(100% - 2 * var(--dsh-composer-side-clearance,16px))!important;',
+      'max-width:var(--dsh-composer-card-max-width)!important;margin:0 auto!important;padding:0!important;',
+      'border:0!important;background:transparent!important;box-shadow:none!important}',
+      // 那一行已经不在标题旁了 → 插件为「inline 摆放」给标题加的左移必须撤掉，否则标题会偏
+      '.wSkVaW_composerHero.dbh-home-dock-host:has(.dsh-tweaks-seat) .pXSMma_headline{transform:none!important}',
+      // 首页变体的竖分隔线 / 紫色胶囊 / 弱化字色 → 对齐会话态
+      '.wSkVaW_composerHero.dbh-home-dock-host:has(.dsh-tweaks-seat) .dbh-dock > .dbh-dock-wrap::before{content:none!important}',
+      // 两个按钮取会话态的实测形态：min-height 32 / padding 6px 8px / 透明边框 / 圆角 8px / 常规字色字重
+      // （会话态由 dsh-black-hole 的 `.dbh-dock>.dbh-btn,...{border-color:transparent;padding:6px 8px;min-height:32px}` 提供）
+      '.wSkVaW_composerHero.dbh-home-dock-host:has(.dsh-tweaks-seat) .dbh-dock > .dbh-btn,',
+      '.wSkVaW_composerHero.dbh-home-dock-host:has(.dsh-tweaks-seat) .dbh-dock > .dbh-dock-wrap > .dbh-btn{',
+      'min-height:32px!important;padding:6px 8px!important;border:1px solid transparent!important;border-radius:8px!important;',
+      'background:transparent!important;box-shadow:none!important;color:inherit!important;font-weight:400!important}',
+      '.wSkVaW_composerHero.dbh-home-dock-host:has(.dsh-tweaks-seat) .dbh-dock > .dbh-dock-wrap{',
+      'min-height:32px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}',
       // 撤回「只显示图标」（2026-09-16）：实测模型座**只有文字 + 下拉箭头、没有真图标**，
       // 藏掉文字后只剩一个 ⌄，整行认不出（用户："我已经看不清这一行了"）。必须保留文字。
       // 行内已用 flex 流 + nowrap，不会再压盖邻居，因此无需再藏。
@@ -205,8 +245,11 @@ window.__ModuleLoader__.load({
       'top:-14px!important;height:14px!important;pointer-events:none!important;background:linear-gradient(to bottom,transparent,Canvas)!important}',
       // 同一问题在「黑洞那一行」上还有一份：它可能不在 composerStack 的覆盖范围内（2026-09-16 用户图二：对话文字压住
       // 黑洞空间/放进黑洞 那行）。`.dbh-dock` 是实测存在的锚点，直接给它底色 + 同款渐隐带。
-      '.dbh-dock:has(.dsh-tweaks-seat){position:relative!important;background:Canvas!important;z-index:2!important}',
-      '.dbh-dock:has(.dsh-tweaks-seat)::before{content:""!important;position:absolute!important;left:0!important;right:0!important;',
+      // ⚠️ 2026-09-17：必须 `:not(.dbh-home-dock-host *)` 排除**空白态** —— 空白态那一行由黑洞插件
+      // `position:absolute` 定位（`left/top:var(--dbh-home-dock-*)`），而这里的 `position:relative!important`
+      // 优先级压过插件的非 important 规则（实测：dock 被从标题旁甩到 y=930，直接跑到视口外）。
+      '.dbh-dock:has(.dsh-tweaks-seat):not(.dbh-home-dock-host *){position:relative!important;background:Canvas!important;z-index:2!important}',
+      '.dbh-dock:has(.dsh-tweaks-seat):not(.dbh-home-dock-host *)::before{content:""!important;position:absolute!important;left:0!important;right:0!important;',
       'top:-10px!important;height:10px!important;pointer-events:none!important;background:linear-gradient(to bottom,transparent,Canvas)!important}',
       // 收起态图标轨的悬停名称气泡（fixed 定位，避免被 root 的 overflow:hidden 裁掉）
       '.tw-rail-tip{position:fixed;left:-9999px;top:0;z-index:2147483000;pointer-events:none;opacity:0;',
@@ -214,7 +257,12 @@ window.__ModuleLoader__.load({
       'box-shadow:0 6px 18px rgba(0,0,0,.12);padding:4px 8px;font-size:12px;line-height:16px;',
       'font-family:Inter,ui-sans-serif,system-ui,"Microsoft YaHei",sans-serif;white-space:nowrap;transition:opacity .12s}',
       '.tw-rail-tip.on{opacity:1}',
-      'body[data-color-scheme="dark"] .tw-rail-tip{background:#1f1f22;color:#f4f4f5;border-color:rgba(255,255,255,.12)}'
+      'body[data-color-scheme="dark"] .tw-rail-tip{background:#1f1f22;color:#f4f4f5;border-color:rgba(255,255,255,.12)}',
+      // :where 降低优先级，给空卡片态和占位态补上 #root 边距同步（面板宽度由 seam-exact 的 max-width 控制）。
+      'body:where(:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_editorPlaceholder)){--dss-panel-width:min(max(var(--dsh-sidebar-width,0px),286px),420px)}',
+      'body:where(:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_editorPlaceholder)) #root{margin-right:var(--dss-panel-width)!important;width:calc(100% - var(--dss-panel-width))!important}',
+      'body:where(:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_paneEmptyCards)){--dss-panel-width:min(max(var(--dsh-sidebar-width,0px),286px),560px)}',
+      'body:where(:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_paneEmptyCards)) #root{margin-right:var(--dss-panel-width)!important;width:calc(100% - var(--dss-panel-width))!important}'
     ].join('');
 
     const LIFT = 'dsh-tweaks-lifted';
@@ -354,22 +402,23 @@ window.__ModuleLoader__.load({
       injectStyle();
       const dock = findDock();
       if (!dock) { state('nodock'); return; }
-      // 【审查 P2】空白态（hero）显式短路：不能靠 `:has(.dsh-tweaks-seat)` 兜底——hero 里几何守卫会退化放行
-      // （dock 父节点是 display:contents，宽度 0×0 → 只剩 `width>=260` 在判），搬运会在 hero 里建 seat，
-      // 于是所有收窄过的规则又被 `:has()` 命中。所以这里直接不动、并回退任何既有搬运。
-      if (dock.closest('.wSkVaW_composerHero')) {
-        revert(dock, [findModelSeat()]);
-        state('hero');
-        return;
-      }
+      // 空白态（欢迎页）现在也搬（用户 2026-09-17：模型选择器不在输入框左下角，要挪到黑洞空间那一行的右端）。
+      // 与 2026-09-16 那条「空白态摆放交给黑洞插件」的边界：那次是想**改写插件的摆放属性**
+      // （data-dbh-dock-placement，两个写者互抢）；这次只是把我们自己的座位塞进**插件已经摆好的那一行**，
+      // 摆放属性仍由插件独占，本插件不写、不碰。
+      const inHero = dock.closest('.wSkVaW_composerHero') !== null;
       const modelRaw = findModelSeat();
       if (!modelRaw) { revert(dock, []); state('nomodel'); return; }
       const dr0 = dock.getBoundingClientRect();
-      // 只认「横跨输入区的那一行」：hero/欢迎态下 .dbh-dock 只是标题旁的一枚小胶囊，那种情况一律不动。
       const stack = dock.parentElement;
       const stackW = stack ? stack.getBoundingClientRect().width : 0;
       const fullRow = stackW > 4 ? dr0.width >= stackW * 0.6 : dr0.width >= 260;
-      if (dr0.width < 160 || dr0.height < 12 || dr0.top < 0 || !fullRow) {
+      // 空白态里 dock 是黑洞插件按内容宽度 shrink-wrap 的绝对定位行（实测 167px 宽，父级是 display:contents
+      // 的槽容器 ⇒ stackW=0），「横跨输入区」的判据根本不适用；改用「有最小尺寸 + 行里确实有黑洞按钮」判定，
+      // 否则这个守卫会把空白态一直判成 skip（实测：模型永远搬不上去）。
+      const heroRow = inHero && dr0.width >= 90 && dr0.height >= 12 && dock.querySelector('.dbh-btn') !== null;
+      const sized = inHero ? heroRow : dr0.width >= 160 && dr0.height >= 12 && fullRow;
+      if (!sized || dr0.top < 0) {
         revert(dock, [modelRaw]);
         state('skip');
         return;
@@ -415,10 +464,12 @@ window.__ModuleLoader__.load({
       modelRaw.classList.add('dsh-tweaks-model');
       const modelText = (modelRaw.textContent || '').replace(/\s+/g, ' ').trim();
       if (modelText !== '' && !modelRaw.getAttribute('title')) modelRaw.setAttribute('title', modelText);
-      markFloatingButtons(dock);
+      // 「回到底部」悬浮按钮只存在于会话态（空白态没有可滚动正文），空白态不跑这段几何标记。
+      if (!inHero) markFloatingButtons(dock);
       state('moved');
 
-      // 校验不再比对像素坐标（节点现在真的在行里）：只验「挂上了 + 有尺寸 + 没溢出右边界」
+      // 校验不再比对像素坐标（节点现在真的在行里）：只验「挂上了 + 有尺寸 + 没溢出右边界」。
+      // 空白态的宽度由 CSS 直接给定（与会话态同一算式），不再依赖插件上一帧的测量 ⇒ 两种状态同一个容差。
       const dr = dock.getBoundingClientRect();
       const bad = [];
       for (let i = 0; i < items.length; i++) {
@@ -439,9 +490,18 @@ window.__ModuleLoader__.load({
     // ===== 热重载：宿主令牌变了就刷新页面（DSH 运行时不动，会话不丢）=====
     const TOKEN_URL = '/ui-tweaks/reload-token';
     function clientInputBusy() {
-      const editable = document.querySelector('[contenteditable="true"]');
-      if (editable && (editable.innerText || '').trim() !== '') return true;
-      return false;
+      // 2026-09-17 修：旧实现取「文档里第一个 [contenteditable=true]」——会话页/设置页里
+      // 先出现的可编辑元素是消息、标题之类（非空），于是**永远判定为忙 → 页面永不自动刷新
+      // → 插件改动到不了真机**。A/B 实测：注入一个非空 contenteditable 当首个可编辑元素后改
+      // mtime，旧守卫不刷新、新守卫正常刷新。现在只认真正的输入框（composer 槽）；
+      // 找不到槽时只认「正在编辑」的那一个。
+      const composer = document.querySelector('[data-slot^="conversation.composer"], .uV2eYG_root');
+      if (composer !== null) {
+        const boxes = Array.from(composer.querySelectorAll('[contenteditable="true"]'));
+        return boxes.some((el) => (el.innerText || '').trim() !== '');
+      }
+      const active = document.activeElement;
+      return !!(active && active.isContentEditable === true && (active.innerText || '').trim() !== '');
     }
     function watchClientBundle() {
       let seen = null;
@@ -533,20 +593,160 @@ window.__ModuleLoader__.load({
       window.__dshTweaksRailTip = true;
     }
 
+    /** 隐藏连接状态指示器（2026-09-18 用户「取消这个」）。
+     *  ConnectionIndicator 来自 @deepseek-ai/dsh-client-ui-primitives，CSS module 类名不含 "indicator" 字面量，
+     *  无法用纯 CSS 可靠命中。这里用 JS 按 DOM 结构定位：.dcu-settings-seat 内、非按钮/非样式标签的直接子元素。 */
+    function hideConnectionIndicator() {
+      const seat = document.querySelector('.dcu-settings-seat');
+      if (!seat) return;
+      for (const child of seat.children) {
+        if (child.tagName === 'STYLE' || child.tagName === 'BUTTON') continue;
+        // 跳过 portal 容器（data-dcu-settings-page / data-dsh-pet-overlay）
+        if (child.hasAttribute('data-dcu-settings-page')) continue;
+        if (child.hasAttribute('data-dsh-pet-overlay')) continue;
+        child.style.setProperty('display', 'none', 'important');
+      }
+    }
+
     function apply() {
       injectStyle();
       suppressBrandSingleClick();
       installRailTooltips();
+      hideConnectionIndicator();
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', applyAll, { once: true });
       } else {
         applyAll();
       }
-      const mo = new MutationObserver(() => { applyAll(); });
+      const mo = new MutationObserver(() => { applyAll(); hideConnectionIndicator(); });
       mo.observe(document.documentElement, { childList: true, subtree: true });
       window.addEventListener('resize', applyAll);
       setInterval(applyAll, 4000); // 轻量兜底：React 重渲染后仍能纠正
+      setInterval(hideConnectionIndicator, 2000); // 独立兜底：每 2s 再藏一次连接指示器
       watchClientBundle();
+      installWidthProbe();
+    }
+
+    // ===== 只读宽度探针（2026-09-17 装回，常驻仪器；scripts/verify-adaptive-layout.mjs 的唯一数据源）=====
+    // 无任何视觉改动：横扫视口中线，把每个 x 切片的元素归属压成"带"，POST 给宿主 /ui-tweaks/probe。
+    // 采样时机：页面加载后 0.5s / 2s 各一次 + resize 去抖一次；**不做常驻定时器**，避免长期空转。
+    // 手动再采一次：控制台执行 window.__dshWidthProbeNow()
+    function installWidthProbe() {
+      if (window.__dshWidthProbe === true) return;
+      window.__dshWidthProbe = true;
+      const sample = () => {
+        try {
+          const vw = window.innerWidth, vh = window.innerHeight, y = Math.round(vh * 0.5);
+          const desc = (el) => {
+            if (!el) return 'null';
+            const cls = typeof el.className === 'string' ? el.className.trim().split(/\s+/).slice(0, 2).join('.') : '';
+            const r = el.getBoundingClientRect();
+            return el.tagName.toLowerCase() + (cls ? '.' + cls : '') + ' [' + Math.round(r.left) + '..' + Math.round(r.right) + ']';
+          };
+          const bands = [];
+          for (let x = 1; x < vw; x += 8) {
+            const d = desc(document.elementFromPoint(x, y));
+            const last = bands[bands.length - 1];
+            if (last && last.desc === d) last.to = x; else bands.push({ desc: d, from: x, to: x });
+          }
+          const frame = document.querySelector('.pI_x6G_frame');
+          const chain = [];
+          for (let el = frame; el !== null && chain.length < 6; el = el.parentElement) {
+            const cs = getComputedStyle(el);
+            chain.push(desc(el) + ' display=' + cs.display + ' flex=' + cs.flexBasis + '/' + cs.flexGrow + '/' + cs.flexShrink + ' w=' + cs.width + ' pos=' + cs.position);
+          }
+          const payload = {
+            vw: vw, vh: vh, y: y,
+            appWidthVar: getComputedStyle(document.documentElement).getPropertyValue('--dsh-app-width'),
+            compact: document.documentElement.dataset.dshCompact || null,
+            sidebarVar: getComputedStyle(document.documentElement).getPropertyValue('--dsh-sidebar-width'),
+            // 2026-09-17 追加（只读）：定位「中缝 40px 白条」到底谁写歪的 —— 右栏内联/计算宽度、
+            // 三条 --dss-panel-* 变量、#root 的让位、以及自愈是否装上。
+            panelDiag: (() => {
+              try {
+                const p = document.querySelector('.nArs4W_panel');
+                if (p === null) return null;
+                const cs = getComputedStyle(p);
+                const pr = p.getBoundingClientRect();
+                const body = p.querySelector(':scope > .nArs4W_panelBody');
+                const br = body === null ? null : body.getBoundingClientRect();
+                const root = document.getElementById('root');
+                const rcs = root === null ? null : getComputedStyle(root);
+                const bcs = getComputedStyle(document.body);
+                return {
+                  inlineWidth: p.style.width || '(none)',
+                  computedWidth: cs.width,
+                  maxWidth: cs.maxWidth,
+                  minWidth: cs.minWidth,
+                  panelRect: [Math.round(pr.left), Math.round(pr.width)],
+                  bodyRect: br === null ? null : [Math.round(br.left), Math.round(br.width)],
+                  rootMarginRight: rcs === null ? null : rcs.marginRight,
+                  rootWidth: rcs === null ? null : rcs.width,
+                  htmlVarInline: document.documentElement.style.getPropertyValue('--dsh-sidebar-width') || '(none)',
+                  dssPanelWidth: bcs.getPropertyValue('--dss-panel-width'),
+                  dssPanelMin: bcs.getPropertyValue('--dss-panel-min'),
+                  dssPanelLimit: bcs.getPropertyValue('--dss-panel-limit'),
+                  heroInDom: document.querySelector('.wSkVaW_root[data-phase="hero"]') !== null,
+                  treeDockInPanel: p.querySelector('.nArs4W_editorTreeDock') !== null
+                };
+              } catch (e) { return 'ERR ' + e; }
+            })(),
+            // 2026-09-18 追加（只读）：定位「消息文本列比输入框窄 ~90px」的边界死区 ——
+            // 量消息滚动容器、输入框、面板三者的右缘 + 滚动体内最宽文本行的右缘。
+            boundaryDiag: (() => {
+              try {
+                const rectOf = (el) => { if (el === null) return null; const r = el.getBoundingClientRect(); return { left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width) }; };
+                const composer = document.querySelector('[class*="uV2eYG_root"]');
+                const scroll = document.querySelector('[class*="wSkVaW_scrollBody"]');
+                const scrollInner = scroll === null ? null : scroll.querySelector(':scope > *');
+                let textRight = 0, textSample = '';
+                if (scroll !== null) {
+                  for (const el of scroll.querySelectorAll('p, li, h1, h2, h3, div')) {
+                    if (el.children.length > 0) continue;
+                    const txt = (el.textContent || '').trim();
+                    if (txt.length < 12) continue;
+                    const r = el.getBoundingClientRect();
+                    if (r.width > 60 && r.right > textRight) { textRight = Math.round(r.right); textSample = txt.slice(0, 16); }
+                  }
+                }
+                return {
+                  composer: rectOf(composer),
+                  scroll: rectOf(scroll),
+                  scrollInner: rectOf(scrollInner),
+                  scrollClientW: scroll === null ? null : scroll.clientWidth,
+                  textRight: textRight,
+                  textSample: textSample,
+                  panel: rectOf(document.querySelector('[data-dsh-panel]'))
+                };
+              } catch (e) { return 'ERR ' + e; }
+            })(),
+            bands: bands.map((b) => b.from + '-' + b.to + ' : ' + b.desc),
+            chain: chain,
+            siblings: frame !== null && frame.parentElement !== null ? [...frame.parentElement.children].map(desc) : [],
+            rootChildren: (() => { const root = document.getElementById('root'); return root ? [...root.children].map(desc) : []; })(),
+            narrowText: (() => {
+              const root = document.querySelector('.pI_x6G_frame');
+              if (root === null) return [];
+              return [...root.querySelectorAll('*')].filter((el) => {
+                const r = el.getBoundingClientRect(); const txt = (el.textContent || '').trim();
+                return r.width > 0 && r.width < 60 && r.height > 30 && txt.length >= 2;
+              }).slice(0, 8).map((el) => {
+                const r = el.getBoundingClientRect();
+                const cls = typeof el.className === 'string' ? el.className.trim().split(/\s+/).slice(0, 2).join('.') : '';
+                return el.tagName.toLowerCase() + (cls ? '.' + cls : '') + ' left=' + Math.round(r.left) + ' w=' + Math.round(r.width) + ' h=' + Math.round(r.height) + ' t=' + (el.textContent || '').trim().slice(0, 24);
+              });
+            })(),
+            dragging: document.querySelector('.nArs4W_panel') === null ? null : (document.querySelector('.nArs4W_panel').getAttribute('data-dragging') !== null),
+            sampledAt: new Date().toISOString(),
+          };
+          fetch('/ui-tweaks/probe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => {});
+        } catch { /* 取证失败不影响界面 */ }
+      };
+      window.__dshWidthProbeNow = sample;
+      setTimeout(sample, 500);
+      setTimeout(sample, 2000);
+      let timer = null;
+      window.addEventListener('resize', () => { if (timer !== null) clearTimeout(timer); timer = setTimeout(sample, 400); });
     }
 
     module.exports.apply = apply;
@@ -554,3 +754,7 @@ window.__ModuleLoader__.load({
     return module.exports;
   }
 });
+
+// verify-adaptive-layout 1789632407638
+
+// verify-adaptive-layout 1789655270374

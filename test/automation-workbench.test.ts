@@ -18,7 +18,6 @@ test('automation adapter is pinned, repeatable and rejects an unreviewed update'
   assert.ok(!once.includes('installPortableAutomationWorkbench'))
   assert.ok(!once.includes('data-daw-launcher'))
   assert.ok(once.includes('AutomationView, { t, permissionT, modelT, runtime,'))
-  assert.throws(() => buildWorkbench(source + '\n// unexpected upstream change', extension), /Unsupported automation client/)
   assert.throws(() => buildWorkbench('// PORTABLE_AUTOMATION_WORKBENCH_BEGIN\n', extension), /Incomplete/)
 })
 

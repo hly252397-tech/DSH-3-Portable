@@ -1,0 +1,108 @@
+import { readFile, writeFile } from 'node:fs/promises'
+import { Script } from 'node:vm'
+import { resolve } from 'node:path'
+
+// The local fork ships a prebuilt client. Preserve its native-browser patch
+// and lazy chunks while applying the same host compatibility as Sidebar.tsx.
+const file = resolve('Data/DSH/profiles/web/local/dsh-better-sidebar/lib/client.js')
+let client = await readFile(file, 'utf8')
+const before = 'document.querySelector("#root [data-slot=\\"conversation\\"]")?.parentElement'
+const after = '(document.querySelector("#root [data-slot=\\"main\\"]")?.parentElement ?? document.querySelector("#root [data-slot=\\"conversation\\"]")?.parentElement ?? document.querySelector("#root [data-dsh-frame] > [data-pane=\\"conversation\\"]") ?? void 0)'
+if (!client.includes(after)) {
+  if (client.split(before).length !== 2) throw new Error('Sidebar locator changed; review host compatibility before rebuilding')
+  client = client.replace(before, after)
+}
+// Apply to the embedded layout stylesheet, including dragging/reduced motion.
+const oldSelector = '#root :has(> [data-slot=\\"conversation\\"])'
+const newSelector = '#root :is(:has(> [data-slot=\\"conversation\\"]),:has(> [data-slot=\\"main\\"]))'
+if (!client.includes(newSelector) && !client.includes(oldSelector)) throw new Error('Sidebar layout stylesheet changed')
+client = client.replaceAll(oldSelector, newSelector)
+// Public local-fork action for coordination with the official right panel.
+const serviceAnchor = '\t\t\t\tsubscribeState,\n'
+const panelAction = '\t\t\t\tsetPanelOpen: (open) => { store.reduce(state => state.panelOpen === open ? state : { ...state, panelOpen: open }); },\n'
+client = client.replaceAll('\r\n', '\n')
+if (!client.includes(panelAction)) {
+  if (client.split(serviceAnchor).length !== 2) throw new Error('Sidebar service changed; review panel coordination before rebuilding')
+  client = client.replace(serviceAnchor, serviceAnchor + panelAction)
+}
+// Internal diff tabs remain usable, but are not separate user feature cards.
+const oldInventory = '[...service.getTabs()].sort(tabOrder)'
+const newInventory = '[...service.getTabs()].filter(tab => tab.id !== "diff" && tab.id !== "space-automation").sort(tabOrder)'
+if (!client.includes(newInventory)) {
+  if (client.split(oldInventory).length !== 3) throw new Error('Settings tab inventory changed; review retired entries')
+  client = client.replaceAll(oldInventory, newInventory)
+}
+// 2026-09-16 全局自适应：编辑器空占位不再用空白吃掉面板宽度。
+// 空态（.editorPlaceholder 在面板里）→ 面板收缩到 420px；有文件打开时该规则不命中，布局不变。
+const placeholderRule = '.nArs4W_editorPlaceholder{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary);text-align:center;flex:1;justify-content:center;align-items:center;padding:16px;display:flex}'
+const panelEmptyClamp = 'body .nArs4W_panel:has(.nArs4W_editorPlaceholder){max-width:420px!important}body .nArs4W_panel:has(.nArs4W_paneEmptyCards){max-width:560px!important}'
+// 同一批（全局自适应）：面板收缩省下的宽度必须**被对话列吃掉**，否则只是把空白挪个位置。
+const conversationGrows = 'body .pI_x6G_frame{flex:1 1 auto!important;min-width:0!important}'
+if (!client.includes(conversationGrows)) client = client.replace(panelEmptyClamp, panelEmptyClamp + conversationGrows)
+if (!client.includes(panelEmptyClamp)) {
+  if (client.split(placeholderRule).length !== 2) throw new Error('Editor placeholder rule changed; review adaptive panel clamp before rebuilding')
+  client = client.replace(placeholderRule, placeholderRule + panelEmptyClamp)
+}
+// 2026-09-16 全局自适应（用户：「不要用空白吃掉宽度」）。
+// 机制（实测）：本插件把面板尺寸**推成 `--dsh-sidebar-width`（写在 <html> 内联）**，
+// 应用侧 `#root{margin-right:var(--dsh-sidebar-width);width:calc(100% - var(--dsh-sidebar-width))}`
+// —— 所以只把面板画窄（max-width）不会让对话列变大，空白只是换位置（实测 916→552，空档 153→496）。
+// 正解：空态下**同时**把变量推小（对话列长回去）+ 面板画小（右对齐、不重叠、不留缝）。
+// 2026-09-18 修复（用户截图右栏 430px 白带）：空态变量强制必须**只在面板可见时**生效。
+// 根因：html:has(...) 不区分面板开合——收起（panelHidden）只藏不改 DOM，占位卡仍在 ⇒
+// :has() 恒命中 ⇒ --dsh-sidebar-width 被 !important 钉死在 430/560px，
+// writeGeometry(0) 的内联 0 写不赢 !important，hero 对齐规则照抄 430 ⇒ 右侧整条白带。
+// 修法：作用域加 .nArs4W_panel:not(.nArs4W_panelHidden)——面板可见时空态宽度逻辑原样，
+// 收起后变量解放（内联 0px 生效），让位归零。
+const emptyStateClampLegacy = 'html:has(.nArs4W_paneEmptyCards){--dsh-sidebar-width:560px!important}html:has(.nArs4W_editorPlaceholder){--dsh-sidebar-width:430px!important}'
+const emptyStateClamp = 'html:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_paneEmptyCards){--dsh-sidebar-width:560px!important}html:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_editorPlaceholder){--dsh-sidebar-width:430px!important}body .nArs4W_panel:has(.nArs4W_paneEmptyCards){max-width:560px!important}body .nArs4W_panel:has(.nArs4W_editorPlaceholder){max-width:430px!important}'
+if (client.includes(emptyStateClampLegacy) && !client.includes(emptyStateClamp)) client = client.replace(emptyStateClampLegacy, emptyStateClamp)
+const placeholderAnchor = '.nArs4W_editorPlaceholder{font:var(--dsw-font-xxs-12);color:var(--dsw-alias-label-tertiary);text-align:center;flex:1;justify-content:center;align-items:center;padding:16px;display:flex}'
+// 2026-09-16 全局自适应（用户：「所有工作区边界自适应，缩放大小自适应」）：
+// 钳制必须在**写入处**，不能用 CSS 覆盖 —— 拖动就是往 --dsh-sidebar-width 写状态，
+// CSS 覆盖会把拖动结果立刻压回去，表现为"拖不动"（2026-09-16 用户实测）。
+const writeGeometryAnchor = 'document.documentElement.style.setProperty("--dsh-sidebar-width", `${width}px`);'
+// 2026-09-17 修复：本钳制会把「收起」时上游按契约传进来的 0 变成 280（Math.max(280,0)），
+// 于是收起后仍写 --dsh-sidebar-width:280px，而应用侧 `#root{margin-right:var(--dsh-sidebar-width)}`
+// 照抄这 280px ⇒ 右栏消失但右侧留一条 280px 空白条（用户 2026-09-17 截图为证）。
+// 守卫必须加在**钳制里**（写入处）：width<=0 原样写 0，铺开时钳制语义完全不变。
+const writeGeometryClamped = 'const __avail = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--dsh-app-width")) || window.innerWidth; const __w = width <= 0 ? 0 : Math.max(286, Math.min(width, Math.max(286, __avail - 680))); document.documentElement.style.setProperty("--dsh-sidebar-width", `${__w}px`);'
+if (!client.includes('__avail - 680')) {
+  if (client.split(writeGeometryAnchor).length !== 2) throw new Error('writeGeometry anchor changed; review adaptive clamp')
+  client = client.replace(writeGeometryAnchor, writeGeometryClamped)
+}// 2026-09-18 对话区截断根治：applyDrag 也走同一钳制。
+// 根因：writeGeometry 钳制了 --dsh-sidebar-width（CSS 变量 → #root margin），
+// 但 applyDrag 的 panelRef inline style.width 仍写原始拖拽值。
+// seam-exact 的 width:var()!important 在无 editorPlaceholder/paneEmptyCards 时
+// 被 inline style 覆盖（inline + important > stylesheet），面板实际宽 = 原始值，
+// 而 #root margin = 钳制值 → 面板比预留空间宽 → 对话区被截断。
+// 修在 applyDrag 入口：width/height 进来就钳制，后续 inline style + bottomPush +
+// writeGeometry 全用钳制值，三处恒等。
+const applyDragRaw = 'const applyDrag = (width, height) => {\n\t\t\t\tlastDragSize.current = {\n\t\t\t\t\twidth,\n\t\t\t\t\theight\n\t\t\t\t};'
+const applyDragClamped = 'const applyDrag = (width, height) => {\n\t\t\t\tconst __a = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--dsh-app-width")) || window.innerWidth;\n\t\t\t\twidth = width > 0 ? Math.max(286, Math.min(width, Math.max(286, __a - 680))) : 0;\n\t\t\t\theight = height > 0 ? Math.max(0, height) : 0;\n\t\t\t\tlastDragSize.current = {\n\t\t\t\t\twidth,\n\t\t\t\t\theight\n\t\t\t\t};'
+if (!client.includes('__a - 680')) {
+  if (client.split(applyDragRaw).length !== 2) throw new Error('applyDrag anchor changed; review inline-width clamp')
+  client = client.replace(applyDragRaw, applyDragClamped)
+}// 2026-09-16 专业化收口（用户指出「两框衔接处还有第三种块」）：面板宽度**直接取预留变量**，
+// 让「预留列」与「面板实际宽」恒等 —— 两条边必然贴合，中间不再可能留下第三种块（body 带）。
+// 视觉间距由面板自身 padding 提供，不再靠「剩下一条背景」。
+const seamExact = '/* seam-exact */body .nArs4W_panel{width:var(--dsh-sidebar-width,420px)!important;min-width:286px!important;max-width:none!important}'
+if (!client.includes('--dsh-sidebar-width,420px')) {
+  if (client.split(emptyStateClamp).length !== 2) throw new Error('Empty-state clamp anchor changed; review seam rule')
+  client = client.replace(emptyStateClamp, emptyStateClamp + seamExact)
+}
+if (!client.includes(emptyStateClamp)) {
+  if (client.split(placeholderAnchor).length !== 2) throw new Error('Editor placeholder rule changed; review adaptive panel clamp before rebuilding')
+  client = client.replace(placeholderAnchor, placeholderAnchor + emptyStateClamp)
+}
+// 2026-09-17：§10.3 第 6 条「补丁脚本硬要求」补上**结构自证** —— 写入前先证明变换后的产物能解析。
+// 教训：手工编辑 live 制品曾写坏一次（多一个 `}` ⇒ 宿主拼接的整串客户端脚本解析失败 ⇒ 73 个插件全
+// import failed）。锚点命中数守卫挡不住这类错，所以这里直接对**即将落盘的字符串**做经典脚本解析门禁，
+// 不通过就抛错、绝不写盘 —— 本脚本从此不可能把坏串写进去。
+try {
+  new Script(client, { filename: file })
+} catch (error) {
+  throw new Error(`transformed client.js does not parse; refusing to write: ${error.message}`)
+}
+await writeFile(file, client)
+console.log('Updated local sidebar host layout compatibility')
