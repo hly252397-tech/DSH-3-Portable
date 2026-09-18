@@ -149,6 +149,12 @@ export const BUILTIN_TRUSTED_HARNESS_RELEASES: readonly TrustedHarnessRelease[] 
   version: '0.1.6-alpha.1',
   npmIntegrity: 'sha512-i6rIfIF2FEAINJY9TnihdFFuE1CfD/Htjcb7sqpYWujLrfkxwsFp8shyvAUz+Aj2yU28N0zd/HSxMaOnbRhoBw==',
   githubCommit: '0a15e36e7f82b6ed45af6fa9759f29b40dcd965d',
+}, {
+  // 2026-09-18：0.1.6-alpha.2 受信（上游 v1.0.64 随包运行时；上游连发 codex-ui 1.1.13 等 13 项插件矩阵）。
+  // 凭据：npm integrity（npmmirror 实取）+ 官方 deepseek-harness 标签 dsh-v0.1.6-alpha.2 commit（GitHub API 实取）。
+  version: '0.1.6-alpha.2',
+  npmIntegrity: 'sha512-PHR/3ZHpJNWXlDQ3U9weFb7calWbSMJd2GD3z2iPJ8zAKL7ipuzyPy5xGbaXf2OA8hc0SAGJeoUW7nfatCNOYw==',
+  githubCommit: 'ddefc45fbc7f8e46dd73185e68295696d1297887',
 }]
 
 // 2026-09-09 曾短暂受信 0.1.5-alpha.1（npm integrity sha512-AUjywjrPnhXcAdAjRNgyQa1QCnplFTNYZ+XpR9uCZdbg2FiCb06pHyoDUB2Wxuddzid9D7pVwEiU1OTl4Oshsg==，
