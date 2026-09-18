@@ -106,20 +106,22 @@ export function officialRuntimeDependencies(version = OFFICIAL_DSH_VERSION): Rec
 
 /** 按 SemVer 比较正式版和 alpha/beta/rc 预发布号。 */
 export function compareReleaseVersions(left: string, right: string): number {
-  const parse = (value: string): { major: number; minor: number; patch: number; prerelease?: string[] } | undefined => {
-    const match = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(value.trim())
+  const parse = (value: string): { major: number; minor: number; patch: number; portable: number; prerelease?: string[] } | undefined => {
+    const match = /^v?(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(value.trim())
     if (match === null) return undefined
     return {
       major: Number(match[1]),
       minor: Number(match[2]),
       patch: Number(match[3]),
-      ...(match[4] === undefined ? {} : { prerelease: match[4].split('.') }),
+      // 第 4 段是便携迭代号：基础版本完全跟随上游（上游永远 3 段），同基座重建 .1/.2 递增，默认 0。
+      portable: match[4] === undefined ? 0 : Number(match[4]),
+      ...(match[5] === undefined ? {} : { prerelease: match[5].split('.') }),
     }
   }
   const a = parse(left)
   const b = parse(right)
   if (a === undefined || b === undefined) return left.localeCompare(right)
-  const core = a.major - b.major || a.minor - b.minor || a.patch - b.patch
+  const core = a.major - b.major || a.minor - b.minor || a.patch - b.patch || a.portable - b.portable
   if (core !== 0) return core
   if (a.prerelease === undefined) return b.prerelease === undefined ? 0 : 1
   if (b.prerelease === undefined) return -1

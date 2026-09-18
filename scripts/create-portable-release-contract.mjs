@@ -4,7 +4,7 @@ import { stat, writeFile } from 'node:fs/promises'
 import { basename, resolve } from 'node:path'
 
 const [version, archiveInput, outputInput] = process.argv.slice(2)
-if (!/^\d+\.\d+\.\d+$/.test(version ?? '') || archiveInput === undefined) {
+if (!/^\d+\.\d+\.\d+(?:\.\d+)?$/.test(version ?? '') || archiveInput === undefined) {
   throw new Error('Usage: create-portable-release-contract <version> <win-x64.zip> [output.json]')
 }
 const archive = resolve(archiveInput)

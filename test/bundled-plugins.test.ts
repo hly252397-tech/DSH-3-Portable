@@ -81,6 +81,19 @@ test('官方 DSH 家族锁在同一个精确版本', () => {
   assert.equal(officialRuntimePnpmConfig().overrides['@deepseek-ai/dsh-*'], OFFICIAL_DSH_VERSION)
 })
 
+test('版本号完全跟随上游：第 4 段便携迭代号的比较语义', () => {
+  // 基础版本 = 上游 3 段；同基座重建用 .N 递增，上游新版本永远大于旧基座的任意 .N。
+  assert.equal(compareReleaseVersions('1.0.64.1', '1.0.64'), 1)
+  assert.equal(compareReleaseVersions('1.0.64.2', '1.0.64.1'), 1)
+  assert.equal(compareReleaseVersions('1.0.64.10', '1.0.64.9'), 1)
+  assert.equal(compareReleaseVersions('1.0.65', '1.0.64.9'), 1)
+  assert.equal(compareReleaseVersions('1.0.64', '1.0.64.1'), -1)
+  assert.equal(compareReleaseVersions('1.0.64.1', '1.0.64.1'), 0)
+  // 预发布语义不破坏：rc 仍小于正式，便携迭代不影响 prerelease 比较。
+  assert.equal(compareReleaseVersions('1.0.64', '1.0.64-rc.1'), 1)
+  assert.equal(compareReleaseVersions('1.0.64-rc.2', '1.0.64-rc.1'), 1)
+})
+
 test('官方版本比较和升级目标不会把已对齐的新版本降回去', () => {
   assert.equal(compareReleaseVersions('0.1.0-rc.8', '0.1.0-rc.7') > 0, true)
   assert.equal(compareReleaseVersions('1.0.0-beta.1', '1.0.0-alpha.9') > 0, true)
