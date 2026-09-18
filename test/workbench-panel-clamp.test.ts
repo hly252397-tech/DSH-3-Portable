@@ -12,9 +12,12 @@ test('工作台面板宽度被钳制，对话列保留官方内容下限', async
   // 2026-09-14 起改为**单一来源**：外壳（src/browser-panel-layout.ts）按同一策略常量算出上限、
   // 折成 CSS px 后经 --dsh-browser-panel-max-width 下发；这里的兜底值必须与外壳常量同值
   // （跨模块一致性由 browser-panel-layout.test.ts 钉住）。
-  assert.match(css, /body \.nArs4W_panel \{\s*max-width: var\(--dsh-browser-panel-max-width, calc\(100vw - 640px\)\) !important;/)
-  assert.match(css, /@media \(max-width: 1100px\) \{\s*body \.nArs4W_panel \{\s*display: none !important;/)
-  assert.match(css, /body \.pI_x6G_centerCol \{\s*min-width: 680px;/)
+  assert.match(css, /body \.nArs4W_panel \{\s*max-width: var\(--dsh-browser-panel-max-width, calc\(var\(--dsh-app-w\) - var\(--dsh-panel-margin\)\)\) !important;/)
+  // 2026-09-16：隐藏判定只留外壳那一次（data-dsh-compact），页面不再自带 1100px 媒体查询
+  assert.match(css, /:root\[data-dsh-compact="1"\] body \.nArs4W_panel \{\s*display: none !important;/)
+  assert.doesNotMatch(css, /@media \(max-width: \d+px\) \{\s*body \.nArs4W_panel/, '页面不得再自带面板的视口阈值（注释里引用旧规则不算）')
+  // 对话列仍以官方内容下限 680px 为目标，但**不许超过可用宽度**（窄档自适应，不再硬撑出溢出）
+  assert.match(css, /body \.pI_x6G_centerCol \{\s*min-width: min\(680px, calc\(var\(--dsh-app-w\) - var\(--dsh-chrome-w\) - 24px\)\);/)
   assert.match(css, /body \.dcu-home-cards \{\s*flex-wrap: wrap !important;/)
 })
 
@@ -32,7 +35,9 @@ test('rc.2 新前端的标签菜单不越出便携侧栏区', async () => {
   const css = await readFile(join(process.cwd(), 'assets/theme.css'), 'utf8')
   // _menu_17p4l_444（fixed、JS 右对齐锚点）在按钮位于标签条左端时左缘伸进侧栏。
   // 用模块前缀匹配本构建系列，强制左对齐到侧栏之外（260px）。
-  assert.match(css, /body \[class\*="_menu_17p4l"\] \{\s*left: 260px !important;/)
+  // 260 = 侧栏 252 + 8：改为由 --dsh-sidebar-w 派生（侧栏宽只在一处定义）
+  assert.match(css, /--dsh-sidebar-w: 252px;/)
+  assert.match(css, /body \[class\*="_menu_17p4l"\] \{\s*left: calc\(var\(--dsh-sidebar-w\) \+ 8px\) !important;/)
   assert.match(css, /right: auto !important;/)
 })
 

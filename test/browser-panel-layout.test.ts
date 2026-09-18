@@ -43,10 +43,13 @@ test('窄视口下面板该收手：外壳与页面隐藏阈值共用同一把�
   assert.equal(shouldHideBrowserPanel(1088, 0), false)
 
   const css = await readFile(join(process.cwd(), 'assets/theme.css'), 'utf8')
-  const media = /@media \(max-width: (\d+)px\) \{\s*body \.nArs4W_panel \{\s*display: none/.exec(css)
-  assert.ok(media, 'theme.css 必须保留窄视口隐藏面板的媒体查询')
-  // 跨模块一致性：外壳常量必须等于页面的媒体查询阈值，否则两侧又会各收各的手
-  assert.equal(Number(media[1]), MINIMUM_PANEL_VIEWPORT_CSS)
+  // 2026-09-16 改为**单一尺子**：页面不再自带视口宽度阈值（那是第二条尺子，缩放一变就漂移），
+  // 只认外壳下发的 data-dsh-compact（由 shouldHideBrowserPanel 唯一判定）。
+  assert.match(css, /:root\[data-dsh-compact="1"\] body \.nArs4W_panel \{\s*display: none !important;/)
+  assert.doesNotMatch(css, /@media \(max-width: \d+px\) \{\s*body \.nArs4W_panel/, '页面不得再自带视口阈值')
+  assert.equal(MINIMUM_PANEL_VIEWPORT_CSS, 1100)
+  const main = await readFile(new URL('../../src/main.ts', import.meta.url), 'utf8')
+  assert.match(main, /publishLayoutContext\(bounds\.width, dshHeight, panelHiddenByViewport\)/, '外壳必须把同一判定下发给页面')
 })
 
 test('面板宽度上限折成 CSS px：页面卡片与原生视图共用同一把尺子', () => {
@@ -67,10 +70,13 @@ test('外壳与页面共用同一套面板宽度策略，不再各写一个常�
   assert.notEqual(start, -1, 'theme.css 必须保留工作台面板宽度钳制')
   const rule = css.slice(start, css.indexOf('}', start) + 1)
   assert.match(rule, /var\(--dsh-browser-panel-max-width/)
-  const fallback = /calc\(100vw - (\d+)px\)/.exec(rule)?.[1]
-  assert.ok(fallback, 'theme.css 的兜底必须写成 calc(100vw - Npx)')
+  // 2026-09-16：兜底也走同一条尺子（--dsh-app-w 由外壳下发），不再写 100vw 这条第二尺子。
+  assert.match(rule, /calc\(var\(--dsh-app-w\) - var\(--dsh-panel-margin\)\)/)
+  assert.doesNotMatch(rule, /100vw/)
   // 这才是本轮修的那个 bug：两侧曾分别写 1040 与 900，且一个是 CSS px、一个是 DIP。
-  assert.equal(Number(fallback), MAXIMUM_PANEL_WIDTH_MARGIN)
+  const margin = /--dsh-panel-margin: (\d+)px/.exec(css)?.[1]
+  assert.ok(margin, ':root 必须定义 --dsh-panel-margin（让位预算唯一出处）')
+  assert.equal(Number(margin), MAXIMUM_PANEL_WIDTH_MARGIN)
   assert.equal(capBrowserWorkspacePanelWidth(MAXIMUM_PANEL_WIDTH_MARGIN + 400, 99999), 400)
 })
 

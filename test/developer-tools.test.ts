@@ -56,6 +56,8 @@ test('开发者工具动作与菜单共同指向当前内容页，勾选态跟�
     lastSeedOptions: undefined,
     dshNavigationState: { canBack: false, canForward: false, canPreviousChat: false, canNextChat: false },
     runMainTask: () => undefined,
+    dshSettingsDialogVisible: false,
+    exitDshSettingsPage: () => {},
     Menu: {
       buildFromTemplate(items: typeof template) {
         template = items
