@@ -921,10 +921,3 @@ img[src^="data:image/webp;base64,UklGRvaKAABXRUJQVlA4IOqKAACQmwKdASoABgAC"] {
   white-space: nowrap !important;
 }
 
-/* better-sidebar 无会话降级态的开关集群（data-dsh-toggle-cluster，只在
-   sessionId/state 未就绪的 early-return 分支渲染）：两枚 aria-disabled 死按钮
-   + 「选择一个会话以使用侧边栏」tooltip，纯死 UI（2026-09-19 用户指示移除）。
-   集群只在降级分支存在，会话态的真实开关不在此容器，隐藏无副作用。 */
-body [data-dsh-toggle-cluster] {
-  display: none !important;
-}
