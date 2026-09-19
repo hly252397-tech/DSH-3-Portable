@@ -1,0 +1,82 @@
+/** Native desktop browser surface. Shared tabs/history belong to the desktop process. */
+export function createNativeBrowserView(react, t) {
+  return function BrowserView({ visible, tab, ctx, scope }) {
+    const host = react.useRef(null);
+    const owner = react.useRef(null);
+    if (owner.current === null) owner.current = `sidebar-browser-${crypto.randomUUID()}`;
+    const lastPath = react.useRef(undefined);
+    const lastNavigation = react.useRef(undefined);
+    const [error, setError] = react.useState(null);
+    const [tooSmall, setTooSmall] = react.useState(false);
+    const [attempt, setAttempt] = react.useState(0);
+    react.useEffect(() => {
+      if (!visible) return;
+      const bridge = window.dshDesktopShell?.browserPanel;
+      if (bridge?.version !== 1) {
+        setError(t('nativeBrowserUnavailable'));
+        return;
+      }
+      const lease = owner.current;
+      let disposed = false;
+      let frame;
+      let boundsKey = '';
+      let occluded;
+      let lastTooSmall;
+      let overlays = [];
+      const reportError = cause => { if (!disposed) setError(String(cause?.message || cause)); };
+      const inspectOverlays = () => {
+        overlays = [...document.querySelectorAll('[role="dialog"],[role="menu"],[role="listbox"],[data-radix-popper-content-wrapper]')]
+          .filter(element => !element.contains(host.current));
+      };
+      const observer = new MutationObserver(inspectOverlays);
+      observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'style', 'hidden', 'data-state'] });
+      inspectOverlays();
+      const report = () => {
+        if (disposed || !host.current) return;
+        const rect = host.current.getBoundingClientRect();
+        const insufficientSpace = rect.width < 280 || rect.height < 240;
+        if (insufficientSpace !== lastTooSmall) { lastTooSmall = insufficientSpace; setTooSmall(insufficientSpace); }
+        const blocked = insufficientSpace || overlays.some(element => {
+          if (!element.isConnected || element.getClientRects().length === 0 || getComputedStyle(element).visibility === 'hidden') return false;
+          const overlay = element.getBoundingClientRect();
+          return overlay.left < rect.right && overlay.right > rect.left && overlay.top < rect.bottom && overlay.bottom > rect.top;
+        });
+        const bounds = { owner: lease, x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+        const nextKey = JSON.stringify(bounds);
+        if (nextKey !== boundsKey && rect.width > 0 && rect.height > 0) {
+          boundsKey = nextKey;
+          bridge.reportBounds(bounds);
+        }
+        if (blocked !== occluded) {
+          occluded = blocked;
+          void bridge.setOccluded(blocked, lease).catch(reportError);
+        }
+        frame = requestAnimationFrame(report);
+      };
+      setError(null);
+      const path = typeof tab.path === 'string' && (tab.path !== lastPath.current || tab.meta?.nativeBrowserNavigationId !== lastNavigation.current) ? tab.path : undefined;
+      void bridge.show({ owner: lease, ...(path ? { url: path } : {}) }).then(() => {
+        if (disposed) return;
+        lastPath.current = tab.path;
+        lastNavigation.current = tab.meta?.nativeBrowserNavigationId;
+        report();
+      }).catch(reportError);
+      const unsubscribe = bridge.onCloseRequested(() => {
+        if (!disposed) ctx.get('betterSidebar')?.closeTab(tab.id, scope);
+      });
+      return () => {
+        disposed = true;
+        cancelAnimationFrame(frame);
+        observer.disconnect();
+        unsubscribe();
+        void bridge.hide(lease).catch(() => {});
+      };
+    }, [visible, tab.id, tab.path, tab.meta?.nativeBrowserNavigationId, attempt]);
+    return react.createElement('div', {
+      ref: host, 'data-native-browser-card': '',
+      style: { width: '100%', height: '100%', minHeight: 0, flex: '1 1 auto', background: 'var(--dsw-alias-bg-base,#fff)' },
+    }, tooSmall ? react.createElement('p', { role: 'status', style: { padding: 16 } }, t('nativeBrowserTooSmall')) : error === null ? null : react.createElement('div', { role: 'alert', style: { padding: 16 } },
+      react.createElement('p', null, error),
+      react.createElement('button', { type: 'button', onClick: () => setAttempt(value => value + 1) }, t('nativeBrowserRetry'))));
+  };
+}

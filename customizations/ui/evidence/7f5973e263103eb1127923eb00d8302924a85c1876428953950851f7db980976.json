@@ -1,0 +1,422 @@
+{
+  "status": "pass",
+  "authority": "chrome headless file:///G:/DSH-3-Portable/.tmp/topbar-qa/after.html @ 2560x260 / 1280x260",
+  "results": [
+    {
+      "label": "顶栏改版验收断言（2560 / 1280 双宽度）",
+      "checks": [
+        {
+          "label": "重启按钮移入右段工具组，且左段不再包含它",
+          "ok": true,
+          "detail": "restartInRightGroup=true, restartInLeftGroup=false"
+        },
+        {
+          "label": "全壳保留唯一一个重启入口",
+          "ok": true,
+          "detail": "#restart-btn 出现次数=1"
+        },
+        {
+          "label": "重启图标已换为电源图形且成功加载",
+          "ok": true,
+          "detail": "src=file:///G:/DSH-3-Portable/assets/shell-icons/power.svg, naturalWidth>0=true"
+        },
+        {
+          "label": "右段工具组由隐藏恢复为可见",
+          "ok": true,
+          "detail": "改前 display:none → 改后 display:flex"
+        },
+        {
+          "label": "右段最右端未侵占系统窗口按钮区(146px)",
+          "ok": true,
+          "detail": "右段右缘=2414px ≤ 可用右缘=2414px"
+        },
+        {
+          "label": "中段搜索胶囊按拍板方案 A：定宽 320px 且严格居中",
+          "ok": true,
+          "detail": "宽=320px, 中心=1280px, 窗口中心=1280px"
+        },
+        {
+          "label": "左段菜单紧凑化生效（4 项合计 ≤ 180px，改前 192px）",
+          "ok": true,
+          "detail": "改前=192px → 改后=176px"
+        },
+        {
+          "label": "左右两组分组竖线均渲染可见",
+          "ok": true,
+          "detail": "bar-left>.divider=true, bar-right>.divider=true"
+        },
+        {
+          "label": "2560 宽度下胶囊与左右两组无重叠",
+          "ok": true,
+          "detail": "左段右缘到胶囊左缘 844px；胶囊右缘到右段左缘 826px"
+        },
+        {
+          "label": "1280 宽度下同样无重叠（胶囊不遮挡工具组）",
+          "ok": true,
+          "detail": "1280：左余量 204px，右余量 186px"
+        },
+        {
+          "label": "整条顶栏最长连续空白显著收窄（2560）",
+          "ok": true,
+          "detail": "改前 2099px @ 315~2414 → 改后 844px @ 276~1120"
+        },
+        {
+          "label": "1280 窄窗下空白同样收窄且无溢出",
+          "ok": true,
+          "detail": "改前 819px → 改后 204px；右段右缘=1134px"
+        },
+        {
+          "label": "左段顺序为 返回→前进→竖线→四个菜单，且菜单数仍为 4",
+          "ok": true,
+          "detail": "back 17~47 / forward 49~79 / divider 87 / menus 起于 100"
+        },
+        {
+          "label": "右段顺序为 状态→重启→竖线→搜索→设置→更新",
+          "ok": true,
+          "detail": "restart 2273~2303 / divider 2311 / find 2320 / settings 2352 / update 2384"
+        },
+        {
+          "label": "改前基线复核：右段与胶囊确为隐藏态（对比有效）",
+          "ok": true,
+          "detail": "改前 rightGroupVisible=false, pillVisible=false"
+        }
+      ]
+    },
+    {
+      "label": "改后 · 顶栏元素实测几何 2560px",
+      "viewport": {
+        "width": 2560,
+        "height": 260
+      },
+      "nodes": [
+        {
+          "name": "header.bar",
+          "visible": true,
+          "x": 0,
+          "y": 0,
+          "width": 2560,
+          "height": 44,
+          "right": 2560
+        },
+        {
+          "name": "back",
+          "visible": true,
+          "x": 17,
+          "y": 7,
+          "width": 30,
+          "height": 30,
+          "right": 47
+        },
+        {
+          "name": "forward",
+          "visible": true,
+          "x": 49,
+          "y": 7,
+          "width": 30,
+          "height": 30,
+          "right": 79
+        },
+        {
+          "name": "divider@left",
+          "visible": true,
+          "x": 87,
+          "y": 13,
+          "width": 1,
+          "height": 18,
+          "right": 88
+        },
+        {
+          "name": "menu:文件",
+          "visible": true,
+          "x": 100,
+          "y": 7,
+          "width": 44,
+          "height": 30,
+          "right": 144
+        },
+        {
+          "name": "menu:编辑",
+          "visible": true,
+          "x": 144,
+          "y": 7,
+          "width": 44,
+          "height": 30,
+          "right": 188
+        },
+        {
+          "name": "menu:视图",
+          "visible": true,
+          "x": 188,
+          "y": 7,
+          "width": 44,
+          "height": 30,
+          "right": 232
+        },
+        {
+          "name": "menu:帮助",
+          "visible": true,
+          "x": 232,
+          "y": 7,
+          "width": 44,
+          "height": 30,
+          "right": 276
+        },
+        {
+          "name": "command-center",
+          "visible": true,
+          "x": 1120,
+          "y": 8,
+          "width": 320,
+          "height": 28,
+          "right": 1440
+        },
+        {
+          "name": "status",
+          "visible": false,
+          "x": 2266,
+          "y": 22,
+          "width": 0,
+          "height": 0,
+          "right": 2266
+        },
+        {
+          "name": "restart-btn",
+          "visible": true,
+          "x": 2273,
+          "y": 7,
+          "width": 30,
+          "height": 30,
+          "right": 2303
+        },
+        {
+          "name": "divider@right",
+          "visible": true,
+          "x": 2311,
+          "y": 13,
+          "width": 1,
+          "height": 18,
+          "right": 2312
+        },
+        {
+          "name": "btn:find",
+          "visible": true,
+          "x": 2320,
+          "y": 7,
+          "width": 30,
+          "height": 30,
+          "right": 2350
+        },
+        {
+          "name": "btn:settings",
+          "visible": true,
+          "x": 2352,
+          "y": 7,
+          "width": 30,
+          "height": 30,
+          "right": 2382
+        },
+        {
+          "name": "btn:update",
+          "visible": true,
+          "x": 2384,
+          "y": 7,
+          "width": 30,
+          "height": 30,
+          "right": 2414
+        }
+      ],
+      "largestGap": {
+        "px": 844,
+        "from": 276,
+        "to": 1120
+      },
+      "usableRight": 2414
+    },
+    {
+      "label": "改前 · 顶栏元素实测几何 2560px",
+      "viewport": {
+        "width": 2560,
+        "height": 260
+      },
+      "nodes": [
+        {
+          "name": "header.bar",
+          "visible": true,
+          "x": 0,
+          "y": 0,
+          "width": 2560,
+          "height": 44,
+          "right": 2560
+        },
+        {
+          "name": "back",
+          "visible": true,
+          "x": 49,
+          "y": 7,
+          "width": 30,
+          "height": 30,
+          "right": 79
+        },
+        {
+          "name": "forward",
+          "visible": true,
+          "x": 81,
+          "y": 7,
+          "width": 30,
+          "height": 30,
+          "right": 111
+        },
+        {
+          "name": "divider@left",
+          "visible": false,
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0
+        },
+        {
+          "name": "menu:文件",
+          "visible": true,
+          "x": 123,
+          "y": 7,
+          "width": 48,
+          "height": 30,
+          "right": 171
+        },
+        {
+          "name": "menu:编辑",
+          "visible": true,
+          "x": 171,
+          "y": 7,
+          "width": 48,
+          "height": 30,
+          "right": 219
+        },
+        {
+          "name": "menu:视图",
+          "visible": true,
+          "x": 219,
+          "y": 7,
+          "width": 48,
+          "height": 30,
+          "right": 267
+        },
+        {
+          "name": "menu:帮助",
+          "visible": true,
+          "x": 267,
+          "y": 7,
+          "width": 48,
+          "height": 30,
+          "right": 315
+        },
+        {
+          "name": "command-center",
+          "visible": false,
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0
+        },
+        {
+          "name": "status",
+          "visible": false,
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0
+        },
+        {
+          "name": "restart-btn",
+          "visible": true,
+          "x": 17,
+          "y": 7,
+          "width": 30,
+          "height": 30,
+          "right": 47
+        },
+        {
+          "name": "btn:find",
+          "visible": false,
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0
+        },
+        {
+          "name": "btn:settings",
+          "visible": false,
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0
+        },
+        {
+          "name": "btn:update",
+          "visible": false,
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0
+        }
+      ],
+      "largestGap": {
+        "px": 2099,
+        "from": 315,
+        "to": 2414
+      },
+      "usableRight": 2414
+    },
+    {
+      "label": "改后 · 1280px 窄窗复核",
+      "viewport": {
+        "width": 1280,
+        "height": 260
+      },
+      "facts": {
+        "restartInRightGroup": true,
+        "restartInLeftGroup": false,
+        "restartCount": 1,
+        "restartIconSrc": "file:///G:/DSH-3-Portable/assets/shell-icons/power.svg",
+        "restartIconLoaded": true,
+        "rightGroupVisible": true,
+        "rightGroupRightEdge": 1134,
+        "pillVisible": true,
+        "pillWidth": 320,
+        "pillCenter": 640,
+        "windowCenter": 640,
+        "menuCount": 4,
+        "menuGroupWidth": 176,
+        "leftDividerVisible": true,
+        "rightDividerVisible": true,
+        "overlaps": {
+          "leftVsPill": -204,
+          "pillVsRight": 186
+        }
+      },
+      "largestGap": {
+        "px": 204,
+        "from": 276,
+        "to": 480
+      }
+    },
+    {
+      "label": "渲染源与桩声明",
+      "chrome": "G:/DSH-3-Portable/宏建云系统/browsers/chrome-152.0.7977.64/chrome.exe",
+      "renderedAt": "2026-09-13T09:31:42.630Z",
+      "renderedFrom": {
+        "after": "assets/shell.html（工作区真实文件）",
+        "before": "customizations/ui/sources/dd1e03eb12cb5a09c6de3564f9de8fb14d0debb4b8071d52aacd02c2659f25d7.txt（上一版受保护快照）"
+      },
+      "stub": "window.dshShell 以最小桩实现（bootstrap.menus 四项 / state / desktopUpdate）；真实 browser-workspace.js 替换为 {create:()=>({render(){}})} 等价桩——顶栏不依赖它，静态 file:// 环境无法满足其对主进程桥的调用",
+      "notCovered": "未覆盖：原生弹出菜单真实展开、重启两步确认的实机点击、A/B 候选槽启动验证"
+    }
+  ],
+  "failed": []
+}

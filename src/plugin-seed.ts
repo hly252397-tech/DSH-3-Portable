@@ -8,6 +8,7 @@ import { writeTextFileAtomic, writeTextFileAtomicSync } from './atomic-file.js'
 import {
   ALLOWED_BUILD_PACKAGES,
   BUNDLED_PLUGINS,
+  compareReleaseVersions,
   OFFICIAL_DSH_VERSION,
   OFFICIAL_LAUNCH_PEERS,
   OFFICIAL_PROFILE_BUNDLES,
@@ -25,6 +26,7 @@ import { terminateProcessTree } from './process-control.js'
 import { mergeProfileUpdates, officialRuntimeUpdateVersion, parsePendingUpdates, partitionPackageUpdates, resolvePendingUpdatesPath, type ProfilePackageUpdate } from './profile-updates.js'
 import { copyPrebuiltOfficialRuntime } from './runtime-prebuilt.js'
 import { activeQuarantinedProfileBundles } from './profile-quarantine.js'
+import { parsePnpmProgress, type StartupProgress } from './startup-progress.js'
 
 export type SeedSkipReason = 'already-installed' | 'missing-store'
 
@@ -38,6 +40,10 @@ interface SeedPlanInput {
   declaredPackages: readonly string[]
   installedPackages: readonly string[]
   storeExists: boolean
+  /** 实际安装版本。缺省时退化为「只补缺失」，不按基线升级（保持旧行为，便于既有调用方）。 */
+  installedVersions?: readonly { packageName: string; version?: string }[]
+  /** 用户以 link:/file:/portal: 声明的本地包（本地定制插件）：随包基线永不替换它们。 */
+  localLinkPackages?: readonly string[]
 }
 
 interface SeedPnpmOptions {
@@ -47,6 +53,8 @@ interface SeedPnpmOptions {
 }
 
 interface SeedOptions {
+  /** 启动窗口的实测进度回调：pnpm 的实时输出被解析成 install 阶段计数。 */
+  onProgress?: (progress: StartupProgress) => void
   nodeExecutable: string
   profileDir: string
   pluginStoreDir: string
@@ -83,21 +91,57 @@ export function communitySeedCatalog(catalog: readonly BundledPlugin[]): Bundled
   return catalog.filter((plugin) => !isOfficialProfileDependency(plugin.packageName))
 }
 
-/** 社区插件必须写进 profile dependencies 才能单独更新；套件改为拆成子插件。官方包不进 Web profile。 */
+/** 社区插件必须写进 profile dependencies 才能单独更新；套件改为拆成子插件。官方包不进 Web profile。
+ *
+ * 2026-09-14：随包清单长期陈旧导致「清单落后于实机、离线包把插件装回老版本」，因此补种
+ * 不再只补缺失，还按随包基线升级**低于**基线的已装插件（上游 v1.0.55 的同名行为）。
+ * **两道护栏**：① 已装版本高于或不低于基线时一律不动（只升不降）；② 用户以 `link:`/`file:`
+ * 声明的本地定制包完全不参与基线比较——照基线替换它们等于覆盖用户定制。
+ */
 export function planBundledPluginSeed(input: SeedPlanInput): SeedPlan {
   if (!input.storeExists) return { action: 'skip', reason: 'missing-store' }
   const declared = new Set(input.declaredPackages)
   const community = communitySeedCatalog(input.catalog)
-  const missing = community.filter((plugin) => !declared.has(plugin.packageName))
+  const localLinks = new Set(input.localLinkPackages ?? [])
+  const versions = input.installedVersions === undefined
+    ? undefined
+    : new Map(input.installedVersions.map((item) => [item.packageName, item.version]))
+  const missing = community.filter((plugin) => {
+    if (localLinks.has(plugin.packageName)) return false
+    if (!declared.has(plugin.packageName)) return true
+    if (versions === undefined) return false
+    const installed = versions.get(plugin.packageName)
+    return installed === undefined || compareReleaseVersions(installed, plugin.version) < 0
+  })
   const suitePresent = declared.has(SUITE_PACKAGE) || input.installedPackages.includes(SUITE_PACKAGE)
   if (suitePresent) return { action: 'replace-suite', packages: missing }
   if (missing.length === 0) return { action: 'skip', reason: 'already-installed' }
   return { action: 'add', packages: missing }
 }
 
-/** 已有 node_modules 的目录禁止改 store-dir，否则 pnpm 报 UNEXPECTED_STORE。 */
+/** 目录里还没有 node_modules 时，才算可以首次指定随包 store。
+ *  注意：`resolvePnpmStoreDir` 已不再用它做「有依赖就不给仓库」的门槛——
+ *  2026-09-16 按用户口径采用上游 480cef2：**没有写出 storeDir 记录就等于没绑过仓库，
+ *  可以安全回落到随包仓库**（只有已写出 storeDir 时才禁止改绑），
+ *  否则内网首启会退到 pnpm 默认仓库、进而去访问 npm 注册表而装不上。
+ *  保留导出：装机判断与既有测试仍按「目录是否已初始化」语义使用它。 */
 export function shouldUsePackagedStore(targetDir: string): boolean {
   return !existsSync(join(targetDir, 'node_modules'))
+}
+
+/** 已有 node_modules 但解析不到仓库记录 —— 只用于**告警与机会性路径的跳过判断**。
+ *  注意它不等于「必然报错」：pnpm 只在**记录了一个仓库**且与环境默认仓库不一致时才抛
+ *  `ERR_PNPM_UNEXPECTED_STORE`；没有记录时无从比对。真正制造该错误的行为是"重试时把已解析到的
+ *  仓库参数丢掉"（2026-09-14 实机 `plugin-seed.log`），已在本文件所有重试分支改为保留仓库。 */
+export function hasUnresolvedStore(targetDir: string, storeDir: string | undefined): boolean {
+  return storeDir === undefined && existsSync(join(targetDir, 'node_modules'))
+}
+
+/** 缺仓库时的统一提示（保证不静默）。 */
+export function storelessSeedWarning(targetDir: string): string {
+  return `已有依赖的目录解析不到 pnpm 仓库记录，本次按 pnpm 默认仓库执行（记录可读时不会出现此情况）：`
+    + `${join(targetDir, 'node_modules', '.modules.yaml')}`
+    + '。若随后报 ERR_PNPM_UNEXPECTED_STORE，请修复该文件里的 storeDir，或删除 node_modules 后重装。'
 }
 
 export function resolvePnpmStoreDir(targetDir: string, fallback?: string): string | undefined {
@@ -120,7 +164,7 @@ export function resolvePnpmStoreDir(targetDir: string, fallback?: string): strin
   } catch {
     // 首次安装还没有 pnpm 状态文件。
   }
-  return shouldUsePackagedStore(targetDir) && fallback ? fallback : undefined
+  return fallback
 }
 
 /** pnpm 状态含绝对 store/virtualStore 路径，U 盘换盘符后统一重定位。 */
@@ -436,7 +480,12 @@ export async function applyOfficialRuntimeVersion(options: SeedOptions, version:
   ensureRuntimeResolutionMode(runtimeDir)
   ensureAutoInstallPeersEnabled(runtimeDir)
   const runner = options.runner ?? ((pluginArgs) => runPnpm(options, pluginArgs))
-  await runner(officialRuntimeInstallArgs(runtimeDir, resolvePnpmStoreDir(runtimeDir, options.pluginStoreDir)))
+  // 官方运行时**不绑随包插件仓**（2026-09-16 实测取证：随包 store 的 metadata 里
+  // 既没有 @deepseek-ai 命名空间、也没有任何 *deepseek* 包；盘上运行时是从 .tgz 解出来的、
+  // 连 .modules.yaml 都没有）。绑上去只会把官方包写进随包仓污染它，离线也照样装不出来。
+  const runtimeStoreDir = resolvePnpmStoreDir(runtimeDir)
+  if (hasUnresolvedStore(runtimeDir, runtimeStoreDir)) console.warn(storelessSeedWarning(runtimeDir))
+  await runner(officialRuntimeInstallArgs(runtimeDir, runtimeStoreDir))
   if (!isOfficialRuntimeLaunchable(runtimeDir)) {
     throw new Error('官方运行时升级到 ' + version + ' 后仍无法启动。')
   }
@@ -491,11 +540,23 @@ export async function applyPendingProfileUpdates(options: SeedOptions): Promise<
     ...declared.map((item) => item.packageName),
     ...community.map((item) => item.packageName),
   ])])
-  const updates = mergeProfileUpdates({ pending: community, declared, installed })
+  // 旧客户端留下的待更新清单可能指向比磁盘上更旧的版本。直接合并会把已经装好的插件降级
+  // （并连带把它的依赖一起降级），所以以「待更新目标」与「实际安装版本」中的较高者为准。
+  // 刻意不用随包清单当版本地板：本仓库的随包插件矩阵滞后于实际部署矩阵（便携版运行时走
+  // 自研 A/B 通道），拿它当基准会反过来覆盖用户与市场的显式升级选择。
+  const installedVersions = new Map(installed.map((item) => [item.packageName, item.version]))
+  const compatiblePending = community.map((plugin) => {
+    const current = installedVersions.get(plugin.packageName)
+    return current !== undefined && compareReleaseVersions(plugin.version, current) < 0
+      ? { ...plugin, version: current }
+      : plugin
+  })
+  const updates = mergeProfileUpdates({ pending: compatiblePending, declared, installed })
   const applied: string[] = []
   const runner = options.runner ?? ((args) => runPnpm(options, args))
   if (updates.length > 0) {
     const storeDir = resolvePnpmStoreDir(options.profileDir, options.pluginStoreDir)
+    if (hasUnresolvedStore(options.profileDir, storeDir)) console.warn(storelessSeedWarning(options.profileDir))
     await runner(buildSeedPluginArgs(updates, options.profileDir, storeDir === undefined ? {} : { storeDir }))
     applied.push(...updates.map((item) => item.packageName))
   }
@@ -539,6 +600,22 @@ async function readInstalledPackageVersions(profileDir: string, names: readonly 
   return installed
 }
 
+/** 用户以 `link:` / `file:` / `portal:` 声明的本地包——本仓库的定制插件全走 `link:local/…`。
+ *  它们必须完全跳过随包基线：照基线「升级」会把本地定制件换成 npm 发布包，等于覆盖用户定制。 */
+async function readLocalLinkPackages(profileDir: string): Promise<string[]> {
+  try {
+    const manifest = JSON.parse(await readFile(join(profileDir, 'package.json'), 'utf8')) as {
+      dependencies?: Record<string, string>
+    }
+    return Object.entries(manifest.dependencies ?? {})
+      .filter(([, spec]) => typeof spec === 'string' && /^(?:link|file|portal):/i.test(spec.trim()))
+      .map(([packageName]) => packageName)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+    throw error
+  }
+}
+
 export async function seedBundledPlugins(options: SeedOptions): Promise<SeedResult> {
   const seeded: string[] = []
   if (options.desktopRuntimeDir !== undefined) {
@@ -573,8 +650,10 @@ async function seedOfficialRuntime(options: SeedOptions): Promise<readonly strin
   }
   if (!existsSync(resolveProfileDshEntry(runtimeDir))) {
     await ensureRuntimeScaffold(runtimeDir)
-    const storeDir = resolvePnpmStoreDir(runtimeDir, existsSync(options.pluginStoreDir) ? options.pluginStoreDir : undefined)
+    // 官方运行时不带随包插件仓回落（理由同上：仓里没有官方包）
+    const storeDir = resolvePnpmStoreDir(runtimeDir)
     const useStore = storeDir !== undefined
+    if (hasUnresolvedStore(runtimeDir, storeDir)) console.warn(storelessSeedWarning(runtimeDir))
     const args = buildSeedPluginArgs([OFFICIAL_RUNTIME], runtimeDir, {
       autoInstallPeers: true,
       ...(useStore ? { storeDir, offline: true } : {}),
@@ -583,8 +662,9 @@ async function seedOfficialRuntime(options: SeedOptions): Promise<readonly strin
     try {
       await runner(args)
     } catch (error) {
+      // 重试只放宽「离线」，绝不丢掉已知仓库：丢掉它会改用环境默认仓库，与已装依赖不一致时报 UNEXPECTED_STORE。
       if (useStore && !isOfflineSeedRequested()) {
-        await runner(buildSeedPluginArgs([OFFICIAL_RUNTIME], runtimeDir, { autoInstallPeers: true }))
+        await runner(buildSeedPluginArgs([OFFICIAL_RUNTIME], runtimeDir, { autoInstallPeers: true, storeDir }))
       } else {
         throw error
       }
@@ -600,8 +680,10 @@ async function ensureOfficialLaunchPeers(options: SeedOptions, targetDir: string
   ensureAutoInstallPeersEnabled(targetDir)
   const missing = missingOfficialLaunchPeers(targetDir)
   if (missing.length === 0) return []
-  const storeDir = resolvePnpmStoreDir(targetDir, existsSync(options.pluginStoreDir) ? options.pluginStoreDir : undefined)
+  // 启动 peer 补齐的对象是官方运行时目录，同样不绑随包插件仓
+  const storeDir = resolvePnpmStoreDir(targetDir)
   const useStore = storeDir !== undefined
+  if (hasUnresolvedStore(targetDir, storeDir)) console.warn(storelessSeedWarning(targetDir))
   const args = buildSeedPluginArgs([OFFICIAL_RUNTIME, ...missing], targetDir, {
     autoInstallPeers: true,
     ...(useStore ? { storeDir, offline: true } : {}),
@@ -610,7 +692,7 @@ async function ensureOfficialLaunchPeers(options: SeedOptions, targetDir: string
   try {
     await runner(args)
   } catch (error) {
-    if (useStore && !isOfflineSeedRequested()) await runner(buildSeedPluginArgs([OFFICIAL_RUNTIME, ...missing], targetDir, { autoInstallPeers: true }))
+    if (useStore && !isOfflineSeedRequested()) await runner(buildSeedPluginArgs([OFFICIAL_RUNTIME, ...missing], targetDir, { autoInstallPeers: true, storeDir }))
     else throw error
   }
   const stillMissing = missingOfficialLaunchPeers(targetDir)
@@ -620,27 +702,92 @@ async function ensureOfficialLaunchPeers(options: SeedOptions, targetDir: string
   return missing.map((plugin) => plugin.packageName)
 }
 
+/** pnpm 会把被 allowBuilds 拦下的构建脚本记进 `node_modules/.modules.yaml` 的 `ignoredBuilds`。
+ *  历史 profile 一旦记下「忽略 node-pty / protobufjs 构建」，此后即使清单补上 allowBuilds，
+ *  补种计划也会因为「版本齐全」判定为 already-installed：包装得上，原生构建却永远缺。
+ *  只认随包 pnpm 11 写出的 JSON 状态；旧版 YAML 不属于这种残留状态。 */
+export function needsIgnoredBuildRepair(modulesState: string): boolean {
+  if (!modulesState.trimStart().startsWith('{')) return false
+  let state: unknown
+  try {
+    state = JSON.parse(modulesState) as unknown
+  } catch {
+    return false
+  }
+  if (state === null || typeof state !== 'object' || !('ignoredBuilds' in state)) return false
+  const ignored = (state as { ignoredBuilds?: unknown }).ignoredBuilds
+  if (!Array.isArray(ignored)) return false
+  return ignored.some((entry) => typeof entry === 'string'
+    && ALLOWED_BUILD_PACKAGES.some((name) => entry.startsWith(`${name}@`)))
+}
+
+/** 让被历史拦下的随包构建真正跑一遍：沿用 profile 已记录的仓库重装同版本包。
+ *  与上游实现的有意差异：失败只告警不抛出。进入这条分支说明 profile 本身已可启动，
+ *  一次机会性的构建恢复不该把它变成启动失败。 */
+async function repairIgnoredBundledBuilds(
+  options: SeedOptions,
+  catalog: readonly BundledPlugin[],
+  runner: (args: readonly string[]) => Promise<void>,
+): Promise<void> {
+  const statePath = join(options.profileDir, 'node_modules', '.modules.yaml')
+  if (catalog.length === 0 || !existsSync(statePath)) return
+  if (!needsIgnoredBuildRepair(await readFile(statePath, 'utf8'))) return
+  // 已有 node_modules 的目录禁止改用安装包 store（pnpm 会报 UNEXPECTED_STORE），只沿用
+  // profile 自己记录的仓库；显式离线请求由 buildSeedPluginArgs 统一附加 --offline。
+  // 记录不可读时**直接跳过**：这条分支是机会性构建恢复，不该为它发出不带仓库的命令，
+  // 更不该把「仓库记录坏了」升级成启动失败。
+  const storeDir = resolvePnpmStoreDir(options.profileDir)
+  if (hasUnresolvedStore(options.profileDir, storeDir)) {
+    console.warn(storelessSeedWarning(options.profileDir))
+    return
+  }
+  try {
+    const installed = await readInstalledPackageVersions(options.profileDir, catalog.map((plugin) => plugin.packageName))
+    const packages = catalog.map((plugin) => ({
+      ...plugin,
+      version: installed.find((item) => item.packageName === plugin.packageName)?.version ?? plugin.version,
+    }))
+    await runner(buildSeedPluginArgs(packages, options.profileDir, storeDir === undefined ? {} : { storeDir }))
+  } catch (error) {
+    console.warn('内置插件构建许可恢复失败，保持现有 profile。', error)
+  }
+}
+
 async function seedCommunityPlugins(options: SeedOptions): Promise<SeedResult> {
   await ensureProfileScaffold(options.profileDir)
   const { declared, installed } = await readProfilePluginNames(options.profileDir)
+  const catalog = options.catalog ?? BUNDLED_PLUGINS
+  const community = communitySeedCatalog(catalog)
+  // 基线升级需要实际安装版本；本地 link/file 定制包单独列出，永不参与基线比较。
+  const installedVersions = await readInstalledPackageVersions(options.profileDir, community.map((plugin) => plugin.packageName))
+  const localLinkPackages = await readLocalLinkPackages(options.profileDir)
   const plan = planBundledPluginSeed({
-    catalog: options.catalog ?? BUNDLED_PLUGINS,
+    catalog,
     declaredPackages: declared,
     installedPackages: installed,
     storeExists: existsSync(options.pluginStoreDir),
+    installedVersions,
+    localLinkPackages,
   })
-  if (plan.action === 'skip') return { seeded: [], skipped: plan.reason }
+  const runner = options.runner ?? ((pluginArgs) => runPnpm(options, pluginArgs))
+  if (plan.action === 'skip') {
+    await repairIgnoredBundledBuilds(options, community, runner)
+    return { seeded: [], skipped: plan.reason }
+  }
   const storeDir = resolvePnpmStoreDir(options.profileDir, existsSync(options.pluginStoreDir) ? options.pluginStoreDir : undefined)
   const useStore = storeDir !== undefined
   const storeOptions = useStore ? { storeDir, offline: true } : {}
-  const runner = options.runner ?? ((pluginArgs) => runPnpm(options, pluginArgs))
+  if (plan.packages.length > 0 && hasUnresolvedStore(options.profileDir, storeDir)) {
+    console.warn(storelessSeedWarning(options.profileDir))
+  }
   if (plan.packages.length > 0) {
     if (useStore) await seedPackagedPluginLockfile(options.profileDir, storeDir)
     const args = buildSeedPluginArgs(plan.packages, options.profileDir, storeOptions)
     try {
       await runner(args)
     } catch (error) {
-      if (useStore && !isOfflineSeedRequested()) await runner(buildSeedPluginArgs(plan.packages, options.profileDir, {}))
+      // 重试只放宽「离线」：保留已知仓库，避免改用环境默认仓库触发 UNEXPECTED_STORE。
+      if (useStore && !isOfflineSeedRequested()) await runner(buildSeedPluginArgs(plan.packages, options.profileDir, { storeDir }))
       else throw error
     }
   }
@@ -648,7 +795,7 @@ async function seedCommunityPlugins(options: SeedOptions): Promise<SeedResult> {
     try {
       await runner(buildSeedRemoveArgs([SUITE_PACKAGE], options.profileDir, storeOptions))
     } catch (error) {
-      if (useStore && !isOfflineSeedRequested()) await runner(buildSeedRemoveArgs([SUITE_PACKAGE], options.profileDir, {}))
+      if (useStore && !isOfflineSeedRequested()) await runner(buildSeedRemoveArgs([SUITE_PACKAGE], options.profileDir, { storeDir }))
       else throw error
     }
   }
@@ -868,8 +1015,20 @@ function runPnpm(options: SeedOptions, args: readonly string[]): Promise<void> {
       killDeadline = setTimeout(() => finish(timeoutError), 2_000)
     }, options.timeoutMs ?? 300_000)
     timeout.unref?.()
+    // pnpm 的进度行只出现在 stdout；stderr 仍并进输出摘要用于失败诊断。
+    let pendingProgress = ''
+    const collectProgress = (chunk: Buffer): void => {
+      pendingProgress += String(chunk)
+      const lines = pendingProgress.split(/\r?\n/)
+      pendingProgress = lines.pop() ?? ''
+      if (options.onProgress === undefined) return
+      for (const line of lines) {
+        const progress = parsePnpmProgress(line)
+        if (progress !== undefined) options.onProgress(progress)
+      }
+    }
     const collect = (chunk: Buffer): void => { output = (output + String(chunk)).slice(-8_000) }
-    child.stdout?.on('data', collect)
+    child.stdout?.on('data', (chunk: Buffer) => { collect(chunk); collectProgress(chunk) })
     child.stderr?.on('data', collect)
     child.once('error', () => { finish(new Error('无法启动随包 pnpm 补种命令。')) })
     child.once('exit', code => {

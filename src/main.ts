@@ -20,7 +20,7 @@ import { quarantineProfileBundle } from './profile-quarantine.js'
 import { resolveBundledPluginStore, resolvePluginBinDir } from './plugin-toolchain.js'
 import { resolveDshBootstrap, resolveDshRuntime, resolveNodeExecutable } from './runtime.js'
 import { extractPackagedRuntimesInChild, packagedRuntimesNeedExtraction, preparePackagedRuntimeCacheInChild, resolvePackagedRuntimeCache, type RuntimeExtractionProgress } from './extract-runtime.js'
-import { advanceStartupProgress, STARTUP_PROGRESS } from './startup-progress.js'
+import { advanceStartupProgress, formatStartupProgress, STARTUP_PROGRESS, type StartupProgress } from './startup-progress.js'
 import { resolvePrebuiltOfficialRuntime } from './runtime-prebuilt.js'
 import { activateRuntimeSlot, commitRuntimeSlot, readRuntimeSlotPointer, recoverInterruptedRuntimeSwitch, resolveActiveRuntimeDir, rollbackRuntimeSlot, runtimeSlotVersion } from './runtime-slots.js'
 import { buildHarnessRuntimeCandidate, type HarnessRuntimeCandidate } from './harness-runtime-candidate.js'
@@ -34,7 +34,7 @@ import { isChineseLocale, localizedShellActions, localizedShellMenus, normalizeS
 import { SHELL_BAR_HEIGHT, SHELL_IPC, type BrowserDownloadState, type BrowserPageSnapshot, type BrowserPanelBounds, type BrowserPanelSnapshot, type BrowserShellState, type BrowserTabState, type DshNavigationState, type DshShellActionId, type ShellBootstrap, type ShellMenuPopupRequest, type ShellState } from './shell-contract.js'
 import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayAccessThemePreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeBrowserIpc, mayInvokeFeaturePanelsCopy, mayInvokeShellAction, mayManageBrowserPanel, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility, type ShellRendererKind } from './shell-ipc-policy.js'
 import { FEATURE_PANEL_CATEGORIES, FEATURE_PANELS } from './feature-panels.js'
-import { capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight } from './browser-panel-layout.js'
+import { browserPanelMaxWidthCss, capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight, resolveBrowserPageTop, shouldHideBrowserPanel, shouldShowPageTabBar } from './browser-panel-layout.js'
 import { normalizeNativeBrowserRequest } from './native-browser-request.js'
 import { clearStaleDshAuthCookies } from './dsh-session-cookies.js'
 import { DEFAULT_DESKTOP_THEME_PREFERENCES, DESKTOP_THEME_PALETTES, loadDesktopThemePreferences, normalizeDesktopThemeSnapshot, saveDesktopThemePreferences, type DesktopColorScheme, type DesktopThemePreference, type DesktopThemePreferences } from './desktop-theme.js'
@@ -105,8 +105,14 @@ let activeDshColorScheme: DesktopColorScheme = nativeTheme.shouldUseDarkColors ?
 let activeDshThemePreference: DesktopThemePreference = 'system'
 let themePreferences: DesktopThemePreferences = DEFAULT_DESKTOP_THEME_PREFERENCES
 let dshSettingsDialogVisible = false
+/** 用户**显式**要求看浏览器（点 DSH 页面里的链接、或插件调用 browserPanelShow）时置真：
+ *  此时压过"设置页让位"，否则设置页里那些插件链接点开只会落进一个被抑制的面板 = 看起来"进不去浏览器"
+ *  （2026-09-15 实机回归）。每次设置页可见性变化时清零，恢复"被动让位"语义。 */
+let browserPanelRequested = false
 let activeDshWorkCount = 0
 let activeDshWorkChangedAt = Date.now()
+let mainWindowContentSuppressed = false
+let mainWindowLayoutDeferred = false
 const shellActionIds = new Set<string>(SHELL_ACTIONS.map(action => action.id))
 
 interface HarnessUpdaterContext {
@@ -236,6 +242,10 @@ let activeBrowserTabId: string | null = null
 let browserVisible = false
 let browserPanelOccluded = false
 let browserPanelBounds: BrowserPanelBounds | undefined
+/** 上一次下发给页面的面板宽度上限（CSS px）；`-1` 表示本文档尚未下发（导航后需重发）。 */
+let browserPanelMaxCss = -1
+/** 上一次算出的面板宽度（DIP），用于导航后按同一把尺子重新下发。 */
+let browserPanelWidthDip = 0
 let browserPanelOwner: string | undefined
 let browserWidthRatio = BROWSER_DEFAULT_WIDTH_RATIO
 let browserMaximized = false
@@ -529,10 +539,25 @@ function closeBrowserTab(id: string): void {
   scheduleBrowserWorkspaceSave()
 }
 
+/** 用户从设置页点链接要看浏览器时，先让 DSH 页面**退出设置页**（点它自己的"返回应用"），
+ *  再显示面板 —— 否则设置页与面板并存互相挤（2026-09-15 实机："你这又回到原来的了"）。
+ *  选中失败也不阻断：覆盖标记仍在，面板会以"压过让位"的方式显示。 */
+function exitDshSettingsPage(): void {
+  const view = dshView
+  if (view === undefined || view.webContents.isDestroyed()) return
+  void view.webContents.executeJavaScript(`(() => {
+    const back = document.querySelector('.dcu-settings-back, [class*="settings-back"]')
+    if (back instanceof HTMLElement) { back.click(); return true }
+    return false
+  })()`).catch(() => undefined)
+}
+
 /** DSH 外链统一路由：http/https 进内置浏览器（新标签页），mailto:/tel: 走系统默认程序。 */
 function routeDshExternalLink(url: string): void {
   if (isExternalHttpUrl(url, allowedOrigin)) {
     // 建视图是重活，排到微任务队列，避免在导航回调里同步执行
+    browserPanelRequested = true // 用户点链接 = 显式要看浏览器，压过设置页让位
+    if (dshSettingsDialogVisible) exitDshSettingsPage()
     queueMicrotask(() => { openBrowser(url, true) })
     return
   }
@@ -540,6 +565,7 @@ function routeDshExternalLink(url: string): void {
 }
 
 function openBrowser(url?: string, newTab = false): BrowserTab {
+  browserPanelRequested = true // 任何"打开浏览器"的显式请求都要压过设置页让位（同源情况一并覆盖）
   browserVisible = true
   browserManagerOpen = false
   browserMenuOpen = false
@@ -565,6 +591,8 @@ function createHomepageTabs(): void {
 }
 
 function openHomepageGroup(): void {
+  browserPanelRequested = true // 外壳菜单"主页"也是显式要看浏览器
+  if (dshSettingsDialogVisible) exitDshSettingsPage()
   browserVisible = true
   const homepages = configuredBrowserHomepages()
   let firstTab = getActiveBrowserTab()
@@ -611,6 +639,9 @@ function browserShellState(): BrowserShellState {
     downloadsOpen: browserDownloadsOpen,
     downloadsDrawerHeight: browserDownloadsDrawerHeight,
     pageZoomPercent: Math.round(browserPageZoom * 100),
+    // 单网页时页面收起标签条（省约 40px）并把"+"搬进导航条；原生视图的垂直偏移由
+    // resolveBrowserPageTop 用**同一个判定**计算，页面只认这个布尔值 —— 两侧同源，避免错开 40px。
+    pageTabBarVisible: shouldShowPageTabBar(browserTabs.length),
     bookmarked: active !== null && library.bookmarks.some(entry => entry.url === active.url),
     downloads: browserDownloads.map(({ path: _path, url: _url, ...record }) => record),
     homepages: [...configuredBrowserHomepages()],
@@ -838,9 +869,7 @@ async function startApplication(): Promise<void> {
           resourcesDir: process.resourcesPath,
           signal: controller.signal,
           skipOfficial: usingActiveRuntimeSlot,
-          onProgress: progress => {
-            void updateStartupMessage(runtimeExtractionMessage(progress), runtimeExtractionPercentage(progress))
-          },
+          onProgress: reportExtractionProgress,
         })
         runtimeExtractionTask = extraction
         try {
@@ -867,6 +896,7 @@ async function startApplication(): Promise<void> {
     const profileStoreDir = resolvePnpmStoreDir(profileDir, pluginStoreDir)
     const prebuiltRuntimeDir = resolvePrebuiltOfficialRuntime(runtimeOptions)
     const seedOptions = {
+      onProgress: reportSeedProgress,
       nodeExecutable,
       profileDir,
       desktopRuntimeDir,
@@ -880,6 +910,7 @@ async function startApplication(): Promise<void> {
     } catch (error) {
       const message = error instanceof Error ? error.message : '内置插件补种失败。'
       await writeTextFile(join(app.getPath('userData'), 'plugin-seed.log'), `${message}\n`, 'utf8').catch(() => undefined)
+      await showStartupPluginWarning('seed', message)
     }
     await updateStartupMessage(
       desktopText('内置插件已就绪，正在应用配置…', 'Bundled plugins are ready. Applying configuration…'),
@@ -890,8 +921,8 @@ async function startApplication(): Promise<void> {
       if (updated.length > 0) console.log('已在启动前应用插件更新：' + updated.join('、'))
     } catch (error) {
       const message = error instanceof Error ? error.message : '启动前应用插件更新失败。'
-      await writeTextFile(join(app.getPath('userData'), 'plugin-update.log'), ` ${message}\n`, 'utf8').catch(() => undefined)
-
+      await writeTextFile(join(app.getPath('userData'), 'plugin-update.log'), `${message}\n`, 'utf8').catch(() => undefined)
+      await showStartupPluginWarning('pending', message)
     }
     await updateStartupMessage(
       desktopText('配置已应用，正在检查用户数据…', 'Configuration applied. Checking user data…'),
@@ -1043,9 +1074,9 @@ function installDesktopFaviconReplacement(): void {
   })
 }
 
-function startupStatusScript(message: string, progress: number | undefined): string {
+function startupStatusScript(message: string, progress: number | undefined, detail?: string): string {
   const revision = ++startupStatusRevision
-  const payload = JSON.stringify({ message, progress, revision })
+  const payload = JSON.stringify({ message, progress, detail: detail ?? '', revision })
   return `(() => {
     const next = ${payload};
     const root = document.documentElement;
@@ -1053,6 +1084,11 @@ function startupStatusScript(message: string, progress: number | undefined): str
     if (next.revision < currentRevision) return;
     root.dataset.startupStatusRevision = String(next.revision);
     document.getElementById('msg')?.replaceChildren(document.createTextNode(next.message));
+    const detailNode = document.getElementById('detail');
+    if (detailNode instanceof HTMLElement) {
+      detailNode.textContent = next.detail;
+      detailNode.hidden = next.detail === '';
+    }
     const indicator = document.getElementById('startupProgress');
     const value = document.getElementById('progressValue');
     if (!(indicator instanceof HTMLElement) || !(value instanceof HTMLElement)) return;
@@ -1088,14 +1124,35 @@ async function showStartupWindow(message: string, progress?: number): Promise<vo
   )
 }
 
-async function updateStartupMessage(message: string, progress?: number): Promise<void> {
+async function updateStartupMessage(message: string, progress?: number, detail?: string): Promise<void> {
   const view = requireDshView()
   if (view.webContents.isDestroyed()) return
   const nextProgress = progress === undefined
     ? undefined
     : (startupProgress = advanceStartupProgress(startupProgress, progress))
-  await view.webContents.executeJavaScript(startupStatusScript(message, nextProgress))
+  await view.webContents.executeJavaScript(startupStatusScript(message, nextProgress, detail))
     .catch(() => undefined)
+}
+
+/** 内置插件补种 / 待更新失败必须在启动窗口上说出来——只写日志等于对用户静默失败。
+ *  文案刻意不承诺本产品没有的界面：本地外壳没有上游的"恢复页面"，可执行的只有重启、
+ *  查日志与重解压完整便携包。冒烟由错误日志判定成败、不能等人工弹窗，故冒烟运行时不弹。 */
+async function showStartupPluginWarning(kind: 'seed' | 'pending', message: string): Promise<void> {
+  if ((process.env.DSH_DESKTOP_SMOKE_READY_FILE ?? '').trim() !== '') return
+  await dialog.showMessageBox({
+    type: 'warning',
+    title: kind === 'seed'
+      ? desktopText('内置插件更新未完成', 'Bundled plugin update incomplete')
+      : desktopText('插件更新未完成', 'Plugin update incomplete'),
+    message: kind === 'seed'
+      ? desktopText('未能安装此桌面版本配套的插件。', 'Could not install the plugins bundled with this desktop version.')
+      : desktopText('未能应用等待安装的插件更新。', 'Could not apply pending plugin updates.'),
+    detail: desktopText(
+      '将使用现有插件继续启动，功能可能不完整。请检查网络后重新启动应用；若仍然失败，可查看应用数据目录下的 plugin-seed.log / plugin-update.log，或重新解压完整的便携版压缩包。',
+      'Startup will continue with the existing plugins; some features may be incomplete. Check your network and restart the app. If it still fails, check plugin-seed.log / plugin-update.log in the app data directory, or extract a fresh copy of the full portable package.',
+    ) + '\n\n' + message,
+    buttons: [desktopText('继续启动', 'Continue startup')],
+  })
 }
 
 function firstInitializationMessage(): string {
@@ -1118,6 +1175,35 @@ function runtimeExtractionPercentage(progress: RuntimeExtractionProgress): numbe
     return progress.state === 'start' ? STARTUP_PROGRESS.runtimeExtractionStarted : STARTUP_PROGRESS.runtimeReady
   }
   return progress.state === 'start' ? STARTUP_PROGRESS.pluginStorePreparationStarted : STARTUP_PROGRESS.pluginStoreReady
+}
+
+/** 实测计量在阶段区间内按完成比例插值，让进度条跟着真实计数推进，而不是只在阶段端点跳变。 */
+function measuredPercentage(start: number, end: number, completed: number | undefined, total: number | undefined): number | undefined {
+  if (typeof completed !== 'number' || typeof total !== 'number' || total <= 0) return undefined
+  const ratio = Math.min(1, Math.max(0, completed / total))
+  return start + (end - start) * ratio
+}
+
+/** 解压子进程的进度：起止沿用阶段文案与区间端点；实测刻度显示"正在校验/解压/写入 + 真实计数"。 */
+function reportExtractionProgress(progress: RuntimeExtractionProgress): void {
+  if (progress.state !== 'progress' || progress.progress === undefined) {
+    void updateStartupMessage(runtimeExtractionMessage(progress), runtimeExtractionPercentage(progress))
+    return
+  }
+  const state = formatStartupProgress(progress.progress, isChineseLocale(desktopLocale()))
+  const start = progress.phase === 'runtime' ? STARTUP_PROGRESS.runtimeExtractionStarted : STARTUP_PROGRESS.pluginStorePreparationStarted
+  const end = progress.phase === 'runtime' ? STARTUP_PROGRESS.runtimeReady : STARTUP_PROGRESS.pluginStoreReady
+  void updateStartupMessage(
+    state.message,
+    measuredPercentage(start, end, state.completed, state.total) ?? startupProgress,
+    state.detail,
+  )
+}
+
+/** 插件播种/待更新：pnpm 只报计数不报总量，因此进度条保持原位，只更新文案与细节行。 */
+function reportSeedProgress(progress: StartupProgress): void {
+  const state = formatStartupProgress(progress, isChineseLocale(desktopLocale()))
+  void updateStartupMessage(state.message, startupProgress, state.detail)
 }
 
 let allowedOrigin = ''
@@ -1165,7 +1251,21 @@ function runMainTask(task: Promise<unknown>): void {
 }
 
 
+const APP_RESTART_IPC = 'app-restart'
+
+/** 运行时插件（如智能体重启端点）请求外壳优雅重启：兼容字符串与 {type} 两种形态。 */
+function isAppRestartIpc(message: unknown): boolean {
+  return message === APP_RESTART_IPC
+    || (typeof message === 'object' && message !== null && 'type' in message && (message as { type: unknown }).type === APP_RESTART_IPC)
+}
+
 function handleDshIpc(message: unknown): void {
+  if (isAppRestartIpc(message)) {
+    // 与托盘/菜单的「重启应用」同走 requestAppRestart：先调度分离的新实例，
+    // 再优雅关停（托盘/服务/配置落盘），绝不硬杀进程。
+    runMainTask(requestAppRestart())
+    return
+  }
   if (isRequestHarnessUpdateIpc?.(message) === true) {
     // 「关于」页点“更新”官方运行时时，桥接进程只上报意图：真正的升级必须走
     // A/B 更新器，绝不能原地覆盖正在运行的活动槽。
@@ -1294,17 +1394,61 @@ function requireDshView(): WebContentsView {
   return dshView
 }
 
+/** 把面板宽度上限下发给页面（页面用 `--dsh-browser-panel-max-width` 钳住占位卡片）。
+ *  目的：页面卡片、外壳 chrome、原生页面视图**共用同一把尺子**（此前页面自带
+ *  `100vw - 1040px`、外壳用 `viewport - 900px`，两个数还会差一个缩放因子，
+ *  于是右侧露出卡片白底 / 视图压住对话列）。只写一个 CSS 变量，不进页面业务逻辑。 */
+function publishBrowserPanelMaxWidth(panelWidthDip: number): void {
+  browserPanelWidthDip = panelWidthDip
+  if (dshView === undefined || dshView.webContents.isDestroyed()) return
+  const css = browserPanelMaxWidthCss(panelWidthDip, dshView.webContents.getZoomFactor())
+  if (css <= 0 || css === browserPanelMaxCss) return
+  browserPanelMaxCss = css
+  void dshView.webContents
+    .executeJavaScript(`document.documentElement.style.setProperty('--dsh-browser-panel-max-width', '${css}px')`, true)
+    .catch(() => { browserPanelMaxCss = -1 })
+}
+
+/** 网页缩放一变，两个依赖它的东西都要重算：① 下发到页面的 CSS px 宽度上限（同一 DIP 在不同缩放下
+ *  对应不同 CSS px）② 窄视口隐藏面板的判定（阈值按 CSS px 比较）。
+ *  外壳自己的缩放动作走的是**程序化** `setZoomFactor`，**不会**触发 webContents 的 `zoom-changed`，
+ *  所以那条路径必须显式调用本函数（2026-09-14 实机：缩放后白区复现的根因之一）。 */
+function syncBrowserPanelForZoom(): void {
+  browserPanelMaxCss = -1
+  if (browserPanelWidthDip > 0) publishBrowserPanelMaxWidth(browserPanelWidthDip)
+  if (mainWindow !== undefined) layoutDshView(mainWindow)
+}
+
 function layoutDshView(window: BrowserWindow): void {
   const bounds = window.getContentBounds()
+  if (mainWindowContentSuppressed) {
+    dshView?.setVisible(false)
+    browserPanelView?.setVisible(false)
+    for (const tab of browserTabs) tab.view.setVisible(false)
+    broadcastShellState()
+    return
+  }
+  if (mainWindowLayoutDeferred) {
+    broadcastShellState()
+    return
+  }
   const dshHeight = Math.max(0, bounds.height - SHELL_BAR_HEIGHT)
   const panel = browserWorkspacePanelBounds(bounds.width, dshHeight)
-  const visible = browserVisible && !browserPanelOccluded && !dshSettingsDialogVisible
+  // 下发**钳后**的上限：变量是页面侧唯一的宽度依据，必须与外壳真正执行的钳制同值
+  // （以前下发的是未钳的面板比例宽度 → 等于空操作，页面照旧按自己的上限撑开 → 白带）。
+  publishBrowserPanelMaxWidth(capBrowserWorkspacePanelWidth(bounds.width, panel.width))
+  // 页面在窄视口会把整块面板隐藏（theme.css 的 @media max-width:1100px：面板先让位、对话独占）。
+  // 外壳必须用**同一把尺子**一起收手，否则会出现「一条 280px 的浏览器 + 右边一片白」：
+  // 面板已被页面隐藏，原生视图却还在按最小宽度画（2026-09-14 实机截图实证）。阈值按 CSS px 比较。
+  const panelHiddenByViewport = shouldHideBrowserPanel(bounds.width, dshView?.webContents.getZoomFactor() ?? 1)
+  const settingsYields = dshSettingsDialogVisible && !browserPanelRequested
+  const visible = !panelHiddenByViewport && browserVisible && !browserPanelOccluded && !settingsYields
     && (browserPanelOwner === undefined || browserPanelBounds !== undefined)
   dshView?.setVisible(true)
   dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: bounds.width, height: dshHeight })
   browserPanelView?.setVisible(visible)
   if (visible) browserPanelView?.setBounds({ x: panel.x, y: panel.y + SHELL_BAR_HEIGHT, width: panel.width, height: panel.height })
-  const pageTop = BROWSER_TABS_BAR_HEIGHT + BROWSER_NAV_BAR_HEIGHT
+  const pageTop = resolveBrowserPageTop(browserTabs.length, BROWSER_TABS_BAR_HEIGHT, BROWSER_NAV_BAR_HEIGHT)
   const drawer = resolveBrowserDownloadsDrawerHeight(browserDownloadsOpen, browserDownloads.length, panel.height)
   const pageHeight = Math.max(0, panel.height - pageTop - drawer)
   for (const tab of browserTabs) {
@@ -1313,6 +1457,93 @@ function layoutDshView(window: BrowserWindow): void {
     if (show) tab.view.setBounds({ x: panel.x, y: panel.y + SHELL_BAR_HEIGHT + pageTop, width: panel.width, height: pageHeight })
   }
   broadcastShellState()
+}
+
+function setMainWindowContentVisible(window: BrowserWindow, visible: boolean): void {
+  if (visible) {
+    mainWindowContentSuppressed = false
+    layoutDshView(window)
+    return
+  }
+  mainWindowContentSuppressed = true
+  dshView?.setVisible(false)
+  browserPanelView?.setVisible(false)
+  for (const tab of browserTabs) tab.view.setVisible(false)
+}
+
+function installWindowSurfaceGuard(window: BrowserWindow): void {
+  // Windows animates the native window while each WebContentsView can still
+  // repaint at its old bounds. Hide the child surfaces before minimize,
+  // maximize, or restore starts, then relayout them before revealing the
+  // settled window. The resize listener is registered here before the normal
+  // layout listener so the first maximize/restore frame cannot leak through.
+  if (process.platform !== 'win32') return
+
+  let lastMaximized = window.isMaximized()
+  let revealTimer: NodeJS.Timeout | undefined
+  let transitionGeneration = 0
+  let windowOpacitySuppressed = false
+  const clearRevealTimer = (): void => {
+    if (revealTimer === undefined) return
+    clearTimeout(revealTimer)
+    revealTimer = undefined
+  }
+  const hideSurface = (hideWindow = false): void => {
+    if (window.isDestroyed()) return
+    transitionGeneration += 1
+    clearRevealTimer()
+    if (hideWindow) {
+      window.setOpacity(0)
+      windowOpacitySuppressed = true
+    }
+    setMainWindowContentVisible(window, false)
+  }
+  const revealSurfaceWhenStable = (delayMs = 180, restoreWindow = false): void => {
+    if (window.isDestroyed()) return
+    const generation = ++transitionGeneration
+    clearRevealTimer()
+    const reveal = (): void => {
+      if (window.isDestroyed() || generation !== transitionGeneration) return
+      if (window.isMinimized()) {
+        revealTimer = setTimeout(reveal, 32)
+        return
+      }
+      revealTimer = undefined
+      mainWindowLayoutDeferred = false
+      setMainWindowContentVisible(window, true)
+      if (restoreWindow || windowOpacitySuppressed) {
+        window.setOpacity(1)
+        windowOpacitySuppressed = false
+      }
+    }
+    revealTimer = setTimeout(reveal, delayMs)
+  }
+  const beginDisplayModeTransition = (): void => {
+    lastMaximized = window.isMaximized()
+    // Keep the visible child surfaces during the native maximize/restore
+    // animation. Deferring only the bounds calculation avoids the blank or
+    // icon-only intermediate frame caused by hiding the whole DSH surface.
+    mainWindowLayoutDeferred = true
+    revealSurfaceWhenStable()
+  }
+
+  window.on('resize', () => {
+    const maximized = window.isMaximized()
+    if (maximized !== lastMaximized) beginDisplayModeTransition()
+  })
+  window.on('resized', () => {
+    if (window.isMinimized()) return
+    if (mainWindowContentSuppressed || mainWindowLayoutDeferred) revealSurfaceWhenStable(32, mainWindowContentSuppressed)
+  })
+  window.on('minimize', () => {
+    hideSurface(true)
+  })
+  window.on('restore', () => {
+    hideSurface(true)
+    revealSurfaceWhenStable(32, true)
+  })
+  window.on('maximize', beginDisplayModeTransition)
+  window.on('unmaximize', beginDisplayModeTransition)
 }
 
 function browserWorkspacePanelBounds(viewportWidth: number, viewportHeight: number): BrowserPanelBounds {
@@ -1329,7 +1560,7 @@ async function captureBrowserPanelSnapshot(): Promise<BrowserPanelSnapshot | nul
   const content = window.getContentBounds()
   const dshHeight = Math.max(0, content.height - SHELL_BAR_HEIGHT)
   const panel = browserWorkspacePanelBounds(content.width, dshHeight)
-  const pageTop = BROWSER_TABS_BAR_HEIGHT + BROWSER_NAV_BAR_HEIGHT
+  const pageTop = resolveBrowserPageTop(browserTabs.length, BROWSER_TABS_BAR_HEIGHT, BROWSER_NAV_BAR_HEIGHT)
   const drawerHeight = resolveBrowserDownloadsDrawerHeight(browserDownloadsOpen, browserDownloads.length, panel.height)
   const pageHeight = Math.max(0, panel.height - pageTop - drawerHeight)
   const active = getActiveBrowserTab()?.view.webContents
@@ -1358,7 +1589,7 @@ async function captureBrowserMenuPageSnapshot(): Promise<BrowserPageSnapshot | n
   const content = window.getContentBounds()
   const dshHeight = Math.max(0, content.height - SHELL_BAR_HEIGHT)
   const panel = browserWorkspacePanelBounds(content.width, dshHeight)
-  const pageTop = BROWSER_TABS_BAR_HEIGHT + BROWSER_NAV_BAR_HEIGHT
+  const pageTop = resolveBrowserPageTop(browserTabs.length, BROWSER_TABS_BAR_HEIGHT, BROWSER_NAV_BAR_HEIGHT)
   const drawerHeight = resolveBrowserDownloadsDrawerHeight(browserDownloadsOpen, browserDownloads.length, panel.height)
   const pageHeight = Math.max(0, panel.height - pageTop - drawerHeight)
   const page = getActiveBrowserTab()?.view.webContents
@@ -1415,6 +1646,7 @@ function createWindow(): BrowserWindow {
   browserPanelView = panelView
   window.contentView.addChildView(panelView)
   panelView.setVisible(false)
+  installWindowSurfaceGuard(window)
   layoutDshView(window)
   window.on('resize', () => layoutDshView(window))
   window.on('maximize', () => layoutDshView(window))
@@ -1448,6 +1680,8 @@ function createWindow(): BrowserWindow {
     event.preventDefault()
     routeDshExternalLink(url)
   })
+  // 键盘/默认加速键等非外壳菜单路径的缩放：仍由事件兜一层，效果与菜单动作一致。
+  view.webContents.on('zoom-changed', () => syncBrowserPanelForZoom())
   installShortcutHandler(window.webContents)
   installShortcutHandler(view.webContents)
   installShortcutHandler(panelView.webContents)
@@ -1465,6 +1699,8 @@ function createWindow(): BrowserWindow {
       mainWindow = undefined
       dshView = undefined
       browserPanelView = undefined
+      mainWindowContentSuppressed = false
+      mainWindowLayoutDeferred = false
       browserPanelBounds = undefined
       browserPanelOwner = undefined
       browserPanelOccluded = false
@@ -1558,6 +1794,9 @@ async function applyDshDesktopTheme(view: WebContentsView): Promise<void> {
     pending = (async () => {
       await view.webContents.insertCSS(readFileSync(resolveShellAsset('theme.css'), 'utf8'))
       if (!view.webContents.isDestroyed()) view.webContents.send(SHELL_IPC.desktopTheme, desktopThemePayload())
+      // 导航后 DOM 重置（insertCSS 也会失效重插），CSS 变量随之丢失 → 按同一把尺子重发一次。
+      browserPanelMaxCss = -1
+      if (view === dshView && browserPanelWidthDip > 0) publishBrowserPanelMaxWidth(browserPanelWidthDip)
     })()
     dshDocumentThemeLoads.set(view, pending)
   }
@@ -2130,6 +2369,8 @@ function installShellIpc(): void {
     const request = normalizeNativeBrowserRequest(value, allowedOrigin)
     if (browserPanelOwner !== request.owner) browserPanelBounds = undefined
     browserPanelOwner = request.owner
+    browserPanelRequested = true // 显式请求显示面板：压过设置页让位
+    if (dshSettingsDialogVisible) exitDshSettingsPage()
     browserVisible = true
     browserPanelOccluded = false
     browserMaximized = false
@@ -2215,6 +2456,9 @@ function installShellIpc(): void {
     const visible = value === true
     if (visible !== dshSettingsDialogVisible) {
       dshSettingsDialogVisible = visible
+      // 只有"新开设置页"才回到被动让位；退出设置页(retrue→false)时保留覆盖标记，
+      // 否则刚点链接触发的"要看浏览器"会被自己清掉、面板又消失。
+      if (visible) browserPanelRequested = false
       relayout()
     }
   })
@@ -2257,7 +2501,17 @@ function shellRendererKind(sender: WebContents): ShellRendererKind {
   return 'unknown'
 }
 
+/** 调试"当前正在看的那个页面"：辅助窗口（快捷键/关于/功能面板/设置）各自独立，焦点在它们身上
+ *  就调试它们自己，否则调试工作台内容视图——本地外壳用同一个 dshView 承载启动页与工作台。 */
+function resolveDevToolsContents(): Electron.WebContents | undefined {
+  const focusedAuxiliary = [shortcutsWindow, aboutWindow, featurePanelsWindow, settingsWindow]
+    .find(candidate => candidate !== undefined && !candidate.isDestroyed() && candidate.isFocused())
+  const contents = focusedAuxiliary?.webContents ?? dshView?.webContents
+  return contents === undefined || contents.isDestroyed() ? undefined : contents
+}
+
 function isActionEnabled(id: ShellActionId): boolean {
+  if (id === 'toggle-devtools') return resolveDevToolsContents() !== undefined
   if (id === 'reload') return !isRecycling && lastStartOptions !== undefined && lastSeedOptions !== undefined
   if (id === 'back') return dshNavigationState.canBack
   if (id === 'forward') return dshNavigationState.canForward
@@ -2283,6 +2537,10 @@ function popupShellMenu(request: ShellMenuPopupRequest): Promise<void> {
       template.push({
         label: action.label,
         enabled: isActionEnabled(action.id),
+        // 勾选态必须来自实际内容页，手动关掉调试器后菜单也要跟着回到未勾选。
+        ...(action.id === 'toggle-devtools'
+          ? { type: 'checkbox' as const, checked: resolveDevToolsContents()?.isDevToolsOpened() ?? false }
+          : {}),
         ...(action.acceleratorLabel === undefined ? {} : { accelerator: action.acceleratorLabel }),
         click: () => { runMainTask(Promise.resolve(executeShellAction(action.id))) },
       })
@@ -2408,6 +2666,12 @@ function sendDshAction(id: DshShellActionId): void {
 
 async function executeShellAction(id: ShellActionId): Promise<void> {
   if (!isActionEnabled(id)) return
+  if (id === 'toggle-devtools') {
+    const target = resolveDevToolsContents()
+    if (target?.isDevToolsOpened() === true) target.closeDevTools()
+    else target?.openDevTools({ mode: 'detach', activate: true })
+    return
+  }
   const contents = dshView?.webContents
   if (id === 'new-chat' || id === 'open-folder' || id === 'settings' || id === 'toggle-sidebar' || id === 'find' || id === 'previous-chat' || id === 'next-chat' || id === 'back' || id === 'forward') {
     sendDshAction(id)
@@ -2426,9 +2690,9 @@ async function executeShellAction(id: ShellActionId): Promise<void> {
   else if (id === 'paste') contents.paste()
   else if (id === 'delete') contents.delete()
   else if (id === 'select-all') contents.selectAll()
-  else if (id === 'zoom-in') contents.setZoomFactor(Math.min(2, contents.getZoomFactor() + 0.1))
-  else if (id === 'zoom-out') contents.setZoomFactor(Math.max(0.5, contents.getZoomFactor() - 0.1))
-  else if (id === 'zoom-reset') contents.setZoomFactor(1)
+  else if (id === 'zoom-in') { contents.setZoomFactor(Math.min(2, contents.getZoomFactor() + 0.1)); syncBrowserPanelForZoom() }
+  else if (id === 'zoom-out') { contents.setZoomFactor(Math.max(0.5, contents.getZoomFactor() - 0.1)); syncBrowserPanelForZoom() }
+  else if (id === 'zoom-reset') { contents.setZoomFactor(1); syncBrowserPanelForZoom() }
   else if (id === 'toggle-fullscreen') mainWindow?.setFullScreen(!(mainWindow?.isFullScreen() ?? false))
   else if (id === 'show-shortcuts') showShortcutsWindow()
   else if (id === 'feature-panels') { showFeaturePanelsWindow(); return }

@@ -1,0 +1,22 @@
+{
+  "name": "dsh-black-hole",
+  "version": "0.1.0",
+  "description": "DSH 内置黑洞内容板块：吸收、整理、关联和沉淀对话与资料。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./core": "./lib/core.js",
+    "./portable-store": "./lib/portable-store.js",
+    "./package.json": "./package.json"
+  },
+  "engines": { "node": ">=24.20.0" },
+  "dependencies": { "schemastery": "^3.18.0" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": { "platform": "web" }
+  },
+  "files": ["lib/index.js", "lib/core.js", "lib/portable-store.js", "lib/client.js", "assets", "cordis.patch.yml", "README.md"],
+  "license": "MIT"
+}

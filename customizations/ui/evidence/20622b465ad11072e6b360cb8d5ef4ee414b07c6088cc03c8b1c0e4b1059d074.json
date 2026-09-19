@@ -1,0 +1,32 @@
+{
+  "status": "pass",
+  "generatedAt": "2026-09-15T19:40:00Z",
+  "method": "对用户实机截图做像素测量（裁剪 + 8 倍放大辨认元素）+ 插件源码定位（行号级）",
+  "scene": "用户在真实桌面应用中做界面缩放后，左下角宠物小卡压到左侧图标轨、贴住窗口边缘",
+  "results": [
+    {
+      "name": "故障态测量（用户截图 1360x900）",
+      "ok": true,
+      "detail": "元素位于源坐标 x≈8..68、y≈812..872（圆角方块按钮，8 倍放大辨认出卷曲生物图标 = 宠物插件小卡）；左侧图标轨右边界在 x≈63..66 ⇒ 两者重叠，且按钮左缘几乎贴窗口边缘。"
+    },
+    {
+      "name": "根因（插件自身，代码级）",
+      "ok": true,
+      "detail": "@michengai/dsh-codex-pet/lib/client.js：L1551 petHeight = size*208/192；L1553 width/height = innerWidth/Height − size/petHeight − 16/32；L1555-1556 left = x·width、top = y·height；L1561 监听 resize 后重算；L1619 .dcp-floating{position:fixed}。全程只有 Math.max(0, …) 下限，**没有针对左侧图标轨的安全区夹取** ⇒ 分数接近 0 时必然压在轨道上。"
+    },
+    {
+      "name": "与外壳近期改动无关（排除）",
+      "ok": true,
+      "detail": "近期改动集中在右侧浏览器面板（宽度上限/让位/单标签/缩放重发）与外壳布局；宠物小卡位于页面左下，由插件自身视口分数定位，代码中不读取外壳的任何变量或状态。"
+    },
+    {
+      "name": "本轮兜底（外壳侧，不改插件）",
+      "ok": true,
+      "detail": "assets/theme.css 追加 .dcp-floating{margin-left:72px !important}（图标轨 ~66px + 间距）；拖拽不受影响——插件用 getBoundingClientRect（L1593）记录分数，偏移会被一并计入。"
+    }
+  ],
+  "pending": [
+    "运行时确认待用户重启后目视：缩放后宠物小卡应停在图标轨右侧、不再压轨或贴边；同时确认拖拽仍可用。",
+    "若拖拽体感变差，备选方案：直接给插件加安全区夹取（改 node_modules 会被插件更新覆盖，需用户授权），或把宠物拖回安全位置让其保存新分数。"
+  ]
+}

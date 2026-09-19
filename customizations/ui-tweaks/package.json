@@ -1,0 +1,12 @@
+{
+  "name": "dsh-ui-tweaks",
+  "version": "0.1.0",
+  "description": "DSH 插件：界面样式覆盖（输入区工具栏/窄档图标化/图标替换）。放在可变目录里，改完热重启即可生效，不必重启桌面 App、不必出候选槽。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": { ".": "./lib/index.js", "./client": "./lib/client.js", "./package.json": "./package.json" },
+  "engines": { "node": ">=20" },
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" }, "client": { "platform": "web" } },
+  "files": ["lib/index.js", "lib/client.js", "cordis.patch.yml"],
+  "license": "MIT"
+}

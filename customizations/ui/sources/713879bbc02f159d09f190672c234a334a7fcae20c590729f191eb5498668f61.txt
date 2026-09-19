@@ -1,0 +1,2448 @@
+window.__ModuleLoader__.load({
+	id: "dsh-sidebar-spaces",
+	factory: (require) => {
+		var module = { exports: {} };
+		var exports = module.exports;
+		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
+		const react = require("react");
+		const h = react.createElement;
+		const { useState, useEffect, useRef, useMemo } = react;
+		const { createRoot } = require("react-dom/client");
+		const primitives = require("@deepseek-ai/dsh-client-ui-primitives");
+
+		/* __ECHARTS_VENDOR_ANCHOR__ */
+
+		//#region 常量与存储
+		const SCHEMA = 1;
+		const KB_KEY = "dsh.spaceTabs.v1.knowledge";
+		const DB_KEY = "dsh.spaceTabs.v1.database";
+		const STORE_EVENT = "dsh-sidebar-spaces:store-change";
+		const NAV_EVENT = "dsh-sidebar-spaces:navigate";
+		const NAV_KEY = "dsh.spaceTabs.v1.navigate";
+		const MAX_TITLE = 80;
+		const MAX_TEXT_FILE_BYTES = 256 * 1024;
+		const MAX_TAGS = 6;
+		const MAX_TAG = 12;
+		const portableCache = new Map();
+		const spaceName = (key) => key === KB_KEY ? "knowledge" : "database";
+		async function storeCall(action, key, payload = {}, signal) {
+			signal = signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000);
+			const response = await fetch("/sidebar-spaces/api/store", { method: "POST", credentials: "same-origin", signal,
+				headers: { "content-type": "application/json", "x-dsh-spaces": "1" }, body: JSON.stringify({ action, space: spaceName(key), ...payload }) });
+			const result = await response.json();
+			if (!response.ok || !result.ok) throw new Error(result.error?.code || "storage-unavailable");
+			return result.value;
+		}
+		async function loadPortable(key, signal) {
+			let result = await storeCall("load", key, {}, signal);
+			if (!result.data) {
+				// Keep original browser keys untouched for recovery. Never reimport over an existing host store.
+				const raw = localStorage.getItem(key);
+				let data = raw ? JSON.parse(raw) : (key === KB_KEY ? seedKnowledge() : seedDatabase());
+				if (key === KB_KEY) data = normalizeKnowledge(data);
+				result = await storeCall("migrate", key, { data }, signal);
+			}
+			portableCache.set(key, result);
+			return result;
+		}
+		function PersistenceGate(props) {
+			const [phase, setPhase] = useState("loading");
+			const [retry, setRetry] = useState(0);
+			useEffect(() => {
+				const controller = new AbortController();
+				setPhase("loading");
+				Promise.all([loadPortable(KB_KEY, controller.signal), loadPortable(DB_KEY, controller.signal)])
+					.then(() => { if (!controller.signal.aborted) setPhase("ready"); })
+					.catch(() => { if (!controller.signal.aborted) setPhase("error"); });
+				return () => controller.abort();
+			}, [retry]);
+			if (phase === "ready") return h(props.component, props.componentProps);
+			return h("div", { className: "dss-root", role: "status" }, phase === "loading" ? TEXT.storageLoading : TEXT.storageLoadFailed,
+				phase === "error" ? h("button", { className: "dss-btn", onClick: () => setRetry(v => v + 1) }, TEXT.storageRetry) : null);
+		}
+		function usePortableState(key) {
+			const [data, updateData] = useState(() => readJson(key, null));
+			const [status, setStatus] = useState("ready");
+			const snapshot = useRef(portableCache.get(key));
+			const writes = useRef({ tail: Promise.resolve(), pending: 0, error: null });
+			const active = useRef(true);
+			useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+			const setData = (change) => {
+				const queue = writes.current;
+				if (!active.current || queue.error) return Promise.resolve(false);
+				queue.pending += 1; setStatus("saving");
+				// A blur-save and the following button click can arrive in the same render.
+				// Serialize both against the latest committed revision instead of dropping the click.
+				const task = queue.tail.then(async () => {
+				try {
+					if (!active.current || queue.error) return false;
+					const current = snapshot.current;
+					const next = typeof change === "function" ? change(current.data) : change;
+					const result = await storeCall("save", key, { revision: current.revision, data: next }, AbortSignal.timeout(15000));
+					snapshot.current = result; portableCache.set(key, result);
+					if (active.current) updateData(result.data);
+					window.dispatchEvent(new CustomEvent(STORE_EVENT, { detail: { key } }));
+					return true;
+				} catch (error) {
+					queue.error = error.message === "revision-conflict" ? "conflict" : "error";
+					return false;
+				} finally {
+					queue.pending -= 1;
+					if (active.current) setStatus(queue.error || (queue.pending > 0 ? "saving" : "ready"));
+				}
+				});
+				queue.tail = task;
+				return task;
+			};
+			return [data, setData, status];
+		}
+		function StorageStatus({ status, readyText = TEXT.storageReady }) {
+			return h("p", { role: status === "conflict" || status === "error" ? "alert" : "status", className: "dss-notice", "data-storage-status": status },
+				status === "saving" ? TEXT.storageSaving : status === "conflict" ? TEXT.storageConflict : status === "error" ? TEXT.storageWriteFailed : readyText);
+		}
+
+		function readJson(key, fallback) {
+			if (portableCache.has(key)) return portableCache.get(key).data;
+			try {
+				const raw = localStorage.getItem(key);
+				if (!raw) return fallback;
+				const data = JSON.parse(raw);
+				return data && data.version === SCHEMA ? data : fallback;
+			} catch (error) {
+				try {
+					const prev = localStorage.getItem(key + ".prev");
+					if (!prev) return fallback;
+					const data = JSON.parse(prev);
+					if (data && data.version === SCHEMA) {
+						console.warn("[dsh-sidebar-spaces] primary data corrupt, restored previous snapshot:", key);
+						return data;
+					}
+				} catch (prevError) {}
+				return fallback;
+			}
+		}
+		function uid(prefix) {
+			return prefix + "-" + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
+		}
+		function clampText(value, max) {
+			return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max);
+		}
+		function parseTags(value) {
+			const raw = String(value == null ? "" : value).split(/[、,，;；\s]+/);
+			const tags = [];
+			for (const item of raw) {
+				const tag = item.trim().slice(0, MAX_TAG);
+				if (tag && !tags.includes(tag)) tags.push(tag);
+				if (tags.length >= MAX_TAGS) break;
+			}
+			return tags;
+		}
+		function nowIso() {
+			return new Date().toISOString();
+		}
+		function fmtNum(n) {
+			return Number.isFinite(n) ? String(Math.round(n * 100) / 100) : "—";
+		}
+		function normalizeSearch(value) {
+			return String(value == null ? "" : value).normalize("NFKC").toLocaleLowerCase("zh-Hans-CN").trim();
+		}
+		function searchTokens(query) {
+			return normalizeSearch(query).split(/\s+/).filter(Boolean).slice(0, 12);
+		}
+		function matchScore(parts, tokens) {
+			if (tokens.length === 0) return 0;
+			const normalized = parts.map((part) => normalizeSearch(part));
+			let score = 0;
+			for (const token of tokens) {
+				let tokenScore = 0;
+				for (let index = 0; index < normalized.length; index += 1) {
+					const value = normalized[index];
+					if (!value.includes(token)) continue;
+					const weight = index === 0 ? 8 : index === 1 ? 4 : 2;
+					tokenScore = Math.max(tokenScore, value === token ? weight + 4 : value.startsWith(token) ? weight + 2 : weight);
+				}
+				if (tokenScore === 0) return 0;
+				score += tokenScore;
+			}
+			return score;
+		}
+		function searchSnippet(value, tokens, maxLength) {
+			const text = String(value == null ? "" : value).replace(/\s+/g, " ").trim();
+			if (!text) return "";
+			const normalized = normalizeSearch(text);
+			let hit = -1;
+			for (const token of tokens) {
+				const index = normalized.indexOf(token);
+				if (index >= 0 && (hit < 0 || index < hit)) hit = index;
+			}
+			const size = maxLength || 150;
+			const start = hit > 36 ? hit - 32 : 0;
+			const slice = text.slice(start, start + size);
+			return (start > 0 ? "…" : "") + slice + (start + size < text.length ? "…" : "");
+		}
+		const TEXT = Object.freeze({
+			addFile: "添加文件", fileHint: "支持 UTF-8 的 TXT / Markdown，单文件最多 256 KiB；先预览，保存后才入库。PDF / Word 尚未支持。",
+			fileReading: "正在读取文件…", fileUnsupported: "暂不支持此格式，请选择 .txt 或 .md 文件。",
+			fileTooLarge: "文件超过 256 KiB，未导入；请拆分后重试。", fileEmpty: "文件没有可导入的正文。",
+			fileEncoding: "无法按 UTF-8 文本读取，未导入；请先转换编码。", fileReadFailed: "文件读取失败，未导入；请检查文件后重试。",
+			fileDraft: "文件已读入草稿，请检查正文、所属知识库后点“完成”。尚未保存。",
+			fileDuplicate: "该知识库已有相同正文，未重复保存；可修改正文或选择其他知识库。",
+			fileSource: "原始文件", fileBodyCount: "正文字符数：", importBackup: "导入备份",
+			storageLoading: "正在读取便携盘数据…", storageLoadFailed: "便携盘数据读取或旧数据迁移失败，已停止编辑；原浏览器数据未删除。请检查磁盘或旧备份后重试。",
+			storageRetry: "重试读取", storageSaving: "正在保存到便携盘…", storageReady: "已提交数据保存在便携盘；表格输入移开焦点后保存。",
+			storageConflict: "另一窗口已修改数据，本次保存被拒绝，编辑内容仍保留。请复制未保存内容，再返回工作区并重新打开本页。",
+			storageWriteFailed: "保存未确认，编辑内容仍保留。请复制未保存内容，再返回工作区重新读取；不要反复提交覆盖。",
+			collectionName: "知识库名称", collectionCreate: "创建知识库", collectionEdit: "管理知识库",
+			collectionRequired: "请填写知识库名称", collectionDefault: "工程手册", collectionAll: "全部知识库",
+			collectionDelete: "删除空知识库", collectionNotEmpty: "请先移动或删除库内条目；不会连带删除知识。",
+			collectionMissing: "知识库已变更，请重新选择后保存。", collectionSave: "保存", collectionCancel: "取消",
+			collectionMove: "所属知识库", storageFailed: "保存失败，原数据未更改。请导出备份并检查存储空间。",
+			knowledgeHint: "分类管理知识条目，支持跨库搜索与备份", titleRequired: "请填写条目标题",
+			knowledgeHeading: "我的知识库", knowledgeCount: "知识库", entryCount: "知识条目",
+			collectionCreateHint: "按主题归集资料与经验", collectionOpen: "打开知识库", knowledgeSaved: "内容已保存在便携盘",
+			allWorkspaces: "全部工作区", globalWorkspace: "所有工作区可见", workspaceLabel: "可见工作区",
+			activityUnavailable: "任务数据暂不可用", activityHint: "按现有非空任务的最后活动日期统计，不代表历史每日执行次数",
+			automationOpen: "打开定时任务管理", automationMissing: "未找到定时任务管理页，请检查自动化插件是否启用。",
+			settingsOpening: "正在打开管理页…", settingsRetry: "重试打开",
+			extensionTitle: "发现扩展", extensionHint: "从 DSH 社区目录发现工具；全局配置仍在设置中管理。",
+			extensionPlugins: "插件", extensionSkills: "技能包", extensionConnections: "连接与集成",
+			extensionConnectionHint: "此处是通信、通知和远程集成类 DSH 插件，不是 Qoder 的连接器目录。",
+			extensionSearch: "搜索名称、作者或说明", extensionAll: "全部分类", extensionSort: "排序",
+			extensionLatest: "最新收录", extensionName: "名称", extensionLoading: "正在读取扩展目录…",
+			extensionError: "扩展目录读取失败，请检查网络后重试。", extensionRetry: "重新读取",
+			extensionInstalledError: "已安装状态暂不可用；不会将未知状态显示成未安装。",
+			extensionEmpty: "没有匹配的扩展", extensionClear: "清除筛选", extensionMore: "加载更多",
+			extensionDetails: "查看详情", extensionBack: "返回扩展列表", extensionSource: "项目主页",
+			extensionAuthor: "作者", extensionPackage: "软件包", extensionAdded: "收录日期",
+			extensionInstalled: "已安装管理", extensionInstall: "打开安装管理器", extensionInstalledBadge: "已安装",
+			extensionInstallHint: "将在原有插件管理器中确认安装、权限及兼容性；此页不会自动安装或重启服务。",
+			extensionDeprecated: "目录已标记为弃用，请先查看项目说明。", extensionManagerMissing: "插件管理器未能打开，请在设置中检查“插件市场”。",
+			extensionReturn: "返回工作区", extensionCount: "个匹配", extensionRefresh: "刷新目录",
+
+			globalSearchPlaceholder: "全局搜索知识条目和数据库记录",
+			globalSearchHint: "支持多个关键词；所有关键词都匹配才会显示",
+			knowledgeSource: "知识条目",
+			databaseSource: "数据库记录",
+			noGlobalResults: "没有找到跨库匹配结果",
+			inventorTitle: "Inventor 2027",
+			inventorChecking: "正在检测本机 Inventor 2027…",
+			inventorInstalled: "已检测到 Autodesk Inventor 2027",
+			inventorMissing: "未检测到 Autodesk Inventor 2027",
+			inventorLaunch: "连接并打开",
+			inventorLaunching: "正在启动…",
+			inventorReady: "Inventor 2027 已启动",
+			inventorRetry: "重新检测",
+			inventorHelp: "当前连接用于检测并启动桌面版；CAD 模型自动化需要后续启用 COM / Add-In 操作层。"
+		});
+		const WORKBENCH_TEXT = Object.freeze({
+			search: "搜索任务", searchPlaceholder: "搜索任务标题和对话正文", searchHint: "按完整短语匹配；正文由运行时索引查询。不会创建新任务或调用模型。",
+			searchLoading: "正在检索对话正文…", searchEmpty: "没有匹配的任务", searchUnavailable: "会话服务尚未就绪",
+			searchFailed: "正文检索失败，已保留标题匹配结果。请重试。", searchRetry: "重试",
+			searchMore: "结果已达上限，请缩小关键词范围。", searchOpenFailed: "无法打开该任务，它可能已被归档或移除。",
+			searchTitleHit: "标题匹配", searchBodyHit: "正文匹配", searchBothHit: "标题和正文匹配",
+			knowledge: "知识中心",
+			automation: "自动化",
+			activityTitle: "任务最近活动分布",
+			activityPeriod: "每日",
+			automationTitle: "自动化中心",
+			automationHint: "使用已安装的自动化插件管理定时任务：创建与编辑计划、暂停或恢复、查看运行记录。"
+		});
+		//#endregion
+
+		//#region 导入/导出（版本化 JSON 备份，含结构与版本校验；导入按 ID 合并，不覆盖现有数据）
+		function exportPayload(space, data) {
+			return { app: "dsh-sidebar-spaces", space, schema: SCHEMA, exportedAt: nowIso(), data };
+		}
+		function downloadJson(filename, payload) {
+			try {
+				const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+				const url = URL.createObjectURL(blob);
+				const link = document.createElement("a");
+				link.href = url;
+				link.download = filename;
+				document.body.appendChild(link);
+				link.click();
+				link.remove();
+				setTimeout(() => URL.revokeObjectURL(url), 1000);
+				return true;
+			} catch (error) {
+				console.error("[dsh-sidebar-spaces] export failed:", error);
+				return false;
+			}
+		}
+		function pickJsonFile(onLoaded) {
+			try {
+				const input = document.createElement("input");
+				input.type = "file";
+				input.accept = "application/json,.json";
+				input.onchange = () => {
+					const file = input.files && input.files[0];
+					if (!file) return;
+					const reader = new FileReader();
+					reader.onload = () => {
+						try {
+							onLoaded(JSON.parse(String(reader.result)));
+						} catch (error) {
+							onLoaded(null);
+						}
+					};
+					reader.onerror = () => onLoaded(null);
+					reader.readAsText(file, "utf-8");
+				};
+				input.click();
+			} catch (error) {
+				console.error("[dsh-sidebar-spaces] import failed:", error);
+			}
+		}
+		//#endregion
+
+		async function readKnowledgeFile(file) {
+			if (!file || !/\.(txt|md)$/i.test(file.name)) throw new Error(TEXT.fileUnsupported);
+			if (file.size > MAX_TEXT_FILE_BYTES) throw new Error(TEXT.fileTooLarge);
+			let bytes;
+			try { bytes = await file.arrayBuffer(); } catch { throw new Error(TEXT.fileReadFailed); }
+			if (bytes.byteLength > MAX_TEXT_FILE_BYTES) throw new Error(TEXT.fileTooLarge);
+			let body;
+			try { body = new TextDecoder("utf-8", { fatal: true }).decode(bytes); } catch { throw new Error(TEXT.fileEncoding); }
+			if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(body)) throw new Error(TEXT.fileEncoding);
+			if (!body.trim()) throw new Error(TEXT.fileEmpty);
+			return { title: clampText(file.name.replace(/\.(txt|md)$/i, ""), MAX_TITLE), body,
+				source: { filename: file.name, format: /\.md$/i.test(file.name) ? "markdown" : "text", originalBytes: bytes.byteLength, importedAt: nowIso() } };
+		}
+		//#region 图标
+		function svgProps(path, size) {
+			return {
+				viewBox: "0 0 24 24", width: size || 16, height: size || 16,
+				fill: "none", stroke: "currentColor", strokeWidth: 1.8,
+				strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true,
+				dangerouslySetInnerHTML: { __html: path }
+			};
+		}
+		const Icon = {
+			book: (size) => h("svg", svgProps('<path d="M5 4 h10 a2 2 0 0 1 2 2 v14 h-10 a2 2 0 0 1 -2 -2 z"/><path d="M17 6 h2 v14 h-2"/><path d="M8 8 h6 M8 11.5 h6"/>', size)),
+			database: (size) => h("svg", svgProps('<ellipse cx="12" cy="5.5" rx="7" ry="2.7"/><path d="M5 5.5 v13 c0 1.5 3.1 2.7 7 2.7 s7 -1.2 7 -2.7 v-13"/><path d="M5 12 c0 1.5 3.1 2.7 7 2.7 s7 -1.2 7 -2.7"/>', size)),
+			plus: (size) => h("svg", svgProps('<path d="M12 5 v14 M5 12 h14"/>', size)),
+			close: (size) => h("svg", svgProps('<path d="M6 6 L18 18 M18 6 L6 18"/>', size)),
+			search: (size) => h("svg", svgProps('<circle cx="11" cy="11" r="6.5"/><path d="M16 16 L21 21"/>', size)),
+			fields: (size) => h("svg", svgProps('<path d="M4 7 h16 M4 12 h16 M4 17 h16"/><circle cx="8" cy="7" r="1.6" fill="currentColor" stroke="none"/><circle cx="14" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="10" cy="17" r="1.6" fill="currentColor" stroke="none"/>', size)),
+			exportIcon: (size) => h("svg", svgProps('<path d="M12 4 v10 M8 8 l4 -4 4 4"/><path d="M5 15 v3 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2 -2 v-3"/>', size)),
+			importIcon: (size) => h("svg", svgProps('<path d="M12 4 v10 M8 10 l4 4 4 -4"/><path d="M5 15 v3 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2 -2 v-3"/>', size)),
+			inventor: (size) => h("svg", svgProps('<path d="M12 3 20 7.5 12 12 4 7.5 12 3Z"/><path d="M4 7.5V16.5L12 21V12M20 7.5V16.5L12 21"/>', size))
+		};
+		//#endregion
+
+		//#region 通用小组件：确认弹窗
+		function ConfirmScrim(props) {
+			const message = props.message;
+			return h("div", { className: "dss-scrim", onMouseDown: (event) => {
+				if (event.target === event.currentTarget) props.onCancel();
+			} },
+				h("div", { className: "dss-dialog", role: "alertdialog", "aria-label": message },
+					h("div", { className: "dss-dialog-title" }, message),
+					h("div", { className: "dss-dialog-actions" },
+						h("button", { type: "button", className: "dss-btn is-ghost", onClick: props.onCancel }, "取消"),
+						h("button", { type: "button", className: "dss-btn is-danger", onClick: props.onConfirm }, "确定")
+					)
+				)
+			);
+		}
+		//#endregion
+
+		//#region 知识库（条目库）
+		function normalizeKnowledge(value) {
+			const collections = Array.isArray(value.collections) && value.collections.length
+				? value.collections.map((item) => ({ ...item }))
+				: [{ id: "legacy", title: TEXT.collectionDefault, workspaceId: "" }];
+			const ids = new Set(collections.map((item) => item.id));
+			return { ...value, collections, entries: value.entries.map((item) => ({ ...item,
+				collectionId: ids.has(item.collectionId) ? item.collectionId : collections[0].id })) };
+		}
+		let workbenchRuntime = {};
+		function useSource(source) {
+			const [snapshot, setSnapshot] = useState(() => source?.getSnapshot());
+			useEffect(() => {
+				if (!source) return;
+				const sync = () => setSnapshot(source.getSnapshot());
+				sync();
+				return source.subscribe(sync);
+			}, [source]);
+			return snapshot;
+		}
+		function seedKnowledge() {
+			return {
+				version: SCHEMA,
+				entries: [
+					{
+						id: uid("kb"),
+						title: "知识库使用说明",
+						body: "这里存放你的知识条目：标题 + 正文 + 标签。顶部可跨库搜索；点条目编辑后用“完成”保存。支持导出 / 导入 JSON 备份，导入按 ID 合并且不覆盖现有内容。已提交的数据保存在便携盘宿主存储中，写入前保留独立恢复快照，不依赖浏览器端口。",
+						tags: ["说明"],
+						createdAt: nowIso(),
+						updatedAt: nowIso()
+					},
+					{
+						id: "kb-qoder-knowledge-center",
+						title: "Qoder 知识中心（QMind）使用说明",
+						body: "## 是什么\nQoder 知识中心（QMind）是一个本地知识库。你把资料存进去后，Qoder 在后续对话时能自动检索、引用这些资料来回答。\n\n## 怎么放入知识\n通过「添加来源」完成，支持三种方式：\n- 纯文本：直接粘贴一段内容。\n- HTTPS 链接：给出一个网址，系统抓取网页内容存入。\n- 本地文件：指定本机文件路径（PDF、代码文件、文档等）。\n\n放入时可以归到某个 Notebook（笔记本）下做分类管理。\n\n## 存入后有什么用\n- 跨会话记忆：知识持久化，新对话也能用到，不用每次重复贴资料。\n- 语义检索：不是简单的关键词匹配，而是理解意思后搜索。\n- 回答有据可查：Qoder 回答时会标注来自哪个来源，可追溯。\n\n## 后续怎么用\n- 自动触发：提问时 Qoder 自动从知识库检索相关内容作为上下文。\n- 主动检索：可以明确要求它在知识库里搜某个主题。\n- 浏览管理：列出所有 Notebook、列出所有来源、查看某个来源原文。\n\n## 特点\n- 本地存储，数据不上传。\n- 支持网页、文件、文本多种导入方式。\n- Notebook 分类组织。\n- 语义搜索，不死板。\n\n## 典型场景\n把项目的设计文档、API 文档、技术规范丢进去；之后问 Qoder 任何项目相关问题，它都能基于已存资料精准回答。",
+						tags: ["Qoder", "知识中心", "QMind", "说明"],
+						createdAt: nowIso(),
+						updatedAt: nowIso()
+					}
+				]
+			};
+		}
+
+		function KnowledgeApp(props) {
+			return h(PersistenceGate, { component: KnowledgeContent, componentProps: props });
+		}
+		function KnowledgeContent(props) {
+			const [data, setData, storageStatus] = usePortableState(KB_KEY);
+			const [dbData, setDbData] = useState(() => readJson(DB_KEY, { version: SCHEMA, fields: [], records: [] }));
+			const [query, setQuery] = useState("");
+			const [tagFilter, setTagFilter] = useState("");
+			const [editingId, setEditingId] = useState(null);
+			const [confirmDel, setConfirmDel] = useState(null);
+			const [title, setTitle] = useState("");
+			const [body, setBody] = useState("");
+			const [tags, setTags] = useState("");
+			const [sort, setSort] = useState("updated");
+			const [pendingImport, setPendingImport] = useState(null);
+			const [fileReading, setFileReading] = useState(false);
+			const fileInputRef = useRef(null);
+			const fileReadEpoch = useRef(0);
+			const [notice, setNotice] = useState("");
+			const [collectionOpen, setCollectionOpen] = useState(false);
+			const [collectionId, setCollectionId] = useState("");
+			const [collectionDraft, setCollectionDraft] = useState(null);
+			const [draftEntry, setDraftEntry] = useState(null);
+			const [entryCollectionId, setEntryCollectionId] = useState("");
+			const [workspaceFilter, setWorkspaceFilter] = useState("");
+			const workspaceState = useSource(workbenchRuntime.workspaces?.list);
+			const workspaces = (workspaceState?.items || []).map((item) => ({ ...item, id: item.workspaceId }));
+			const noticeTimer = useRef(null);
+			const searchRef = useRef(null);
+			const showNotice = (text) => {
+				setNotice(text);
+				if (noticeTimer.current) clearTimeout(noticeTimer.current);
+				noticeTimer.current = setTimeout(() => setNotice(""), 2800);
+			};
+			useEffect(() => () => {
+				if (noticeTimer.current) clearTimeout(noticeTimer.current);
+				fileReadEpoch.current++;
+			}, []);
+			useEffect(() => {
+				const syncDatabase = (event) => {
+					if (event && event.detail && event.detail.key !== DB_KEY) return;
+					setDbData(readJson(DB_KEY, { version: SCHEMA, fields: [], records: [] }));
+				};
+				const focusSearch = (event) => {
+					if ((event.ctrlKey || event.metaKey) && String(event.key).toLowerCase() === "k") {
+						event.preventDefault();
+						if (searchRef.current) searchRef.current.focus();
+					}
+				};
+				window.addEventListener(STORE_EVENT, syncDatabase);
+				window.addEventListener("keydown", focusSearch);
+				return () => {
+					window.removeEventListener(STORE_EVENT, syncDatabase);
+					window.removeEventListener("keydown", focusSearch);
+				};
+			}, []);
+			const seededRef = useRef("");
+			useEffect(() => {
+				const entry = data.entries.find((item) => item.id === editingId);
+				if (entry && seededRef.current !== entry.id) {
+					seededRef.current = entry.id;
+					setTitle(entry.title || "");
+					setBody(entry.body || "");
+					setTags((entry.tags || []).join("、"));
+					setEntryCollectionId(entry.collectionId);
+				}
+				if (!entry) seededRef.current = "";
+			}, [editingId]);
+
+			const allTags = useMemo(() => {
+				const set = new Set();
+				for (const entry of data.entries) for (const tag of entry.tags || []) set.add(tag);
+				return [...set].sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
+			}, [data]);
+			const visible = useMemo(() => {
+				const q = query.trim().toLowerCase();
+				return data.entries
+					.filter((entry) => !collectionId || entry.collectionId === collectionId)
+					.filter((entry) => !workspaceFilter || data.collections.some((item) => item.id === entry.collectionId && (!item.workspaceId || item.workspaceId === workspaceFilter)))
+					.filter((entry) => (tagFilter === "" || (entry.tags || []).includes(tagFilter)))
+					.filter((entry) => q === "" || (entry.title || "").toLowerCase().includes(q) || (entry.body || "").toLowerCase().includes(q) || (entry.tags || []).some((tag) => tag.toLowerCase().includes(q)))
+					.sort((a, b) => {
+						if (sort === "title") return (a.title || "").localeCompare(b.title || "", "zh-Hans-CN");
+						const field = sort === "created" ? "createdAt" : "updatedAt";
+						return (b[field] || "").localeCompare(a[field] || "");
+					});
+			}, [data, query, tagFilter, sort, collectionId, workspaceFilter]);
+			const tokens = useMemo(() => searchTokens(query), [query]);
+			const globalResults = useMemo(() => {
+				if (tokens.length === 0) return [];
+				const results = [];
+				for (const entry of data.entries) {
+					if (workspaceFilter && !data.collections.some((item) => item.id === entry.collectionId && (!item.workspaceId || item.workspaceId === workspaceFilter))) continue;
+					if (tagFilter !== "" && !(entry.tags || []).includes(tagFilter)) continue;
+					const score = matchScore([entry.title, (entry.tags || []).join(" "), entry.body], tokens);
+					if (score > 0) results.push({ kind: "knowledge", id: entry.id, score, title: entry.title || "（无标题）", body: searchSnippet(entry.body, tokens, 160), meta: (entry.tags || []).join(" · ") });
+				}
+				for (const record of dbData.records || []) {
+					const values = (dbData.fields || []).map((field) => ({ field, value: record.cells && record.cells[field.id] != null ? String(record.cells[field.id]) : "" })).filter((item) => item.value.trim() !== "");
+					const titlePart = values[0];
+					const detail = values.map((item) => item.field.name + "：" + item.value).join(" · ");
+					const score = matchScore([titlePart ? titlePart.value : "", (dbData.fields || []).map((field) => field.name).join(" "), detail], tokens);
+					if (score > 0) results.push({ kind: "database", id: record.id, score, title: titlePart ? titlePart.value : "（空记录）", body: searchSnippet(detail, tokens, 180), meta: values.length + " 个已填字段" });
+				}
+				return results.sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, "zh-Hans-CN")).slice(0, 100);
+			}, [data, dbData, tokens, tagFilter, workspaceFilter]);
+			const openDatabaseResult = (recordId) => {
+				const detail = { tab: "database", recordId, query };
+				try { sessionStorage.setItem(NAV_KEY, JSON.stringify(detail)); } catch (error) {}
+				if (props.service) props.service.openTab({ type: "space-database" }, props.scope);
+				setTimeout(() => window.dispatchEvent(new CustomEvent(NAV_EVENT, { detail })), 0);
+			};
+
+			const editing = data.entries.find((item) => item.id === editingId) || (draftEntry?.id === editingId ? draftEntry : null);
+			const startNew = () => {
+				const entry = { id: uid("kb"), title: "", body: "", tags: [], createdAt: nowIso(), updatedAt: nowIso() };
+				setDraftEntry(entry);
+				setTitle(""); setBody(""); setTags("");
+				setEntryCollectionId(collectionId || data.collections[0].id);
+				setCollectionOpen(true);
+				setEditingId(entry.id);
+			};
+			const commit = async () => {
+				if (!title.trim()) { showNotice(TEXT.titleRequired); return; }
+				const latest = normalizeKnowledge(readJson(KB_KEY, data));
+				if (!latest.collections.some((item) => item.id === entryCollectionId)) { showNotice(TEXT.collectionMissing); return; }
+				if (draftEntry?.source && latest.entries.some((item) => item.collectionId === entryCollectionId && item.body === body)) { showNotice(TEXT.fileDuplicate); return; }
+				const entry = { ...editing, title: clampText(title, MAX_TITLE), body: String(body || ""), tags: parseTags(tags), collectionId: entryCollectionId, updatedAt: nowIso() };
+				if (await setData((prev) => ({ ...prev, entries: prev.entries.some((item) => item.id === editingId)
+					? prev.entries.map((item) => item.id === editingId ? entry : item) : [entry, ...prev.entries] }))) {
+					setDraftEntry(null); setEditingId(null);
+				}
+			};
+			const addFile = async (event) => {
+				const file = event.target.files?.[0];
+				event.target.value = "";
+				if (!file) return;
+				const epoch = ++fileReadEpoch.current;
+				setFileReading(true);
+				try {
+					const loaded = await readKnowledgeFile(file);
+					if (epoch !== fileReadEpoch.current) return;
+					const entry = { ...loaded, id: uid("kb"), tags: [], createdAt: nowIso(), updatedAt: nowIso() };
+					setDraftEntry(entry); setTitle(entry.title); setBody(entry.body); setTags("");
+					setEntryCollectionId(collectionId || data.collections[0].id);
+					setCollectionOpen(true); setEditingId(entry.id); showNotice(TEXT.fileDraft);
+				} catch (error) {
+					if (epoch === fileReadEpoch.current) showNotice(error.message || TEXT.fileReadFailed);
+				} finally { if (epoch === fileReadEpoch.current) setFileReading(false); }
+			};
+			const remove = async (id) => {
+				if (await setData((prev) => ({ ...prev, entries: prev.entries.filter((item) => item.id !== id) })) && editingId === id) setEditingId(null);
+			};
+			const exportEntries = () => {
+				if (downloadJson("knowledge-" + new Date().toISOString().slice(0, 10) + ".json", exportPayload("knowledge", data))) {
+					showNotice("已导出 " + data.entries.length + " 条条目");
+				}
+			};
+			const startImport = () => pickJsonFile((payload) => {
+				const wrap = payload !== null && payload !== undefined && payload.app === "dsh-sidebar-spaces" ? payload : null;
+				const space = wrap ? wrap.space : "knowledge";
+				const part = wrap ? wrap.data : payload;
+				if (!part || space !== "knowledge" || !Array.isArray(part.entries)) { showNotice("导入失败：不是有效的知识库备份文件"); return; }
+				if (wrap && wrap.schema !== SCHEMA) { showNotice("导入失败：备份格式版本不受支持（schema " + wrap.schema + "）"); return; }
+				if (part.version !== SCHEMA || part.entries.some((item) => !item || typeof item.id !== "string" || typeof item.title !== "string" || typeof item.body !== "string" || !Array.isArray(item.tags) || item.tags.some((tag) => typeof tag !== "string"))) { showNotice("导入失败：条目结构不正确"); return; }
+				if (part.collections !== undefined && (!Array.isArray(part.collections) || part.collections.some((item) => !item || typeof item.id !== "string" || typeof item.title !== "string"))) { showNotice("导入失败：知识库结构不正确"); return; }
+				const normalized = normalizeKnowledge(part);
+				const incoming = [...new Map(normalized.entries.map((item) => [item.id, { ...item, title: clampText(item.title, MAX_TITLE), body: item.body, tags: parseTags(item.tags.join("、")), createdAt: typeof item.createdAt === "string" ? item.createdAt : nowIso(), updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : nowIso() }])).values()];
+				const existing = new Set(data.entries.map((item) => item.id));
+				const fresh = incoming.filter((item) => !existing.has(item.id));
+				setPendingImport({ total: incoming.length, fresh, collections: normalized.collections });
+			});
+
+			const overview = !collectionOpen && tokens.length === 0;
+			return h("div", { className: "dss-root dss-knowledge-root" + (overview ? " is-overview" : ""), inert: storageStatus === "saving" ? true : undefined },
+				h(StorageStatus, { status: storageStatus, readyText: TEXT.knowledgeSaved }),
+				overview ? h("div", { className: "dss-kb-hero" },
+					h("div", { className: "dss-kb-heading" }, h("span", { className: "dss-kb-mark", "aria-hidden": true }, Icon.book(24)),
+						h("div", null, h("h1", null, TEXT.knowledgeHeading), h("p", null, TEXT.knowledgeHint))),
+					h("div", { className: "dss-kb-summary" },
+						h("span", null, h("strong", null, data.collections.length), TEXT.knowledgeCount),
+						h("span", null, h("strong", null, data.entries.length), TEXT.entryCount))) : null,
+				h("header", { className: "dss-toolbar" },
+					h("div", { className: "dss-search" },
+						Icon.search(14),
+						h("input", {
+							ref: searchRef, className: "dss-search-input", value: query, placeholder: TEXT.globalSearchPlaceholder,
+							title: TEXT.globalSearchHint,
+							onChange: (event) => setQuery(event.target.value)
+						}),
+						query ? h("button", { type: "button", className: "dss-iconbtn", "aria-label": "清空搜索", onClick: () => setQuery("") }, Icon.close(12)) : null
+					),
+					overview ? h("select", { className: "dss-select dss-kb-scope", value: workspaceFilter, "aria-label": TEXT.workspaceLabel, onChange: (event) => setWorkspaceFilter(event.target.value) },
+						h("option", { value: "" }, TEXT.allWorkspaces),
+						workspaces.map((item) => h("option", { key: item.id, value: item.id }, item.title || item.path))) : null,
+					h("div", { className: "dss-toolbar-actions" },
+					collectionOpen && tokens.length === 0 ? h("button", { type: "button", className: "dss-btn is-ghost", onClick: () => setCollectionOpen(false) }, "知识库概览") : null,
+					collectionId ? h("button", { type: "button", className: "dss-btn", onClick: () => setCollectionDraft({ ...data.collections.find((item) => item.id === collectionId) }) }, TEXT.collectionEdit) : null,
+					h("select", { className: "dss-select dss-sort", value: sort, "aria-label": "排序方式", onChange: (event) => setSort(event.target.value) },
+						h("option", { value: "updated" }, "最近更新"),
+						h("option", { value: "created" }, "创建时间"),
+						h("option", { value: "title" }, "标题")
+					),
+					h("button", { type: "button", className: "dss-btn", title: "导出 JSON 备份", onClick: exportEntries }, Icon.exportIcon(13), "导出"),
+					h("button", { type: "button", className: "dss-btn", title: "从 JSON 备份导入（新增合并，不覆盖现有）", disabled: !!editing || fileReading, onClick: startImport }, Icon.importIcon(13), TEXT.importBackup),
+					h("input", { ref: fileInputRef, type: "file", hidden: true, accept: ".txt,.md", onChange: addFile, "aria-label": TEXT.addFile }),
+					h("button", { type: "button", className: "dss-btn", title: TEXT.fileHint, disabled: !!editing || fileReading, onClick: () => fileInputRef.current?.click() }, Icon.importIcon(13), fileReading ? TEXT.fileReading : TEXT.addFile),
+					h("button", { type: "button", className: "dss-btn", disabled: !!editing || fileReading, onClick: startNew }, Icon.plus(13), "新建条目")
+				)
+				),
+				notice ? h("div", { className: "dss-notice", role: "status" }, notice) : null,
+				h("section", { className: "dss-kb-overview", "aria-label": "知识库概览" },
+					h("div", { className: "dss-kb-cards" },
+						h("button", { type: "button", className: "dss-kb-create", onClick: () => setCollectionDraft({ id: uid("collection"), title: "", workspaceId: workspaceFilter }) }, h("span", { className: "dss-kb-create-icon" }, Icon.plus(22)), h("strong", null, TEXT.collectionCreate), h("small", null, TEXT.collectionCreateHint)),
+						data.collections.filter((item) => !workspaceFilter || !item.workspaceId || item.workspaceId === workspaceFilter).map((collection) => h("button", { key: collection.id, type: "button", className: "dss-kb-card", onClick: () => { setCollectionId(collection.id); setTagFilter(""); setCollectionOpen(true); } },
+							h("span", { className: "dss-kb-card-icon" }, Icon.book(18)),
+							h("strong", null, collection.title),
+							h("span", null, data.entries.filter((item) => item.collectionId === collection.id).length + " " + TEXT.entryCount),
+							h("small", null, collection.workspaceId ? (workspaces.find((item) => item.id === collection.workspaceId)?.title || collection.workspaceId) : TEXT.globalWorkspace),
+							h("span", { className: "dss-kb-open", "aria-hidden": true }, TEXT.collectionOpen + "  ↗")
+						))
+				)
+				),
+				allTags.length > 0 ? h("div", { className: "dss-chips" },
+					h("button", { type: "button", className: "dss-chip" + (tagFilter === "" ? " is-active" : ""), onClick: () => setTagFilter("") }, "全部"),
+					allTags.map((tag) => h("button", {
+						key: tag, type: "button",
+						className: "dss-chip" + (tagFilter === tag ? " is-active" : ""),
+						onClick: () => setTagFilter(tagFilter === tag ? "" : tag)
+					}, tag))
+				) : null,
+				h("div", { className: "dss-scroll" },
+					tokens.length > 0 ? h("div", { className: "dss-results-summary", role: "status" },
+						"找到 " + globalResults.length + " 项 · ",
+						TEXT.knowledgeSource + " " + globalResults.filter((item) => item.kind === "knowledge").length + " · ",
+						TEXT.databaseSource + " " + globalResults.filter((item) => item.kind === "database").length
+					) : null,
+					(tokens.length > 0 ? globalResults : visible).length === 0
+						? h("div", { className: "dss-empty" }, tokens.length > 0 ? TEXT.noGlobalResults : tagFilter ? "没有匹配的条目" : "还没有条目，点「新建条目」开始")
+						: (tokens.length > 0 ? globalResults : visible).map((entry) => h("article", {
+							key: (entry.kind || "knowledge") + ":" + entry.id, className: "dss-item" + (entry.kind === "database" ? " is-database" : ""), tabIndex: 0, role: "button",
+							onClick: () => entry.kind === "database" ? openDatabaseResult(entry.id) : setEditingId(entry.id),
+							onKeyDown: (event) => {
+								if (event.key === "Enter" || event.key === " ") {
+									event.preventDefault();
+									if (entry.kind === "database") openDatabaseResult(entry.id); else setEditingId(entry.id);
+								}
+							}
+						},
+							tokens.length > 0 ? h("div", { className: "dss-source-badge" }, entry.kind === "database" ? TEXT.databaseSource : TEXT.knowledgeSource) : null,
+							h("div", { className: "dss-item-title" }, entry.title || "（无标题）"),
+							entry.body ? h("div", { className: "dss-item-body" }, entry.body) : null,
+							h("div", { className: "dss-item-meta" },
+								tokens.length === 0 && (entry.tags || []).length > 0 ? h("span", { className: "dss-item-tags" }, entry.tags.map((tag, index) => h("span", { key: index, className: "dss-tag" }, tag))) : h("span", { className: "dss-item-time" }, entry.meta || ""),
+								h("span", { className: "dss-item-time" }, tokens.length === 0 ? (entry.updatedAt || "").slice(0, 10) : "匹配度 " + entry.score)
+							)
+						))
+				),
+				editing ? h("div", { className: "dss-drawer" },
+					h("div", { className: "dss-drawer-head" },
+						h("span", { className: "dss-drawer-title" }, editing.title ? "编辑条目" : "新条目"),
+						h("button", { type: "button", className: "dss-btn is-ghost", "aria-label": "关闭", onClick: () => setEditingId(null) }, Icon.close(13))
+					),
+					h("div", { className: "dss-field" },
+						h("label", { className: "dss-label", htmlFor: "dss-entry-collection" }, TEXT.collectionMove),
+						h("select", { id: "dss-entry-collection", className: "dss-select", value: entryCollectionId, onChange: (event) => setEntryCollectionId(event.target.value) }, data.collections.map((item) => h("option", { key: item.id, value: item.id }, item.title)))
+					),
+					h("div", { className: "dss-field" },
+						h("label", { className: "dss-label", htmlFor: "dss-kb-title" }, "标题"),
+						h("input", { id: "dss-kb-title", className: "dss-input", value: title, autoFocus: true, maxLength: MAX_TITLE, onChange: (event) => setTitle(event.target.value) })
+					),
+					h("div", { className: "dss-field" },
+						h("label", { className: "dss-label", htmlFor: "dss-kb-body" }, "正文"),
+						h("textarea", { id: "dss-kb-body", className: "dss-textarea", value: body, onChange: (event) => setBody(event.target.value), placeholder: "记录知识、结论、链接…" }),
+						h("small", null, TEXT.fileBodyCount + body.length),
+						editing.source ? h("p", { className: "dss-item-meta" }, TEXT.fileSource + "：" + editing.source.filename + " · " + editing.source.originalBytes + " bytes") : null
+					),
+					h("div", { className: "dss-field" },
+						h("label", { className: "dss-label", htmlFor: "dss-kb-tags" }, "标签（顿号分隔，最多 " + MAX_TAGS + " 个）"),
+						h("input", { id: "dss-kb-tags", className: "dss-input", value: tags, onChange: (event) => setTags(event.target.value), placeholder: "如：DSA、算法" })
+					),
+					h("div", { className: "dss-drawer-actions" },
+						h("button", { type: "button", className: "dss-btn is-danger", onClick: () => setConfirmDel(editing.id) }, "删除条目"),
+						h("button", { type: "button", className: "dss-btn", onClick: commit }, "完成")
+					)
+				) : null,
+				collectionDraft ? h("div", { className: "dss-scrim" }, h("form", { className: "dss-dialog", role: "dialog", "aria-label": TEXT.collectionEdit, onSubmit: async (event) => {
+					event.preventDefault();
+					if (!collectionDraft.title.trim()) { showNotice(TEXT.collectionRequired); return; }
+					const item = { ...collectionDraft, title: clampText(collectionDraft.title, MAX_TITLE) };
+					if (await setData((prev) => ({ ...prev, collections: prev.collections.some((row) => row.id === item.id)
+						? prev.collections.map((row) => row.id === item.id ? item : row) : [...prev.collections, item] }))) setCollectionDraft(null);
+					} },
+					h("h2", { className: "dss-kb-dialog-title" }, data.collections.some((item) => item.id === collectionDraft.id) ? TEXT.collectionEdit : TEXT.collectionCreate),
+					h("label", { className: "dss-label", htmlFor: "dss-collection-title" }, TEXT.collectionName),
+					h("input", { id: "dss-collection-title", className: "dss-input", value: collectionDraft.title, maxLength: MAX_TITLE, autoFocus: true, required: true, onChange: (event) => setCollectionDraft({ ...collectionDraft, title: event.target.value }) }),
+					h("label", { className: "dss-label", htmlFor: "dss-collection-workspace" }, TEXT.workspaceLabel),
+					h("select", { id: "dss-collection-workspace", className: "dss-select", value: collectionDraft.workspaceId || "", onChange: (event) => setCollectionDraft({ ...collectionDraft, workspaceId: event.target.value }) },
+						h("option", { value: "" }, TEXT.globalWorkspace), workspaces.map((item) => h("option", { key: item.id, value: item.id }, item.title || item.path))),
+					h("div", { className: "dss-dialog-actions" },
+						data.collections.length > 1 && data.collections.some((row) => row.id === collectionDraft.id) ? h("button", { type: "button", className: "dss-btn is-danger", onClick: async () => {
+							const latest = normalizeKnowledge(readJson(KB_KEY, data));
+							if (latest.entries.some((item) => item.collectionId === collectionDraft.id)) { showNotice(TEXT.collectionNotEmpty); return; }
+							if (await setData((prev) => ({ ...prev, collections: prev.collections.filter((item) => item.id !== collectionDraft.id) }))) { setCollectionId(""); setCollectionOpen(false); setCollectionDraft(null); }
+						} }, TEXT.collectionDelete) : null,
+						h("button", { type: "button", className: "dss-btn is-ghost", onClick: () => setCollectionDraft(null) }, TEXT.collectionCancel),
+						h("button", { type: "submit", className: "dss-btn dss-btn-primary" }, TEXT.collectionSave)
+					)
+				)) : null,
+				confirmDel !== null ? h(ConfirmScrim, {
+					message: "删除这个条目？此操作不可撤销。",
+					onConfirm: () => {
+						const id = confirmDel;
+						setConfirmDel(null);
+						remove(id);
+					},
+					onCancel: () => setConfirmDel(null)
+				}) : null,
+				pendingImport !== null ? h(ConfirmScrim, {
+					message: "导入备份：将新增 " + pendingImport.fresh.length + " 条条目，跳过 " + (pendingImport.total - pendingImport.fresh.length) + " 条已存在（不覆盖现有内容）。",
+					onConfirm: async () => {
+						const batch = pendingImport;
+						if (await setData((prev) => ({ ...prev,
+							collections: [...prev.collections, ...batch.collections.filter((item) => !prev.collections.some((row) => row.id === item.id))],
+							entries: [...batch.fresh.filter((item) => !prev.entries.some((row) => row.id === item.id)), ...prev.entries] }))) { setPendingImport(null); showNotice("已导入 " + batch.fresh.length + " 条条目"); }
+					},
+					onCancel: () => setPendingImport(null)
+				}) : null
+			);
+		}
+		//#endregion
+
+		//#region 数据库图表（Apache ECharts 企业级可视化）
+		function themeColors() {
+			try {
+				const cs = getComputedStyle(document.documentElement);
+				const g = (name, fallback) => {
+					const v = cs.getPropertyValue(name).trim();
+					return v || fallback;
+				};
+				return {
+					ink: g("--dsw-alias-label-primary", "#1c1915"),
+					muted: g("--dsw-alias-label-secondary", "#7a7268"),
+					accent: g("--dsw-alias-brand-primary", "#0a5c7a"),
+					line: g("--dsw-alias-border-l1", "rgba(28,25,21,.1)"),
+					panel: g("--dsw-alias-bg-layer-3", "#fffdf8")
+				};
+			} catch (e) {
+				return { ink: "#1c1915", muted: "#7a7268", accent: "#0a5c7a", line: "rgba(28,25,21,.1)", panel: "#fffdf8" };
+			}
+		}
+
+		const PALETTE = ["#0a5c7a", "#3e7ca6", "#5f9e6e", "#c9a227", "#b0632e", "#7a5ea6", "#4e6e81", "#8f4a5b", "#366d63", "#a89e90"];
+
+		function ChartCanvas(props) {
+			const ref = useRef(null);
+			const instRef = useRef(null);
+			useEffect(() => {
+				if (ref.current === null || typeof echarts === "undefined" || echarts === null) return;
+				const chart = echarts.init(ref.current, null, { renderer: "canvas" });
+				instRef.current = chart;
+				chart.setOption(props.option);
+				let ro = null;
+				let onResize = null;
+				if (typeof ResizeObserver !== "undefined") {
+					ro = new ResizeObserver(() => chart.resize());
+					ro.observe(ref.current);
+				} else {
+					onResize = () => chart.resize();
+					window.addEventListener("resize", onResize);
+				}
+				return () => {
+					if (ro) ro.disconnect();
+					if (onResize) window.removeEventListener("resize", onResize);
+					chart.dispose();
+					instRef.current = null;
+				};
+			}, [props.option]);
+			const savePng = () => {
+				const chart = instRef.current;
+				if (!chart || ref.current === null) return;
+				try {
+					const root = ref.current.closest(".dss-root");
+					const bg = root ? (getComputedStyle(root).getPropertyValue("--dss-panel").trim() || "#fffdf8") : "#fffdf8";
+					const link = document.createElement("a");
+					link.href = chart.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: bg });
+					link.download = "chart-" + (props.name || "export") + "-" + new Date().toISOString().slice(0, 10) + ".png";
+					document.body.appendChild(link);
+					link.click();
+					link.remove();
+				} catch (error) {
+					console.error("[dsh-sidebar-spaces] save chart failed:", error);
+				}
+			};
+			return h("div", { className: "dss-chart-canvas-wrap" },
+				h("div", { ref, className: "dss-chart-canvas", style: { height: (props.height || 260) + "px" } }),
+				h("button", { type: "button", className: "dss-chart-save", title: "把图表导出为 PNG 图片", onClick: savePng }, "存图")
+			);
+		}
+
+		function statChip(label, value) {
+			return h("div", { className: "dss-stat" },
+				h("div", { className: "dss-stat-label" }, label),
+				h("div", { className: "dss-stat-value" }, String(value))
+			);
+		}
+
+		function ChartPanel(props) {
+			const fields = props.fields || [];
+			const records = props.records || [];
+			const kind = props.kind || "bar";
+			const field = fields.find((item) => item.id === props.fieldId) || fields[0];
+			const measure = fields.find((item) => item.id === props.measureId && item.type === "number");
+			const aggregate = props.aggregate || "sum";
+			const limit = Math.max(5, Math.min(30, Number(props.limit) || 10));
+			const option = useMemo(() => {
+				if (field === undefined) return null;
+				const rawValues = records.map((record) => record.cells && record.cells[field.id]).filter((value) => value !== undefined && value !== null && String(value).trim() !== "");
+				const { ink, muted, accent, line, panel } = themeColors();
+				const fontFamily = "'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC',sans-serif";
+				const statsBase = { total: records.length, populated: rawValues.length, unique: new Set(rawValues.map(String)).size };
+				const base = { animationDuration: 350, textStyle: { fontFamily, color: muted }, grid: { left: 10, right: 18, top: 28, bottom: 10, containLabel: true } };
+				if (field.type === "number") {
+					const nums = rawValues.map(Number).filter((n) => Number.isFinite(n));
+					if (nums.length === 0) return { __empty: "该字段暂无数字数据" };
+					const min = Math.min(...nums);
+					const max = Math.max(...nums);
+					const sum = nums.reduce((a, b) => a + b, 0);
+					const stats = Object.assign({}, statsBase, { count: nums.length, sum, avg: sum / nums.length, min, max });
+					if (kind === "scatter" && measure && measure.id !== field.id) {
+						const points = records.map((record) => [Number(record.cells && record.cells[field.id]), Number(record.cells && record.cells[measure.id])]).filter((pair) => pair.every(Number.isFinite));
+						if (points.length === 0) return { __empty: "两个数字字段之间暂无成对数据" };
+						return Object.assign({}, base, { stats, hint: field.name + " × " + measure.name + " · " + points.length + " 个有效点", tooltip: { trigger: "item", formatter: (p) => field.name + "：" + fmtNum(p.value[0]) + "<br/>" + measure.name + "：" + fmtNum(p.value[1]) }, xAxis: { type: "value", name: field.name, nameTextStyle: { color: muted }, axisLabel: { color: muted }, splitLine: { lineStyle: { color: line } } }, yAxis: { type: "value", name: measure.name, nameTextStyle: { color: muted }, axisLabel: { color: muted }, splitLine: { lineStyle: { color: line } } }, series: [{ type: "scatter", data: points, symbolSize: 9, itemStyle: { color: accent, opacity: 0.78 } }] });
+					}
+					const buckets = Math.max(5, Math.min(14, Math.ceil(Math.sqrt(nums.length))));
+					const span = max - min || 1;
+					const counts = new Array(buckets).fill(0);
+					for (const n of nums) counts[Math.min(buckets - 1, Math.floor(((n - min) / span) * buckets))] += 1;
+					const labels = counts.map((_, index) => fmtNum(min + (span / buckets) * index));
+					return Object.assign({}, base, { stats, hint: "自动分为 " + buckets + " 个区间", tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: (params) => { const p = params[0]; return labels[p.dataIndex] + " ~ " + fmtNum(min + (span / buckets) * (p.dataIndex + 1)) + "<br/>数量：" + p.value; } }, xAxis: { type: "category", data: labels, axisLabel: { color: muted, interval: "auto", fontSize: 10 }, axisLine: { lineStyle: { color: line } } }, yAxis: { type: "value", minInterval: 1, axisLabel: { color: muted }, splitLine: { lineStyle: { color: line } } }, series: [{ type: "bar", data: counts, barMaxWidth: 26, itemStyle: { color: accent, borderRadius: [4, 4, 0, 0] } }] });
+				}
+				const byMonth = field.type === "date" && new Set(rawValues.map((value) => String(value).slice(0, 10))).size > 60;
+				const groups = new Map();
+				for (const record of records) {
+					const raw = record.cells && record.cells[field.id];
+					if (raw === undefined || raw === null || String(raw).trim() === "") continue;
+					const key = field.type === "date" ? String(raw).slice(0, byMonth ? 7 : 10) : String(raw);
+					const group = groups.get(key) || { count: 0, values: [] };
+					group.count += 1;
+					if (measure) { const n = Number(record.cells && record.cells[measure.id]); if (Number.isFinite(n)) group.values.push(n); }
+					groups.set(key, group);
+				}
+				const valueOf = (group) => {
+					if (!measure) return group.count;
+					if (group.values.length === 0) return 0;
+					if (aggregate === "avg") return group.values.reduce((a, b) => a + b, 0) / group.values.length;
+					if (aggregate === "min") return Math.min(...group.values);
+					if (aggregate === "max") return Math.max(...group.values);
+					return group.values.reduce((a, b) => a + b, 0);
+				};
+				let entries = [...groups.entries()].map(([key, group]) => [key, valueOf(group)]);
+				if (entries.length === 0) return { __empty: "该字段暂无数据" };
+				if (field.type === "date") entries.sort((a, b) => a[0].localeCompare(b[0])); else entries.sort((a, b) => b[1] - a[1]);
+				if (field.type !== "date" && entries.length > limit) {
+					const rest = entries.slice(limit).reduce((sum, entry) => sum + entry[1], 0);
+					entries = entries.slice(0, limit);
+					if (rest > 0 && (!measure || aggregate === "sum")) entries.push(["其他", rest]);
+				}
+				const metric = measure ? ({ sum: "合计", avg: "平均", min: "最小", max: "最大" }[aggregate] + " · " + measure.name) : "记录数";
+				if (kind === "pie") return Object.assign({}, base, { stats: statsBase, hint: metric + " · 显示前 " + limit + " 项", color: PALETTE, tooltip: { trigger: "item", formatter: (p) => p.name + "：" + fmtNum(p.value) + "（" + p.percent + "%）" }, series: [{ type: "pie", radius: ["42%", "70%"], center: ["50%", "54%"], data: entries.map((entry) => ({ name: entry[0], value: entry[1] })), label: { color: muted, fontSize: 11, formatter: "{b} {d}%" }, labelLine: { lineStyle: { color: line } }, itemStyle: { borderColor: panel, borderWidth: 1 } }] });
+				if (field.type === "date") return Object.assign({}, base, { stats: statsBase, hint: (byMonth ? "按月聚合" : "按日聚合") + " · " + metric, tooltip: { trigger: "axis" }, dataZoom: entries.length > 18 ? [{ type: "inside", start: 0, end: Math.max(20, Math.round(1800 / entries.length)) }] : undefined, xAxis: { type: "category", data: entries.map((entry) => entry[0]), axisLabel: { color: muted, hideOverlap: true, fontSize: 10 }, axisLine: { lineStyle: { color: line } } }, yAxis: { type: "value", minInterval: measure ? undefined : 1, axisLabel: { color: muted }, splitLine: { lineStyle: { color: line } } }, series: [kind === "line" ? { type: "line", data: entries.map((entry) => entry[1]), smooth: true, symbolSize: 5, lineStyle: { color: accent, width: 2 }, itemStyle: { color: accent }, areaStyle: { color: accent, opacity: 0.1 } } : { type: "bar", data: entries.map((entry) => entry[1]), barMaxWidth: 22, itemStyle: { color: accent, borderRadius: [4, 4, 0, 0] } }] });
+				const labels = entries.map((entry) => entry[0]).reverse();
+				const values = entries.map((entry) => entry[1]).reverse();
+				return Object.assign({}, base, { stats: statsBase, hint: metric + " · 显示前 " + limit + " 项", tooltip: { trigger: "item", formatter: (p) => p.name + "：" + fmtNum(p.value) }, grid: { left: 10, right: 44, top: 10, bottom: 10, containLabel: true }, xAxis: { type: "value", minInterval: measure ? undefined : 1, axisLabel: { color: muted }, splitLine: { lineStyle: { color: line } } }, yAxis: { type: "category", data: labels, axisLabel: { color: muted, width: 100, overflow: "truncate", fontSize: 11 }, axisLine: { show: false }, axisTick: { show: false } }, series: [{ type: "bar", data: values, barMaxWidth: 18, itemStyle: { color: accent, borderRadius: [0, 4, 4, 0] }, label: { show: true, position: "right", color: ink, fontSize: 11, formatter: (p) => fmtNum(p.value) } }] });
+			}, [field, records, kind, measure, aggregate, limit]);
+
+			if (field === undefined) return h("div", { className: "dss-scroll dss-chartview" }, h("div", { className: "dss-empty" }, "先在表格视图里添加字段，再来图表看分布"));
+			if (option === null || option.__empty) return h("div", { className: "dss-scroll dss-chartview" }, h("div", { className: "dss-chart-title" }, "「" + field.name + "」分析 · 共 " + records.length + " 条记录"), h("div", { className: "dss-empty" }, option ? option.__empty : "暂无数据"));
+			const stats = option.stats;
+			return h("div", { className: "dss-scroll dss-chartview" },
+				h("div", { className: "dss-chart-title" }, "「" + field.name + "」分析 · 共 " + records.length + " 条记录"),
+				stats ? h("div", { className: "dss-stats" },
+					statChip("总记录", stats.total), statChip("已填", stats.populated), statChip("唯一值", stats.unique), statChip("完整率", stats.total ? Math.round(stats.populated / stats.total * 100) + "%" : "—"),
+					stats.count !== undefined ? statChip("合计", fmtNum(stats.sum)) : null, stats.count !== undefined ? statChip("平均", fmtNum(stats.avg)) : null, stats.count !== undefined ? statChip("最小", fmtNum(stats.min)) : null, stats.count !== undefined ? statChip("最大", fmtNum(stats.max)) : null) : null,
+				h(ChartCanvas, { option, name: field.name, height: kind === "scatter" ? 300 : 270 }),
+				option.hint ? h("div", { className: "dss-chart-hint" }, option.hint) : null
+			);
+		}
+		//#endregion
+
+		//#region 数据库（轻量表格 + 图表视图）
+		const FIELD_TYPES = [
+			{ value: "text", label: "文本" },
+			{ value: "number", label: "数字" },
+			{ value: "date", label: "日期" },
+			{ value: "select", label: "单选" }
+		];
+		function seedDatabase() {
+			const fields = [
+				{ id: uid("f"), name: "名称", type: "text" },
+				{ id: uid("f"), name: "状态", type: "select", options: ["待处理", "进行中", "完成"] },
+				{ id: uid("f"), name: "日期", type: "date" }
+			];
+			const cells = {};
+			cells[fields[0].id] = "示例记录（可删）";
+			cells[fields[1].id] = "待处理";
+			cells[fields[2].id] = new Date().toISOString().slice(0, 10);
+			return { version: SCHEMA, fields, records: [{ id: uid("r"), cells }] };
+		}
+
+		function DatabaseApp() {
+			return h(PersistenceGate, { component: DatabaseContent });
+		}
+		function SavedInput(props) {
+			const [draft, setDraft] = useState(props.value);
+			useEffect(() => setDraft(props.value), [props.value]);
+			return h("input", { ...props, save: undefined, value: draft, onChange: event => setDraft(event.target.value),
+				onBlur: () => { if (draft !== props.value) props.save(draft); } });
+		}
+		function DatabaseContent() {
+			const [data, setData, storageStatus] = usePortableState(DB_KEY);
+			const [query, setQuery] = useState("");
+			const [focusRecordId, setFocusRecordId] = useState("");
+			const [view, setView] = useState("table");
+			const [chartFieldId, setChartFieldId] = useState("");
+			const [fieldsOpen, setFieldsOpen] = useState(false);
+			const [confirmDel, setConfirmDel] = useState(null);
+			const [confirmField, setConfirmField] = useState(null);
+			const [newFieldName, setNewFieldName] = useState("");
+			const [newFieldType, setNewFieldType] = useState("text");
+			const [newFieldOptions, setNewFieldOptions] = useState("");
+			const [chartKindPref, setChartKindPref] = useState("bar");
+			const [chartMeasureId, setChartMeasureId] = useState("");
+			const [chartAggregate, setChartAggregate] = useState("sum");
+			const [chartLimit, setChartLimit] = useState(10);
+			const [pendingImport, setPendingImport] = useState(null);
+			const [notice, setNotice] = useState("");
+			const noticeTimer = useRef(null);
+			const focusTimer = useRef(null);
+			const showNotice = (text) => {
+				setNotice(text);
+				if (noticeTimer.current) clearTimeout(noticeTimer.current);
+				noticeTimer.current = setTimeout(() => setNotice(""), 2800);
+			};
+			useEffect(() => () => {
+				if (noticeTimer.current) clearTimeout(noticeTimer.current);
+				if (focusTimer.current) clearTimeout(focusTimer.current);
+			}, []);
+			useEffect(() => {
+				const navigate = (event) => {
+					let detail = event && event.detail;
+					if (!detail) {
+						try { detail = JSON.parse(sessionStorage.getItem(NAV_KEY) || "null"); } catch (error) { detail = null; }
+					}
+					if (!detail || detail.tab !== "database" || !detail.recordId) return;
+					setView("table");
+					setQuery(typeof detail.query === "string" ? detail.query : "");
+					setFocusRecordId(detail.recordId);
+					try { sessionStorage.removeItem(NAV_KEY); } catch (error) {}
+					if (focusTimer.current) clearTimeout(focusTimer.current);
+					focusTimer.current = setTimeout(() => setFocusRecordId(""), 4200);
+					setTimeout(() => {
+						const row = [...document.querySelectorAll("[data-dss-record-id]")].find((element) => element.getAttribute("data-dss-record-id") === detail.recordId);
+						if (row) row.scrollIntoView({ block: "center", behavior: "smooth" });
+					}, 40);
+				};
+				window.addEventListener(NAV_EVENT, navigate);
+				navigate(null);
+				return () => window.removeEventListener(NAV_EVENT, navigate);
+			}, []);
+
+			const q = query.trim().toLowerCase();
+			const visible = q === ""
+				? data.records
+				: data.records.filter((record) => data.fields.some((field) => String(record.cells[field.id] || "").toLowerCase().includes(q)));
+
+			const setCell = (recordId, fieldId, value) => {
+				setData((prev) => ({
+					...prev,
+					records: prev.records.map((record) => record.id === recordId
+						? { ...record, cells: { ...record.cells, [fieldId]: value } }
+						: record)
+				}));
+			};
+			const addRecord = () => {
+				setData((prev) => ({ ...prev, records: [...prev.records, { id: uid("r"), cells: {} }] }));
+			};
+			const removeRecord = (recordId) => {
+				setData((prev) => ({ ...prev, records: prev.records.filter((record) => record.id !== recordId) }));
+			};
+			const addField = async () => {
+				const name = clampText(newFieldName, 24);
+				if (!name) return;
+				const field = { id: uid("f"), name, type: newFieldType };
+				if (newFieldType === "select") field.options = parseTags(newFieldOptions);
+				if (!await setData((prev) => ({ ...prev, fields: [...prev.fields, field] }))) return;
+				setNewFieldName("");
+				setNewFieldType("text");
+				setNewFieldOptions("");
+			};
+			const updateField = (fieldId, patch) => {
+				setData((prev) => ({ ...prev, fields: prev.fields.map((field) => field.id === fieldId ? { ...field, ...patch } : field) }));
+			};
+			const removeField = (fieldId) => {
+				setData((prev) => ({
+					...prev,
+					fields: prev.fields.filter((field) => field.id !== fieldId),
+					records: prev.records.map((record) => {
+						const cells = { ...record.cells };
+						delete cells[fieldId];
+						return { ...record, cells };
+					})
+				}));
+			};
+			const exportJson = () => {
+				if (downloadJson("database-" + new Date().toISOString().slice(0, 10) + ".json", exportPayload("database", data))) {
+					showNotice("已导出 " + data.records.length + " 条记录、" + data.fields.length + " 个字段");
+				}
+			};
+			const startImport = () => pickJsonFile((payload) => {
+				const wrap = payload !== null && payload !== undefined && payload.app === "dsh-sidebar-spaces" ? payload : null;
+				const space = wrap ? wrap.space : "database";
+				const part = wrap ? wrap.data : payload;
+				if (!part || space !== "database" || !Array.isArray(part.fields) || !Array.isArray(part.records)) { showNotice("导入失败：不是有效的数据库备份文件"); return; }
+				if (wrap && wrap.schema !== SCHEMA) { showNotice("导入失败：备份格式版本不受支持（schema " + wrap.schema + "）"); return; }
+				const fields = part.fields.filter((item) => item && item.id && item.name);
+				const records = part.records.filter((item) => item && item.id);
+				const fieldIds = new Set(data.fields.map((item) => item.id));
+				const recordIds = new Set(data.records.map((item) => item.id));
+				setPendingImport({
+					fields: fields.filter((item) => !fieldIds.has(item.id)),
+					records: records.filter((item) => !recordIds.has(item.id)),
+					totalF: fields.length,
+					totalR: records.length
+				});
+			});
+			const cellInput = (record, field) => {
+				const value = record.cells[field.id] == null ? "" : String(record.cells[field.id]);
+				const common = { className: "dss-cell-input", value, save: (value) => setCell(record.id, field.id, value) };
+				if (field.type === "number") return h(SavedInput, { ...common, type: "number" });
+				if (field.type === "date") return h(SavedInput, { ...common, type: "date" });
+				if (field.type === "select") return h("select", { className: common.className, value, onChange: event => common.save(event.target.value) },
+					h("option", { value: "" }, "—"),
+					(field.options || []).map((option) => h("option", { key: option, value: option }, option))
+				);
+				return h(SavedInput, { ...common, type: "text" });
+			};
+			const activeChartField = chartFieldId || (data.fields[0] !== undefined ? data.fields[0].id : "");
+			const activeField = data.fields.find((item) => item.id === activeChartField);
+			const numericFields = data.fields.filter((item) => item.type === "number");
+			const measureOptions = activeField && activeField.type === "number" ? numericFields.filter((item) => item.id !== activeField.id) : numericFields;
+			const activeMeasureId = measureOptions.some((item) => item.id === chartMeasureId) ? chartMeasureId : (activeField && activeField.type === "number" && measureOptions[0] ? measureOptions[0].id : "");
+			const KIND_LABEL = { bar: "条形", pie: "饼图", line: "折线", histogram: "直方", scatter: "散点" };
+			const kindOptions = activeField === undefined ? ["bar"] : activeField.type === "date" ? ["bar", "line"] : activeField.type === "number" ? ["histogram"].concat(measureOptions.length > 0 ? ["scatter"] : []) : ["bar", "pie"];
+			const chartKind = kindOptions.includes(chartKindPref) ? chartKindPref : kindOptions[0];
+
+			return h("div", { className: "dss-root", inert: storageStatus === "saving" ? true : undefined },
+				h(StorageStatus, { status: storageStatus }),
+				h("header", { className: "dss-toolbar" },
+					h("div", { className: "dss-search" },
+						Icon.search(14),
+						h("input", { className: "dss-search-input", value: query, placeholder: "搜索记录", onChange: (event) => setQuery(event.target.value) }),
+						query ? h("button", { type: "button", className: "dss-iconbtn", "aria-label": "清空搜索", onClick: () => setQuery("") }, Icon.close(12)) : null
+					),
+					h("div", { className: "dss-seg", role: "tablist", "aria-label": "视图" },
+						h("button", { type: "button", role: "tab", "aria-selected": view === "table", className: "dss-seg-btn" + (view === "table" ? " is-active" : ""), onClick: () => setView("table") }, "表格"),
+						h("button", { type: "button", role: "tab", "aria-selected": view === "chart", className: "dss-seg-btn" + (view === "chart" ? " is-active" : ""), onClick: () => setView("chart") }, "图表")
+					),
+					view === "chart"
+						? h("div", { className: "dss-toolbar-actions" },
+							kindOptions.length > 1 ? h("div", { className: "dss-seg", role: "tablist", "aria-label": "图表类型" },
+								kindOptions.map((option) => h("button", {
+									key: option, type: "button", role: "tab",
+									"aria-selected": chartKind === option,
+									className: "dss-seg-btn" + (chartKind === option ? " is-active" : ""),
+									onClick: () => setChartKindPref(option)
+								}, KIND_LABEL[option]))
+							) : null,
+							h("select", {
+								className: "dss-select dss-chart-field", value: activeChartField,
+								onChange: (event) => setChartFieldId(event.target.value),
+								"aria-label": "选择图表字段"
+							}, data.fields.map((field) => h("option", { key: field.id, value: field.id }, field.name))),
+							measureOptions.length > 0 ? h("select", {
+								className: "dss-select dss-chart-field", value: activeMeasureId,
+								onChange: (event) => setChartMeasureId(event.target.value),
+								"aria-label": activeField && activeField.type === "number" ? "选择散点纵轴" : "选择度量字段"
+							},
+								activeField && activeField.type !== "number" ? h("option", { value: "" }, "度量：记录数") : h("option", { value: "" }, "选择纵轴"),
+								measureOptions.map((field) => h("option", { key: field.id, value: field.id }, (activeField && activeField.type === "number" ? "纵轴：" : "度量：") + field.name))
+							) : null,
+							activeMeasureId && activeField && activeField.type !== "number" ? h("select", { className: "dss-select dss-chart-compact", value: chartAggregate, "aria-label": "聚合方式", onChange: (event) => setChartAggregate(event.target.value) },
+								h("option", { value: "sum" }, "合计"), h("option", { value: "avg" }, "平均"), h("option", { value: "min" }, "最小"), h("option", { value: "max" }, "最大")
+							) : null,
+							activeField && activeField.type !== "date" && activeField.type !== "number" ? h("select", { className: "dss-select dss-chart-compact", value: String(chartLimit), "aria-label": "显示数量", onChange: (event) => setChartLimit(Number(event.target.value)) },
+								[5, 10, 15, 20, 30].map((value) => h("option", { key: value, value: String(value) }, "前 " + value))
+							) : null,
+							h("button", { type: "button", className: "dss-btn", onClick: exportJson, title: "导出 JSON 备份" }, Icon.exportIcon(13), "导出")
+						)
+						: h("div", { className: "dss-toolbar-actions" },
+							h("button", { type: "button", className: "dss-btn" + (fieldsOpen ? " is-active" : ""), onClick: () => setFieldsOpen(!fieldsOpen), title: "字段管理" }, Icon.fields(13), "字段"),
+							h("button", { type: "button", className: "dss-btn", onClick: exportJson, title: "导出 JSON 备份" }, Icon.exportIcon(13), "导出"),
+							h("button", { type: "button", className: "dss-btn", onClick: startImport, title: "从 JSON 备份导入（新增合并，不覆盖现有）" }, Icon.importIcon(13), "导入"),
+							h("button", { type: "button", className: "dss-btn", onClick: addRecord }, Icon.plus(13), "新增记录")
+						)
+				),
+				notice ? h("div", { className: "dss-notice", role: "status" }, notice) : null,
+				view === "chart"
+					? h(ChartPanel, { fields: data.fields, records: visible, fieldId: activeChartField, kind: chartKind, measureId: activeMeasureId, aggregate: chartAggregate, limit: chartLimit })
+					: h("div", { className: "dss-tableview" },
+						fieldsOpen ? h("div", { className: "dss-fields" },
+							data.fields.map((field) => h("div", { key: field.id, className: "dss-field-row" },
+								h(SavedInput, { className: "dss-input dss-field-name", value: field.name, maxLength: 24, save: value => updateField(field.id, { name: value }) }),
+								h("select", { className: "dss-select dss-field-type", value: field.type, onChange: (event) => updateField(field.id, { type: event.target.value }) },
+									FIELD_TYPES.map((type) => h("option", { key: type.value, value: type.value }, type.label))
+								),
+								field.type === "select" ? h(SavedInput, {
+									className: "dss-input dss-field-opts", value: (field.options || []).join("、"),
+									placeholder: "选项（顿号分隔）",
+									save: value => updateField(field.id, { options: parseTags(value) })
+								}) : null,
+								h("button", { type: "button", className: "dss-iconbtn is-danger", "aria-label": "删除字段", onClick: () => setConfirmField(field.id) }, Icon.close(13))
+							)),
+							h("div", { className: "dss-field-row dss-field-new" },
+								h("input", { className: "dss-input dss-field-name", value: newFieldName, placeholder: "新字段名称", maxLength: 24, onChange: (event) => setNewFieldName(event.target.value) }),
+								h("select", { className: "dss-select dss-field-type", value: newFieldType, onChange: (event) => setNewFieldType(event.target.value) },
+									FIELD_TYPES.map((type) => h("option", { key: type.value, value: type.value }, type.label))
+								),
+								newFieldType === "select" ? h("input", { className: "dss-input dss-field-opts", value: newFieldOptions, placeholder: "选项（顿号分隔）", onChange: (event) => setNewFieldOptions(event.target.value) }) : null,
+								h("button", { type: "button", className: "dss-btn", onClick: addField }, Icon.plus(13), "添加")
+							)
+						) : null,
+						h("div", { className: "dss-scroll dss-table-wrap" },
+							h("table", { className: "dss-table" },
+								h("thead", null, h("tr", null,
+									data.fields.map((field) => h("th", { key: field.id }, field.name)),
+									h("th", { className: "dss-th-op", "aria-label": "操作" }, "")
+								)),
+								h("tbody", null,
+									visible.length === 0 ? h("tr", null, h("td", { className: "dss-empty is-cell", colSpan: data.fields.length + 1 }, q ? "没有匹配的记录" : "还没有记录，点「新增记录」")) : null,
+									visible.map((record) => h("tr", { key: record.id, "data-dss-record-id": record.id, className: focusRecordId === record.id ? "is-focus" : "" },
+										data.fields.map((field) => h("td", { key: field.id }, cellInput(record, field))),
+										h("td", { className: "dss-td-op" },
+											h("button", { type: "button", className: "dss-iconbtn is-danger", "aria-label": "删除记录", onClick: () => setConfirmDel(record.id) }, Icon.close(12))
+										)
+									))
+								)
+							)
+						)
+					),
+				confirmDel !== null ? h(ConfirmScrim, {
+					message: "删除这条记录？",
+					onConfirm: () => {
+						const id = confirmDel;
+						setConfirmDel(null);
+						removeRecord(id);
+					},
+					onCancel: () => setConfirmDel(null)
+				}) : null,
+				confirmField !== null ? h(ConfirmScrim, {
+					message: "删除该字段？该列在所有记录中的数据将一并删除。",
+					onConfirm: () => {
+						const id = confirmField;
+						setConfirmField(null);
+						removeField(id);
+					},
+					onCancel: () => setConfirmField(null)
+				}) : null,
+				pendingImport !== null ? h(ConfirmScrim, {
+					message: "导入备份：将新增 " + pendingImport.fields.length + " 个字段、" + pendingImport.records.length + " 条记录，跳过已存在项（不覆盖现有数据）。",
+					onConfirm: async () => {
+						const batch = pendingImport;
+						setPendingImport(null);
+						if (batch.fields.length > 0 || batch.records.length > 0) {
+							if (!await setData((prev) => ({ ...prev, fields: [...prev.fields, ...batch.fields], records: [...prev.records, ...batch.records] }))) return;
+						}
+						showNotice("已导入 " + batch.fields.length + " 个字段、" + batch.records.length + " 条记录");
+					},
+					onCancel: () => setPendingImport(null)
+				}) : null
+			);
+		}
+		//#endregion
+
+		//#region Inventor 2027 桌面连接
+		async function inventorCall(action) {
+			const response = await fetch("/sidebar-spaces/api/inventor/" + action, {
+				method: "POST"
+			});
+			let payload = null;
+			try { payload = await response.json(); } catch (error) {}
+			if (!response.ok || !payload || payload.ok !== true) {
+				const detail = payload && payload.error && payload.error.message ? payload.error.message : "Inventor 连接请求失败（HTTP " + response.status + "）";
+				throw new Error(detail);
+			}
+			return payload.value || {};
+		}
+
+		function InventorApp() {
+			const [state, setState] = useState({ phase: "checking", info: null, error: "" });
+			const check = async () => {
+				setState((prev) => ({ phase: "checking", info: prev.info, error: "" }));
+				try {
+					const info = await inventorCall("status");
+					setState({ phase: "ready", info, error: "" });
+				} catch (error) {
+					setState({ phase: "error", info: null, error: error instanceof Error ? error.message : String(error) });
+				}
+			};
+			useEffect(() => { void check(); }, []);
+			const launch = async () => {
+				setState((prev) => ({ ...prev, phase: "launching", error: "" }));
+				try {
+					const info = await inventorCall("launch");
+					setState({ phase: "launched", info, error: "" });
+				} catch (error) {
+					setState((prev) => ({ ...prev, phase: "error", error: error instanceof Error ? error.message : String(error) }));
+				}
+			};
+			const info = state.info;
+			const installed = Boolean(info && info.installed);
+			return h("div", { className: "dss-root dss-inventor-root" },
+				h("div", { className: "dss-inventor-hero" },
+					h("div", { className: "dss-inventor-mark", "aria-hidden": true }, Icon.inventor(34)),
+					h("div", null, h("h2", { className: "dss-inventor-title" }, TEXT.inventorTitle), h("p", { className: "dss-inventor-subtitle" }, "DSH Desktop Connector"))
+				),
+				h("div", { className: "dss-inventor-card" },
+					h("div", { className: "dss-connection-row" },
+						h("span", { className: "dss-status-dot" + (installed ? " is-online" : state.phase === "checking" ? " is-checking" : "") }),
+						h("div", { className: "dss-connection-copy" },
+							h("div", { className: "dss-connection-title" }, state.phase === "checking" ? TEXT.inventorChecking : installed ? TEXT.inventorInstalled : TEXT.inventorMissing),
+							info && info.path ? h("div", { className: "dss-connection-path", title: info.path }, info.path) : null
+						)
+					),
+					state.error ? h("div", { className: "dss-connection-error", role: "alert" }, state.error) : null,
+					h("div", { className: "dss-inventor-actions" },
+						h("button", { type: "button", className: "dss-btn is-ghost", disabled: state.phase === "checking" || state.phase === "launching", onClick: check }, TEXT.inventorRetry),
+						h("button", { type: "button", className: "dss-btn dss-btn-primary", disabled: !installed || state.phase === "launching", onClick: launch }, state.phase === "launching" ? TEXT.inventorLaunching : state.phase === "launched" ? TEXT.inventorReady : TEXT.inventorLaunch)
+					)
+				),
+				h("p", { className: "dss-inventor-help" }, TEXT.inventorHelp)
+			);
+		}
+		//#endregion
+
+		//#region Qoder 风格工作台入口与活跃任务图
+		function taskSearchResults(snapshot, contentHits, query, allowedIds) {
+			const phrase = normalizeSearch(query);
+			if (!phrase) return [];
+			const hits = new Map(contentHits.map((item) => [item.sessionId, item.snippet]));
+			const results = [];
+			for (const id of snapshot?.ids || []) {
+				const row = snapshot.byId[id];
+				if (!row || row.blank || (allowedIds && !allowedIds.has(id))) continue;
+				const title = row.displayTitle || row.title || id;
+				const titleHit = normalizeSearch(title).includes(phrase);
+				const bodyHit = hits.has(id);
+				if (titleHit || bodyHit) results.push({ id, title, body: hits.get(id) || "", cwd: row.cwd || "",
+					titleHit, bodyHit, updatedAt: row.updatedAt });
+			}
+			return results.sort((a, b) => Number(b.titleHit) - Number(a.titleHit) || b.updatedAt - a.updatedAt);
+		}
+		function startTaskContentSearch(service, query, publish, delay = 250) {
+			const controller = new AbortController();
+			const base = { query, items: [], hasMore: false };
+			if (!query || !service) {
+				publish({ ...base, status: service ? "idle" : "unavailable" });
+				return () => controller.abort();
+			}
+			publish({ ...base, status: "loading" });
+			const timer = setTimeout(async () => {
+				try {
+					const result = await service.search(query, controller.signal);
+					if (controller.signal.aborted) return;
+					publish(result.ok ? { query, ...result.value, status: "ready" } : { ...base, status: "error" });
+				} catch (error) {
+					if (!controller.signal.aborted) publish({ ...base, status: "error" });
+				}
+			}, delay);
+			return () => { controller.abort(); clearTimeout(timer); };
+		}
+		function TaskSearchApp() {
+			const [query, setQuery] = useState("");
+			const [workspace, setWorkspace] = useState("");
+			const [retry, setRetry] = useState(0);
+			const [openError, setOpenError] = useState("");
+			const [content, setContent] = useState({ query: "", items: [], status: "idle", hasMore: false });
+			const snapshot = useSource(workbenchRuntime.sessions?.list);
+			const workspaceSnapshot = useSource(workbenchRuntime.workspaces?.list);
+			const phrase = query.trim();
+			useEffect(() => startTaskContentSearch(workbenchRuntime.sessions, phrase, setContent), [phrase, retry]);
+			const allowedIds = workspace ? new Set((workspaceSnapshot?.items || []).find((item) => item.workspaceId === workspace)?.sessionIds || []) : null;
+			const current = content.query === phrase ? content : { items: [], status: "loading", hasMore: false };
+			const rows = taskSearchResults(snapshot, current.items, phrase, allowedIds);
+			const open = (id) => {
+				try { workbenchRuntime.sessions.open(id); closeStandaloneWorkbench(); }
+				catch (error) { setOpenError(WORKBENCH_TEXT.searchOpenFailed); }
+			};
+			return h("main", { className: "dss-root", "aria-label": WORKBENCH_TEXT.search },
+				h("header", { className: "dss-toolbar" },
+					h("div", { className: "dss-search" }, Icon.search(14), h("input", { className: "dss-search-input", value: query, autoFocus: true, placeholder: WORKBENCH_TEXT.searchPlaceholder, "aria-label": WORKBENCH_TEXT.searchPlaceholder, onChange: (event) => { setOpenError(""); setQuery(event.target.value); } })),
+					h("select", { className: "dss-select", value: workspace, "aria-label": TEXT.workspaceLabel, onChange: (event) => setWorkspace(event.target.value) },
+						h("option", { value: "" }, TEXT.allWorkspaces), (workspaceSnapshot?.items || []).map((item) => h("option", { key: item.workspaceId, value: item.workspaceId }, item.title || item.path)))
+				),
+				h("p", { className: "dss-results-summary" }, WORKBENCH_TEXT.searchHint),
+				current.status === "loading" && phrase ? h("p", { role: "status", className: "dss-notice" }, WORKBENCH_TEXT.searchLoading) : null,
+				current.status === "unavailable" || snapshot?.phase !== "ready" ? h("p", { role: "status", className: "dss-notice" }, WORKBENCH_TEXT.searchUnavailable) : null,
+				current.status === "error" ? h("div", { role: "alert", className: "dss-notice" }, WORKBENCH_TEXT.searchFailed, h("button", { className: "dss-btn", onClick: () => setRetry((value) => value + 1) }, WORKBENCH_TEXT.searchRetry)) : null,
+				openError ? h("p", { role: "alert" }, openError) : null,
+				h("div", { className: "dss-scroll" },
+					rows.slice(0, 100).map((row) => h("article", { key: row.id, className: "dss-item", role: "button", tabIndex: 0, onClick: () => open(row.id), onKeyDown: (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(row.id); } } },
+						h("div", { className: "dss-source-badge" }, row.titleHit && row.bodyHit ? WORKBENCH_TEXT.searchBothHit : row.titleHit ? WORKBENCH_TEXT.searchTitleHit : WORKBENCH_TEXT.searchBodyHit),
+						h("div", { className: "dss-item-title" }, row.title), h("p", { className: "dss-item-body" }, row.body), h("small", null, row.cwd))),
+					phrase && rows.length === 0 && current.status === "ready" && snapshot?.phase === "ready" ? h("div", { className: "dss-empty" }, WORKBENCH_TEXT.searchEmpty) : null,
+					current.hasMore || rows.length > 100 ? h("p", { role: "status" }, WORKBENCH_TEXT.searchMore) : null
+				)
+			);
+		}
+		function activityDays(snapshot, now = new Date()) {
+			const key = (date) => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+			const counts = new Map();
+			for (const id of snapshot?.ids || []) {
+				const task = snapshot.byId[id];
+				if (!task || task.blank || !Number.isFinite(task.updatedAt) || task.updatedAt <= 0) continue;
+				const day = key(new Date(task.updatedAt));
+				counts.set(day, (counts.get(day) || 0) + 1);
+			}
+			return Array.from({ length: 364 }, (_, index) => {
+				const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 363 + index, 12);
+				return { day: key(date), count: counts.get(key(date)) || 0, month: date.getMonth() + 1 };
+			});
+		}
+		function activityMonths(days) {
+			const starts = days.flatMap((item, index) => index === 0 || item.month !== days[index - 1].month ? [{ day: item.day, month: item.month, column: Math.floor(index / 7) + 1 }] : []);
+			// A partial first month can end in the first week. Keep both month
+			// names in that shared column instead of making a zero-width grid area.
+			const groups = [];
+			for (const item of starts) {
+				const previous = groups.at(-1);
+				if (previous && item.column - previous.column < 3) previous.months.push(item.month);
+				else groups.push({ ...item, months: [item.month] });
+			}
+			return groups.map((item, index) => ({ ...item, end: groups[index + 1]?.column || Math.ceil(days.length / 7) + 1 }));
+		}
+		function ActivityGrid() {
+			const snapshot = useSource(workbenchRuntime.sessions?.list);
+			const days = activityDays(snapshot);
+			const cells = days.map((item) => h("span", { key: item.day, className: "dss-activity-cell is-level-" + Math.min(3, item.count), title: item.day + " · " + item.count, "aria-label": item.day + " · " + item.count }));
+			return h("section", { className: "dss-activity", "aria-label": WORKBENCH_TEXT.activityTitle },
+				h("div", { className: "dss-activity-head" },
+					h("strong", null, WORKBENCH_TEXT.activityTitle),
+					h("span", { title: TEXT.activityHint }, snapshot?.phase === "ready" ? WORKBENCH_TEXT.activityPeriod : TEXT.activityUnavailable)
+				),
+				h("div", { className: "dss-activity-grid" }, cells),
+				h("div", { className: "dss-activity-months", "aria-hidden": true },
+					activityMonths(days).map((item) => h("span", { key: item.day, style: { gridColumn: item.column + " / " + item.end, gridRow: 1 } }, item.months.map(month => month + "月").join("/")))
+				)
+			);
+		}
+
+		function mountHeroActivityGrid() {
+			const roots = new Map();
+			const sync = () => {
+				for (const [host, root] of roots) {
+					if (host.isConnected) continue;
+					root.unmount();
+					roots.delete(host);
+				}
+				for (const hero of document.querySelectorAll(".wSkVaW_composerHero")) {
+					const previousHost = hero.querySelector(":scope > [data-dss-activity-host]");
+					if (previousHost) {
+						if (roots.has(previousHost) || previousHost.hasChildNodes()) continue;
+						previousHost.remove(); // Recover empty hosts left by older hot-reload cleanup.
+					}
+					const composer = hero.querySelector(":scope > [data-slot='conversation.composer.bar']");
+					if (!composer) continue;
+					const host = document.createElement("div");
+					host.dataset.dssActivityHost = "true";
+					hero.insertBefore(host, composer);
+					const root = createRoot(host);
+					roots.set(host, root);
+					root.render(h(ActivityGrid));
+				}
+			};
+			const observer = new MutationObserver(sync);
+			observer.observe(document.body, { childList: true, subtree: true });
+			queueMicrotask(sync);
+			return () => {
+				observer.disconnect();
+				for (const [host, root] of roots) { root.unmount(); host.remove(); }
+				roots.clear();
+			};
+		}
+
+		function RetiredAutomationTab({ service, scope, tab }) {
+			useEffect(() => {
+				service.closeTab(tab.id, scope);
+			}, [service, scope, tab.id]);
+			return null;
+		}
+		function retireAutomationTabs(service) {
+			let closing = false;
+			const sync = () => {
+				if (closing) return;
+				const state = service.getSnapshot().state;
+				const ids = new Set();
+				const visit = node => {
+					if (!node) return;
+					if (node.kind === "leaf") for (const tab of node.tabs) { if (tab.type === "space-automation") ids.add(tab.id); }
+					else if (node.kind === "split") node.children.forEach(visit);
+				};
+				visit(state?.splits); visit(state?.bottomSplits);
+				for (const entry of state?.floats || []) if (entry.tab.type === "space-automation") ids.add(entry.tab.id);
+				closing = true;
+				try { for (const id of ids) service.closeTab(id); } finally { closing = false; }
+			};
+			const off = service.subscribeState(sync);
+			sync();
+			return off;
+		}
+
+		let standaloneHost;
+		let standaloneRoot;
+		let standaloneReturnFocus;
+		let standaloneLayoutCleanup;
+
+		// Catalog transport only: installation and activation remain owned by dshmarket.
+		function normalizeExtensionCatalog(body) {
+			const registry = body?.registry;
+			if (!registry || !Array.isArray(registry.plugins) || !registry.categories || typeof registry.categories !== "object") throw new Error("invalid-extension-catalog");
+			const rows = registry.plugins.map((row) => {
+				if (!row || typeof row.name !== "string" || typeof row.url !== "string" || typeof row.owner !== "string") throw new Error("invalid-extension-row");
+				const url = new URL(row.url);
+				if (url.protocol !== "https:" || url.username || url.password) throw new Error("invalid-extension-url");
+				return { ...row, category: (Array.isArray(row.category) ? row.category : [row.category]).filter(value => typeof value === "string"),
+					description: typeof row.description?.zh === "string" ? row.description.zh : typeof row.description?.en === "string" ? row.description.en : "",
+					npm: typeof row.npm === "string" ? row.npm : null, added: typeof row.added === "string" ? row.added : "" };
+			});
+			const categories = Object.fromEntries(Object.entries(registry.categories).map(([key, value]) => [key, {
+				zh: typeof value?.zh === "string" ? value.zh : key,
+				en: typeof value?.en === "string" ? value.en : key,
+			}]));
+			return { rows, categories };
+		}
+		function filterExtensions(rows, group, category, query, sort) {
+			const words = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+			return rows.filter(row => (group !== "skill" || row.category.includes("skill"))
+				&& (group !== "connections" || row.category.some(key => ["identity", "notify", "remote"].includes(key)))
+				&& (category === "all" || row.category.includes(category))
+				&& words.every(word => `${row.name} ${row.owner} ${row.npm || ""} ${row.description}`.toLocaleLowerCase().includes(word)))
+				.sort((a, b) => (sort === "latest" ? b.added.localeCompare(a.added) : 0) || a.name.localeCompare(b.name));
+		}
+		async function readExtensionData(path, signal) {
+			const response = await fetch(path, { cache: "no-store", credentials: "same-origin", signal: AbortSignal.any([signal, AbortSignal.timeout(20000)]) });
+			if (!response.ok) throw new Error(`extension-http-${response.status}`);
+			return response.json();
+		}
+		function ExtensionApp() {
+			const [group, setGroup] = useState("plugins"), [category, setCategory] = useState("all");
+			const [query, setQuery] = useState(""), [sort, setSort] = useState("latest"), [limit, setLimit] = useState(24);
+			const [catalog, setCatalog] = useState(null), [installed, setInstalled] = useState(null);
+			const [phase, setPhase] = useState("loading"), [attempt, setAttempt] = useState(0), [detail, setDetail] = useState(null);
+			const [navigationError, setNavigationError] = useState("");
+			const navigation = useRef(null), search = useRef(null), detailHeading = useRef(null);
+			useEffect(() => {
+				const controller = new AbortController();
+				setPhase("loading"); setCatalog(null); setInstalled(null);
+				readExtensionData("/dsh-market/registry", controller.signal).then(normalizeExtensionCatalog).then(value => {
+					if (!controller.signal.aborted) { setCatalog(value); setPhase("ready"); }
+				}).catch(() => { if (!controller.signal.aborted) setPhase("error"); });
+				readExtensionData("/dsh-market/installed", controller.signal).then(value => {
+					if (!value.installed || typeof value.installed !== "object" || Array.isArray(value.installed)) throw new Error("invalid-installed");
+					if (!controller.signal.aborted) setInstalled(new Set([...Object.keys(value.installed), ...(Array.isArray(value.bundles) ? value.bundles : [])]));
+				}).catch(() => {}); // Independent status; a catalog failure never substitutes invented data.
+				return () => controller.abort();
+			}, [attempt]);
+			useEffect(() => { search.current?.focus(); return () => navigation.current?.(); }, []);
+			useEffect(() => { if (detail) detailHeading.current?.focus(); }, [detail]);
+			const matches = useMemo(() => filterExtensions(catalog?.rows || [], group, category, query, sort), [catalog, group, category, query, sort]);
+			const reset = () => { setQuery(""); setCategory("all"); setLimit(24); };
+			const manage = (tab, name = "") => {
+				setNavigationError(""); navigation.current?.();
+				navigation.current = openExtensionManager(tab, () => setNavigationError(TEXT.extensionManagerMissing), closeStandaloneWorkbench, name);
+			};
+			const badge = row => installed && (installed.has(row.npm) || installed.has(row.name));
+			const categoryLabel = key => catalog?.categories[key]?.zh || catalog?.categories[key]?.en || key;
+			return h("section", { className: "dss-extension-page", "aria-label": TEXT.extensionTitle, onKeyDown: event => {
+				if (event.key === "Escape") { event.stopPropagation(); if (detail) { setDetail(null); search.current?.focus(); } else closeStandaloneWorkbench(); }
+			} },
+				h("header", { className: "dss-extension-header" },
+					h("nav", { "aria-label": TEXT.extensionTitle }, [["plugins", TEXT.extensionPlugins], ["skill", TEXT.extensionSkills], ["connections", TEXT.extensionConnections]].map(([key, label]) =>
+						h("button", { key, type: "button", "aria-pressed": group === key, onClick: () => { setGroup(key); setCategory("all"); setLimit(24); setDetail(null); } }, label))),
+					h("button", { type: "button", onClick: () => manage("installed") }, TEXT.extensionInstalled),
+					h("button", { type: "button", onClick: closeStandaloneWorkbench }, TEXT.extensionReturn)),
+				navigationError ? h("p", { role: "alert", className: "dss-extension-notice" }, navigationError) : null,
+				h("div", { className: "dss-extension-body" },
+					h("h1", { ref: detailHeading, tabIndex: -1 }, detail ? detail.name : TEXT.extensionTitle),
+					h("p", { className: "dss-extension-hint" }, group === "connections" ? TEXT.extensionConnectionHint : TEXT.extensionHint),
+					detail ? h("article", { className: "dss-extension-detail" },
+						h("button", { type: "button", onClick: () => { setDetail(null); search.current?.focus(); } }, TEXT.extensionBack),
+						h("p", null, detail.description),
+						h("dl", null, [[TEXT.extensionAuthor, detail.owner], [TEXT.extensionPackage, detail.npm || detail.name], [TEXT.extensionAdded, detail.added]].map(([label, value]) => h(react.Fragment, { key: label }, h("dt", null, label), h("dd", null, value)))),
+						detail.deprecated ? h("p", { role: "note" }, TEXT.extensionDeprecated) : null,
+						h("a", { href: detail.url, target: "_blank", rel: "noopener noreferrer" }, TEXT.extensionSource),
+						h("p", null, TEXT.extensionInstallHint),
+						h("button", { type: "button", onClick: () => manage(badge(detail) ? "installed" : "discover", detail.name) }, badge(detail) ? TEXT.extensionInstalled : TEXT.extensionInstall)) : h(react.Fragment, null,
+						h("div", { className: "dss-extension-toolbar" },
+							h("input", { ref: search, type: "search", value: query, placeholder: TEXT.extensionSearch, "aria-label": TEXT.extensionSearch, onChange: event => { setQuery(event.target.value); setLimit(24); } }),
+							h("select", { value: category, "aria-label": TEXT.extensionAll, onChange: event => { setCategory(event.target.value); setLimit(24); } }, h("option", { value: "all" }, TEXT.extensionAll), Object.keys(catalog?.categories || {}).map(key => h("option", { key, value: key }, categoryLabel(key)))),
+							h("select", { value: sort, "aria-label": TEXT.extensionSort, onChange: event => { setSort(event.target.value); setLimit(24); } }, h("option", { value: "latest" }, TEXT.extensionLatest), h("option", { value: "name" }, TEXT.extensionName)),
+							h("button", { type: "button", disabled: phase === "loading", onClick: () => { setLimit(24); setAttempt(value => value + 1); } }, TEXT.extensionRefresh)),
+						phase === "loading" ? h("p", { role: "status" }, TEXT.extensionLoading) : phase === "error" ? h("div", { role: "alert" }, h("p", null, TEXT.extensionError), h("button", { type: "button", onClick: () => setAttempt(value => value + 1) }, TEXT.extensionRetry)) : h(react.Fragment, null,
+							installed === null ? h("p", { className: "dss-extension-hint" }, TEXT.extensionInstalledError) : null,
+							h("p", { role: "status", className: "dss-extension-hint" }, matches.length + " " + TEXT.extensionCount),
+							matches.length === 0 ? h("div", null, h("p", null, TEXT.extensionEmpty), h("button", { type: "button", onClick: reset }, TEXT.extensionClear)) : null,
+							h("ul", { className: "dss-extension-grid" }, matches.slice(0, limit).map(row => h("li", { key: row.url + row.name },
+								h("button", { type: "button", className: "dss-extension-card", onClick: () => setDetail(row), "aria-label": TEXT.extensionDetails + "：" + row.name },
+									h(primitives.IconCordisPluginOutline14, { size: 24, "aria-hidden": true }),
+									h("span", null, h("strong", null, row.name), h("span", { className: "dss-extension-description" }, row.description), h("small", null, row.owner, badge(row) ? " · " + TEXT.extensionInstalledBadge : ""))))),
+							matches.length > limit ? h("button", { type: "button", onClick: () => setLimit(value => value + 24) }, TEXT.extensionMore) : null)))
+			));
+		}
+		function openExtensionManager(tab, onMissing, onSelected, query = "") {
+			let tabSelected = false;
+			return openSettingsSection("market", onMissing, onSelected, () => {
+				if (!tabSelected) {
+				const pattern = tab === "installed" ? /^(已安装|Installed)(\s*\(\d+\))?$/i : /^(发现|Discover)$/i;
+				const button = Array.from(document.querySelectorAll('[role="dialog"] button')).find(item => !item.disabled && pattern.test(item.textContent.trim()));
+				if (!button) return false;
+				tabSelected = true; button.click();
+				if (query) return false; // Wait for the selected tab's search input to mount.
+				}
+				if (query) {
+					const input = Array.from(document.querySelectorAll('[role="dialog"] input')).find(item =>
+					["搜索插件，例如：通知、终端、记忆…", "Search plugins: notify, terminal, memory…"].includes(item.placeholder));
+					if (!input) return false;
+					Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, query);
+					input.dispatchEvent(new Event("input", { bubbles: true }));
+				}
+				return true;
+			});
+		}
+
+		function appShell(props) {
+			const title = typeof props.title === "function" ? props.title() : props.title;
+			return h("section", { className: "dss-app-shell" },
+				h("header", { className: "dss-app-shell-bar" },
+					props.icon ? h("span", { className: "dss-app-shell-icon" }, props.icon) : null,
+					h("span", { className: "dss-app-shell-title" }, title)
+				),
+				h("div", { className: "dss-app-shell-body" }, props.children)
+			);
+		}
+
+		function StandaloneWorkbench(props) {
+			const [type, setType] = useState(props.type);
+			const service = useMemo(() => ({ openTab: (tab) => setType(tab.type) }), []);
+			if (type === "space-extensions") return h(ExtensionApp);
+			const content = type === "space-search" ? h(TaskSearchApp)
+				: type === "space-database" ? h(DatabaseApp)
+				: type === "space-inventor-2027" ? h(InventorApp)
+				: h(KnowledgeApp, { service });
+			return h("section", { className: "dss-standalone-shell" },
+				h("header", { className: "dss-workbench-switcher" },
+					h("nav", { "aria-label": "工作台" },
+						h("button", { type: "button", "data-active": type === "space-search", onClick: () => setType("space-search") }, WORKBENCH_TEXT.search),
+						h("button", { type: "button", "data-active": type === "space-knowledge", onClick: () => setType("space-knowledge") }, "知识库"),
+						h("button", { type: "button", "data-active": type === "space-database", onClick: () => setType("space-database") }, "数据库"),
+						h("button", { type: "button", "data-active": type === "space-inventor-2027", onClick: () => setType("space-inventor-2027") }, TEXT.inventorTitle),
+					),
+					h("button", { type: "button", className: "dss-workbench-close", onClick: closeStandaloneWorkbench }, "返回工作区")
+				),
+				h("div", { className: "dss-standalone-content" }, content)
+			);
+		}
+
+		function closeStandaloneWorkbench() {
+			standaloneLayoutCleanup?.();
+			standaloneLayoutCleanup = void 0;
+			standaloneRoot?.unmount();
+			standaloneRoot = void 0;
+			standaloneHost?.remove();
+			standaloneHost = void 0;
+			if (!document.querySelector('[role="dialog"]')) standaloneReturnFocus?.focus();
+			standaloneReturnFocus = void 0;
+		}
+
+		function openStandaloneWorkbench(type) {
+			if (!standaloneHost) {
+				standaloneReturnFocus = document.activeElement;
+				standaloneHost = document.createElement("div");
+				standaloneHost.className = "dss-standalone-host";
+				document.body.appendChild(standaloneHost);
+				standaloneRoot = createRoot(standaloneHost);
+			}
+			standaloneHost.classList.toggle("dss-extension-host", type === "space-extensions");
+			standaloneLayoutCleanup?.();
+			standaloneLayoutCleanup = void 0;
+			standaloneHost.style.removeProperty("left");
+			{
+				// Slot wrappers may use display:contents (zero-sized rect); measure the visible aside.
+				const sidebar = document.querySelector('aside.dcu-root, [data-slot="sidebar"] aside');
+				if (sidebar) {
+					const align = () => { if (standaloneHost) standaloneHost.style.left = Math.max(0, sidebar.getBoundingClientRect().right) + "px"; };
+					const observer = new ResizeObserver(align);
+					observer.observe(sidebar); align();
+					standaloneLayoutCleanup = () => observer.disconnect();
+				}
+			}
+			standaloneRoot.render(h(StandaloneWorkbench, { type, key: type }));
+		}
+
+		// The installed settings contract owns open state; footer slots have no public
+		// openSection callback. Keep this compatibility adapter scoped and cancellable.
+		const SETTINGS_SECTIONS = Object.freeze({ plugins: ["插件", "Plugins"], market: ["插件市场", "Plugin Market"], automation: ["定时任务", "Scheduled tasks", "自动化"] });
+		let cancelSettingsNavigation;
+		function openSettingsSection(section, onMissing, onSelected = () => {}, followUp) {
+			cancelSettingsNavigation?.();
+			const labels = SETTINGS_SECTIONS[section];
+			let finished = false;
+			let sectionSelected = false;
+			const cleanup = () => {
+				finished = true; observer.disconnect(); clearTimeout(timer);
+				if (cancelSettingsNavigation === cleanup) cancelSettingsNavigation = void 0;
+			};
+			const select = () => {
+				if (finished) return false;
+				if (!sectionSelected) {
+				const target = Array.from(document.querySelectorAll('[role="dialog"] nav button')).find((button) =>
+					!button.disabled && labels?.includes(button.textContent.replace(/\s+/g, " ").trim()));
+				if (!target) return false;
+				sectionSelected = true; target.click();
+				}
+				if (followUp && !followUp()) return false;
+				cleanup(); onSelected(); return true;
+			};
+			const observer = new MutationObserver(select);
+			// A manager handoff also waits for the native remote catalog (15 s host timeout).
+			const timer = setTimeout(() => { if (!finished && !select()) { cleanup(); onMissing(); } }, followUp ? 25000 : 2500);
+			cancelSettingsNavigation = cleanup;
+			observer.observe(document.body, { childList: true, subtree: true });
+			if (select()) return cleanup;
+			// Do not open Settings over another form or guess a partially matching label.
+			if (!document.querySelector('[role="dialog"]')) {
+				const launcher = Array.from(document.querySelectorAll('button[aria-haspopup="dialog"]')).find((button) =>
+					!button.disabled && [button.textContent, button.getAttribute("aria-label"), button.getAttribute("title")]
+						.some(value => /^(设置|settings)$/i.test((value || "").trim())));
+				if (!launcher) { cleanup(); onMissing(); return cleanup; }
+				launcher.click(); select();
+			}
+			return cleanup;
+		}
+
+		//#endregion
+
+		//#region 样式
+		const CSS = [
+			".dss-root{",
+			"--dss-bg:var(--dsw-alias-bg-layer-2,#faf3e6);",
+			"--dss-panel:var(--dsw-alias-bg-layer-3,#fffdf8);",
+			"--dss-sunken:var(--dsw-alias-bg-layer-1,#f5ecd9);",
+			"--dss-ink:var(--dsw-alias-label-primary,#1c1915);",
+			"--dss-muted:var(--dsw-alias-label-secondary,#7a7268);",
+			"--dss-faint:var(--dsw-alias-label-tertiary,#a89e90);",
+			"--dss-line:var(--dsw-alias-border-l1,rgba(28,25,21,.1));",
+			"--dss-line-strong:var(--dsw-alias-border-l2,rgba(28,25,21,.16));",
+			"--dss-accent:var(--dsw-alias-brand-primary,#0a5c7a);",
+			"--dss-accent-soft:color-mix(in srgb,var(--dsw-alias-brand-primary,#0a5c7a) 10%,var(--dsw-alias-bg-layer-3,#fffdf8));",
+			"--dss-danger:#b42318;",
+			"--dss-shadow:0 10px 30px rgba(28,25,21,.14);",
+			"--dss-r-sm:8px;--dss-r-md:12px;",
+			"--dss-motion:170ms cubic-bezier(.22,1,.36,1);",
+			"position:relative;height:100%;min-width:0;display:flex;flex-direction:column;overflow:hidden;font-family:'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','PingFang SC',-apple-system,BlinkMacSystemFont,sans-serif;color:var(--dss-ink);background:var(--dss-bg);}",
+			".dss-toolbar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--dss-line);background:var(--dss-panel);flex:none;flex-wrap:wrap;}",
+			".dss-app-shell{display:flex;flex-direction:column;height:100%;min-height:0;background:var(--dss-bg);}",
+			".dss-app-shell-bar{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:9px 14px;border-bottom:1px solid var(--dss-line);background:var(--dss-panel);color:var(--dss-ink);}",
+			".dss-app-shell-icon{display:inline-flex;align-items:center;color:var(--dss-accent);}",
+			".dss-app-shell-title{font-size:13px;font-weight:600;letter-spacing:.2px;}",
+			".dss-app-shell-body{flex:1 1 auto;min-height:0;overflow:auto;}",
+			"[class*=paneEmptyCards]{align-content:center;justify-content:center;}",
+			".dss-toolbar-actions{display:flex;gap:5px;align-items:center;}",
+			".dss-search{display:flex;align-items:center;gap:6px;flex:1 1 150px;min-width:120px;background:var(--dss-bg);border:1px solid var(--dss-line-strong);border-radius:var(--dss-r-sm);padding:4px 8px;color:var(--dss-faint);}",
+			".dss-search:focus-within{border-color:var(--dss-accent);box-shadow:0 0 0 3px var(--dss-accent-soft);}",
+			".dss-search-input{flex:1;min-width:0;border:none;background:transparent;outline:none;font:400 12.5px/1.4 inherit;font-family:inherit;color:var(--dss-ink);padding:2px 0;}",
+			".dss-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--dss-r-sm);border:1px solid var(--dss-line);background:var(--dss-panel);color:var(--dss-ink);font:600 12px/1.2 inherit;font-family:inherit;cursor:pointer;transition:background var(--dss-motion),border-color var(--dss-motion),color var(--dss-motion);white-space:nowrap;}",
+			".dss-btn:hover{background:var(--dss-sunken);border-color:var(--dss-line-strong);}",
+			".dss-btn:disabled{opacity:.5;cursor:not-allowed;}",
+			".dss-btn-primary{color:white;border-color:var(--dss-accent);background:var(--dss-accent);}",
+			".dss-btn-primary:hover{color:white;border-color:var(--dss-accent);background:color-mix(in srgb,var(--dss-accent) 86%,black);}",
+			".dss-btn.is-ghost{border-color:transparent;background:transparent;color:var(--dss-muted);}",
+			".dss-btn.is-ghost:hover{color:var(--dss-ink);background:var(--dss-sunken);}",
+			".dss-btn.is-danger{color:var(--dss-danger);border-color:color-mix(in srgb,var(--dss-danger) 30%,transparent);}",
+			".dss-btn.is-danger:hover{background:color-mix(in srgb,var(--dss-danger) 8%,transparent);}",
+			".dss-btn.is-active{color:var(--dss-accent);border-color:color-mix(in srgb,var(--dss-accent) 35%,transparent);background:var(--dss-accent-soft);}",
+			".dss-iconbtn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:none;border-radius:6px;background:transparent;color:var(--dss-faint);cursor:pointer;padding:0;}",
+			".dss-iconbtn:hover{background:var(--dss-sunken);color:var(--dss-ink);}",
+			".dss-iconbtn.is-danger:hover{color:var(--dss-danger);background:color-mix(in srgb,var(--dss-danger) 8%,transparent);}",
+			".dss-chips{display:flex;gap:5px;padding:7px 10px 3px;overflow-x:auto;scrollbar-width:thin;flex:none;flex-wrap:wrap;}",
+			".dss-chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;border:1px solid var(--dss-line);background:transparent;color:var(--dss-muted);font:600 11.5px/1.2 inherit;font-family:inherit;cursor:pointer;white-space:nowrap;}",
+			".dss-chip:hover{color:var(--dss-ink);background:var(--dss-sunken);}",
+			".dss-chip.is-active{color:var(--dss-accent);border-color:color-mix(in srgb,var(--dss-accent) 35%,transparent);background:var(--dss-accent-soft);}",
+			".dss-scroll{flex:1;min-height:0;overflow:auto;scrollbar-width:thin;padding:10px;}",
+			".dss-item{background:var(--dss-panel);border:1px solid var(--dss-line);border-radius:var(--dss-r-md);padding:10px 12px;cursor:pointer;transition:border-color var(--dss-motion),box-shadow var(--dss-motion);}",
+			".dss-item + .dss-item{margin-top:8px;}",
+			".dss-item:hover{border-color:var(--dss-line-strong);box-shadow:0 3px 12px rgba(28,25,21,.08);}",
+			".dss-item.is-database{border-left:3px solid color-mix(in srgb,var(--dss-accent) 62%,transparent);}",
+			".dss-results-summary{margin:0 0 8px;color:var(--dss-muted);font:600 11px/1.4 inherit;}",
+			".dss-source-badge{display:inline-flex;margin-bottom:5px;padding:2px 7px;border-radius:999px;background:var(--dss-accent-soft);color:var(--dss-accent);font:700 9.5px/1.3 inherit;letter-spacing:.02em;}",
+			".dss-item-title{font:600 13px/1.4 inherit;font-family:inherit;word-break:break-word;}",
+			".dss-item-body{font:400 11.5px/1.55 inherit;font-family:inherit;color:var(--dss-muted);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;}",
+			".dss-item-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px;}",
+			".dss-item-tags{display:flex;flex-wrap:wrap;gap:4px;min-width:0;}",
+			".dss-item-time{font-size:10.5px;color:var(--dss-faint);flex:none;}",
+			".dss-tag{font-size:10px;font-weight:600;color:var(--dss-accent);background:var(--dss-accent-soft);border-radius:999px;padding:2px 7px;}",
+			".dss-empty{border:1px dashed var(--dss-line-strong);border-radius:var(--dss-r-md);padding:18px 12px;text-align:center;color:var(--dss-faint);font-size:12px;}",
+			".dss-empty.is-cell{border:none;padding:12px;}",
+			".dss-drawer{position:absolute;left:0;right:0;bottom:0;background:var(--dss-panel);border-top:1px solid var(--dss-line-strong);box-shadow:0 -12px 32px rgba(28,25,21,.12);padding:12px 14px 14px;display:flex;flex-direction:column;gap:9px;z-index:6;max-height:75%;overflow-y:auto;scrollbar-width:thin;animation:dss-rise var(--dss-motion);}",
+			"@keyframes dss-rise{from{transform:translateY(14px);opacity:0}}",
+			".dss-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}",
+			".dss-drawer-title{font:700 12.5px/1.3 inherit;font-family:inherit;color:var(--dss-muted);text-transform:uppercase;letter-spacing:.04em;}",
+			".dss-field{display:flex;flex-direction:column;gap:4px;}",
+			".dss-label{font:600 11px/1 inherit;font-family:inherit;color:var(--dss-muted);}",
+			".dss-input,.dss-select{font:400 12.5px/1.5 inherit;font-family:inherit;color:var(--dss-ink);background:var(--dss-bg);border:1px solid var(--dss-line-strong);border-radius:var(--dss-r-sm);padding:7px 9px;outline:none;transition:border-color var(--dss-motion),box-shadow var(--dss-motion);width:100%;}",
+			".dss-input:focus,.dss-select:focus{border-color:var(--dss-accent);box-shadow:0 0 0 3px var(--dss-accent-soft);}",
+			".dss-textarea{resize:vertical;min-height:88px;max-height:200px;}",
+			".dss-drawer-actions{display:flex;align-items:center;gap:8px;justify-content:space-between;}",
+			".dss-scrim{position:absolute;inset:0;background:var(--dsw-alias-bg-mask-1,rgba(28,25,21,.36));display:flex;align-items:center;justify-content:center;z-index:9;animation:dss-fade var(--dss-motion);}",
+			"@keyframes dss-fade{from{opacity:0}}",
+			".dss-dialog{width:min(340px,calc(100% - 36px));background:var(--dss-panel);border:1px solid var(--dss-line-strong);border-radius:var(--dss-r-md);box-shadow:var(--dss-shadow);padding:14px;display:flex;flex-direction:column;gap:11px;}",
+			".dss-dialog-title{font:700 13px/1.4 inherit;font-family:inherit;word-break:break-word;}",
+			".dss-dialog-actions{display:flex;justify-content:flex-end;gap:8px;}",
+			".dss-fields{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-bottom:1px solid var(--dss-line);background:var(--dss-panel);flex:none;}",
+			".dss-field-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}",
+			".dss-field-name{flex:1 1 100px;min-width:0;}",
+			".dss-field-type{flex:0 0 74px;}",
+			".dss-field-opts{flex:1 1 120px;min-width:0;}",
+			".dss-field-new{padding-top:4px;border-top:1px dashed var(--dss-line);margin-top:2px;}",
+			".dss-tableview{flex:1;min-height:0;display:flex;flex-direction:column;}",
+			".dss-tableview .dss-scroll{flex:1;}",
+			".dss-table-wrap{padding:10px;}",
+			".dss-table{border-collapse:separate;border-spacing:0;width:100%;min-width:520px;background:var(--dss-panel);border:1px solid var(--dss-line);border-radius:var(--dss-r-md);overflow:hidden;}",
+			".dss-table th{position:sticky;top:0;background:var(--dss-sunken);font:700 11.5px/1.3 inherit;font-family:inherit;color:var(--dss-muted);text-align:left;padding:8px 8px;border-bottom:1px solid var(--dss-line-strong);white-space:nowrap;}",
+			".dss-table td{padding:4px 6px;border-bottom:1px solid var(--dss-line);vertical-align:middle;}",
+			".dss-table tr:last-child td{border-bottom:none;}",
+			".dss-table tr.is-focus td{background:var(--dss-accent-soft);animation:dss-focus-pulse 900ms ease-in-out 2;}",
+			"@keyframes dss-focus-pulse{50%{background:color-mix(in srgb,var(--dss-accent) 20%,var(--dss-panel));}}",
+			".dss-th-op,.dss-td-op{width:30px;}",
+			".dss-cell-input{font:400 12px/1.4 inherit;font-family:inherit;color:var(--dss-ink);background:transparent;border:1px solid transparent;border-radius:6px;padding:5px 6px;outline:none;width:100%;min-width:86px;transition:border-color var(--dss-motion),background var(--dss-motion);}",
+			".dss-cell-input:hover{border-color:var(--dss-line);}",
+			".dss-cell-input:focus{border-color:var(--dss-accent);background:var(--dss-bg);box-shadow:0 0 0 2px var(--dss-accent-soft);}",
+			".dss-seg{display:inline-flex;border:1px solid var(--dss-line-strong);border-radius:var(--dss-r-sm);overflow:hidden;flex:none;}",
+			".dss-seg-btn{border:none;background:transparent;color:var(--dss-muted);font:600 12px/1 inherit;font-family:inherit;padding:6px 12px;cursor:pointer;transition:color var(--dss-motion),background var(--dss-motion);}",
+			".dss-seg-btn + .dss-seg-btn{border-left:1px solid var(--dss-line);}",
+			".dss-seg-btn.is-active{background:var(--dss-accent-soft);color:var(--dss-accent);}",
+			".dss-chart-field{flex:0 1 130px;min-width:90px;padding:5px 8px;}",
+			".dss-chart-compact{flex:0 0 72px;padding:5px 7px;}",
+			".dss-chartview{padding:12px;}",
+			".dss-chart-canvas-wrap{position:relative;width:100%;}",
+			".dss-chart-canvas{width:100%;min-height:200px;}",
+			".dss-chart-save{position:absolute;top:4px;right:4px;z-index:3;border:1px solid var(--dss-line);background:var(--dss-panel);color:var(--dss-muted);border-radius:6px;padding:3px 9px;font:600 11px/1 inherit;font-family:inherit;cursor:pointer;transition:color var(--dss-motion),background var(--dss-motion);}",
+			".dss-chart-save:hover{color:var(--dss-ink);background:var(--dss-sunken);}",
+			".dss-notice{margin:8px 10px 0;padding:6px 10px;border:1px solid var(--dss-line-strong);border-left:3px solid var(--dss-accent);background:var(--dss-panel);border-radius:var(--dss-r-sm);font:500 12px/1.4 inherit;font-family:inherit;color:var(--dss-ink);animation:dss-rise var(--dss-motion);}",
+			".dss-sort{flex:0 0 104px;padding:5px 8px;}",
+			".dss-chart-title{font:700 12.5px/1.3 inherit;font-family:inherit;color:var(--dss-muted);margin:2px 0 12px;}",
+			".dss-stats{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}",
+			".dss-stat{background:var(--dss-panel);border:1px solid var(--dss-line);border-radius:var(--dss-r-sm);padding:6px 10px;min-width:60px;}",
+			".dss-stat-label{font-size:10.5px;color:var(--dss-faint);}",
+			".dss-stat-value{font:700 13px/1.3 inherit;font-family:inherit;color:var(--dss-ink);margin-top:2px;}",
+			".dss-chart-hint{font-size:11px;color:var(--dss-faint);margin-top:8px;}",
+			".dss-inventor-root{padding:18px;gap:14px;overflow:auto;}",
+			".dss-inventor-hero{display:flex;align-items:center;gap:12px;padding:6px 2px;}",
+			".dss-inventor-mark{display:flex;align-items:center;justify-content:center;width:54px;height:54px;border-radius:16px;color:white;background:linear-gradient(145deg,var(--dss-accent),color-mix(in srgb,var(--dss-accent) 58%,#1d3445));box-shadow:0 10px 24px color-mix(in srgb,var(--dss-accent) 24%,transparent);}",
+			".dss-inventor-title{margin:0;font:750 20px/1.2 inherit;letter-spacing:-.02em;}",
+			".dss-inventor-subtitle{margin:4px 0 0;color:var(--dss-muted);font:500 11px/1.3 inherit;text-transform:uppercase;letter-spacing:.08em;}",
+			".dss-inventor-card{display:flex;flex-direction:column;gap:13px;padding:15px;background:var(--dss-panel);border:1px solid var(--dss-line);border-radius:var(--dss-r-md);box-shadow:0 8px 24px rgba(28,25,21,.07);}",
+			".dss-connection-row{display:flex;align-items:flex-start;gap:9px;}",
+			".dss-status-dot{width:9px;height:9px;margin-top:4px;flex:none;border-radius:50%;background:var(--dss-faint);box-shadow:0 0 0 4px color-mix(in srgb,var(--dss-faint) 14%,transparent);}",
+			".dss-status-dot.is-online{background:#2f9e64;box-shadow:0 0 0 4px rgba(47,158,100,.13);}",
+			".dss-status-dot.is-checking{animation:dss-blink 900ms ease-in-out infinite alternate;}",
+			"@keyframes dss-blink{to{opacity:.35;}}",
+			".dss-connection-copy{min-width:0;}",
+			".dss-connection-title{font:700 13px/1.35 inherit;}",
+			".dss-connection-path{margin-top:4px;color:var(--dss-faint);font:10.5px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
+			".dss-connection-error{padding:7px 9px;border-radius:var(--dss-r-sm);color:var(--dss-danger);background:color-mix(in srgb,var(--dss-danger) 8%,transparent);font:500 11px/1.45 inherit;}",
+			".dss-inventor-actions{display:flex;justify-content:flex-end;gap:8px;}",
+			".dss-inventor-help{margin:0;padding:0 3px;color:var(--dss-muted);font:11px/1.55 inherit;}",
+			".dss-kb-overview{display:none;box-sizing:border-box;width:min(776px,calc(100% - 40px));margin:0 auto;padding:40px 0 24px;}",
+			".dss-knowledge-root.is-overview .dss-kb-overview{display:block;}",
+			".dss-knowledge-root.is-overview .dss-toolbar-actions,.dss-knowledge-root.is-overview>.dss-chips,.dss-knowledge-root.is-overview>.dss-scroll{display:none;}",
+			".dss-standalone-content{position:relative;}.dss-knowledge-root.is-overview>.dss-toolbar{position:fixed;z-index:93;top:52px;right:28px;width:260px;height:32px;padding:0;border:0;background:transparent;}.dss-knowledge-root.is-overview>.dss-toolbar .dss-search{height:30px;}",
+			".dss-kb-hero{margin-bottom:38px;}.dss-kb-hero h1{margin:0;color:var(--dss-ink);font-family:inherit;font-size:21px;font-weight:400;line-height:30px;}.dss-kb-hero p{margin:2px 0 0;color:var(--dss-ink);font-family:inherit;font-size:20px;font-weight:400;line-height:30px;}",
+			".dss-kb-scope{margin-bottom:28px;color:var(--dss-muted);font-size:13px;}",
+			".dss-kb-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}",
+			".dss-kb-create,.dss-kb-card{box-sizing:border-box;min-height:108px;border:0;border-radius:5px;background:#f6f6f6;color:var(--dss-ink);font-family:inherit;text-align:left;cursor:pointer;transition:background var(--dss-motion),border-color var(--dss-motion);}",
+			".dss-kb-create{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1px dashed #d8d8d8;background:#fff;color:var(--dss-muted);font-size:12px;}.dss-kb-create:hover{border-color:#aeb8b2;background:#fbfcfb;}",
+			".dss-kb-card{position:relative;display:grid;grid-template-columns:38px 1fr;grid-template-rows:auto auto 1fr;padding:14px 14px 12px;}.dss-kb-card:hover{background:#f0f1f0;}.dss-kb-card-icon{grid-row:1/3;display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid var(--dss-line);border-radius:7px;background:#fff;color:var(--dss-muted);}.dss-kb-card strong{font-size:14px;line-height:20px;}.dss-kb-card>span:not(.dss-kb-card-icon){color:var(--dss-muted);font-size:11px;}.dss-kb-card small{grid-column:1/3;align-self:end;color:var(--dss-faint);font-size:11px;}",
+			".dss-btn:focus-visible,.dss-chip:focus-visible,.dss-iconbtn:focus-visible,.dss-item:focus-visible,.dss-seg-btn:focus-visible{outline:2px solid var(--dss-accent);outline-offset:1px;}"
+			,".dss-activity{box-sizing:border-box;width:100%;max-width:768px;height:186px;min-height:186px;margin:28px auto 40px;padding:20px;border:1px solid var(--dsw-alias-border-l2,#ddd);border-radius:9px;background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-primary,#222);}"
+			,".dss-activity-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;color:var(--dss-ink);font-size:13px;line-height:18px}.dss-activity-head strong{font-weight:600}.dss-activity-head span{color:var(--dss-faint);font-size:12px;}"
+			,".dss-activity-grid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,10px);grid-template-columns:repeat(52,minmax(0,1fr));gap:3px}.dss-activity-cell{display:block;min-width:0;border-radius:2px;background:color-mix(in srgb,var(--dsw-alias-label-primary,#222) 10%,var(--dsw-alias-bg-base,#fff))}.dss-activity-cell.is-level-1{background:#e1eee7}.dss-activity-cell.is-level-2{background:#c9e0d3}.dss-activity-cell.is-level-3{background:#9ec2ad;}"
+			,".dss-activity-months{display:grid;grid-template-columns:repeat(52,minmax(0,1fr));column-gap:3px;margin-top:8px;color:var(--dsw-alias-label-tertiary,#777);font-size:10px;line-height:14px}.dss-activity-months span{min-width:0;white-space:nowrap;text-align:left}.dss-activity-months span:last-child{text-align:right;}"
+			,".dss-utility-root{align-items:center;justify-content:flex-start;padding:92px 28px;background:var(--dss-panel)}.dss-utility-card{width:min(620px,100%);padding:42px;border:1px solid var(--dss-line);border-radius:10px;background:var(--dss-panel);text-align:center}.dss-utility-card svg{color:var(--dss-accent)}.dss-utility-card h1{margin:14px 0 8px;font-size:22px}.dss-utility-card p{max-width:470px;margin:0 auto;color:var(--dss-muted);font-size:13px;line-height:1.7;}"
+			,".dss-standalone-host{position:fixed;inset:0 8px 8px 240px;z-index:90;overflow:hidden;border:1px solid #e6e6e6;border-radius:9px;background:#fff}.dss-standalone-shell{display:flex;flex-direction:column;width:100%;height:100%;min-height:0}.dss-workbench-switcher{display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:0 12px;border-bottom:1px solid #e6e6e6;background:#fff}.dss-workbench-switcher nav{display:flex;align-items:center;gap:20px;height:100%}.dss-workbench-switcher button{height:32px;border:0;border-radius:5px;padding:0 4px;background:transparent;color:#636261;font:500 13px/20px 'Segoe UI','Microsoft YaHei UI',sans-serif;cursor:pointer}.dss-workbench-switcher nav button[data-active=true]{color:#141414;font-weight:600}.dss-workbench-switcher button:hover{background:#f2f2f2}.dss-workbench-close{padding:0 9px!important}.dss-standalone-content{display:flex;min-height:0;flex:1}.dss-standalone-content>.dss-root{width:100%;height:100%;min-height:0;flex:1;border:0;border-radius:0;}"
+			,".dss-extension-host{background:var(--dsw-alias-bg-layer-1,#fff);border-color:var(--dsw-alias-border-l3,#ddd);color:var(--dsw-alias-label-primary,#222)}.dss-extension-page{height:100%;display:flex;flex-direction:column;min-height:0;font:14px/1.6 'Segoe UI','Microsoft YaHei UI',sans-serif}.dss-extension-page *{box-sizing:border-box}.dss-extension-header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-height:52px;padding:10px 16px;border-bottom:1px solid var(--dsw-alias-border-l3,#ddd)}.dss-extension-header nav{display:flex;gap:8px;margin-right:auto}.dss-extension-page button,.dss-extension-page input,.dss-extension-page select{font:inherit;color:inherit;border:1px solid var(--dsw-alias-border-l3,#ddd);border-radius:6px;background:var(--dsw-alias-bg-layer-1,#fff);padding:6px 10px}.dss-extension-page button{cursor:pointer}.dss-extension-page button:disabled{cursor:wait;opacity:.6}.dss-extension-page button:hover,.dss-extension-header button[aria-pressed=true]{background:var(--dsw-alias-interactive-bg-hover,#eee)}.dss-extension-header nav button{border-color:transparent}.dss-extension-header button[aria-pressed=true]{font-weight:600}.dss-extension-page :is(button,input,select,a):focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#4b7760);outline-offset:2px}.dss-extension-body{overflow:auto;flex:1;min-height:0;padding:48px max(24px,calc((100% - 800px)/2)) 40px}.dss-extension-body h1{font-size:24px;font-weight:500;margin:0 0 8px}.dss-extension-hint{color:var(--dsw-alias-label-secondary,#666);font-size:13px}.dss-extension-toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:30px 0 16px}.dss-extension-toolbar input{flex:1;min-width:180px}.dss-extension-grid{list-style:none;margin:0 0 24px;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 24px}.dss-extension-page .dss-extension-card{display:flex;align-items:flex-start;gap:14px;width:100%;min-height:120px;text-align:left;padding:18px 10px;border-color:transparent}.dss-extension-card>svg{flex:none;margin-top:3px;color:var(--dsw-alias-label-secondary,#666)}.dss-extension-card>span{min-width:0}.dss-extension-card strong{display:block;overflow-wrap:anywhere;font-size:14px;font-weight:600}.dss-extension-description{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--dsw-alias-label-secondary,#666);font-size:13px;margin:6px 0}.dss-extension-card small{color:var(--dsw-alias-label-tertiary,#777);overflow-wrap:anywhere}.dss-extension-detail p{white-space:pre-wrap;overflow-wrap:anywhere}.dss-extension-detail dl{display:grid;grid-template-columns:90px minmax(0,1fr);gap:8px}.dss-extension-detail dd{margin:0;overflow-wrap:anywhere}.dss-extension-detail a{color:var(--dsw-alias-state-business-primary,#416b52)}.dss-extension-notice{margin:10px 20px;color:var(--dsw-alias-state-error-primary,#b42318)}@media(max-width:850px){.dss-extension-grid{grid-template-columns:1fr}.dss-extension-body{padding:24px}.dss-extension-header{gap:6px}}@media(max-width:600px){.dss-extension-host{left:56px}.dss-extension-header nav{width:100%}.dss-extension-body{padding:16px}}"
+			,".dss-standalone-host{background:var(--dsw-alias-bg-layer-1,#fff);border-color:var(--dsw-alias-border-l2,#ddd);color:var(--dsw-alias-label-primary,#222)}.dss-workbench-switcher{background:var(--dsw-alias-bg-layer-1,#fff);border-color:var(--dsw-alias-border-l2,#ddd);flex-wrap:wrap;gap:4px}.dss-workbench-switcher nav{min-width:0;overflow:auto;gap:16px}.dss-workbench-switcher button{color:var(--dsw-alias-label-secondary,#666);white-space:nowrap}.dss-workbench-switcher nav button[data-active=true]{color:var(--dsw-alias-label-primary,#222)}.dss-workbench-switcher button:hover{background:var(--dsw-alias-interactive-bg-hover,#eee)}"
+			,".dss-kb-card{background:var(--dss-sunken)}.dss-kb-create,.dss-kb-card-icon{background:var(--dss-panel);border-color:var(--dss-line-strong)}.dss-kb-card:hover,.dss-kb-create:hover{background:var(--dsw-alias-interactive-bg-hover,#eee);border-color:var(--dss-line-strong)}@media(max-width:700px){.dss-kb-cards{grid-template-columns:1fr}.dss-knowledge-root.is-overview>.dss-toolbar{position:static;width:auto;height:auto;padding:8px 10px;flex:none}.dss-workbench-switcher nav{gap:8px}.dss-standalone-host{right:4px}}"
+		].join("");
+		// Profile-owned refinement: reversible with the plugin, including in an
+		// already packaged desktop. Do not mutate immutable desktop slot assets.
+		const HOME_DETAIL_CSS = `
+body[data-dsh-preset="qoder"] {
+  --dss-home-width: 768px;
+  --dss-nav-row: 32px;
+  --dss-home-font: "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif;
+  font-family: var(--dss-home-font) !important;
+}
+/* Geometry is shared by light/dark. Colors follow the host's semantic tokens. */
+body[data-dsh-preset="qoder"] .dcu-root {
+  --dcu-font: var(--dss-home-font);
+  --dcu-sidebar-wide-width: 100% !important;
+  --dcu-sidebar-primary: var(--dsw-alias-label-primary);
+  --dcu-sidebar-secondary: var(--dsw-alias-label-secondary);
+  --dcu-sidebar-tertiary: var(--dsw-alias-label-tertiary);
+  --dcu-sidebar-navigation: var(--dsw-alias-label-primary);
+  --dcu-sidebar-icon: var(--dsw-alias-label-secondary);
+  --dcu-sidebar-hover: var(--dsw-alias-interactive-bg-hover);
+  --dcu-sidebar-border: var(--dsw-alias-border-l2);
+  width: 100% !important;
+  background: var(--dsh-bg-canvas) !important;
+  font-family: var(--dss-home-font) !important;
+}
+body[data-dsh-preset="qoder"] :is(.dcu-root,.wSkVaW_heroWorkspaceRow,.uV2eYG_root) :is(button,input,textarea,[contenteditable="true"]) { font-family: var(--dss-home-font) !important; }
+body[data-dsh-preset="qoder"] .dcu-expanded-shell { position: relative; }
+body[data-dsh-preset="qoder"] .dcu-head { height: 44px; flex-shrink: 0; padding: 6px 8px; column-gap: 6px; }
+body[data-dsh-preset="qoder"] .dcu-brand {
+  width: fit-content; min-width: 68px; height: 30px; padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2); border-radius: 16px;
+  background: var(--dsh-accent-soft); color: var(--dsh-accent);
+}
+body[data-dsh-preset="qoder"] .dcu-brand svg { display: none; }
+body[data-dsh-preset="qoder"] .dcu-brand::after { content: none !important; }
+body[data-dsh-preset="qoder"] .dcu-mode-label { display: inline !important; font-size: 13px; line-height: 28px; white-space: nowrap; }
+body[data-dsh-preset="qoder"] .dcu-menu { padding: 2px 8px 4px; gap: 0; flex-shrink: 0; }
+body[data-dsh-preset="qoder"] .dcu-menu > button:first-child { margin-bottom: 36px; }
+/* These entries remain available in the existing footer and companion tabs. */
+body[data-dsh-preset="qoder"] .dcu-menu > button:nth-of-type(2),
+body[data-dsh-preset="qoder"] .dcu-menu > button:nth-of-type(3),
+body[data-dsh-preset="qoder"] .dcu-menu > button:nth-of-type(4),
+body[data-dsh-preset="qoder"] .dcu-menu .dcu-extension-items { display: none; }
+body[data-dsh-preset="qoder"] .dcu-root .dcu-workspaces { margin-top: 0; padding-top: 0; }
+body[data-dsh-preset="qoder"] .dcu-im-tabs { gap: 18px; margin: 0 16px 8px; }
+body[data-dsh-preset="qoder"] .dcu-root .dcu-foot {
+  width: 100% !important; gap: 0; padding: 6px 8px 10px;
+  background: var(--dsh-bg-canvas); border-color: var(--dsw-alias-border-l2);
+}
+body[data-dsh-preset="qoder"] .dcu-footer-actions { display: flex; flex-direction: column; gap: 0; }
+body[data-dsh-preset="qoder"] .dcu-root.dcu-compact .dcu-foot { width: 36px !important; padding: 8px 0; }
+body[data-dsh-preset="qoder"] .dcu-root.dcu-compact .dcu-settings-seat > button { padding: 0 !important; gap: 0; }
+body[data-dsh-preset="qoder"] .pI_x6G_frame { background: var(--dsh-bg-canvas) !important; }
+body[data-dsh-preset="qoder"] .pI_x6G_sidebarCol { border-right: 0 !important; background: var(--dsh-bg-canvas) !important; }
+body[data-dsh-preset="qoder"] .pI_x6G_centerCol { margin: 0 8px 8px 0; border: 1px solid var(--dsw-alias-border-l2); border-radius: 9px; background: var(--dsw-alias-bg-base); }
+body[data-dsh-preset="qoder"] .wSkVaW_root[data-phase="hero"] .wSkVaW_scrollBody {
+  justify-content: flex-start !important;
+  padding-top: 0 !important;
+}
+body[data-dsh-preset="qoder"] .wSkVaW_root[data-phase="hero"] .wSkVaW_composerHero {
+  --dsh-composer-card-max-width: var(--dss-home-width);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  width: min(800px,100%) !important;
+  min-height: max(610px,calc(100dvh - 10px));
+  gap: 8px;
+  padding: clamp(40px,20vh,170px) 16px 14px !important;
+  transform: none !important;
+}
+body[data-dsh-preset="qoder"] .wSkVaW_composerHero > .pXSMma_root {
+  flex: none;
+  order: 1;
+  height: auto;
+  padding: 0 0 24px !important;
+  transform: none !important;
+}
+body[data-dsh-preset="qoder"] .wSkVaW_composerHero > [data-dss-activity-host] {
+  flex: none;
+  order: 2;
+  width: 100%;
+  margin-bottom: 32px;
+}
+body[data-dsh-preset="qoder"] .wSkVaW_composerHero > [data-slot="conversation.composer.bar"] {
+  flex: none;
+  order: 3;
+  margin-top: auto;
+  width: 100%;
+}
+body[data-dsh-preset="qoder"] .wSkVaW_composerHero > .wSkVaW_heroWorkspaceRow {
+  flex: none;
+  order: 4;
+  margin-top: 0;
+  padding-left: 4px !important;
+}
+body[data-dsh-preset="qoder"] .wSkVaW_composerHero .uV2eYG_root { padding-inline: 0 !important; order: 3; margin-top: auto; }
+body[data-dsh-preset="qoder"] .wSkVaW_composerHero .uV2eYG_card {
+  min-height: 120px;
+  border-radius: 16px !important;
+  box-shadow: none;
+}
+body[data-dsh-preset="qoder"] .dss-activity {
+  max-width: var(--dss-home-width);
+  height: auto;
+  min-height: 186px;
+  margin: 0 auto;
+  border-color: var(--dsw-alias-border-l2,#ddd);
+  background: var(--dsh-bg-surface-1);
+}
+body[data-dsh-preset="qoder"] :is(.pXSMma_root,.dss-activity,.wSkVaW_heroWorkspaceRow) { font-family: var(--dss-home-font) !important; }
+body[data-dsh-preset="qoder"] :is(.pXSMma_headline,.pXSMma_headlineText) { font-family: inherit !important; }
+body[data-dsh-preset="qoder"] .dss-activity-head { color: var(--dsw-alias-label-primary); }
+body[data-dsh-preset="qoder"] .dss-activity-head span { color: var(--dsw-alias-label-tertiary,#777); }
+body[data-dsh-preset="qoder"] .pXSMma_headline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 165px;
+  padding-top: 90px !important;
+  gap: 8px !important;
+  line-height: 30px;
+}
+body[data-dsh-preset="qoder"] .pXSMma_stack { align-items: center; gap: 8px; }
+body[data-dsh-preset="qoder"] .pXSMma_previewBadge { display: none; }
+body[data-dsh-preset="qoder"] .pXSMma_fishHitbox { position: absolute; left: 50%; transform: translateX(-50%) scale(1.7) !important; top: 10px !important; }
+body[data-dsh-preset="qoder"] .pXSMma_headlineText { font-weight: 500 !important; }
+body[data-ds-dark-theme][data-dsh-preset="qoder"] .pXSMma_headlineText { font-size: 21px; }
+body[data-dsh-preset="qoder"] .dss-activity-cell.is-level-0 { background: color-mix(in srgb,var(--dsw-alias-label-primary) 6%,var(--dsh-bg-surface-1)); }
+body[data-dsh-preset="qoder"] .pXSMma_headlineText::after { font-size: 21px !important; }
+body[data-dsh-preset="qoder"] .pXSMma_headline::after { font-weight: 400 !important; font-size: 20px !important; color: var(--dsw-alias-label-tertiary,#777) !important; }
+body[data-dsh-preset="qoder"] .dcu-head .dcu-search-trigger {
+  position: absolute;
+  top: 78px;
+  left: 8px;
+  width: calc(100% - 16px);
+  height: var(--dss-nav-row);
+  z-index: 2;
+  color: var(--dsw-alias-label-primary);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  padding-inline: 8px !important;
+  line-height: 20px !important;
+  border-radius: 5px !important;
+}
+body[data-dsh-preset="qoder"] .dcu-head .dcu-search-trigger svg { flex: 0 0 20px; width: 16px; }
+body[data-dsh-preset="qoder"] .dcu-head .dcu-search-trigger::after { content: none !important; }
+body[data-dsh-preset="qoder"] .dcu-head .dcu-search-label { display: inline !important; font-size: 14px; }
+body[data-dsh-preset="qoder"] .dcu-root .dcu-menu button,
+body[data-dsh-preset="qoder"] .dcu-root .dcu-settings-seat > button {
+  min-height: var(--dss-nav-row);
+  padding-inline: 8px !important;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 400;
+}
+body[data-dsh-preset="qoder"] .dcu-root .dcu-settings-seat > button svg { flex: 0 0 20px; width: 16px; height: 16px; }
+body[data-dsh-preset="qoder"] .dcu-root :is(button,a):focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary,#4b7760); outline-offset: -2px; }
+body[data-dsh-preset="qoder"] .dcu-root * { scrollbar-width: thin; scrollbar-color: var(--dsw-alias-border-l2,#ccc) transparent; }
+body[data-dsh-preset="qoder"] .dcu-root *::-webkit-scrollbar { width: 5px; height: 5px; }
+@media(max-height:720px) {
+  body[data-dsh-preset="qoder"] .wSkVaW_root[data-phase="hero"] .wSkVaW_composerHero { padding-top: 32px !important; min-height: max(550px,calc(100dvh - 10px)); }
+}
+@media(max-height:620px) {
+  body[data-dsh-preset="qoder"] .wSkVaW_root[data-phase="hero"] .wSkVaW_composerHero { padding-top: 16px !important; min-height: max(500px,calc(100dvh - 10px)); }
+  body[data-dsh-preset="qoder"] .pXSMma_headline { padding-top: 60px !important; min-height: 135px; }
+  body[data-dsh-preset="qoder"] .wSkVaW_composerHero > .pXSMma_root { padding-bottom: 8px !important; }
+  body[data-dsh-preset="qoder"] .wSkVaW_composerHero > [data-dss-activity-host] { margin-bottom: 16px; }
+}
+@media(max-width:760px) {
+  body[data-dsh-preset="qoder"] .dss-activity { padding: 14px 10px; }
+  body[data-dsh-preset="qoder"] .dss-activity-grid { gap: 2px; }
+  body[data-dsh-preset="qoder"] .dss-activity-months { column-gap: 2px; font-size: 9px; }
+}
+`.replaceAll('body[data-dsh-preset="qoder"]', 'body[data-color-scheme][data-dsh-preset="qoder"]');
+		const HOME_CARD_ALIGNMENT_CSS = `
+/* One content column owns both cards, regardless of theme or sidebar width. */
+/* The reserved width and the rendered panel must use the SAME clamp.
+   Keep this outside replaceable desktop/registry themes, including the web host. */
+body:has(.wSkVaW_root[data-phase="hero"]),
+body:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_editorTreeDock) {
+  --dss-panel-limit: max(280px,var(--dss-panel-min,0px),calc(100vw - 640px));
+  --dss-panel-width: min(max(var(--dsh-sidebar-width,0px),var(--dss-panel-min,0px)),var(--dss-panel-limit));
+}
+body:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_editorTreeDock) { --dss-panel-min: min(488px,calc(100vw - 72px)); }
+body:has(.wSkVaW_root[data-phase="hero"]) #root,
+body:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_editorTreeDock) #root {
+  margin-right: var(--dss-panel-width) !important;
+  width: calc(100% - var(--dss-panel-width)) !important;
+}
+body:has(.wSkVaW_root[data-phase="hero"]) .nArs4W_panel,
+body:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_editorTreeDock) .nArs4W_panel {
+  width: var(--dss-panel-width) !important;
+  max-width: var(--dss-panel-limit) !important;
+  display: flex !important;
+  pointer-events: auto !important;
+}
+body:has(.wSkVaW_root[data-phase="hero"]) .pI_x6G_centerCol,
+body:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_editorTreeDock) .pI_x6G_centerCol {
+  min-width: 0 !important;
+}
+body .wSkVaW_root[data-phase="hero"] {
+  --dsh-chat-content-width: min(768px,calc(var(--dsh-conversation-column-width,100vw) - 32px)) !important;
+}
+body .wSkVaW_root[data-phase="hero"] .dcu-home-cards {
+  box-sizing: border-box;
+  width: 100% !important;
+  max-width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit,minmax(min(156px,100%),1fr));
+}
+body .wSkVaW_root[data-phase="hero"] .dcu-home-cards > * {
+  min-width: 0 !important;
+  width: auto !important;
+  overflow-wrap: anywhere;
+}
+body .wSkVaW_root[data-phase="hero"] .dcu-home-card {
+  display: grid; grid-template-columns: 16px minmax(0,1fr);
+  align-items: center; justify-content: start; gap: 10px;
+  min-height: 72px; padding: 12px; line-height: 20px;
+}
+body .wSkVaW_root[data-phase="hero"] :is(.dcu-home-details,.dcu-home-status) > [data-active="false"] { display: none; }
+body .wSkVaW_root[data-phase="hero"] .dcu-home-tasks { margin-top: 12px; }
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .wSkVaW_composerStack.wSkVaW_composerHero {
+  --dsh-composer-card-max-width: 100%;
+  --dsh-composer-side-clearance: 0px;
+  box-sizing: border-box;
+  container-type: inline-size;
+  container-name: dss-home;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  align-items: stretch;
+  width: min(816px,100%) !important;
+  min-height: 0 !important;
+  margin: auto;
+  gap: 16px;
+  padding: clamp(24px,6vh,56px) clamp(12px,3vw,24px) 32px !important;
+  transform: none !important;
+}
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .wSkVaW_composerHero > .pXSMma_root {
+  order: 0; flex: none; height: auto; min-width: 0; min-height: 0 !important; padding: 0 0 8px !important;
+}
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .wSkVaW_composerHero > .pXSMma_root > [class$="_stack"] { gap: 20px; }
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .wSkVaW_composerHero > .wSkVaW_heroWorkspaceRow {
+  order: 4; flex: none; margin: 0; min-width: 0; min-height: 36px; padding: 2px 12px !important;
+  align-self: stretch; flex-wrap: wrap; gap: 8px;
+}
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .wSkVaW_composerHero > [data-dss-activity-host] {
+  order: 2; flex: none; width: 100%; min-width: 0; margin: 0 !important;
+}
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .wSkVaW_composerHero > [data-slot="conversation.composer.bar"] {
+  order: 3; margin: 0 !important;
+}
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .wSkVaW_composerHero .uV2eYG_root {
+  order: 3; flex: none; box-sizing: border-box; width: 100%; min-width: 0;
+  margin: 0 !important; padding: 0 !important;
+}
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] :is(.wSkVaW_heroWorkspaceRow,.dss-activity,.uV2eYG_card) {
+  --dss-home-unit: clamp(7.5px,1.041667cqw,8px);
+  --dss-home-card-height: calc(15 * var(--dss-home-unit));
+  box-sizing: border-box; width: 100% !important; max-width: none !important;
+  margin: 0 !important; border: 1px solid var(--dss-panel-border,#d9dde3) !important;
+  border-radius: var(--dss-panel-radius,10px) !important;
+  box-shadow: none !important;
+}
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .wSkVaW_heroWorkspaceRow {
+  border: 0 !important; border-radius: 0 !important;
+  background: transparent !important; box-shadow: none !important;
+}
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .dss-activity {
+  height: var(--dss-home-card-height); min-height: 0;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: calc(1.5 * var(--dss-home-unit));
+}
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .dss-activity-head { margin: 0; flex: none; }
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .dss-activity-grid {
+  flex: 1; min-height: 0; grid-template-rows: repeat(7,minmax(0,1fr)); gap: clamp(2px,.39cqw,3px);
+}
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .dss-activity-months {
+  flex: none; margin: 0; column-gap: clamp(2px,.39cqw,3px);
+}
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .uV2eYG_card {
+  min-height: var(--dss-home-card-height);
+  display: flex; flex-direction: column;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 4%);
+}
+body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .uV2eYG_card > .uV2eYG_row {
+  margin-top: auto; flex-shrink: 0;
+}
+/* Let wrapped input controls stay readable while both empty cards grow together. */
+@container dss-home (max-width:560px) {
+  body .wSkVaW_root[data-phase="hero"] .dcu-home-cards { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  body[data-color-scheme] .wSkVaW_root[data-phase="hero"] :is(.dss-activity,.uV2eYG_card) { --dss-home-unit: 10px; }
+}
+@container dss-home (max-width:240px) {
+  body[data-color-scheme] .wSkVaW_root[data-phase="hero"] :is(.dss-activity,.uV2eYG_card) { --dss-home-unit: 12.5px; }
+  body[data-color-scheme] .wSkVaW_root[data-phase="hero"] .dss-activity-months span:nth-child(even) { visibility: hidden; }
+}
+`;
+		const ROUNDED_PANEL_CSS = `
+/* Portable panel appearance: common tokens keep outer panels and inner cards related. */
+body {
+  --dss-panel-border: var(--dsw-alias-border-l2,#d9dde3);
+  --dss-panel-radius: 10px;
+  --dss-card-radius: 12px;
+}
+body:not([data-ds-dark-theme]) { --dss-panel-border: #d9dde3; }
+body :is(.pI_x6G_sidebarCol,.pI_x6G_centerCol,.nArs4W_panel,.nArs4W_bottomPanel) {
+  box-sizing: border-box;
+  border: 1px solid var(--dss-panel-border) !important;
+  border-radius: var(--dss-panel-radius) !important;
+}
+body :is(.dcu-home-cards > *,.wSkVaW_heroWorkspaceRow,.dss-activity,.uV2eYG_card,.dss-card) {
+  box-sizing: border-box;
+  border: 1px solid var(--dss-panel-border) !important;
+  border-radius: var(--dss-card-radius) !important;
+}
+body:not([data-ds-dark-theme]) :is(.wSkVaW_heroWorkspaceRow,.dss-card) {
+  background: #fff !important;
+}
+body .pI_x6G_frame { box-sizing: border-box; padding: 6px; gap: 0; }
+body :is(.pI_x6G_sidebarCol,.pI_x6G_centerCol) { margin: 0 !important; overflow: hidden; }
+body .pI_x6G_centerCol { margin-left: 6px !important; }
+body:has(.nArs4W_bottomPanel:not(.nArs4W_bottomPanelHidden)) .pI_x6G_centerCol {
+  margin-bottom: calc(var(--dsh-sidebar-height,0px) + 6px) !important;
+}
+body .nArs4W_bottomPanel { bottom: 6px; }
+/* Clip content, not the outer host: its resize handle straddles the top edge. */
+body .nArs4W_bottomPanel > .nArs4W_panelBody {
+  position: relative; min-height: 0;
+  border-radius: calc(var(--dss-panel-radius) - 1px); overflow: hidden;
+  clip-path: inset(0 round calc(var(--dss-panel-radius) - 1px));
+}
+body .nArs4W_bottomPanel > .nArs4W_bottomResize {
+  left: 10px; right: 10px; width: auto; background: transparent !important;
+}
+body .nArs4W_bottomPanel > .nArs4W_bottomResize::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 3px; height: 2px;
+  border-radius: 2px; pointer-events: none;
+  background: var(--dsw-alias-state-business-primary,#3265ac); opacity: 0;
+}
+body .nArs4W_bottomPanel > .nArs4W_bottomResize:is(:hover,.nArs4W_bottomResizeActive)::after { opacity: 1; }
+body .pI_x6G_sidebarCol .dcu-root { width: 100% !important; min-width: 0; }
+/* Transparent frame space stays inside the existing reserved width. Resize handles
+   remain outside the clipped panel body and keep their original hit targets. */
+body .nArs4W_panel { border: 0 !important; padding: 6px 6px 6px 0; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
+/* Keep the official collapse/fullscreen controls clear of the card toggles. */
+body:has([data-dsh-toggle-cluster]) [data-sidebar-right-panel][data-sidebar-right-open] [data-sidebar-right-toggle] { margin-right: 76px; }
+body .nArs4W_panel > .nArs4W_panelBody { box-sizing: border-box; border: 1px solid var(--dss-panel-border); border-radius: var(--dss-panel-radius); overflow: hidden; }
+/* Center the 8 px target and its 2 px line in the 6 px inter-panel gap:
+   panel edge - half gap - half hit width = -3 -4 = -7 px. */
+body .nArs4W_panel > .nArs4W_panelResize { left: -7px; top: 16px; bottom: 16px; height: auto; background: transparent !important; }
+body .nArs4W_panel > .nArs4W_panelResize::after { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; border-radius: 2px; pointer-events: none; background: var(--dsw-alias-state-business-primary,#3265ac); opacity: 0; }
+body .nArs4W_panel > .nArs4W_panelResize:is(:hover,.nArs4W_panelResizeActive)::after { opacity: 1; }
+body :is(.nArs4W_editorMain,.nArs4W_editorTreeDock) {
+  box-sizing: border-box; border: 0; border-radius: 0; min-width: 0; margin: 0;
+}
+body .nArs4W_editorMain { overflow: hidden; }
+body .nArs4W_editorTreeDock { overflow: hidden; border-left: 1px solid var(--dss-panel-border); }
+body .nArs4W_editorBody > .nArs4W_editorTreeDock { max-width: 50%; }
+body .nArs4W_editorBody:has(> .nArs4W_editorTreeDock) > .nArs4W_editorMain { min-width: 50%; }
+body .nArs4W_editorTreePanel { border-left: 0; }
+body .pI_x6G_centerCol .wSkVaW_scrollBody::-webkit-scrollbar { width: 8px; }
+body .pI_x6G_centerCol .wSkVaW_scrollBody::-webkit-scrollbar-track { margin-block: 10px; background: transparent; }
+body .pI_x6G_centerCol .wSkVaW_scrollBody::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 8px; background-clip: padding-box; }
+/* The decorative edge must not change menu portals, focus rings or resize handles. */
+`;
+		const KNOWLEDGE_DETAIL_CSS = `
+body .dss-knowledge-root {
+  container: dss-knowledge / inline-size;
+  --dss-kb-width: 1000px;
+  --dss-kb-gutter: clamp(18px, 4%, 48px);
+  font-size: 13px; line-height: 1.6;
+}
+body .dss-knowledge-root.is-overview { overflow-y: auto; padding: 40px 0 24px; box-sizing: border-box; gap: 0; }
+body .dss-knowledge-root.is-overview > :is(.dss-kb-hero,.dss-toolbar,.dss-kb-overview,.dss-notice) {
+  box-sizing: border-box; width: calc(100% - var(--dss-kb-gutter) * 2); max-width: var(--dss-kb-width);
+  margin-left: auto; margin-right: auto; flex-shrink: 0;
+}
+body .dss-knowledge-root > .dss-kb-hero { order: 0; margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+body .dss-knowledge-root .dss-kb-heading { display: flex; align-items: center; gap: 16px; min-width: 0; }
+body .dss-knowledge-root .dss-kb-mark { display: grid; place-items: center; flex: none; width: 52px; height: 52px; border: 1px solid var(--dss-line-strong); border-radius: 16px; color: var(--dss-accent); background: var(--dss-panel); box-shadow: 0 3px 8px #10243a08; }
+body .dss-knowledge-root .dss-kb-hero h1 { font-size: 28px; line-height: 1.3; font-weight: 650; letter-spacing: -.6px; margin: 0; }
+body .dss-knowledge-root .dss-kb-hero p { font-size: 13px; line-height: 1.7; color: var(--dss-muted); margin: 8px 0 0; }
+body .dss-knowledge-root .dss-kb-summary { display: flex; gap: 24px; color: var(--dss-muted); font-size: 12px; }
+body .dss-knowledge-root .dss-kb-summary span { display: flex; gap: 7px; align-items: baseline; white-space: nowrap; }
+body .dss-knowledge-root .dss-kb-summary strong { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--dss-ink); }
+body .dss-knowledge-root.is-overview > .dss-toolbar { order: 1; position: static !important; height: auto; padding: 0 0 24px; gap: 12px; background: transparent; border: 0; }
+body .dss-knowledge-root .dss-search { min-width: 140px; min-height: 42px; box-sizing: border-box; padding: 9px 13px; border-radius: 10px; background: var(--dss-panel); gap: 9px; }
+body .dss-knowledge-root .dss-search-input { font: inherit; }
+body .dss-knowledge-root .dss-kb-scope { flex: 0 1 192px; min-width: 140px; width: auto; height: 42px; margin: 0; border-radius: 10px; background: var(--dss-panel); font-size: 13px; }
+body .dss-knowledge-root.is-overview .dss-kb-overview { order: 2; padding: 0; }
+body .dss-knowledge-root .dss-kb-cards { grid-template-columns: repeat(auto-fit,minmax(min(260px,100%),1fr)); gap: 18px; }
+body .dss-knowledge-root :is(.dss-kb-create,.dss-kb-card) { min-height: 188px; border: 1px solid var(--dss-line-strong) !important; border-radius: 16px !important; background: var(--dss-panel); padding: 24px; box-shadow: 0 2px 4px #10243a04,0 8px 24px #10243a05; transition: border-color 160ms,box-shadow 160ms,transform 160ms; }
+body .dss-knowledge-root :is(.dss-kb-create,.dss-kb-card):hover { border-color: var(--dss-accent) !important; background: var(--dss-panel); box-shadow: 0 4px 18px #10243a12; transform: translateY(-2px); }
+body .dss-knowledge-root :is(.dss-kb-create,.dss-kb-card):focus-visible { outline: 2px solid var(--dss-accent); outline-offset: 3px; }
+body .dss-knowledge-root .dss-kb-create { border-style: dashed !important; gap: 8px; box-shadow: none; }
+body .dss-knowledge-root .dss-kb-create-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; color: var(--dss-accent); background: var(--dss-accent-soft); margin-bottom: 3px; }
+body .dss-knowledge-root .dss-kb-create strong { font-size: 14px; font-weight: 600; color: var(--dss-ink); }
+body .dss-knowledge-root .dss-kb-create small { color: var(--dss-muted); font-size: 12px; }
+body .dss-knowledge-root .dss-kb-card { grid-template-columns: 48px minmax(0,1fr); grid-template-rows: auto auto 1fr auto; column-gap: 12px; row-gap: 4px; }
+body .dss-knowledge-root .dss-kb-card-icon { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--dss-line); color: var(--dss-accent); background: var(--dss-accent-soft); }
+body .dss-knowledge-root .dss-kb-card strong { font-size: 16px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+body .dss-knowledge-root .dss-kb-card > span:not(.dss-kb-card-icon) { font-size: 12px; }
+body .dss-knowledge-root .dss-kb-card small { font-size: 12px; overflow-wrap: anywhere; padding-top: 20px; }
+body .dss-knowledge-root .dss-kb-card .dss-kb-open { grid-column: 1 / -1; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--dss-line); color: var(--dss-muted); }
+body .dss-knowledge-root > [data-storage-status="ready"] { order: 5; border: 0; background: transparent; box-shadow: none; padding: 0; color: var(--dss-muted); font-size: 11px; margin-top: 20px; margin-bottom: 0; }
+body .dss-knowledge-root > [data-storage-status="ready"]::before { content: "✓"; margin-right: 6px; color: var(--dss-accent); }
+body .dss-knowledge-root > [data-storage-status]:not([data-storage-status="ready"]) { order: -1; margin-bottom: 16px; }
+body .dss-knowledge-root:not(.is-overview) > [data-storage-status="ready"] { margin: 8px 18px; }
+body .dss-knowledge-root .dss-toolbar-actions { flex-wrap: wrap; gap: 8px; min-width: 0; }
+body .dss-knowledge-root .dss-btn { min-height: 34px; font-size: 12px; }
+body .dss-knowledge-root .dss-scroll { padding: 18px; }
+body .dss-knowledge-root .dss-item { padding: 18px; border-radius: 12px; }
+body .dss-knowledge-root .dss-item-title { font-size: 15px; font-weight: 600; }
+body .dss-knowledge-root .dss-item-body { font-size: 13px; line-height: 1.7; margin-top: 8px; }
+body .dss-knowledge-root .dss-dialog { border-radius: 18px; padding: 24px; max-height: calc(100% - 32px); overflow: auto; box-sizing: border-box; width: min(440px,calc(100% - 32px)); box-shadow: 0 16px 60px #10243a24; }
+body .dss-knowledge-root .dss-kb-dialog-title { margin: 0 0 22px; font-size: 20px; line-height: 1.4; font-weight: 600; }
+body .dss-knowledge-root .dss-dialog :is(.dss-input,.dss-select) { box-sizing: border-box; min-height: 40px; margin: 8px 0 16px; }
+body .dss-knowledge-root .dss-label { font-size: 12px; font-weight: 600; }
+body .dss-knowledge-root .dss-drawer { padding: 22px; gap: 14px; border-radius: 18px 18px 0 0; }
+body:not([data-ds-dark-theme]) .dss-knowledge-root { --dss-bg: #fff; --dss-panel: #fff; --dss-ink: #202936; --dss-muted: #657183; --dss-faint: #748092; --dss-line: #edf0f4; --dss-line-strong: #dce2ea; --dss-accent: #3265ac; --dss-accent-soft: #edf3fc; }
+@container dss-knowledge (max-width: 560px) {
+  body .dss-knowledge-root .dss-kb-hero { gap: 18px; margin-bottom: 22px; }
+  body .dss-knowledge-root .dss-kb-hero h1 { font-size: 23px; }
+  body .dss-knowledge-root .dss-kb-mark { width: 44px; height: 44px; border-radius: 13px; }
+  body .dss-knowledge-root .dss-kb-heading { gap: 12px; }
+  body .dss-knowledge-root .dss-kb-cards { grid-template-columns: 1fr; gap: 14px; }
+  body .dss-knowledge-root .dss-kb-scope { flex: 1 1 100%; }
+  body .dss-knowledge-root :is(.dss-kb-create,.dss-kb-card) { min-height: 160px; padding: 20px; }
+}
+@media(prefers-reduced-motion:reduce) { body .dss-knowledge-root :is(.dss-kb-create,.dss-kb-card) { transition: none; transform: none; } }
+`;
+		const CONVERSATION_TOOLBAR_CSS = `
+/* I023/28: one visible right-card entry; retain the native service for resource calls. */
+body:has([data-dsh-toggle-cluster]) header [data-conversation-header-corner]:has([data-sidebar-right-expand]) { display: none !important; }
+body .wSkVaW_root:not([data-phase="hero"]) { container-type: inline-size; container-name: dss-conversation; }
+body header:has([data-dcu-inline-tabs]) { column-gap: 10px; row-gap: 6px; padding-left: 16px !important; padding-right: 78px !important; }
+body header:has([data-dcu-inline-tabs]) .wSkVaW_crumbs { flex: 0 1 auto; max-width: min(32%,360px); }
+body header:has([data-dcu-inline-tabs]) .wSkVaW_headerActions { height: 28px; align-items: center; }
+body header:has([data-dcu-inline-tabs]) .wSkVaW_headerUtilities { margin-left: auto; padding-left: 0; border-left: 0; height: 28px; align-items: center; gap: 6px; }
+body header:has([data-dcu-inline-tabs]) .wSkVaW_headerUtilities .CAgGvG_split { height: 28px; border: 0; border-radius: 6px; background: transparent; box-shadow: none; }
+body header:has([data-dcu-inline-tabs]) .wSkVaW_headerUtilities :is(.CAgGvG_main,.CAgGvG_chevron,.nL4_yW_moreButton) { height: 28px; min-height: 28px; border: 0; border-radius: 6px; box-shadow: none; }
+body header:has([data-dcu-inline-tabs]) .wSkVaW_headerUtilities :is(.CAgGvG_main,.CAgGvG_chevron,.nL4_yW_moreButton):hover { background: var(--dsw-alias-interactive-bg-hover,rgba(127,127,127,.08)); }
+body:has(header [data-dcu-inline-tabs]) [data-dsh-toggle-cluster] { top: calc(10px + env(safe-area-inset-top)) !important; }
+body[data-dsh-title-bar-compat]:has(header [data-dcu-inline-tabs]) [data-dsh-toggle-cluster] { top: calc(var(--dsh-title-bar-strip,40px) + 10px) !important; }
+body:has(.nArs4W_panel:not(.nArs4W_panelHidden)) header:has([data-dcu-inline-tabs]),
+body:has([data-sidebar-right-open]) header:has([data-dcu-inline-tabs]) { padding-right: 16px !important; }
+@container dss-conversation (max-width: 760px) {
+  body header:has([data-dcu-inline-tabs]) { display: grid; grid-template-columns: 76px minmax(0,1fr) auto; }
+  body header:has([data-dcu-inline-tabs]) .wSkVaW_crumbs { grid-row: 1; grid-column: 1 / 3; max-width: none; }
+  body header:has([data-dcu-inline-tabs]) .wSkVaW_headerUtilities { grid-row: 1; grid-column: 3; margin-left: 0; }
+  body header:has([data-dcu-inline-tabs]) .wSkVaW_headerActions { grid-row: 2; grid-column: 1; }
+  body header:has([data-dcu-inline-tabs]) [data-dcu-inline-tabs] { grid-row: 2; grid-column: 2 / 4; justify-self: start; }
+}
+`;
+		const FOOTER_NAV_CSS = `
+/* I023/32: the two footer actions share one row in the expanded navigation. */
+body .dcu-root footer.dcu-foot { display: flex; flex-direction: row; align-items: center; gap: 8px !important; width: 100% !important; padding: 8px !important; box-sizing: border-box; }
+body .dcu-root .dcu-foot .dcu-footer-actions { display: flex; flex-direction: column; gap: 0 !important; flex: 1 1 0; min-width: 0; }
+body .dcu-root .dcu-foot .dcu-footer-actions > [data-slot] { display: contents !important; }
+body .dcu-root .dcu-foot .dcu-settings-seat { margin: 0; padding: 0; min-width: 0; flex: 1 1 0; }
+body .dcu-root .dcu-foot :is([data-daw-launcher],[data-dsh-restart],.dcu-settings-trigger) {
+  display: grid !important; grid-template-columns: 16px minmax(0,1fr); align-items: center !important; justify-content: start !important;
+  column-gap: 6px !important; width: 100% !important; height: 36px !important; min-height: 36px !important;
+  padding: 8px !important; margin: 0 !important; box-sizing: border-box; border: 0 !important; border-radius: 8px !important;
+  font-family: var(--dcu-font,'Segoe UI','Microsoft YaHei UI',sans-serif) !important;
+  font-size: 13px !important; line-height: 20px !important; font-weight: 400 !important;
+  text-align: left !important; color: var(--dcu-sidebar-navigation,currentColor) !important;
+  box-shadow: none; transition: background-color 140ms ease,color 140ms ease;
+}
+body .dcu-root .dcu-foot .dcu-settings-trigger-content { display: contents !important; }
+body .dcu-root .dcu-foot :is([data-daw-launcher],[data-dsh-restart],.dcu-settings-trigger) svg {
+  display: block; width: 16px !important; height: 16px !important; margin: 0 !important;
+  color: var(--dcu-sidebar-icon,currentColor); transform: none !important; flex-shrink: 0;
+}
+body .dcu-root .dcu-foot :is([data-daw-launcher],[data-dsh-restart],.dcu-settings-trigger):hover {
+  background: var(--dcu-sidebar-hover,rgba(127,127,127,.1)) !important; transform: none !important;
+}
+body .dcu-root .dcu-foot :is([data-daw-launcher],[data-dsh-restart],.dcu-settings-trigger):focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary,#3265ac); outline-offset: -2px;
+}
+body .dcu-root .dcu-foot [data-dsh-restart] > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body .dcu-root.dcu-compact footer.dcu-foot { flex-direction: column; gap: 4px !important; width: 36px !important; padding: 8px 0 !important; margin-left: auto !important; margin-right: auto !important; }
+body .dcu-root.dcu-compact .dcu-foot :is(.dcu-footer-actions,.dcu-settings-seat) { flex: none; width: 36px; }
+body .dcu-root.dcu-compact .dcu-foot .dcu-settings-seat { width: 36px; overflow: visible; }
+body .dcu-root.dcu-compact .dcu-foot :is([data-daw-launcher],[data-dsh-restart],.dcu-settings-trigger) {
+  grid-template-columns: 16px; justify-content: center !important; gap: 0 !important; padding: 10px !important;
+}
+@media(prefers-reduced-motion:reduce) { body .dcu-root .dcu-foot :is([data-daw-launcher],[data-dsh-restart],.dcu-settings-trigger) { transition: none; } }
+`;
+		function mountStyles() {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "dsh-sidebar-spaces";
+			tag.dataset.pluginCss = "dsh-sidebar-spaces/client.css";
+			tag.textContent = CSS + HOME_DETAIL_CSS + HOME_CARD_ALIGNMENT_CSS + ROUNDED_PANEL_CSS + KNOWLEDGE_DETAIL_CSS + CONVERSATION_TOOLBAR_CSS + FOOTER_NAV_CSS;
+			document.head.appendChild(tag);
+			return tag;
+		}
+		//#endregion
+
+		//#region 插件入口
+		const inject = ["slots", "locale", "sessions", "workspaces"];
+
+		function fail(phase, error) {
+			console.error("[dsh-sidebar-spaces] " + phase + " error:", error);
+			try {
+				const bar = document.createElement("div");
+				bar.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:2147483000;max-width:70vw;padding:8px 12px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#f2a1a1;background:#1b1b22;border:1px solid #f2a1a1;border-radius:8px;white-space:pre-wrap";
+				bar.textContent = "[dsh-sidebar-spaces] " + phase + " error: " + (error instanceof Error ? error.message : String(error));
+				document.body.appendChild(bar);
+			} catch (barError) {}
+		}
+
+		function withBetterSidebar(ctx, mount) {
+			const fiber = ctx.inject(["betterSidebar"], (inner) => {
+				inner.effect(() => mount(inner.betterSidebar), "dsh-sidebar-spaces: available sidebar");
+			});
+			return () => fiber.dispose();
+		}
+
+		// The 0.1.5 official panel bypasses workspaces.openPath. Coordinate
+		// presentation, not file routing: both providers retain their own tabs.
+		function coordinateRightPanels(native, cards, observe) {
+			if (typeof cards.setPanelOpen !== "function") return () => {};
+			let disposed = false;
+			let wasOpen = cards.getSnapshot().state?.panelOpen === true;
+			const syncNative = () => {
+				if (!disposed && native.isExpanded() && cards.getSnapshot().state?.panelOpen) cards.setPanelOpen(false);
+			};
+			const off = cards.subscribeState(() => {
+				const open = cards.getSnapshot().state?.panelOpen === true;
+				const opening = open && !wasOpen;
+				wasOpen = open;
+				if (!disposed && opening && native.isExpanded()) native.toggleExpanded();
+			});
+			// Restored sessions can initially have both providers expanded.
+			const offNative = observe(syncNative);
+			syncNative();
+			return () => {
+				disposed = true;
+				off();
+				offNative();
+			};
+		}
+		function observePanelPresentation(sync) {
+			// The official controller has no public subscription. Its own tab
+			// actions bypass the outer service facade. After a rendered commit,
+			// read isExpanded(); never infer state from hashed CSS class names.
+			let frame = 0;
+			const observer = new MutationObserver(() => {
+				if (!frame) frame = requestAnimationFrame(() => { frame = 0; sync(); });
+			});
+			observer.observe(document.getElementById("root") || document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-sidebar-right-open", "data-sidebar-right-panel"] });
+			return () => { observer.disconnect(); if (frame) cancelAnimationFrame(frame); };
+		}
+
+		function apply(ctx) {
+			try {
+				workbenchRuntime = { sessions: ctx.sessions, workspaces: ctx.workspaces };
+				ctx.effect(() => {
+					const fiber = ctx.inject(["sidebarRight", "betterSidebar"], inner => {
+						inner.effect(() => coordinateRightPanels(inner.sidebarRight, inner.betterSidebar, observePanelPresentation), "dsh-sidebar-spaces: single right panel");
+					});
+					return () => fiber.dispose();
+				}, "dsh-sidebar-spaces: optional right panel coordination");
+				ctx.effect(() => {
+					const tag = mountStyles();
+					return () => {
+						tag.remove();
+					};
+				}, "dsh-sidebar-spaces: styles");
+				ctx.effect(mountHeroActivityGrid, "dsh-sidebar-spaces: hero activity grid");
+				ctx.effect(() => closeStandaloneWorkbench, "dsh-sidebar-spaces: standalone workbench");
+				ctx.effect(() => () => cancelSettingsNavigation?.(), "dsh-sidebar-spaces: settings navigation");
+				ctx.effect(() => withBetterSidebar(ctx, (service) => {
+					// 「浏览器」order=50；知识中心 60、数据库 70，紧随其后
+					const disposeKb = service.registerTab({
+						id: "space-knowledge",
+						title: () => WORKBENCH_TEXT.knowledge,
+						icon: (size) => Icon.book(size || 16),
+						order: 60,
+						single: true,
+						component: (props) => h(appShell, { title: WORKBENCH_TEXT.knowledge, icon: Icon.book(16), children: h(KnowledgeApp, { service, scope: props.scope }) })
+					});
+					const disposeDb = service.registerTab({
+						id: "space-database",
+						title: () => "数据库",
+						icon: (size) => Icon.database(size || 16),
+						order: 70,
+						single: true,
+						component: () => h(appShell, { title: "数据库", icon: Icon.database(16), children: h(DatabaseApp, null) })
+					});
+					const disposeInventor = service.registerTab({
+						id: "space-inventor-2027",
+						title: () => TEXT.inventorTitle,
+						icon: (size) => Icon.inventor(size || 16),
+						order: 80,
+						single: true,
+						component: () => h(appShell, { title: TEXT.inventorTitle, icon: Icon.inventor(16), children: h(InventorApp, null) })
+					});
+					return () => {
+						disposeKb();
+						disposeDb();
+						disposeInventor();
+					};
+				}), "dsh-sidebar-spaces: register tabs");
+				ctx.effect(() => withBetterSidebar(ctx, (service) => {
+					const disposeAutomation = service.registerTab({
+						id: "space-automation",
+						hidden: true, // Restore-only adapter: retire old layout tabs, never a visible entry.
+						title: () => WORKBENCH_TEXT.automation,
+						icon: (size) => h(primitives.IconAlarmClockOutline16, { size: size || 16 }),
+						order: 90,
+						single: true,
+						component: (props) => h(RetiredAutomationTab, { ...props, service })
+					});
+					const stopRetiring = retireAutomationTabs(service);
+					return () => { stopRetiring(); disposeAutomation(); };
+				}), "dsh-sidebar-spaces: register workbench tabs");
+				// Sole entry lives in Codex UI's 扩展管理 → 插件. That side dispatches a
+				// cancelable event; claiming it here keeps the standalone page the only
+				// destination, and leaving it unclaimed lets the launcher fall back to Settings.
+				ctx.effect(() => {
+					const open = (event) => {
+						event.preventDefault();
+						openStandaloneWorkbench("space-extensions");
+					};
+					window.addEventListener("dsh:open-extension-page", open);
+					return () => window.removeEventListener("dsh:open-extension-page", open);
+				}, "dsh-sidebar-spaces: extension page launcher");
+
+			} catch (error) {
+				fail("load", error);
+			}
+		}
+		//#endregion
+
+		exports.apply = apply;
+		exports.inject = inject;
+		return module.exports;
+	}
+});

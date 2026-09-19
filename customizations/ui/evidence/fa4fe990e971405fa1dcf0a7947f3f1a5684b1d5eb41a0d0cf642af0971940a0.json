@@ -1,0 +1,48 @@
+{
+    "status":  "pass",
+    "checkedAt":  "2026-09-17T00:02:16.9154858+08:00",
+    "results":  [
+                    {
+                        "expected":  "\u003e=1990",
+                        "ok":  true,
+                        "name":  "对话列吃满剩余（#root 宽 ≥ 1990）",
+                        "measured":  "2072 px"
+                    },
+                    {
+                        "expected":  "无",
+                        "ok":  true,
+                        "name":  "空白带消失（两框之间无 body 带）",
+                        "measured":  "无"
+                    },
+                    {
+                        "expected":  "≈2072",
+                        "ok":  true,
+                        "name":  "面板紧贴对话列（面板左缘 = #root 右缘）",
+                        "measured":  "2072"
+                    },
+                    {
+                        "expected":  "含",
+                        "ok":  true,
+                        "name":  "空态面板收缩规则已进产物",
+                        "measured":  "bundle 含空态变量"
+                    },
+                    {
+                        "expected":  "4/4",
+                        "ok":  true,
+                        "name":  "theme.css 四个尺子令牌就位",
+                        "measured":  "4/4"
+                    },
+                    {
+                        "expected":  "含",
+                        "ok":  true,
+                        "name":  "外壳尺子代码在运行槽（含占位符）",
+                        "measured":  "含"
+                    },
+                    {
+                        "expected":  "无",
+                        "ok":  true,
+                        "name":  "页面不得再有第二条尺子（无 1100px 面板媒体查询）",
+                        "measured":  "无"
+                    }
+                ]
+}

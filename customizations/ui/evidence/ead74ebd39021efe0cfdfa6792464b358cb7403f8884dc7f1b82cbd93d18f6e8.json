@@ -1,0 +1,132 @@
+{
+  "status": "pass",
+  "generatedAt": "2026-09-14T15:12:18.823Z",
+  "chrome": "G:\\DSH-3-Portable\\宏建云系统\\browsers\\chrome-152.0.7977.64\\chrome.exe",
+  "results": [
+    {
+      "name": "负向对照：修复前两侧策略（页面 CSS px −1040 / 外壳 DIP −900）在缩放下错位",
+      "ok": true,
+      "detail": "最大错位 68 DIP（缩放 0.8、视口 2560/1600 各 68 DIP）—— 卡片比原生视图宽出来的那一条，正是用户截图里被红框圈住的右侧白区"
+    },
+    {
+      "name": "修复后：外壳按同一策略（−1040）折成 CSS px 下发，卡片与原生视图宽度一致",
+      "ok": true,
+      "detail": "6 个组合（zoom 1 / 0.8 / 1.25 × 视口 2560 / 1600）错位全部为 0"
+    },
+    {
+      "name": "真实 theme.css 消费 CSS 变量（而非写死常量）",
+      "ok": true,
+      "detail": "body .nArs4W_panel 的 max-width 取自 --dsh-browser-panel-max-width，兜底与外壳常量同值"
+    }
+  ],
+  "measurements": [
+    {
+      "zoom": 1,
+      "dipViewport": 2560,
+      "label": "修复前（平台各写一套）",
+      "cardCss": 1520,
+      "cardDip": 1520,
+      "shellViewDip": 1520,
+      "gapDip": 0
+    },
+    {
+      "zoom": 1,
+      "dipViewport": 2560,
+      "label": "修复后（单一来源）",
+      "cardCss": 1520,
+      "cardDip": 1520,
+      "shellViewDip": 1520,
+      "gapDip": 0
+    },
+    {
+      "zoom": 1,
+      "dipViewport": 1600,
+      "label": "修复前（平台各写一套）",
+      "cardCss": 560,
+      "cardDip": 560,
+      "shellViewDip": 560,
+      "gapDip": 0
+    },
+    {
+      "zoom": 1,
+      "dipViewport": 1600,
+      "label": "修复后（单一来源）",
+      "cardCss": 560,
+      "cardDip": 560,
+      "shellViewDip": 560,
+      "gapDip": 0
+    },
+    {
+      "zoom": 0.8,
+      "dipViewport": 2560,
+      "label": "修复前（平台各写一套）",
+      "cardCss": 2160,
+      "cardDip": 1728,
+      "shellViewDip": 1660,
+      "gapDip": 68
+    },
+    {
+      "zoom": 0.8,
+      "dipViewport": 2560,
+      "label": "修复后（单一来源）",
+      "cardCss": 1900,
+      "cardDip": 1520,
+      "shellViewDip": 1520,
+      "gapDip": 0
+    },
+    {
+      "zoom": 0.8,
+      "dipViewport": 1600,
+      "label": "修复前（平台各写一套）",
+      "cardCss": 960,
+      "cardDip": 768,
+      "shellViewDip": 700,
+      "gapDip": 68
+    },
+    {
+      "zoom": 0.8,
+      "dipViewport": 1600,
+      "label": "修复后（单一来源）",
+      "cardCss": 700,
+      "cardDip": 560,
+      "shellViewDip": 560,
+      "gapDip": 0
+    },
+    {
+      "zoom": 1.25,
+      "dipViewport": 2560,
+      "label": "修复前（平台各写一套）",
+      "cardCss": 1008,
+      "cardDip": 1260,
+      "shellViewDip": 1260,
+      "gapDip": 0
+    },
+    {
+      "zoom": 1.25,
+      "dipViewport": 2560,
+      "label": "修复后（单一来源）",
+      "cardCss": 1216,
+      "cardDip": 1520,
+      "shellViewDip": 1520,
+      "gapDip": 0
+    },
+    {
+      "zoom": 1.25,
+      "dipViewport": 1600,
+      "label": "修复前（平台各写一套）",
+      "cardCss": 240,
+      "cardDip": 300,
+      "shellViewDip": 300,
+      "gapDip": 0
+    },
+    {
+      "zoom": 1.25,
+      "dipViewport": 1600,
+      "label": "修复后（单一来源）",
+      "cardCss": 448,
+      "cardDip": 560,
+      "shellViewDip": 560,
+      "gapDip": 0
+    }
+  ]
+}

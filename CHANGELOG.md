@@ -4,6 +4,12 @@
 
 The five most recent published versions are listed below.
 
+> **Versioning policy (2026-09-14):** the portable version now follows upstream exactly — base version equals the rebaselined upstream release (currently 1.0.64); portable-only rebuilds on the same base append a 4th component (1.0.64.1, 1.0.64.2, …). The earlier self-counted line 1.0.54–1.0.66 is retired; already-deployed 1.0.66-local installs keep running and pick up updates once the base exceeds 1.0.66.
+
+## 1.0.64 (portable re-baseline) — 2026-09-14
+
+- Re-baselined ancestry onto upstream v1.0.64 (merge -s ours). Group review of the v1.0.53..v1.0.64 increment: ① bundled matrix jumps — not adopted (runtime already tracks 0.1.5-rc.2 via the portable A/B channel); ② developer tools (F12) and measured startup progress — verified already present in-tree (absorbed earlier by parallel sessions, with tests); ③ offline-upgrade/recovery hardening — diverges from the portable A/B pipeline, recorded for item-by-item review; ④ CI workflow — forked (contract + release source), manual merge pending. No tree changes in this release beyond the ancestry claim.
+
 ## 1.0.66 Portable Integration — 2026-09-13
 
 - Absorbed item 1 of the Linear DESIGN.md comparison: negative tracking token ladder in theme.css (tight/tighter/display), consumed by the settings/about/shortcuts page headings. Verified live (24px heading: normal → -0.48px) and re-recorded the UI baseline with real measurements (I027).

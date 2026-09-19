@@ -1,0 +1,43 @@
+{
+  "status": "pass",
+  "note": "外壳重启按钮重启中不再转圈：仅删除 .nav.restart.spinning img 的 animation 声明，保留变暗+不可点忙碌提示；不含 JS/结构改动。运行时验收（真实重启时图标静止）待部署后由用户确认 —— 该状态只在重启过程中出现，构建与静态检查无法覆盖。",
+  "recordedAt": "2026-09-16T13:30:00Z",
+  "record": "docs/01-当前工作/20260916-外壳重启图标不转圈.md",
+  "results": [
+    {
+      "check": "转圈来源定位",
+      "method": "在 assets/shell.html 中检索 spin/animation（源码取证，非猜测）",
+      "expected": "找到该动画的唯一来源",
+      "actual": "第 79 行 .nav.restart.spinning img{animation:dsh-restart-spin .7s linear infinite} + 第 80 行 @keyframes",
+      "status": "pass"
+    },
+    {
+      "check": "改动面边界",
+      "method": "对比改动前后的该文件差异",
+      "expected": "仅一处 CSS 声明变化，不触碰 JS/结构/其它选择器",
+      "actual": "1 file changed, 2 insertions(+), 1 deletion(-)：animation:dsh-restart-spin … → animation:none，并加一行注释",
+      "status": "pass"
+    },
+    {
+      "check": "忙碌提示未丢失",
+      "method": "检查 .nav.restart.spinning 的其余声明是否保留",
+      "expected": "opacity:.6 与 pointer-events:none 仍在（用户仍能看出正在重启）",
+      "actual": "该规则未改动，仍为 {opacity:.6;pointer-events:none}",
+      "status": "pass"
+    },
+    {
+      "check": "生效路径与门禁",
+      "method": "尝试界面快通道 Build-UI-Only.cmd；读取其输出",
+      "expected": "若快通道拒绝则走全量构建",
+      "actual": "快通道按设计拒绝（'存在必须走全量构建的改动'，因本会话反复 tsc 使 dist/ 新于已部署 app.asar）→ 转全量构建",
+      "status": "pass"
+    },
+    {
+      "check": "运行时观感（重启时图标静止）",
+      "method": "需要一次真实重启过程观察",
+      "expected": "重启过程中电源图标不再旋转，仅变暗且不可点",
+      "actual": "未执行 —— 该状态仅在重启过程中出现；候选槽部署后由用户重启确认",
+      "status": "skipped"
+    }
+  ]
+}

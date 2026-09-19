@@ -1,0 +1,47 @@
+{
+  "status": "pass",
+  "title": "右栏收起留 280px 空白条 + 拖拽手柄强调色竖线/横线：修复与自验（2026-09-17）",
+  "scope": "Data/DSH/profiles/web/local/{dsh-better-sidebar,dsh-sidebar-spaces}/lib/*.js + scripts/build-sidebar-layout-compat.mjs",
+  "changeNote": "docs/03-技术架构/UI定制维护契约.md",
+  "method": "起独立诊断实例 dsh web（同一 Profile / 同一运行时槽 0.1.6-alpha.1-2a49814bc8ce816d、--port 0 + 打印 token URL），真实页面读 DOM / 派发指针事件；验完关闭实例。",
+  "results": [
+    { "name": "右栏收起时 --dsh-sidebar-width 写 0px（旧式写 280px）", "ok": true, "measured": "0px", "expected": "0px" },
+    { "name": "收起后对话列吃满视口（旧式留 278px 白条 = 用户截图那条）", "ok": true, "measured": "centerW=1126（复测 1117）@vw=1384；旧式 848", "expected": "≈ 视口 - 左栏" },
+    { "name": "右栏手柄与底部面板手柄的 ::after 都不再画线", "ok": true, "measured": "两处 content:none/width:auto；全样式表 Resize::after 规则 0 条", "expected": "0 条" },
+    { "name": "分隔条 15 档小步拖动跟随指针并在两端正确夹紧", "ok": true, "measured": "569→281→280（下限）/ 281→…→704（上限 vw-680）/ 松手回 581", "expected": "280 .. vw-680" },
+    { "name": "插件客户端 bundle 免重启（页面自刷即生效）", "ok": true, "measured": "window 探针被清空 + __twBundle='v2-marker' 生效", "expected": "自刷且新字节生效" },
+    { "name": "制品级改前/改后对照（抽被改文件真实代码行）", "ok": true, "measured": "width=0: 280px→0px；width>0 六档行为完全一致", "expected": "0px 且其余不变" },
+    { "name": "类型门禁 tsc", "ok": true, "measured": "exit 0", "expected": "exit 0" },
+    { "name": "UI 交付纪律 lint", "ok": true, "measured": "PASS 8/8", "expected": "PASS" },
+    { "name": "改动 bundle 语法门禁 node --check", "ok": true, "measured": "全部通过", "expected": "0 失败" }
+  ],
+  "artifactLevelAB": {
+    "script": "data/temp/panel-width-ab.cjs",
+    "table": [
+      { "width": 0, "avail": 1376, "before": "280px", "after": "0px" },
+      { "width": 0, "avail": 900, "before": "280px", "after": "0px" },
+      { "width": 280, "avail": 1376, "before": "280px", "after": "280px" },
+      { "width": 300, "avail": 1376, "before": "300px", "after": "300px" },
+      { "width": 554, "avail": 1376, "before": "554px", "after": "554px" },
+      { "width": 900, "avail": 1376, "before": "696px", "after": "696px" }
+    ]
+  },
+  "pendingDrift": {
+    "policy": "AGENTS 止损纪律第 4 条：撞上他人会话在途写入时不替它背书 —— 本次记录只收口『我的改动』，归属在下方列明，并在 docs/03-技术架构/UI定制维护契约.md §13 留档。",
+    "mine": [
+      "Data/DSH/profiles/web/local/dsh-better-sidebar/lib/client.js（writeGeometry 加 width<=0 守卫）",
+      "Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.js（删竖线+横线 Resize::after 四条）",
+      "Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.src.js（孪生副本同步）"
+    ],
+    "notMine": [
+      "scripts/build-sidebar-layout-compat.mjs —— 与上一版快照相比 +20 行，其中 writeGeometryAnchor/writeGeometryClamped/seamExact 整块属 2026-09-16 上一轮会话在途未记录改动；我只在其 writeGeometryClamped 里加了 width<=0 守卫与 3 行注释"
+    ]
+  },
+  "knownOpen": [
+    "client-registry.js:20165 的第二份 writeGeometry 已在本轮补齐钳制+守卫（裸写法 1→0）；但 lint 检查③ 的范围仍只覆盖 live lib/client.js ⇒ 门禁盲区仍在（不自改评分器）",
+    "scripts/verify-adaptive-layout.mjs 的数据源（宽度探针）在 2026-09-17 事故中被删，本轮之后按计划装回",
+    "面板渲染宽度由 app 内联 style.width 驱动、--dsh-sidebar-width 只驱动布局让位（采样状态实测边界始终等于设计值 6px，无可见症状）",
+    "dsh-sidebar-spaces 仍 lib + src 双拷贝",
+    "右栏存储宽度：物理探针曾从 ~516 改为 ~426，随后已反向拖 90px 还原（提交点=松手时的 clamp 结果）"
+  ]
+}

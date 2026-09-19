@@ -1,0 +1,125 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "check": "profile 实际加载的 automation 与本脚本检验的是同一份",
+      "ok": true,
+      "detail": {
+        "installed": "G:\\DSH-3-Portable\\Data\\DSH\\profiles\\web\\node_modules\\@michengai\\dsh-automation\\lib\\client.js"
+      }
+    },
+    {
+      "check": "重钉后的锚点与实机运行件哈希一致",
+      "ok": true,
+      "detail": {
+        "installedHash": "b4839315c00b1a4b7f6a17de58e5a9b1f6cc1b274bb5e63fac9875807582ea67",
+        "upstreamHash": "b4839315c00b1a4b7f6a17de58e5a9b1f6cc1b274bb5e63fac9875807582ea67"
+      }
+    },
+    {
+      "check": "锚点已不再是旧的 0.1.40 值（确保真的重钉过）",
+      "ok": true
+    },
+    {
+      "check": "契约锚点各出现且仅出现一次：function apply(ctx) {…",
+      "ok": true,
+      "detail": {
+        "count": 1
+      }
+    },
+    {
+      "check": "契约锚点各出现且仅出现一次：  const runtime = createAutomationRuntime(…",
+      "ok": true,
+      "detail": {
+        "count": 1
+      }
+    },
+    {
+      "check": "契约锚点各出现且仅出现一次：return (0, import_react11.createElement)(A…",
+      "ok": true,
+      "detail": {
+        "count": 1
+      }
+    },
+    {
+      "check": "实机运行件里已退役的工作台注入标记零残留",
+      "ok": true,
+      "detail": {
+        "leftover": []
+      }
+    },
+    {
+      "check": "真实 buildWorkbench 对已审阅版本返回零注入（输出与输入同一份文本）",
+      "ok": true,
+      "detail": {
+        "inputLength": 275648,
+        "outputLength": 275648
+      }
+    },
+    {
+      "check": "真实 buildWorkbench 幂等（再跑一次结果不变）",
+      "ok": true
+    },
+    {
+      "check": "补丁输出不含已退役的注入标记",
+      "ok": true
+    },
+    {
+      "check": "篡改过的上游版本被拒绝（反向对照，证明锚点检查不是空跑）",
+      "ok": true,
+      "detail": {
+        "reason": "Unsupported automation client: review upstream version and interface before applying this customization"
+      }
+    },
+    {
+      "check": "残留半截补丁标记的输入被拒绝",
+      "ok": true
+    },
+    {
+      "measurement": "dom",
+      "launcherNodes": 0,
+      "portalNodes": 0,
+      "patchedHasInjectionMarkers": [],
+      "nativePageMounts": 1,
+      "nodes": 4,
+      "overflowX": 0,
+      "viewport": "1920x1080"
+    },
+    {
+      "check": "1920px：宿主里不存在工作台启动器节点（已退役的注入没有复活）",
+      "ok": true,
+      "detail": {
+        "launcherNodes": 0,
+        "portalNodes": 0
+      }
+    },
+    {
+      "check": "1920px：补丁输出不含任何工作台注入标记",
+      "ok": true,
+      "detail": {
+        "hits": []
+      }
+    },
+    {
+      "check": "1920px：原生定时任务页挂载点仍在（界面形态不变）",
+      "ok": true,
+      "detail": {
+        "mounts": 1
+      }
+    },
+    {
+      "check": "1920px：无横向溢出",
+      "ok": true,
+      "detail": {
+        "overflowX": 0
+      }
+    }
+  ],
+  "scope": "离屏验证：**真实 buildWorkbench**（直接 import Customize/Automation-Workbench/build.mjs）对**实机运行件**的判定在 Node 里执行——覆盖输入件身份、重钉后的锚点哈希、三锚点契约、零注入、幂等、退役标记零残留，以及未审阅/半截补丁输入的拒绝（负向对照）。真 Chrome 152 只负责「设置页宿主复刻」的渲染核对：无工作台启动器/portal 节点、补丁输出无注入标记、原生定时任务页挂载点仍在、1920px 无横向溢出。未覆盖：打包后真实 DSH 会话里「定时任务」设置页的渲染（该页由原生 AutomationView 提供；本轮补丁是**校验器**、不注入任何 UI，故界面形态不变，仍需打包后真机确认）。",
+  "artifacts": {
+    "harness": ".tmp/verify-automation-repin/harness.html",
+    "build": "Customize/Automation-Workbench/build.mjs",
+    "installed": "Data/DSH/profiles/web/node_modules/@michengai/dsh-automation/lib/client.js"
+  },
+  "generatedAt": "2026-09-14T13:11:48.837Z"
+}

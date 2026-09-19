@@ -142,6 +142,8 @@ export interface BrowserShellState {
   readonly downloadsOpen: boolean
   readonly downloadsDrawerHeight: number
   readonly pageZoomPercent: number
+  /** 单网页时页面收起顶部标签条（省约 40px）；几何偏移由外壳用同一判定计算。 */
+  readonly pageTabBarVisible: boolean
   readonly bookmarked: boolean
   readonly downloads: readonly BrowserDownloadState[]
   readonly homepages: readonly string[]
@@ -159,7 +161,7 @@ export interface ShellBootstrap {
   readonly actions: readonly LocalizedShellAction[]
   readonly bundledRuntimeVersion: string
   readonly colorScheme: 'light' | 'dark'
-  readonly themePreset: 'qoder' | 'deep-sea' | 'lake' | 'verde' | 'vermilion' | 'slate' | 'gold'
+  readonly themePreset: 'deep-sea' | 'lake' | 'verde' | 'vermilion' | 'slate' | 'gold'
   readonly featurePanels: {
     readonly categories: readonly { readonly id: string; readonly label: LocalizedText; readonly hint: LocalizedText }[]
     readonly panels: readonly { readonly id: string; readonly name: LocalizedText; readonly file: string; readonly description: LocalizedText; readonly notes?: string; readonly categoryId: string }[]

@@ -1,0 +1,72 @@
+{
+  "status": "pass",
+  "checkedAt": "2026-09-18T15:14:48.836Z",
+  "results": [
+    {
+      "name": "补丁脚本无\"只按标记\"的幂等守卫",
+      "ok": true,
+      "measured": "marker-only 守卫 0 处",
+      "expected": "0 处"
+    },
+    {
+      "name": "CSS 里 --dsh-sidebar-width 声明仅在白名单内",
+      "ok": true,
+      "measured": "CSS 声明 2 处 / 白名单 2 处",
+      "expected": "相等且 ≤2"
+    },
+    {
+      "name": "JS 写入点唯一（写入处钳制）",
+      "ok": true,
+      "measured": "setProperty 写入 1 处",
+      "expected": "1 处"
+    },
+    {
+      "name": "全局 AGENTS 含交付纪律章节",
+      "ok": true,
+      "measured": "含",
+      "expected": "含"
+    },
+    {
+      "name": "契约文档含 §10 执行纪律",
+      "ok": true,
+      "measured": "含",
+      "expected": "含"
+    },
+    {
+      "name": "探针数据新鲜（≤600s，应用在跑时）",
+      "ok": true,
+      "measured": "84s",
+      "expected": "≤600s"
+    },
+    {
+      "name": "探针无视觉浮层残留",
+      "ok": true,
+      "measured": "无残留",
+      "expected": "无"
+    },
+    {
+      "name": "watch 判定文件存在（未启动 watch 时跳过）",
+      "ok": true,
+      "measured": "未找到（视为未启动）",
+      "expected": "存在或未启动"
+    },
+    {
+      "name": "活动/归档插件 bundle 全部可解析",
+      "ok": true,
+      "measured": "24 个文件全通过",
+      "expected": "0 个失败"
+    },
+    {
+      "name": "客户端 factory 返回形状合法（function 或带 apply）",
+      "ok": true,
+      "measured": "10 个模块合法 / 0 个跳过",
+      "expected": "0 个非法"
+    },
+    {
+      "name": "服务 bundle 的 require 规格命中已知集合",
+      "ok": true,
+      "measured": "18 个本地 bundle / 74 个已知规格",
+      "expected": "0 个未知规格"
+    }
+  ]
+}

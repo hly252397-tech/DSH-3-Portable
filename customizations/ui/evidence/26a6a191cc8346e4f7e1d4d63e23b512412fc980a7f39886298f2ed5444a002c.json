@@ -1,0 +1,748 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "label": "normal",
+      "header": {
+        "x": 253,
+        "y": 7,
+        "w": 1084,
+        "h": 34,
+        "right": 1337,
+        "bottom": 41
+      },
+      "overflow": 0,
+      "groups": [
+        {
+          "s": ".wSkVaW_crumbs",
+          "x": 269,
+          "y": 10,
+          "w": 242,
+          "h": 28,
+          "right": 511,
+          "bottom": 38
+        },
+        {
+          "s": ".wSkVaW_headerActions",
+          "x": 521,
+          "y": 10,
+          "w": 68,
+          "h": 28,
+          "right": 589,
+          "bottom": 38
+        },
+        {
+          "s": "[data-dcu-inline-tabs]",
+          "x": 599,
+          "y": 10,
+          "w": 155,
+          "h": 28,
+          "right": 754,
+          "bottom": 38
+        },
+        {
+          "s": ".wSkVaW_headerUtilities",
+          "x": 1122,
+          "y": 10,
+          "w": 99,
+          "h": 28,
+          "right": 1221,
+          "bottom": 38
+        },
+        {
+          "s": "[data-conversation-header-corner]",
+          "x": 1231,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1259,
+          "bottom": 38
+        }
+      ],
+      "toggles": [
+        {
+          "x": 1274,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1302,
+          "bottom": 38,
+          "label": "展开底部面板",
+          "hit": true
+        },
+        {
+          "x": 1306,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1334,
+          "bottom": 38,
+          "label": "展开侧边栏",
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "all three original tabs clickable"
+    },
+    {
+      "label": "mode is existing read-only status, not a menu"
+    },
+    {
+      "label": "选择打开方式 opens and dismisses"
+    },
+    {
+      "label": "更多操作 opens and dismisses"
+    },
+    {
+      "label": "right card toggled",
+      "header": {
+        "x": 69,
+        "y": 7,
+        "w": 704,
+        "h": 68,
+        "right": 773,
+        "bottom": 75
+      },
+      "overflow": 0,
+      "groups": [
+        {
+          "s": ".wSkVaW_crumbs",
+          "x": 85,
+          "y": 10,
+          "w": 529,
+          "h": 28,
+          "right": 614,
+          "bottom": 38
+        },
+        {
+          "s": ".wSkVaW_headerActions",
+          "x": 85,
+          "y": 44,
+          "w": 76,
+          "h": 28,
+          "right": 161,
+          "bottom": 72
+        },
+        {
+          "s": "[data-dcu-inline-tabs]",
+          "x": 171,
+          "y": 44,
+          "w": 155,
+          "h": 28,
+          "right": 326,
+          "bottom": 72
+        },
+        {
+          "s": ".wSkVaW_headerUtilities",
+          "x": 624,
+          "y": 10,
+          "w": 99,
+          "h": 28,
+          "right": 723,
+          "bottom": 38
+        },
+        {
+          "s": "[data-conversation-header-corner]",
+          "x": 733,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 761,
+          "bottom": 38
+        }
+      ],
+      "toggles": [
+        {
+          "x": 1274,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1302,
+          "bottom": 38,
+          "label": "展开底部面板",
+          "hit": true
+        },
+        {
+          "x": 1306,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1334,
+          "bottom": 38,
+          "label": "折叠侧边栏",
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "left rail compact",
+      "header": {
+        "x": 253,
+        "y": 7,
+        "w": 520,
+        "h": 68,
+        "right": 773,
+        "bottom": 75
+      },
+      "overflow": 0,
+      "groups": [
+        {
+          "s": ".wSkVaW_crumbs",
+          "x": 269,
+          "y": 10,
+          "w": 345,
+          "h": 28,
+          "right": 614,
+          "bottom": 38
+        },
+        {
+          "s": ".wSkVaW_headerActions",
+          "x": 269,
+          "y": 44,
+          "w": 76,
+          "h": 28,
+          "right": 345,
+          "bottom": 72
+        },
+        {
+          "s": "[data-dcu-inline-tabs]",
+          "x": 355,
+          "y": 44,
+          "w": 155,
+          "h": 28,
+          "right": 510,
+          "bottom": 72
+        },
+        {
+          "s": ".wSkVaW_headerUtilities",
+          "x": 624,
+          "y": 10,
+          "w": 99,
+          "h": 28,
+          "right": 723,
+          "bottom": 38
+        },
+        {
+          "s": "[data-conversation-header-corner]",
+          "x": 733,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 761,
+          "bottom": 38
+        }
+      ],
+      "toggles": [
+        {
+          "x": 1274,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1302,
+          "bottom": 38,
+          "label": "展开底部面板",
+          "hit": true
+        },
+        {
+          "x": 1306,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1334,
+          "bottom": 38,
+          "label": "折叠侧边栏",
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "zoom 0.8",
+      "header": {
+        "x": 253.2421875,
+        "y": 7.24609375,
+        "w": 855.5078125,
+        "h": 33.984375,
+        "right": 1108.75,
+        "bottom": 41.23046875
+      },
+      "overflow": 0,
+      "groups": [
+        {
+          "s": ".wSkVaW_crumbs",
+          "x": 269.23828125,
+          "y": 10.25390625,
+          "w": 241.953125,
+          "h": 27.96875,
+          "right": 511.19140625,
+          "bottom": 38.22265625
+        },
+        {
+          "s": ".wSkVaW_headerActions",
+          "x": 521.19140625,
+          "y": 10.234375,
+          "w": 67.96875,
+          "h": 27.98828125,
+          "right": 589.16015625,
+          "bottom": 38.22265625
+        },
+        {
+          "s": "[data-dcu-inline-tabs]",
+          "x": 599.16015625,
+          "y": 10.234375,
+          "w": 156.03515625,
+          "h": 27.98828125,
+          "right": 755.1953125,
+          "bottom": 38.22265625
+        },
+        {
+          "s": ".wSkVaW_headerUtilities",
+          "x": 958.828125,
+          "y": 10.234375,
+          "w": 99.94140625,
+          "h": 27.98828125,
+          "right": 1058.76953125,
+          "bottom": 38.22265625
+        },
+        {
+          "s": "[data-conversation-header-corner]",
+          "x": 1068.76953125,
+          "y": 10.234375,
+          "w": 27.98828125,
+          "h": 27.98828125,
+          "right": 1096.7578125,
+          "bottom": 38.22265625
+        }
+      ],
+      "toggles": [
+        {
+          "x": 1610.0390625,
+          "y": 10,
+          "w": 27.98828125,
+          "h": 27.98828125,
+          "right": 1638.02734375,
+          "bottom": 37.98828125,
+          "label": "展开底部面板",
+          "hit": true
+        },
+        {
+          "x": 1642.01171875,
+          "y": 10,
+          "w": 27.98828125,
+          "h": 27.98828125,
+          "right": 1670,
+          "bottom": 37.98828125,
+          "label": "折叠侧边栏",
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "zoom 1.25",
+      "header": {
+        "x": 68.80000305175781,
+        "y": 6.800000190734863,
+        "w": 511.6000061035156,
+        "h": 68,
+        "right": 580.4000091552734,
+        "bottom": 74.80000019073486
+      },
+      "overflow": 0,
+      "groups": [
+        {
+          "s": ".wSkVaW_crumbs",
+          "x": 84.80000305175781,
+          "y": 9.800000190734863,
+          "w": 337.3999938964844,
+          "h": 28,
+          "right": 422.1999969482422,
+          "bottom": 37.80000019073486
+        },
+        {
+          "s": ".wSkVaW_headerActions",
+          "x": 84.80000305175781,
+          "y": 43.79999923706055,
+          "w": 76,
+          "h": 28,
+          "right": 160.8000030517578,
+          "bottom": 71.79999923706055
+        },
+        {
+          "s": "[data-dcu-inline-tabs]",
+          "x": 170.8000030517578,
+          "y": 43.79999923706055,
+          "w": 154.1999969482422,
+          "h": 28,
+          "right": 325,
+          "bottom": 71.79999923706055
+        },
+        {
+          "s": ".wSkVaW_headerUtilities",
+          "x": 432.20001220703125,
+          "y": 9.800000190734863,
+          "w": 98.20000457763672,
+          "h": 28,
+          "right": 530.400016784668,
+          "bottom": 37.80000019073486
+        },
+        {
+          "s": "[data-conversation-header-corner]",
+          "x": 540.4000244140625,
+          "y": 9.800000190734863,
+          "w": 28,
+          "h": 28,
+          "right": 568.4000244140625,
+          "bottom": 37.80000019073486
+        }
+      ],
+      "toggles": [
+        {
+          "x": 1005.2000122070312,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1033.2000122070312,
+          "bottom": 38,
+          "label": "展开底部面板",
+          "hit": true
+        },
+        {
+          "x": 1037.2000732421875,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1065.2000732421875,
+          "bottom": 38,
+          "label": "折叠侧边栏",
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "zoom 1.5",
+      "header": {
+        "x": 68.66667175292969,
+        "y": 6.6666669845581055,
+        "w": 332.66668701171875,
+        "h": 68,
+        "right": 401.33335876464844,
+        "bottom": 74.6666669845581
+      },
+      "overflow": 0,
+      "groups": [
+        {
+          "s": ".wSkVaW_crumbs",
+          "x": 84.66667175292969,
+          "y": 9.666666984558105,
+          "w": 159,
+          "h": 28,
+          "right": 243.6666717529297,
+          "bottom": 37.666666984558105
+        },
+        {
+          "s": ".wSkVaW_headerActions",
+          "x": 84.66667175292969,
+          "y": 43.66666793823242,
+          "w": 76,
+          "h": 28,
+          "right": 160.6666717529297,
+          "bottom": 71.66666793823242
+        },
+        {
+          "s": "[data-dcu-inline-tabs]",
+          "x": 170.6666717529297,
+          "y": 43.66666793823242,
+          "w": 153.6666717529297,
+          "h": 28,
+          "right": 324.3333435058594,
+          "bottom": 71.66666793823242
+        },
+        {
+          "s": ".wSkVaW_headerUtilities",
+          "x": 253.6666717529297,
+          "y": 9.666666984558105,
+          "w": 97.66667175292969,
+          "h": 28,
+          "right": 351.3333435058594,
+          "bottom": 37.666666984558105
+        },
+        {
+          "s": "[data-conversation-header-corner]",
+          "x": 361.3333435058594,
+          "y": 9.666666984558105,
+          "w": 28,
+          "h": 28,
+          "right": 389.3333435058594,
+          "bottom": 37.666666984558105
+        }
+      ],
+      "toggles": [
+        {
+          "x": 826,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 854,
+          "bottom": 38,
+          "label": "展开底部面板",
+          "hit": true
+        },
+        {
+          "x": 858,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 886,
+          "bottom": 38,
+          "label": "折叠侧边栏",
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "wide with panel",
+      "header": {
+        "x": 253,
+        "y": 7,
+        "w": 1080,
+        "h": 34,
+        "right": 1333,
+        "bottom": 41
+      },
+      "overflow": 0,
+      "groups": [
+        {
+          "s": ".wSkVaW_crumbs",
+          "x": 269,
+          "y": 10,
+          "w": 242,
+          "h": 28,
+          "right": 511,
+          "bottom": 38
+        },
+        {
+          "s": ".wSkVaW_headerActions",
+          "x": 521,
+          "y": 10,
+          "w": 68,
+          "h": 28,
+          "right": 589,
+          "bottom": 38
+        },
+        {
+          "s": "[data-dcu-inline-tabs]",
+          "x": 599,
+          "y": 10,
+          "w": 155,
+          "h": 28,
+          "right": 754,
+          "bottom": 38
+        },
+        {
+          "s": ".wSkVaW_headerUtilities",
+          "x": 1184,
+          "y": 10,
+          "w": 99,
+          "h": 28,
+          "right": 1283,
+          "bottom": 38
+        },
+        {
+          "s": "[data-conversation-header-corner]",
+          "x": 1293,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1321,
+          "bottom": 38
+        }
+      ],
+      "toggles": [
+        {
+          "x": 1834,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1862,
+          "bottom": 38,
+          "label": "展开底部面板",
+          "hit": true
+        },
+        {
+          "x": 1866,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1894,
+          "bottom": 38,
+          "label": "折叠侧边栏",
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "wide closed",
+      "header": {
+        "x": 253,
+        "y": 7,
+        "w": 1644,
+        "h": 34,
+        "right": 1897,
+        "bottom": 41
+      },
+      "overflow": 0,
+      "groups": [
+        {
+          "s": ".wSkVaW_crumbs",
+          "x": 269,
+          "y": 10,
+          "w": 242,
+          "h": 28,
+          "right": 511,
+          "bottom": 38
+        },
+        {
+          "s": ".wSkVaW_headerActions",
+          "x": 521,
+          "y": 10,
+          "w": 68,
+          "h": 28,
+          "right": 589,
+          "bottom": 38
+        },
+        {
+          "s": "[data-dcu-inline-tabs]",
+          "x": 599,
+          "y": 10,
+          "w": 155,
+          "h": 28,
+          "right": 754,
+          "bottom": 38
+        },
+        {
+          "s": ".wSkVaW_headerUtilities",
+          "x": 1682,
+          "y": 10,
+          "w": 99,
+          "h": 28,
+          "right": 1781,
+          "bottom": 38
+        },
+        {
+          "s": "[data-conversation-header-corner]",
+          "x": 1791,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1819,
+          "bottom": 38
+        }
+      ],
+      "toggles": [
+        {
+          "x": 1834,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1862,
+          "bottom": 38,
+          "label": "展开底部面板",
+          "hit": true
+        },
+        {
+          "x": 1866,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1894,
+          "bottom": 38,
+          "label": "展开侧边栏",
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "narrow split",
+      "header": {
+        "x": 69,
+        "y": 7,
+        "w": 520,
+        "h": 68,
+        "right": 589,
+        "bottom": 75
+      },
+      "overflow": 0,
+      "groups": [
+        {
+          "s": ".wSkVaW_crumbs",
+          "x": 85,
+          "y": 10,
+          "w": 345,
+          "h": 28,
+          "right": 430,
+          "bottom": 38
+        },
+        {
+          "s": ".wSkVaW_headerActions",
+          "x": 85,
+          "y": 44,
+          "w": 76,
+          "h": 28,
+          "right": 161,
+          "bottom": 72
+        },
+        {
+          "s": "[data-dcu-inline-tabs]",
+          "x": 171,
+          "y": 44,
+          "w": 155,
+          "h": 28,
+          "right": 326,
+          "bottom": 72
+        },
+        {
+          "s": ".wSkVaW_headerUtilities",
+          "x": 440,
+          "y": 10,
+          "w": 99,
+          "h": 28,
+          "right": 539,
+          "bottom": 38
+        },
+        {
+          "s": "[data-conversation-header-corner]",
+          "x": 549,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 577,
+          "bottom": 38
+        }
+      ],
+      "toggles": [
+        {
+          "x": 1014,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1042,
+          "bottom": 38,
+          "label": "展开底部面板",
+          "hit": true
+        },
+        {
+          "x": 1046,
+          "y": 10,
+          "w": 28,
+          "h": 28,
+          "right": 1074,
+          "bottom": 38,
+          "label": "折叠侧边栏",
+          "hit": true
+        }
+      ]
+    }
+  ],
+  "noMessagesSent": true,
+  "noBusinessEdits": true
+}

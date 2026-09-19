@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
-import { readFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { readFile, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 
+import { makeTrackedTempDir as mkdtemp, removeTempDir } from './helpers/tmp.js'
+
 import { OFFICIAL_DSH_VERSION, OFFICIAL_LAUNCH_PEERS, OFFICIAL_RUNTIME, OFFICIAL_RUNTIME_RESOLUTION_MODE, SUITE_PACKAGE, officialDshVersionOverrides } from '../src/bundled-plugins.js'
-import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, ensurePnpm11BuildPolicy, ensureRuntimeResolutionMode, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, rebasePortablePnpmState, reconcileOfficialRuntimeManifest, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
+import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, ensurePnpm11BuildPolicy, ensureRuntimeResolutionMode, hasUnresolvedStore, isOfflineSeedRequested, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, needsIgnoredBuildRepair, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, rebasePortablePnpmState, reconcileOfficialRuntimeManifest, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, storelessSeedWarning, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
 
 const catalog = [
   { packageName: '@michengai/dsh-codex-ui', version: '0.2.58' },
@@ -41,6 +43,75 @@ test('目录插件都已在 profile 中时跳过补种', () => {
     storeExists: true,
   })
   assert.deepEqual(plan, { action: 'skip', reason: 'already-installed' })
+})
+
+test('低于随包基线的已装插件升到基线，高于基线的一律不动', () => {
+  const plan = planBundledPluginSeed({
+    catalog,
+    declaredPackages: catalog.map(item => item.packageName),
+    installedPackages: catalog.map(item => item.packageName),
+    storeExists: true,
+    installedVersions: [
+      { packageName: '@michengai/dsh-codex-ui', version: '0.2.10' },
+      { packageName: '@michengai/dsh-im-connect', version: '0.9.9' },
+    ],
+  })
+  // 只升不降：0.2.10 < 0.2.58 要升；0.9.9 已高于 0.1.10，不得被基线拉回去。
+  assert.deepEqual(plan, {
+    action: 'add',
+    packages: [{ packageName: '@michengai/dsh-codex-ui', version: '0.2.58' }],
+  })
+})
+
+test('link 声明的本地定制包永不参与随包基线，防止被 npm 包替换', () => {
+  const plan = planBundledPluginSeed({
+    catalog,
+    declaredPackages: catalog.map(item => item.packageName),
+    installedPackages: catalog.map(item => item.packageName),
+    storeExists: true,
+    installedVersions: [
+      { packageName: '@michengai/dsh-codex-ui', version: '0.1.0' },
+      { packageName: '@michengai/dsh-im-connect', version: '0.1.10' },
+    ],
+    localLinkPackages: ['@michengai/dsh-codex-ui'],
+  })
+  assert.deepEqual(plan, { action: 'skip', reason: 'already-installed' })
+})
+
+test('补种路径同时做到：非 link 的低于基线要升，link 定制的即使低于基线也不动', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-seed-baseline-'))
+  try {
+    const store = join(root, 'store')
+    const profile = join(root, 'profile')
+    await mkdir(store, { recursive: true })
+    for (const [name, version] of [['@michengai/dsh-codex-ui', '0.1.0'], ['@michengai/dsh-im-connect', '0.1.0']] as const) {
+      const dir = join(profile, 'node_modules', ...name.split('/'))
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, 'package.json'), JSON.stringify({ name, version }), 'utf8')
+    }
+    await writeFile(join(profile, 'package.json'), JSON.stringify({
+      dependencies: {
+        // 本地定制件走 link；另一个是普通 npm 依赖。
+        '@michengai/dsh-codex-ui': 'link:local/dsh-codex-ui',
+        '@michengai/dsh-im-connect': '0.1.0',
+      },
+    }), 'utf8')
+    const calls: string[][] = []
+    const result = await seedBundledPlugins({
+      nodeExecutable: 'node',
+      profileDir: profile,
+      pluginStoreDir: store,
+      catalog,
+      runner: async args => { calls.push([...args]) },
+    })
+    assert.deepEqual(result.seeded, ['@michengai/dsh-im-connect'])
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0]?.includes('@michengai/dsh-im-connect@0.1.10'), true)
+    assert.equal(calls[0]?.some(item => item.startsWith('@michengai/dsh-codex-ui@')), false,
+      'link 定制的插件一旦被基线替换，用户的本地改造就没了')
+  } finally {
+    await removeTempDir(root)
+  }
 })
 
 test('缺少离线仓库时跳过，不阻断桌面启动', () => {
@@ -89,6 +160,37 @@ test('node_modules 已有插件但未写入 dependencies 时仍要补进 depende
   assert.deepEqual(plan, { action: 'add', packages: [...catalog] })
 })
 
+test('内网首启：profile 有 node_modules 但读不到仓库记录时，走随包仓库离线补种（不再退到 npm）', async () => {
+  // 2026-09-16 用户拍板采用上游 480cef2 口径的真实场景回归：
+  // 换机/换盘后 profile 里已有 node_modules，但 .modules.yaml 缺失或损坏 → 旧行为解析不到仓库，
+  // 发出的 pnpm 命令不带 --store-dir，pnpm 遂用环境默认仓库并去访问 npm 注册表 →
+  // 没外网的机器上插件/专家/技能全部装不上。
+  for (const state of [undefined, '{}\n', 'invalid: [\n']) {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-intranet-store-'))
+    try {
+      const store = join(root, 'bundled-store')
+      const profile = join(root, 'profile')
+      await mkdir(store)
+      await mkdir(join(profile, 'node_modules'), { recursive: true })
+      if (state !== undefined) await writeFile(join(profile, 'node_modules', '.modules.yaml'), state, 'utf8')
+      const calls: string[][] = []
+      await seedBundledPlugins({
+        nodeExecutable: 'node',
+        profileDir: profile,
+        pluginStoreDir: store,
+        catalog,
+        runner: async args => { calls.push([...args]) },
+      })
+      assert.equal(calls.length, 1)
+      assert.equal(calls[0]!.includes('--offline'), true, '必须离线补种，不能去访问注册表')
+      assert.equal(calls[0]!.some(arg => arg === `--store-dir=${store}`), true, '必须用随包仓库')
+      assert.equal(calls[0]!.some(arg => arg.startsWith('--cache-dir=')), true)
+    } finally {
+      await removeTempDir(root)
+    }
+  }
+})
+
 test('seedBundledPlugins 只调用一次 pnpm add，且写入用户 profile', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-seed-'))
   try {
@@ -109,21 +211,172 @@ test('seedBundledPlugins 只调用一次 pnpm add，且写入用户 profile', as
     assert.equal(calls[0]?.[0], 'add')
     assert.equal(calls[0]?.includes(`--dir=${profile}`), true)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
-test('已有 node_modules 时不得改用安装包 store', async () => {
+test('没有写出 storeDir 记录时不阻止回落随包仓库，已写出则绝不允许改绑（2026-09-16 口径）', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-store-check-'))
   try {
+    // 装机语义未变：目录是否已初始化仍由 shouldUsePackagedStore 表达
     assert.equal(shouldUsePackagedStore(root), true)
     await mkdir(join(root, 'node_modules'))
     assert.equal(shouldUsePackagedStore(root), false)
-    const args = buildSeedPluginArgs(catalog, root, {})
-    assert.equal(args.some(item => item.startsWith('--store-dir=')), false)
-    assert.equal(args.includes('--offline'), false)
+    const fallback = 'D:\\bundled-store'
+    // 但「没有记录」≠「绑过仓库」：上游 480cef2 口径——可安全回落随包仓库。
+    // 否则内网首启会退到 pnpm 默认仓库、进而访问 npm 注册表而装不上（用户 2026-09-16 拍板采用）
+    assert.equal(resolvePnpmStoreDir(root, fallback), fallback)
+    await writeFile(join(root, 'node_modules', '.modules.yaml'), '{}\n', 'utf8')
+    assert.equal(resolvePnpmStoreDir(root, fallback), fallback)
+    await writeFile(join(root, 'node_modules', '.modules.yaml'), 'invalid: [\n', 'utf8')
+    assert.equal(resolvePnpmStoreDir(root, fallback), fallback)
+    // 已写出 storeDir 时禁止改绑（UNEXPECTED_STORE 的唯一真实触发条件）
+    const recorded = join(root, 'recorded-store')
+    await writeFile(join(root, 'node_modules', '.modules.yaml'), JSON.stringify({ storeDir: recorded }), 'utf8')
+    assert.equal(resolvePnpmStoreDir(root, fallback), recorded)
+    // 没有 fallback 可用时仍返回 undefined：由调用方决定（告警/跳过/默认仓库）
+    await writeFile(join(root, 'node_modules', '.modules.yaml'), 'invalid: [\n', 'utf8')
+    assert.equal(resolvePnpmStoreDir(root), undefined)
+    // 不再按「有 node_modules 就拒绝给仓库」发不带 --store-dir 的命令
+    const args = buildSeedPluginArgs(catalog, root, { storeDir: fallback, offline: true })
+    assert.equal(args.some(item => item.startsWith('--store-dir=')), true)
+    assert.equal(args.includes('--offline'), true)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
+  }
+})
+
+test('识别 pnpm 记下的被忽略构建，只有命中随包许可名单才要求恢复', () => {
+  assert.equal(needsIgnoredBuildRepair(JSON.stringify({ ignoredBuilds: ['node-pty@1.0.0'] })), true)
+  assert.equal(needsIgnoredBuildRepair(JSON.stringify({ ignoredBuilds: ['protobufjs@7.4.0', 'koffi@2.9.0'] })), true)
+  // 与随包许可名单无关的忽略项不是本修复的对象
+  assert.equal(needsIgnoredBuildRepair(JSON.stringify({ ignoredBuilds: ['some-other-pkg@1.0.0'] })), false)
+  assert.equal(needsIgnoredBuildRepair(JSON.stringify({ hoistPattern: ['*'], ignoredBuilds: [] })), false)
+  assert.equal(needsIgnoredBuildRepair(JSON.stringify({ ignoredBuilds: 'node-pty@1.0.0' })), false)
+  // 旧版 pnpm 的 YAML 状态不属于这种残留状态；损坏内容一律不触发
+  assert.equal(needsIgnoredBuildRepair('ignoredBuilds:\n  - node-pty@1.0.0\n'), false)
+  assert.equal(needsIgnoredBuildRepair('{ not json'), false)
+})
+
+test('版本齐全但构建被记下忽略时，沿用 profile 记录的仓库重跑一次安装', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-seed-repair-'))
+  try {
+    const packagedStore = join(root, 'plugins', 'store')
+    const legacyStore = join(root, 'legacy-store', 'v11')
+    const profile = join(root, 'profile')
+    await mkdir(packagedStore, { recursive: true })
+    await mkdir(join(profile, 'node_modules'), { recursive: true })
+    await writeFile(join(profile, 'package.json'), JSON.stringify({
+      dependencies: {
+        '@michengai/dsh-codex-ui': '0.2.58',
+        '@michengai/dsh-im-connect': '0.1.10',
+      },
+    }), 'utf8')
+    // 场景前提是「版本齐全」：必须真的把包写到 node_modules，否则按随包基线会被判为欠装而重装。
+    for (const [name, version] of [['@michengai/dsh-codex-ui', '0.2.58'], ['@michengai/dsh-im-connect', '0.1.10']] as const) {
+      const dir = join(profile, 'node_modules', ...name.split('/'))
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, 'package.json'), JSON.stringify({ name, version }), 'utf8')
+    }
+    await writeFile(join(profile, 'node_modules', '.modules.yaml'), JSON.stringify({
+      storeDir: legacyStore,
+      ignoredBuilds: ['node-pty@1.0.0'],
+    }), 'utf8')
+    const calls: string[][] = []
+    const result = await seedBundledPlugins({
+      nodeExecutable: 'node',
+      profileDir: profile,
+      pluginStoreDir: packagedStore,
+      catalog,
+      runner: async args => { calls.push([...args]) },
+    })
+    assert.deepEqual(result, { seeded: [], skipped: 'already-installed' })
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0]?.[0], 'add')
+    // 用磁盘上实际安装的版本重装，而不是随包清单里的版本
+    assert.equal(calls[0]?.includes('@michengai/dsh-codex-ui@0.2.58'), true)
+    assert.equal(calls[0]?.includes('@michengai/dsh-im-connect@0.1.10'), true)
+    assert.equal(calls[0]?.includes(`--dir=${profile}`), true)
+    // 已有 node_modules 时绝不改用安装包 store（pnpm 会报 UNEXPECTED_STORE）
+    assert.equal(calls[0]?.includes(`--store-dir=${legacyStore}`), true)
+    assert.equal(calls[0]?.includes(`--store-dir=${packagedStore}`), false)
+    assert.equal(calls[0]?.includes(`--cache-dir=${join(root, 'legacy-store')}`), true)
+  } finally {
+    await removeTempDir(root)
+  }
+})
+
+test('版本齐全且构建未被忽略时不做多余安装', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-seed-repair-skip-'))
+  try {
+    const profile = join(root, 'profile')
+    await mkdir(profile, { recursive: true })
+    await mkdir(join(profile, 'node_modules'), { recursive: true })
+    await mkdir(join(root, 'plugins', 'store'), { recursive: true })
+    await writeFile(join(profile, 'package.json'), JSON.stringify({
+      dependencies: {
+        '@michengai/dsh-codex-ui': '0.2.58',
+        '@michengai/dsh-im-connect': '0.1.10',
+      },
+    }), 'utf8')
+    // 场景前提是「版本齐全」：真的写到 node_modules，否则按随包基线会被判为欠装而重装。
+    for (const [name, version] of [['@michengai/dsh-codex-ui', '0.2.58'], ['@michengai/dsh-im-connect', '0.1.10']] as const) {
+      const dir = join(profile, 'node_modules', ...name.split('/'))
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, 'package.json'), JSON.stringify({ name, version }), 'utf8')
+    }
+    await writeFile(join(profile, 'node_modules', '.modules.yaml'), JSON.stringify({
+      ignoredBuilds: ['some-other-pkg@1.0.0'],
+    }), 'utf8')
+    const calls: string[][] = []
+    const result = await seedBundledPlugins({
+      nodeExecutable: 'node',
+      profileDir: profile,
+      pluginStoreDir: join(root, 'plugins', 'store'),
+      catalog,
+      runner: async args => { calls.push([...args]) },
+    })
+    assert.deepEqual(result, { seeded: [], skipped: 'already-installed' })
+    assert.equal(calls.length, 0)
+  } finally {
+    await removeTempDir(root)
+  }
+})
+
+test('旧客户端的 pending 清单不得把已安装的插件降级', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-pending-downgrade-'))
+  try {
+    const profile = join(root, 'profile')
+    const installedDir = join(profile, 'node_modules', '@michengai', 'dsh-codex-ui')
+    await mkdir(installedDir, { recursive: true })
+    await writeFile(join(installedDir, 'package.json'), JSON.stringify({
+      name: '@michengai/dsh-codex-ui',
+      version: '0.2.58',
+    }), 'utf8')
+    await writeFile(join(profile, 'package.json'), JSON.stringify({
+      dependencies: { '@michengai/dsh-codex-ui': '0.2.58' },
+    }), 'utf8')
+    await writeFile(join(profile, '.dsh-pending-updates.json'), JSON.stringify({
+      packages: [
+        { packageName: '@michengai/dsh-codex-ui', version: '0.2.10' },
+        { packageName: '@michengai/dsh-im-connect', version: '0.1.10' },
+      ],
+    }), 'utf8')
+    const calls: string[][] = []
+    const updated = await applyPendingProfileUpdates({
+      nodeExecutable: 'node',
+      profileDir: profile,
+      pluginStoreDir: join(root, 'store'),
+      catalog,
+      runner: async args => { calls.push([...args]) },
+    })
+    assert.deepEqual(updated, ['@michengai/dsh-im-connect'])
+    // 0.2.10 比磁盘上的 0.2.58 更旧：降级被消解，连带不再产生任何 codex-ui 安装动作；
+    // 本来就不低于已安装版本的条目原样保留。
+    assert.equal(calls[0]?.some(item => item.startsWith('@michengai/dsh-codex-ui@')), false)
+    assert.equal(calls[0]?.includes('@michengai/dsh-im-connect@0.1.10'), true)
+  } finally {
+    await removeTempDir(root)
   }
 })
 
@@ -134,7 +387,104 @@ test('后续 pnpm 操作沿用 node_modules 记录的 store 目录', async () =>
     await writeFile(join(root, 'node_modules', '.modules.yaml'), 'storeDir: D:\\persistent-store\n', 'utf8')
     assert.equal(resolvePnpmStoreDir(root, 'D:\\fallback-store'), 'D:\\persistent-store')
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
+  }
+})
+
+test('安装失败后的重试不得丢掉已知仓库（2026-09-14 UNEXPECTED_STORE 的真因）', async t => {
+  if (isOfflineSeedRequested()) return t.skip('显式离线模式下不重试')
+  const root = await mkdtemp(join(tmpdir(), 'dsh-store-retry-'))
+  try {
+    const packagedStore = join(root, 'plugins', 'store')
+    const recordedStore = join(root, 'recorded-store')
+    const profile = join(root, 'profile')
+    await mkdir(packagedStore, { recursive: true })
+    await mkdir(join(profile, 'node_modules'), { recursive: true })
+    await writeFile(join(profile, 'node_modules', '.modules.yaml'), JSON.stringify({ storeDir: recordedStore }), 'utf8')
+    await writeFile(join(profile, 'package.json'), JSON.stringify({
+      dependencies: { '@michengai/dsh-codex-ui': '0.2.58' },
+    }), 'utf8')
+    const calls: string[][] = []
+    let first = true
+    await seedBundledPlugins({
+      nodeExecutable: 'node',
+      profileDir: profile,
+      pluginStoreDir: packagedStore,
+      catalog,
+      runner: async args => {
+        calls.push([...args])
+        if (first) {
+          first = false
+          throw new Error('模拟首次安装失败（仓库里缺该包）')
+        }
+      },
+    })
+    assert.equal(calls.length, 2)
+    assert.equal(calls[0]?.includes(`--store-dir=${recordedStore}`), true)
+    assert.equal(calls[0]?.includes('--offline'), true)
+    // 旧行为在这里发出的是不带 --store-dir 的命令 → pnpm 改用环境默认仓库 → 与记录不一致即报
+    // ERR_PNPM_UNEXPECTED_STORE（实机 plugin-seed.log）。重试只允许放宽「离线」，不许换仓库。
+    assert.equal(calls[1]?.includes(`--store-dir=${recordedStore}`), true, '重试必须保留已解析到的仓库')
+    assert.equal(calls[1]?.includes('--offline'), false, '重试只放宽离线，不换仓库')
+  } finally {
+    await removeTempDir(root)
+  }
+})
+
+test('机会性构建恢复遇到坏仓库记录只跳过、不发出不带仓库的命令', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-storeless-repair-'))
+  try {
+    const packagedStore = join(root, 'plugins', 'store')
+    const profile = join(root, 'profile')
+    await mkdir(packagedStore, { recursive: true })
+    await mkdir(join(profile, 'node_modules'), { recursive: true })
+    await writeFile(join(profile, 'package.json'), JSON.stringify({
+      dependencies: { '@michengai/dsh-codex-ui': '0.2.58', '@michengai/dsh-im-connect': '0.1.10' },
+    }), 'utf8')
+    for (const [name, version] of [['@michengai/dsh-codex-ui', '0.2.58'], ['@michengai/dsh-im-connect', '0.1.10']] as const) {
+      const dir = join(profile, 'node_modules', ...name.split('/'))
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, 'package.json'), JSON.stringify({ name, version }), 'utf8')
+    }
+    // 版本齐全（计划为 skip）且要求构建恢复，但状态里没有 storeDir
+    await writeFile(join(profile, 'node_modules', '.modules.yaml'), JSON.stringify({ ignoredBuilds: ['node-pty@1.0.0'] }), 'utf8')
+    const calls: string[][] = []
+    const result = await seedBundledPlugins({
+      nodeExecutable: 'node',
+      profileDir: profile,
+      pluginStoreDir: packagedStore,
+      catalog,
+      runner: async args => { calls.push([...args]) },
+    })
+    assert.deepEqual(result, { seeded: [], skipped: 'already-installed' })
+    assert.deepEqual(calls, [])
+  } finally {
+    await removeTempDir(root)
+  }
+})
+
+test('仓库记录可读时护栏不误伤，且只在已有依赖的目录上生效', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-storeless-ok-'))
+  try {
+    const profile = join(root, 'profile')
+    const recorded = join(root, 'recorded-store')
+    await mkdir(join(profile, 'node_modules'), { recursive: true })
+    await writeFile(join(profile, 'node_modules', '.modules.yaml'), JSON.stringify({ storeDir: recorded }), 'utf8')
+    assert.equal(resolvePnpmStoreDir(profile), recorded)
+    assert.equal(hasUnresolvedStore(profile, recorded), false)
+    // 记录文件在但解析不出仓库 → 视为未绑过仓库：给了随包仓就回落（2026-09-16 口径），
+    // 没给回落才告警（提示文案不可为空）
+    await writeFile(join(profile, 'node_modules', '.modules.yaml'), '{ not json', 'utf8')
+    const packagedStore = join(root, 'packaged-store')
+    assert.equal(resolvePnpmStoreDir(profile, packagedStore), packagedStore)
+    assert.equal(hasUnresolvedStore(profile, packagedStore), false)
+    assert.equal(resolvePnpmStoreDir(profile), undefined)
+    assert.equal(hasUnresolvedStore(profile, undefined), true)
+    assert.match(storelessSeedWarning(profile), /默认仓库/)
+    // 全新目录（无 node_modules）即便解析不到仓库也不告警：从零安装不存在仓库不一致
+    assert.equal(hasUnresolvedStore(join(root, 'fresh-profile'), undefined), false)
+  } finally {
+    await removeTempDir(root)
   }
 })
 
@@ -174,7 +524,7 @@ test('替换旧套件时先安装子插件，安装失败不会先卸载套件',
     assert.equal(calls[0]?.[0], 'add')
     assert.equal(calls.some(args => args[0] === 'remove'), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -186,7 +536,7 @@ test('官方运行时缺启动 peer 时判定为不可启动', async () => {
     assert.equal(isOfficialRuntimeLaunchable(root), false)
     assert.equal(missingOfficialLaunchPeers(root)[0]?.packageName, '@deepseek-ai/cordis-plugin-group')
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -222,7 +572,7 @@ test('官方运行时已装但缺少启动 peer 时会补齐', async () => {
     assert.equal(calls.some(item => item.some(arg => arg.includes('@deepseek-ai/cordis-plugin-group@1.0.2'))), true)
     assert.equal(isOfficialRuntimeLaunchable(runtime), true)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 test('会把已有 workspace 的 autoInstallPeers 打开', async () => {
@@ -235,7 +585,7 @@ test('会把已有 workspace 的 autoInstallPeers 打开', async () => {
     ensureAutoInstallPeersEnabled(root)
     assert.doesNotMatch(await readFile(join(root, 'pnpm-workspace.yaml'), 'utf8'), /['"]false['"]/)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -259,7 +609,7 @@ test('会从 Web profile 依赖里清掉官方包', async () => {
     assert.equal(manifest.dependencies?.['@deepseek-ai/dsh'], undefined)
     assert.deepEqual(manifest.dsh?.profile?.bundles, ['@deepseek-ai/dsh-base'])
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -279,7 +629,7 @@ test('会清掉 Web profile 里的官方 node_modules，避免盖掉运行时', 
     assert.equal(existsSync(official), false)
     assert.equal(existsSync(join(root, 'node_modules', '@deepseek-ai', '.keep')), true)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -311,7 +661,7 @@ test('启动前会按 pending 清单升级社区插件，官方残留条目被�
     // 待更新项，并在之后每次插件更新时被重新合并带回。
     assert.equal(existsSync(join(profile, '.dsh-pending-updates.json')), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -333,7 +683,7 @@ test('只剩官方条目的 pending 文件会被删除，不再反复提示待�
     assert.deepEqual(updated, [])
     assert.equal(existsSync(join(profile, '.dsh-pending-updates.json')), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -374,7 +724,7 @@ test('复制预装官方运行时成功后不再现场 pnpm add', async () => {
     assert.equal(calls.length, 0)
     assert.equal(existsSync(join(runtime, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')), true)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -390,7 +740,7 @@ test('启动前会摘掉磁盘上已经不存在的社区 bundle', async () => {
     const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as { dsh?: { profile?: { bundles?: string[] } } }
     assert.deepEqual(manifest.dsh?.profile?.bundles, ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'])
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -402,7 +752,7 @@ test('桌面内部 bridge bundle 不依赖 profile dependencies 仍会保留', a
     await writeFile(join(root, 'package.json'), JSON.stringify({ dsh: { profile: { bundles: ['dsh-desktop-bridge'] } } }), 'utf8')
     assert.deepEqual(await pruneMissingProfileBundles(root), [])
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -424,7 +774,7 @@ test('先认磁盘上的包，再更新 bundle 列表', async () => {
     assert.equal(result.bundles.includes('ready-plugin'), true)
     assert.equal(result.bundles.includes('dsh-file-upload'), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -447,7 +797,7 @@ test('插件市场禁用 bundle 插件后，启动补种不得把它重新加入
     const result = await finalizeProfileBundlesAfterInstall(root)
     assert.equal(result.bundles.includes('ready-plugin'), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -469,7 +819,7 @@ test('启动补种 pnpm 超时后会终止并返回明确错误', async () => {
       timeoutMs: 30,
     }), /pnpm.*超时/i)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -509,7 +859,7 @@ test('官方 pending 会改运行时目录，不写进 Web profile', async () =>
     const profileManifest = JSON.parse(await readFile(join(profile, 'package.json'), 'utf8')) as { dependencies?: Record<string, string> }
     assert.equal(profileManifest.dependencies?.['@deepseek-ai/dsh'], undefined)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -542,7 +892,7 @@ test('运行时工作区补齐 resolutionMode 且不改动已有内容', async (
     assert.equal(replaced.match(/^resolutionMode:/gm)?.length, 1)
     assert.match(replaced, new RegExp(`^resolutionMode: ${OFFICIAL_RUNTIME_RESOLUTION_MODE}\$`, 'm'))
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -568,7 +918,7 @@ test('pnpm 11 工作区会移除旧构建白名单并保留新的 allowBuilds', 
     assert.match(next, /allowBuilds:\s*\n\s+koffi: true\s*\n\s+node-pty: true/)
     assert.equal((next.match(/^\s+(?:"koffi"|koffi):/gm) ?? []).length, 1)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -602,7 +952,7 @@ test('通过指纹封存的 A/B 运行时槽在启动补种时保持不可变', 
     assert.equal(existsSync(join(runtime, 'package.json')), false)
     assert.equal(existsSync(join(runtime, 'pnpm-workspace.yaml')), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -649,7 +999,7 @@ test('被半改写的活动运行时槽在启动时把描述性清单拉回实�
     assert.equal((await readFile(join(runtime, '.dsh-runtime-fingerprint'), 'utf8')).trim(), 'b'.repeat(64))
     assert.equal(reconcileOfficialRuntimeManifest(runtime), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -665,6 +1015,6 @@ test('家族版本混用时不动活动运行时槽清单，交由 A/B 门禁拒
     }
     assert.equal(manifest.dependencies?.['@deepseek-ai/dsh'], '0.1.5-rc.2')
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })

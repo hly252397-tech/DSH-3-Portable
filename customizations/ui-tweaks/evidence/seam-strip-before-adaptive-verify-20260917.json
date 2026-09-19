@@ -1,0 +1,59 @@
+{
+  "status": "fail",
+  "checkedAt": "2026-09-17T14:28:06.391Z",
+  "viewport": {
+    "w": 1360,
+    "h": 1000
+  },
+  "compact": "0",
+  "results": [
+    {
+      "name": "探针数据新鲜（≤120s）",
+      "ok": true,
+      "measured": "12s",
+      "expected": "≤120s"
+    },
+    {
+      "name": "外壳尺子已下发（--dsh-app-width ≈ 视口宽）",
+      "ok": true,
+      "measured": "appW=1360px vw=1360",
+      "expected": "两者相等"
+    },
+    {
+      "name": "两框之间无空白带（无 body 带）",
+      "ok": false,
+      "measured": "737-785 : body [0..1360]",
+      "expected": "无"
+    },
+    {
+      "name": "两框贴合（面板左缘 = 对话列右缘）",
+      "ok": false,
+      "measured": "root=731 panelFrom=800",
+      "expected": "相等 ±2px"
+    },
+    {
+      "name": "对话列保住内容下限",
+      "ok": true,
+      "measured": "root=731 vw=1360",
+      "expected": "≥680（窄窗豁免）"
+    },
+    {
+      "name": "拖动柄骑在两框中点（±4px）",
+      "ok": false,
+      "measured": "handle=793..801 mid=797",
+      "expected": "≈731"
+    },
+    {
+      "name": "右栏面板确实在画（宽 > 40px）",
+      "ok": true,
+      "measured": "panelFrom=800",
+      "expected": "< vw-40"
+    },
+    {
+      "name": "无被挤压成竖排的后台任务徽标",
+      "ok": true,
+      "measured": "无",
+      "expected": "无"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "status": "pass",
+  "note": "上游 v1.0.63 全量吸收后重记基线：运行时 0.1.5-rc.2→0.1.6-alpha.1（受信清单+自动更新完成），四个插件由启动补种自动升版（codex-ui 1.1.11 / dsh-context 0.53.0 / dsh-mcp-connector 0.2.49 / usage-billing 1.4.0），theme.css 漂移来自 9568d5e（Zcode 审查后的全局 .dbh-dock 规则清理）。",
+  "recordedAt": "2026-09-16T15:45:00Z",
+  "results": [
+    {
+      "check": "运行时切换",
+      "method": "读 Data/Runtime/Harness/current.json",
+      "expected": "current.version = 0.1.6-alpha.1，previous 保留 0.1.5-rc.2",
+      "actual": "current=0.1.6-alpha.1（fingerprint 2a49814b…），previous=0.1.5-rc.2（fd316e6b…），activatedAt 2026-09-16T15:25:18Z",
+      "status": "pass"
+    },
+    {
+      "check": "插件自动升版",
+      "method": "读 profile node_modules 与 package.json 的版本",
+      "expected": "codex-ui 1.1.11 / dsh-context 0.53.0 / dsh-mcp-connector 0.2.49 / usage-billing 1.4.0，声明与实装一致",
+      "actual": "四项全部到位（启动补种机制自动完成）",
+      "status": "pass"
+    },
+    {
+      "check": "App 健康度",
+      "method": "startup-error.log 无新增（mtime 仍为 18:36:55）+ 本会话在新运行时上持续运行",
+      "expected": "无新增错误，会话存活",
+      "actual": "日志无变化，会话存活（本报告即运行中产物）",
+      "status": "pass"
+    },
+    {
+      "check": "theme.css 漂移归属",
+      "method": "对照 9568d5e 的 diff",
+      "expected": "漂移为该提交的已知改动（全局 .dbh-dock 规则收窄/删除），非未授权变更",
+      "actual": "是的：9568d5e 删除了 display:flex/gap/position/z-index/::before 等全局规则，按 Zcode 审查结论收窄到 :has(.dsh-tweaks-seat) 或直接移除",
+      "status": "pass"
+    }
+  ]
+}

@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
-import { copyFile, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { copyWorkspacePackages, officialRuntimeGlobalNodeModulesRoot, officialRuntimeNpmDependencies, officialRuntimeNpmInstallArgs, pruneStoreForPackaging, removePreparedPath, resolveBundledNodeSha256, validateOfficialRuntimeLayout, writePnpmShims, writeReleaseSourceManifest } from '../scripts/prepare-runtime.js'
 import { DEFAULT_DESKTOP_RELEASE_SOURCE } from '../src/portable-desktop-update.js'
@@ -30,11 +30,11 @@ test('项目配置包含 Linux x64 与 ARM64 的随包 Node SHA256', async () =>
   }
   assert.equal(
     resolveBundledNodeSha256(manifest.config?.bundledNodeSha256, 'linux', 'x64'),
-    '89AF8424DD53E560B1933F87BA650D8BF57C83CA5A04600EEFB31F416AABBAE7',
+    '7FDE7B8AFA198DA66257F42EE2001D874C7355631E6D1579A5FB5EF1F246DF4C',
   )
   assert.equal(
     resolveBundledNodeSha256(manifest.config?.bundledNodeSha256, 'linux', 'arm64'),
-    '23A5637C2470FDE09FCC1ACC77C1B92E04E3D7E3E6E80FF7DF6F5831958D1477',
+    '0F8949D1028F6D61506B2D5BC57E7E6FE893D7B1997509B7847294FC9C616584',
   )
 })
 
@@ -193,6 +193,34 @@ test('清理运行时目录必须可重试，避免 Windows ENOTEMPTY', async ()
   assert.equal(existsSync(root), false)
 })
 
+test('项目内待清理目录改走同卷回收，避免慢盘同步删除把构建挂成假死', async () => {
+  const source = await readFile(new URL('../../scripts/prepare-runtime.ts', import.meta.url), 'utf8')
+  // 机械盘上 4.4 万个小文件同步删除要 20–50 分钟（实测 G: 盘 50.4ms/个、C: 盘 0.3ms/个），
+  // 期间 CPU≈0 且无输出，与进程卡死外观一致 —— 所以项目内路径必须先尝试同卷改名。
+  assert.match(source, /async function recyclePreparedPath/)
+  assert.match(source, /await rename\(target, bucket\)/)
+  assert.match(source, /function startRecycleSweeper/)
+  assert.match(source, /DSH_PREPARE_NO_RECYCLE/)
+  // 原有同步删除必须完整保留为回退路径：跨卷、被占用或显式关闭回收时仍走它。
+  assert.match(source, /spawnSync\(process\.env\.ComSpec/)
+
+  const previous = process.env.DSH_PREPARE_NO_RECYCLE
+  delete process.env.DSH_PREPARE_NO_RECYCLE
+  const projectRoot = fileURLToPath(new URL('../../', import.meta.url))
+  const probe = join(projectRoot, 'Data', 'Temp', `recycle-probe-${Date.now()}`)
+  await mkdir(join(probe, 'nested'), { recursive: true })
+  await writeFile(join(probe, 'nested', 'file.txt'), 'x', 'utf8')
+  try {
+    await removePreparedPath(probe)
+    assert.equal(existsSync(probe), false, '回收后原路径必须消失')
+    const buckets = await readdir(join(projectRoot, 'Data', 'Temp', 'prepare-recycle')).catch(() => [] as string[])
+    assert.ok(buckets.some(name => name.startsWith('recycle-probe-')), '应出现同名回收桶')
+  } finally {
+    if (previous !== undefined) process.env.DSH_PREPARE_NO_RECYCLE = previous
+    await rm(probe, { force: true, maxRetries: 10, recursive: true }).catch(() => undefined)
+  }
+})
+
 test('打包配置显式映射完整编译产物', async () => {
   const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as {
     build?: { files?: Array<string | { from?: string; to?: string; filter?: string[] }> }
@@ -222,11 +250,11 @@ test('官方运行时使用 npm 安装以兼容预发布 peer 依赖', () => {
     '--no-fund',
     '--allow-scripts=@deepseek-ai/dsh-subprocess-local,@google/genai,koffi,node-pty,protobufjs',
     '--registry=https://registry.npmjs.org/',
-    '@deepseek-ai/dsh@0.1.2-rc.1',
+    '@deepseek-ai/dsh@0.1.6-alpha.2',
     '@deepseek-ai/cordis-plugin-group@1.0.2',
-    '@deepseek-ai/dsh-scope@0.1.2-rc.1',
-    '@deepseek-ai/dsh-timeout@0.1.2-rc.1',
-    '@deepseek-ai/dsh-invariants@0.1.2-rc.1',
+    '@deepseek-ai/dsh-scope@0.1.6-alpha.2',
+    '@deepseek-ai/dsh-timeout@0.1.6-alpha.2',
+    '@deepseek-ai/dsh-invariants@0.1.6-alpha.2',
   ])
 })
 
@@ -237,11 +265,11 @@ test('npm 全局安装目录按平台归一化', () => {
 
 test('官方运行时把 DSH 和启动 peer 一起装成 npm 顶层依赖', () => {
   assert.deepEqual(officialRuntimeNpmDependencies(), {
-    '@deepseek-ai/dsh': '0.1.2-rc.1',
+    '@deepseek-ai/dsh': '0.1.6-alpha.2',
     '@deepseek-ai/cordis-plugin-group': '1.0.2',
-    '@deepseek-ai/dsh-scope': '0.1.2-rc.1',
-    '@deepseek-ai/dsh-timeout': '0.1.2-rc.1',
-    '@deepseek-ai/dsh-invariants': '0.1.2-rc.1',
+    '@deepseek-ai/dsh-scope': '0.1.6-alpha.2',
+    '@deepseek-ai/dsh-timeout': '0.1.6-alpha.2',
+    '@deepseek-ai/dsh-invariants': '0.1.6-alpha.2',
   })
 })
 

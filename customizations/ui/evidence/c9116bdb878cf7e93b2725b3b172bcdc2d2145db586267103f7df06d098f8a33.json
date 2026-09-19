@@ -1,0 +1,46 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "zoom": 1,
+      "first": "back",
+      "padding": "0px",
+      "firstX": 17,
+      "x": 17
+    },
+    {
+      "zoom": 0.8,
+      "first": "back",
+      "padding": "0px",
+      "firstX": 16.9921875,
+      "x": 16.9921875
+    },
+    {
+      "zoom": 1.25,
+      "first": "back",
+      "padding": "0px",
+      "firstX": 17,
+      "x": 17
+    },
+    {
+      "zoom": 1.5,
+      "first": "back",
+      "padding": "0px",
+      "firstX": 17,
+      "x": 17
+    },
+    {
+      "label": "real shell/preload initialize; menu and back IPC preserved",
+      "calls": [
+        {
+          "menu": "view",
+          "x": 187,
+          "y": 37
+        },
+        "back"
+      ],
+      "errors": []
+    }
+  ],
+  "scope": "real shell asset with isolated IPC; no real user restart"
+}

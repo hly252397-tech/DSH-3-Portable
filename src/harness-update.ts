@@ -138,6 +138,23 @@ export const BUILTIN_TRUSTED_HARNESS_RELEASES: readonly TrustedHarnessRelease[] 
   version: '0.1.5-rc.2',
   npmIntegrity: 'sha512-8Xc8hCQHcIWRmTCVU/xZdp6/qMsWMeAd2ObChKDEsfhUPJFXx6H0lgeb1DxUMD86HZrrVN+1bCvn1ppjZ/fOxw==',
   githubCommit: 'fb2c4b9e698e30edb738bca4cf0618587db7d203',
+}, {
+  // 2026-09-16：0.1.6-alpha.1 受信（上游 v1.0.63 的运行时目标；用户明确决定"插件与运行时一起跟进"）。
+  // 核对凭据：npm integrity（npmmirror 与 registry.npmjs.org 一致）+
+  // 官方 deepseek-ai/deepseek-harness 标签 `dsh-v0.1.6-alpha.1` 的 commit（经 gh-proxy 与直连 API 两条路由交叉核对一致）。
+  // 该版本在 npm 上位于 alpha 标签（next/latest 仍指向 0.1.5 线）——发现通道本就含 policy.channel='alpha'，故无需改通道。
+  // 切换仍走影子验证 + 空闲门禁 + 观察窗口 + 自动回滚；未通过验证会自动退回上一槽。
+  // ⚠️ 残余风险（如实记录）：与**当前已装插件版本**（codex-ui 1.1.10 等）的 peer 兼容性未逐一实测，
+  // 上游是连同 codex-ui 1.1.11 / dsh-context 0.53.0 / dsh-mcp-connector 0.2.49 / usage-billing 1.4.0 一起发的。
+  version: '0.1.6-alpha.1',
+  npmIntegrity: 'sha512-i6rIfIF2FEAINJY9TnihdFFuE1CfD/Htjcb7sqpYWujLrfkxwsFp8shyvAUz+Aj2yU28N0zd/HSxMaOnbRhoBw==',
+  githubCommit: '0a15e36e7f82b6ed45af6fa9759f29b40dcd965d',
+}, {
+  // 2026-09-18：0.1.6-alpha.2 受信（上游 v1.0.64 随包运行时；上游连发 codex-ui 1.1.13 等 13 项插件矩阵）。
+  // 凭据：npm integrity（npmmirror 实取）+ 官方 deepseek-harness 标签 dsh-v0.1.6-alpha.2 commit（GitHub API 实取）。
+  version: '0.1.6-alpha.2',
+  npmIntegrity: 'sha512-PHR/3ZHpJNWXlDQ3U9weFb7calWbSMJd2GD3z2iPJ8zAKL7ipuzyPy5xGbaXf2OA8hc0SAGJeoUW7nfatCNOYw==',
+  githubCommit: 'ddefc45fbc7f8e46dd73185e68295696d1297887',
 }]
 
 // 2026-09-09 曾短暂受信 0.1.5-alpha.1（npm integrity sha512-AUjywjrPnhXcAdAjRNgyQa1QCnplFTNYZ+XpR9uCZdbg2FiCb06pHyoDUB2Wxuddzid9D7pVwEiU1OTl4Oshsg==，

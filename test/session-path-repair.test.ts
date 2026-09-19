@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import test from 'node:test'
 import { zstdCompressSync } from 'node:zlib'
 
 import { repairMisplacedSessionLogs } from '../src/session-path-repair.js'
+// 用受跟踪的 mkdtemp：测试结束后自动删除临时目录（见 test/helpers/tmp.ts）。
+import { makeTrackedTempDir as mkdtemp } from './helpers/tmp.js'
 
 test('修复会话头与物理项目目录错位且保留原始备份', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-session-repair-'))

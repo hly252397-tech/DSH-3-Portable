@@ -232,6 +232,35 @@ function Restore-CurrentDesktopPointer {
   return $rolledBackPointer
 }
 
+# ── 启动器互斥（2026-09-16 第二次事故修复）──────────────────────────────────
+# 事故链：候选部署连败两次，日志显示两个启动器实例在 ~29ms 内**都**放行并各自启动候选，
+# 旧槽/新槽抢占 Chromium 单实例锁，候选秒退（退出码=0）→ 自动回退 → 部署被毁。
+# 上一版用 activation-attempt.json 当守卫**真机验证失败**：两个实例都在对方写入之前
+# 检查了标记（先检查后写入的 TOCTOU 空隙），标记文件天生做不到互斥。
+# 正解＝内核级原子锁：Mutex。进程退出（含崩溃）由内核自动释放，不会像锁文件那样留尸。
+$launcherMutexHashAlgorithm = [System.Security.Cryptography.SHA256]::Create()
+try {
+  $launcherMutexHash = -join ($launcherMutexHashAlgorithm.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($portableRoot)) | ForEach-Object { $_.ToString('x2') })
+} finally {
+  $launcherMutexHashAlgorithm.Dispose()
+}
+# 名字按便携根路径取哈希：同一台机器上多个便携副本互不干扰
+$launcherMutexName = 'Local\DSH-Portable-Launcher-' + $launcherMutexHash.Substring(0, 16)
+$launcherMutex = New-Object System.Threading.Mutex($false, $launcherMutexName)
+$launcherOwned = $false
+try {
+  $launcherOwned = $launcherMutex.WaitOne(0)
+} catch [System.Threading.AbandonedMutexException] {
+  # 上一个持有者异常退出：内核已把所有权判给本次调用，视为拿到
+  $launcherOwned = $true
+}
+if (-not $launcherOwned) {
+  # 已有实例在部署（含交接等待/候选验证窗口）→ 让位退出：不撤指针、不抢启动、不写标记
+  Write-LauncherLog "已有另一个启动器实例在运行，本次重复启动让位退出（互斥锁 $launcherMutexName）。"
+  if (-not [string]::IsNullOrWhiteSpace($HandoffReadyFile)) { Publish-HandoffReady }
+  exit 0
+}
+
 Publish-HandoffReady
 
 if ($WaitForProcessId -gt 0) {
@@ -285,6 +314,9 @@ if ($pendingReference) {
     New-Item -ItemType Directory -Path $healthRoot -Force | Out-Null
     Remove-Item -LiteralPath $healthFile,$progressFile -Force -ErrorAction SilentlyContinue
     if (Test-Path -LiteralPath $attemptFile -PathType Leaf) {
+      # 走到这里说明上一次尝试没有提交（启动器自己崩了/被杀）。并发保护已上移到脚本开头的
+      # Mutex 互斥（见文件上方）：持有互斥锁时**不可能**还有另一个启动器在部署，
+      # 所以这里必须按「过期尝试」处理——回退并恢复当前槽，不能把用户挡在门外。
       Write-LauncherLog "候选事务已经尝试过且未提交，拒绝重复启动并回退：$transactionId"
       Restore-CurrentDesktopPointer -Pointer $pointer -Detail '候选桌面上次未完成启动验证，已阻止重复尝试并恢复当前槽。' | Out-Null
       if ($currentApplication) {

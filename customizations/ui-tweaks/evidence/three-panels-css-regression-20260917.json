@@ -1,0 +1,2311 @@
+{
+  "status": "pass",
+  "scope": "Real installed CSS in a DOM fixture; not a full Profile interaction test",
+  "results": [
+    {
+      "name": "negative control: old artifact removes both adjacent borders",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 794,
+            "border": [
+              "1px",
+              "0px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "0px",
+              "0px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 789,
+            "right": 1354,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "0px"
+            ],
+            "radius": [
+              "0px",
+              "10px",
+              "10px",
+              "0px"
+            ]
+          }
+        ],
+        "reservedRight": 800,
+        "panelLeft": 789,
+        "panelWidth": 571,
+        "gap": -5,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(571px,0px),max(280px,0px,calc(100vw - 640px)))",
+          "dssPanelLimit": "max(280px,0px,calc(100vw - 640px))",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "571px",
+          "panelComputedWidth": "571px"
+        }
+      }
+    },
+    {
+      "name": "negative control: border-only correction still overlaps on hero",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 794,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 789,
+            "right": 1354,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 800,
+        "panelLeft": 789,
+        "panelWidth": 571,
+        "gap": -5,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(571px,0px),max(280px,0px,calc(100vw - 640px)))",
+          "dssPanelLimit": "max(280px,0px,calc(100vw - 640px))",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "571px",
+          "panelComputedWidth": "571px"
+        }
+      }
+    },
+    {
+      "name": "1360/light/hero",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 725,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 731,
+            "right": 1354,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 731,
+        "panelLeft": 731,
+        "panelWidth": 629,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,0px),max(280px,0px,calc(100vw - 640px)))",
+          "dssPanelLimit": "max(280px,0px,calc(100vw - 640px))",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "629px"
+        }
+      }
+    },
+    {
+      "name": "1360/light/cards",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 794,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 800,
+            "right": 1354,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 800,
+        "panelLeft": 800,
+        "panelWidth": 560,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,286px),560px)",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "560px"
+        }
+      }
+    },
+    {
+      "name": "1360/light/placeholder",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 934,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 940,
+            "right": 1354,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 940,
+        "panelLeft": 940,
+        "panelWidth": 420,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,286px),420px)",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "420px"
+        }
+      }
+    },
+    {
+      "name": "1360/light/tree",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 725,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 731,
+            "right": 1354,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 731,
+        "panelLeft": 731,
+        "panelWidth": 629,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,min(488px,calc(100vw - 72px))),max(280px,min(488px,calc(100vw - 72px)),calc(100vw - 640px)))",
+          "dssPanelLimit": "max(280px,min(488px,calc(100vw - 72px)),calc(100vw - 640px))",
+          "dssPanelMin": "min(488px,calc(100vw - 72px))",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "629px"
+        }
+      }
+    },
+    {
+      "name": "1360/light/hidden",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 1354,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 1365.719970703125,
+            "right": 1645.719970703125,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 1360,
+        "panelLeft": 1365.719970703125,
+        "panelWidth": 286,
+        "gap": 11.719970703125,
+        "hidden": true,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "0px",
+          "panelComputedWidth": "286px"
+        }
+      }
+    },
+    {
+      "name": "1360/dark/hero",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 725,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 731,
+            "right": 1354,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 731,
+        "panelLeft": 731,
+        "panelWidth": 629,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,0px),max(280px,0px,calc(100vw - 640px)))",
+          "dssPanelLimit": "max(280px,0px,calc(100vw - 640px))",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "629px"
+        }
+      }
+    },
+    {
+      "name": "1360/dark/cards",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 794,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 800,
+            "right": 1354,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 800,
+        "panelLeft": 800,
+        "panelWidth": 560,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,286px),560px)",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "560px"
+        }
+      }
+    },
+    {
+      "name": "1360/dark/placeholder",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 934,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 940,
+            "right": 1354,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 940,
+        "panelLeft": 940,
+        "panelWidth": 420,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,286px),420px)",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "420px"
+        }
+      }
+    },
+    {
+      "name": "1360/dark/tree",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 725,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 731,
+            "right": 1354,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 731,
+        "panelLeft": 731,
+        "panelWidth": 629,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,min(488px,calc(100vw - 72px))),max(280px,min(488px,calc(100vw - 72px)),calc(100vw - 640px)))",
+          "dssPanelLimit": "max(280px,min(488px,calc(100vw - 72px)),calc(100vw - 640px))",
+          "dssPanelMin": "min(488px,calc(100vw - 72px))",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "629px"
+        }
+      }
+    },
+    {
+      "name": "1360/dark/hidden",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 1354,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 1365.719970703125,
+            "right": 1645.719970703125,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 1360,
+        "panelLeft": 1365.719970703125,
+        "panelWidth": 286,
+        "gap": 11.719970703125,
+        "hidden": true,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "0px",
+          "panelComputedWidth": "286px"
+        }
+      }
+    },
+    {
+      "name": "1100/light/hero",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 634,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 640,
+            "right": 1094,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 640,
+        "panelLeft": 640,
+        "panelWidth": 460,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,0px),max(280px,0px,calc(100vw - 640px)))",
+          "dssPanelLimit": "max(280px,0px,calc(100vw - 640px))",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "460px"
+        }
+      }
+    },
+    {
+      "name": "1100/light/cards",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 534,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 540,
+            "right": 1094,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 540,
+        "panelLeft": 540,
+        "panelWidth": 560,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,286px),560px)",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "560px"
+        }
+      }
+    },
+    {
+      "name": "1100/light/placeholder",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 674,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 680,
+            "right": 1094,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 680,
+        "panelLeft": 680,
+        "panelWidth": 420,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,286px),420px)",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "420px"
+        }
+      }
+    },
+    {
+      "name": "1100/light/tree",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 606,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 612,
+            "right": 1094,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 612,
+        "panelLeft": 612,
+        "panelWidth": 488,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,min(488px,calc(100vw - 72px))),max(280px,min(488px,calc(100vw - 72px)),calc(100vw - 640px)))",
+          "dssPanelLimit": "max(280px,min(488px,calc(100vw - 72px)),calc(100vw - 640px))",
+          "dssPanelMin": "min(488px,calc(100vw - 72px))",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "488px"
+        }
+      }
+    },
+    {
+      "name": "1100/light/hidden",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 1094,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 1105.719970703125,
+            "right": 1385.719970703125,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 1100,
+        "panelLeft": 1105.719970703125,
+        "panelWidth": 286,
+        "gap": 11.719970703125,
+        "hidden": true,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "0px",
+          "panelComputedWidth": "286px"
+        }
+      }
+    },
+    {
+      "name": "1100/dark/hero",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 634,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 640,
+            "right": 1094,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 640,
+        "panelLeft": 640,
+        "panelWidth": 460,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,0px),max(280px,0px,calc(100vw - 640px)))",
+          "dssPanelLimit": "max(280px,0px,calc(100vw - 640px))",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "460px"
+        }
+      }
+    },
+    {
+      "name": "1100/dark/cards",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 534,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 540,
+            "right": 1094,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 540,
+        "panelLeft": 540,
+        "panelWidth": 560,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,286px),560px)",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "560px"
+        }
+      }
+    },
+    {
+      "name": "1100/dark/placeholder",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 674,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 680,
+            "right": 1094,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 680,
+        "panelLeft": 680,
+        "panelWidth": 420,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,286px),420px)",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "420px"
+        }
+      }
+    },
+    {
+      "name": "1100/dark/tree",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 606,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 612,
+            "right": 1094,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 612,
+        "panelLeft": 612,
+        "panelWidth": 488,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,min(488px,calc(100vw - 72px))),max(280px,min(488px,calc(100vw - 72px)),calc(100vw - 640px)))",
+          "dssPanelLimit": "max(280px,min(488px,calc(100vw - 72px)),calc(100vw - 640px))",
+          "dssPanelMin": "min(488px,calc(100vw - 72px))",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "488px"
+        }
+      }
+    },
+    {
+      "name": "1100/dark/hidden",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 1094,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 1105.719970703125,
+            "right": 1385.719970703125,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 1100,
+        "panelLeft": 1105.719970703125,
+        "panelWidth": 286,
+        "gap": 11.719970703125,
+        "hidden": true,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "0px",
+          "panelComputedWidth": "286px"
+        }
+      }
+    },
+    {
+      "name": "984/light/hero",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 634,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 640,
+            "right": 978,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 640,
+        "panelLeft": 640,
+        "panelWidth": 344,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,0px),max(280px,0px,calc(100vw - 640px)))",
+          "dssPanelLimit": "max(280px,0px,calc(100vw - 640px))",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "344px"
+        }
+      }
+    },
+    {
+      "name": "984/light/cards",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 418,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 424,
+            "right": 978,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 424,
+        "panelLeft": 424,
+        "panelWidth": 560,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,286px),560px)",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "560px"
+        }
+      }
+    },
+    {
+      "name": "984/light/placeholder",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 558,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 564,
+            "right": 978,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 564,
+        "panelLeft": 564,
+        "panelWidth": 420,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,286px),420px)",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "420px"
+        }
+      }
+    },
+    {
+      "name": "984/light/tree",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 490,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 496,
+            "right": 978,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 496,
+        "panelLeft": 496,
+        "panelWidth": 488,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,min(488px,calc(100vw - 72px))),max(280px,min(488px,calc(100vw - 72px)),calc(100vw - 640px)))",
+          "dssPanelLimit": "max(280px,min(488px,calc(100vw - 72px)),calc(100vw - 640px))",
+          "dssPanelMin": "min(488px,calc(100vw - 72px))",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "488px"
+        }
+      }
+    },
+    {
+      "name": "984/light/hidden",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 978,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 989.719970703125,
+            "right": 1269.719970703125,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 984,
+        "panelLeft": 989.719970703125,
+        "panelWidth": 286,
+        "gap": 11.719970703125,
+        "hidden": true,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "0px",
+          "panelComputedWidth": "286px"
+        }
+      }
+    },
+    {
+      "name": "984/dark/hero",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 634,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 640,
+            "right": 978,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 640,
+        "panelLeft": 640,
+        "panelWidth": 344,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,0px),max(280px,0px,calc(100vw - 640px)))",
+          "dssPanelLimit": "max(280px,0px,calc(100vw - 640px))",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "344px"
+        }
+      }
+    },
+    {
+      "name": "984/dark/cards",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 418,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 424,
+            "right": 978,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 424,
+        "panelLeft": 424,
+        "panelWidth": 560,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,286px),560px)",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "560px"
+        }
+      }
+    },
+    {
+      "name": "984/dark/placeholder",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 558,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 564,
+            "right": 978,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 564,
+        "panelLeft": 564,
+        "panelWidth": 420,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,286px),420px)",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "420px"
+        }
+      }
+    },
+    {
+      "name": "984/dark/tree",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 490,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 496,
+            "right": 978,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 496,
+        "panelLeft": 496,
+        "panelWidth": 488,
+        "gap": 6,
+        "hidden": false,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "min(max(629px,min(488px,calc(100vw - 72px))),max(280px,min(488px,calc(100vw - 72px)),calc(100vw - 640px)))",
+          "dssPanelLimit": "max(280px,min(488px,calc(100vw - 72px)),calc(100vw - 640px))",
+          "dssPanelMin": "min(488px,calc(100vw - 72px))",
+          "dshSidebarWidth": "629px",
+          "panelComputedWidth": "488px"
+        }
+      }
+    },
+    {
+      "name": "984/dark/hidden",
+      "pass": true,
+      "measurement": {
+        "panels": [
+          {
+            "selector": ".pI_x6G_sidebarCol",
+            "left": 6,
+            "right": 62,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".pI_x6G_centerCol",
+            "left": 68,
+            "right": 978,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          },
+          {
+            "selector": ".nArs4W_panel>.nArs4W_panelBody",
+            "left": 989.719970703125,
+            "right": 1269.719970703125,
+            "border": [
+              "1px",
+              "1px",
+              "1px",
+              "1px"
+            ],
+            "radius": [
+              "10px",
+              "10px",
+              "10px",
+              "10px"
+            ]
+          }
+        ],
+        "reservedRight": 984,
+        "panelLeft": 989.719970703125,
+        "panelWidth": 286,
+        "gap": 11.719970703125,
+        "hidden": true,
+        "cursor": "col-resize",
+        "cssVars": {
+          "dssPanelWidth": "",
+          "dssPanelLimit": "",
+          "dssPanelMin": "",
+          "dshSidebarWidth": "0px",
+          "panelComputedWidth": "286px"
+        }
+      }
+    }
+  ],
+  "errors": []
+}

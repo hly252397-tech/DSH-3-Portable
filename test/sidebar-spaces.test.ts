@@ -82,24 +82,43 @@ test('published client bundle contains the Qoder workbench, global search, enhan
   assert.match(source, /全局搜索知识条目和数据库记录/)
   assert.match(source, /type: "scatter"/)
   assert.match(source, /id: "space-inventor-2027"/)
-  assert.match(source, /mountHeroActivityGrid/)
+  // 活动卡已整卡下线：不再有挂载器与 eligibility 判定，只留清理旧宿主的退场函数。
+  assert.match(source, /retireHeroActivityGrid/)
   assert.match(source, /data-dss-activity-host/)
+  assert.doesNotMatch(source, /mountHeroActivityGrid/)
+  assert.doesNotMatch(source, /dbh-host/)
   assert.doesNotMatch(source, /id: "dsh-activity-grid"/)
   assert.match(source, /withBetterSidebar/)
   assert.match(source, /openStandaloneWorkbench/)
   assert.doesNotMatch(source, /id: "dsh-knowledge-center"/)
   assert.match(source, /id: "space-automation"/)
   assert.match(source, /IconCordisPluginOutline14/)
-  assert.match(bundle, /mountHeroActivityGrid/)
+  assert.match(bundle, /retireHeroActivityGrid/)
+  assert.doesNotMatch(bundle, /mountHeroActivityGrid/)
   assert.doesNotMatch(bundle, /id: "dsh-activity-grid"/)
   assert.match(bundle, /const echarts = \(function \(\) \{/)
   assert.doesNotMatch(bundle, /__ECHARTS_VENDOR_ANCHOR__/)
 })
 
+test('footer connection state is separated from the settings action row', async t => {
+  if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
+  const [source, bundle] = await Promise.all([
+    readFile(pluginPath('lib', 'client.src.js'), 'utf8'),
+    readFile(pluginPath('lib', 'client.js'), 'utf8'),
+  ])
+  for (const client of [source, bundle]) {
+    assert.match(client, /restart, settings and connection state share one compact row/)
+    assert.match(client, /dcu-settings-seat > \[data-slot="sidebar\.settings"\]/)
+    assert.match(client, /grid-template-columns: minmax\(0, 1fr\) max-content auto/)
+    assert.match(client, /align-items: end/)
+    assert.match(client, /position: static !important/)
+  }
+})
+
 async function clientModel(storage: Map<string, string>, fetchMock?: (...args: any[]) => Promise<any>) {
   let api: any
   const source = (await readFile(pluginPath('lib', 'client.src.js'), 'utf8'))
-    .replace('exports.apply = apply;', 'exports.model = { readKnowledgeFile, normalizeKnowledge, activityDays, loadPortable, taskSearchResults, startTaskContentSearch }; exports.apply = apply;')
+    .replace('exports.apply = apply;', 'exports.model = { readKnowledgeFile, normalizeKnowledge, loadPortable, taskSearchResults, startTaskContentSearch }; exports.apply = apply;')
   runInNewContext(source, {
     window: { __ModuleLoader__: { load(def: any) { api = def.factory(() => ({})).model } }, dispatchEvent() {} },
     localStorage: { getItem: (key: string) => storage.get(key) ?? null, setItem() { throw new Error('must not overwrite legacy storage') } },
@@ -186,19 +205,22 @@ test('corrupt legacy data or backend failure cannot seed over user data', async 
   await assert.rejects(unavailable.loadPortable(key), /storage-unavailable/)
 })
 
-test('activity chart uses only nonblank session last-activity dates and never fabricates activity', async t => {
+// 2026-09-13：整卡下线。源与已装配产物必须同时干净，避免只改了源却发了旧 bundle。
+test('retired activity card is absent from both the source and the shipped bundle', async t => {
   if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
-  const api = await clientModel(new Map())
-  const now = new Date(2026, 8, 5, 12)
-  const empty = api.activityDays({ ids: [], byId: {} }, now)
-  assert.equal(empty.length, 364)
-  assert.equal(empty.reduce((sum: number, day: any) => sum + day.count, 0), 0)
-  const days = api.activityDays({ ids: ['a', 'blank', 'bad'], byId: {
-    a: { updatedAt: now.getTime(), blank: false }, blank: { updatedAt: now.getTime(), blank: true }, bad: { updatedAt: 0, blank: false },
-  } }, now)
-  assert.equal(days.at(-1).day, '2026-09-05')
-  assert.equal(days.at(-1).count, 1)
-  assert.equal(days.reduce((sum: number, day: any) => sum + day.count, 0), 1)
+  const [source, bundle] = await Promise.all([
+    readFile(pluginPath('lib', 'client.src.js'), 'utf8'),
+    readFile(pluginPath('lib', 'client.js'), 'utf8'),
+  ])
+  for (const client of [source, bundle]) {
+    assert.match(client, /retireHeroActivityGrid/)
+    assert.ok(!client.includes('activityMonths'), '12 月桶模型应已删除')
+    // 盯用户可见文案而不是产品名：保留的注释会提到卡片名字，但不能还有任何渲染出来的字。
+    assert.ok(!client.includes('近 12 个月'), '卡片期间文案应已删除')
+    assert.ok(!client.includes('个任务有更新'), '卡片量词文案应已删除')
+    assert.ok(!client.includes('.dss-activity-chart'), '柱状图样式应已删除')
+    assert.ok(!client.includes('.dss-activity-col'), '柱状图列样式应已删除')
+  }
 })
 
 test('task search merges title and content hits, deduplicates and excludes unknown or blank sessions', async t => {

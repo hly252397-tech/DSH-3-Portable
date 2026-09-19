@@ -1,0 +1,4 @@
+# dsh-black-hole is a first-party local content module for the portable DSH profile.
+- insert:
+    - id: black-hole
+      name: 'dsh-black-hole'

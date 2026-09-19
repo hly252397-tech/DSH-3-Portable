@@ -10,6 +10,10 @@ const installedManifestPath = resolve(root, 'Data/Runtime/dsh-runtime/node_modul
 const desktopPointerPath = resolve(root, 'Data/Updates/Desktop/pointer.json')
 const activeRuntimePointerPath = resolve(root, 'Data/Runtime/Harness/current.json')
 const online = process.argv.includes('--online')
+// 联网核对超时（2026-09-13 实测依据）：api.github.com 在本机存在间歇性卡顿——同一份脚本
+// 连续 3 次以 15s 超时误报「无法核对官方 HEAD」，随后连跑 4 次全绿（单次请求仅 0.6~1.1s）。
+// 15s 判定过紧，会把网络抖动误报成基线红灯；30s 仍能拦住真正不可达的官方源。
+const onlineTimeoutMs = 30_000
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'))
@@ -95,7 +99,7 @@ if (online && !process.exitCode) {
     }
     const commitResponse = await fetch('https://api.github.com/repos/deepseek-ai/deepseek-harness/commits/master', {
       headers,
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(onlineTimeoutMs),
     })
     if (!commitResponse.ok) throw new Error(`GitHub API HTTP ${commitResponse.status}`)
     const currentCommit = (await commitResponse.json()).sha
@@ -105,7 +109,7 @@ if (online && !process.exitCode) {
     if (!process.exitCode) {
       const manifestResponse = await fetch(`https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/${currentCommit}/apps/cli/package.json`, {
         headers: { 'User-Agent': headers['User-Agent'] },
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(onlineTimeoutMs),
       })
       if (!manifestResponse.ok) throw new Error(`GitHub Raw HTTP ${manifestResponse.status}`)
       const currentVersion = (await manifestResponse.json()).version

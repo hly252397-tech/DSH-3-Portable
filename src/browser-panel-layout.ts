@@ -3,21 +3,73 @@ import type { BrowserPanelBounds } from './shell-contract.js'
 const MINIMUM_PANEL_WIDTH = 280
 const MINIMUM_PANEL_HEIGHT = 240
 const DOWNLOADS_DRAWER_MAX_HEIGHT = 248
-/** 浏览器工作台面板的绝对宽度上限：无论比例被拖到多大，面板都不得吃掉
- * 对话区的舒适宽度（2026-09-12 实证：0.75 比例上限在宽屏给面板 75% 宽度，
- * 对话列被挤到底线）。视口 − 900px 保证对话列至少 560px + 侧栏 + 图标轨。 */
-const MAXIMUM_PANEL_WIDTH_MARGIN = 900
+/** 浏览器工作台面板的绝对宽度上限：无论比例被拖到多大，面板都不得吃掉对话区的舒适宽度。
+ *  🔴 **2026-09-15 实测更正（第三次收敛）**：页面自带一条**同选择器、同 `!important`** 的规则
+ *  `body .nArs4W_panel{max-width:calc(100vw - 640px)}`，它在特异性上**胜过** theme.css 里那条
+ *  （真实 DOM 实测：视口 1384 → 计算值 **744 = 1384 − 640**）——也就是说页面真正执行的上限一直是
+ *  **视口 − 640**。外壳若比它钳得更狠（原先的 1040），原生视图就会比页面允许的卡更窄，多出来那条
+ *  正是用户反复看到的"右侧白带"：窄窗下 卡 581 / 视图 344 = **237px 白带**。
+ *  ∴ 两把尺子必须同值，这里改为与页面实际执行值一致：**视口 − 640**。
+ *  （2026-09-14 那轮把 900→1040 是为了对齐"官方内容下限 680"，但页面并不执行它；本轮以实测为准。） */
+export const MAXIMUM_PANEL_WIDTH_MARGIN = 640
+
+/** 面板被页面整块隐藏的视口阈值（**CSS px**），与 `assets/theme.css` 的
+ *  `@media (max-width: 1100px) { body .nArs4W_panel { display: none !important } }` 同值。
+ *  页面在窄视口选择"面板先让位、对话独占"；外壳若不知道这件事，就会继续按最小宽度
+ *  画原生浏览器视图 —— 用户看到的是「一条 280px 的浏览器 + 右边一片白」（2026-09-14 实机截图）。
+ *  两者必须共用同一把尺子，由 `browser-panel-layout.test.ts` 的跨模块一致性用例钉住。 */
+export const MINIMUM_PANEL_VIEWPORT_CSS = 1100
+
+/**
+ * 视口窄到页面会隐藏面板时，外壳是否也应停止绘制浏览器面板。
+ * 比较在 **CSS px** 坐标系里做（与页面的媒体查询同一坐标系）：`视口 DIP ÷ 网页缩放`。
+ * 输入不可信（非有限数、非正数）时返回 false —— 宁可不隐藏，也不要因坏数据把面板关掉。
+ */
+export function shouldHideBrowserPanel(viewportDip: number, zoomFactor: number): boolean {
+  if (!Number.isFinite(viewportDip) || !Number.isFinite(zoomFactor) || viewportDip <= 0 || zoomFactor <= 0) return false
+  return viewportDip / zoomFactor < MINIMUM_PANEL_VIEWPORT_CSS
+}
+
+/** 是否显示面板顶部那一层**网页标签条**。
+ *  只开一个网页时它是纯冗余（上面已有 DSH 面板自己的标签条）：白吃约 40px 垂直，而"+"会被
+ *  移进导航条，功能零损失；≥2 个网页时行为完全不变。用户 2026-09-15 截图指出「只有浏览器有」
+ *  的正是这一层（文档 40 的「优化 1」，当时因需连 src 几何一起改而列为未实施）。
+ *  ⚠ 几何必须跟同一判定走：原生页面视图的垂直偏移由 resolveBrowserPageTop 算，页面侧只认
+ *  外壳下发的 `pageTabBarVisible` —— 两侧同源，否则页面会整体上下错 40px。 */
+export function shouldShowPageTabBar(tabCount: number): boolean {
+  return !Number.isFinite(tabCount) || tabCount >= 2
+}
+
+/** 原生网页视图的顶部偏移：标签条可见 = 标签条 + 导航条；隐藏 = 仅导航条。 */
+export function resolveBrowserPageTop(tabCount: number, tabsBarHeight: number, navBarHeight: number): number {
+  return (shouldShowPageTabBar(tabCount) ? tabsBarHeight : 0) + navBarHeight
+}
 
 /**
  * Cap a requested browser workspace panel width so the panel never consumes
- * the conversation area: at most `viewportWidth - 900px` (the remainder keeps
- * the icon rail, the 252px sidebar and a 560px conversation floor), and never
- * below the panel's own 280px minimum (very narrow windows hide the panel
- * through the renderer instead).
+ * the conversation area: at most `viewportWidth - MAXIMUM_PANEL_WIDTH_MARGIN`
+ * (the remainder keeps the icon rail, the 252px sidebar and the official 680px
+ * conversation floor), and never below the panel's own 280px minimum (very
+ * narrow windows hide the panel instead — the page through its media query,
+ * the shell through `shouldHideBrowserPanel`).
  */
 export function capBrowserWorkspacePanelWidth(viewportWidth: number, requestedWidth: number): number {
   const maximum = Math.max(280, viewportWidth - MAXIMUM_PANEL_WIDTH_MARGIN)
   return Math.min(requestedWidth, maximum, Math.max(280, viewportWidth))
+}
+
+/**
+ * 面板宽度上限换算到**页面 CSS px**：`assets/theme.css` 用它钳住页面侧的面板占位
+ * （`body .nArs4W_panel`），使其与原生视图/chrome 用同一把尺子。
+ * 背景（2026-09-14 实机截图实证）：页面侧原先自带一条 `calc(100vw - 1040px)` 的钳制，
+ * 外壳侧却是 `viewport - 900px` 的 DIP 钳制 —— 两把尺子、两个数、还差一个缩放因子，
+ * 于是"卡片宽度"与"原生视图宽度"可以差出上百像素：差出来的那条就是用户看到的
+ * 右侧空白（卡片白底露出），反过来视图也会压住对话列。
+ * 改成单一来源后，页面只认外壳下发的值，`viewport - MAXIMUM_PANEL_WIDTH_MARGIN` 是唯一的策略常量。
+ */
+export function browserPanelMaxWidthCss(panelWidthDip: number, zoomFactor: number): number {
+  if (!Number.isFinite(panelWidthDip) || !Number.isFinite(zoomFactor) || zoomFactor <= 0 || panelWidthDip <= 0) return 0
+  return Math.max(MINIMUM_PANEL_WIDTH, Math.round(panelWidthDip / zoomFactor))
 }
 
 const DOWNLOADS_DRAWER_EMPTY_HEIGHT = 112

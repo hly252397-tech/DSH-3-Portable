@@ -1,0 +1,4 @@
+# 界面样式覆盖插件。条目显式带稳定 id：loader 按 id 做增量更新。
+- insert:
+  - id: ui-tweaks
+    name: dsh-ui-tweaks

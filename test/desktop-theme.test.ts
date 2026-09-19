@@ -14,11 +14,16 @@ test('桌面主题只接受 light/dark 解析结果和内置偏好', () => {
 })
 
 test('桌面主题预设跨持久化边界只接受内置值', () => {
-  assert.deepEqual(DEFAULT_DESKTOP_THEME_PREFERENCES, { schema: 1, preset: 'qoder' })
-  assert.deepEqual(sanitizeDesktopThemePreferences({ schema: 1, preset: 'qoder' }), { schema: 1, preset: 'qoder' })
+  assert.deepEqual(DEFAULT_DESKTOP_THEME_PREFERENCES, { schema: 1, preset: 'deep-sea' })
+  assert.deepEqual(sanitizeDesktopThemePreferences({ schema: 1, preset: 'qoder' }), DEFAULT_DESKTOP_THEME_PREFERENCES)
   assert.deepEqual(sanitizeDesktopThemePreferences({ schema: 1, preset: 'deep-sea' }), { schema: 1, preset: 'deep-sea' })
   assert.deepEqual(sanitizeDesktopThemePreferences({ preset: 'unknown' }), DEFAULT_DESKTOP_THEME_PREFERENCES)
   assert.deepEqual(sanitizeDesktopThemePreferences(null), DEFAULT_DESKTOP_THEME_PREFERENCES)
+})
+
+test('移除 Qoder 工作台后主题注册表不再暴露该选项', async () => {
+  const source = await readFile(join('assets', 'theme.js'), 'utf8')
+  assert.doesNotMatch(source, /Qoder 工作台|Qoder Workbench|qoder:/)
 })
 
 test('桌面主题预设原子保存到便携用户数据子目录并可重新载入', async () => {

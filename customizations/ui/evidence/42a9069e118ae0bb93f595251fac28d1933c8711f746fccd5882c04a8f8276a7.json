@@ -1,0 +1,185 @@
+{
+ "status": "pass",
+ "results": [
+  {
+   "label": "shell-topbar-fix-20260913",
+   "checkedAt": "2026-09-13T12:49:21.026Z",
+   "browser": {
+    "name": "chrome",
+    "executable": "G:/DSH-3-Portable/宏建云系统/browsers/chrome-152.0.7977.64/chrome.exe",
+    "mode": "headless",
+    "width": 2560
+   },
+   "assertions": [
+    {
+     "name": "修复后：无未捕获脚本错误",
+     "ok": true,
+     "detail": []
+    },
+    {
+     "name": "修复后：菜单渲染为 4 项（证明内联脚本跑到底、所有监听器已挂上）",
+     "ok": true,
+     "detail": [
+      "文件",
+      "编辑",
+      "视图",
+      "帮助"
+     ]
+    },
+    {
+     "name": "修复后：浏览器「更多」菜单含 在系统浏览器打开",
+     "ok": true,
+     "detail": "在系统浏览器打开"
+    },
+    {
+     "name": "修复后：DshBrowserWorkspace 全局已定义（create 未抛错）",
+     "ok": true,
+     "detail": "object"
+    },
+    {
+     "name": "修复后：返回按钮发出 action(back)",
+     "ok": true,
+     "detail": [
+      "action"
+     ]
+    },
+    {
+     "name": "修复后：前进按钮发出 action(forward)",
+     "ok": true,
+     "detail": [
+      "action"
+     ]
+    },
+    {
+     "name": "修复后：搜索胶囊发出 action(find)",
+     "ok": true,
+     "detail": [
+      "action"
+     ]
+    },
+    {
+     "name": "修复后：齿轮发出 action(desktop-settings)",
+     "ok": true,
+     "detail": [
+      "action"
+     ]
+    },
+    {
+     "name": "修复后：更新图标发出 action(check-updates)",
+     "ok": true,
+     "detail": [
+      "action"
+     ]
+    },
+    {
+     "name": "修复后：重启首击只进确认态、不发 action",
+     "ok": true,
+     "detail": {
+      "calls": [],
+      "status": "再次点击重启·Esc 取消"
+     }
+    },
+    {
+     "name": "修复后：重启二次点击发出 action(app-restart)",
+     "ok": true,
+     "detail": [
+      "action"
+     ]
+    },
+    {
+     "name": "故障复现：旧组合抛未捕获脚本错误",
+     "ok": true,
+     "detail": [
+      "Cannot read properties of null (reading 'addEventListener')"
+     ]
+    },
+    {
+     "name": "故障复现：旧组合菜单为空（与用户截图一致）",
+     "ok": true,
+     "detail": []
+    },
+    {
+     "name": "故障复现：旧组合点击返回键无任何 action",
+     "ok": true,
+     "detail": []
+    }
+   ],
+   "fixed": {
+    "label": "fixed",
+    "htmlPath": "G:/DSH-3-Portable/assets/shell.html",
+    "pageErrors": [],
+    "consoleErrors": [],
+    "before": {
+     "menus": [
+      "文件",
+      "编辑",
+      "视图",
+      "帮助"
+     ],
+     "menusCount": 4,
+     "workspaceGlobal": "object",
+     "externalEntry": "在系统浏览器打开",
+     "commandCenter": true,
+     "status": ""
+    },
+    "clicks": {
+     "back": [
+      "action"
+     ],
+     "forward": [
+      "action"
+     ],
+     "commandCenter": [
+      "action"
+     ],
+     "desktopSettings": [
+      "action"
+     ],
+     "checkUpdates": [
+      "action"
+     ]
+    },
+    "afterFirstClick": {
+     "calls": [],
+     "status": "再次点击重启·Esc 取消"
+    },
+    "afterSecondClick": [
+     "action"
+    ]
+   },
+   "broken": {
+    "label": "brokenRepro",
+    "htmlPath": "G:/DSH-3-Portable/Data/Updates/Desktop/slots/1.0.66-local-536047aaadd3f01a/resources/shell.html",
+    "pageErrors": [
+     "Cannot read properties of null (reading 'addEventListener')"
+    ],
+    "consoleErrors": [],
+    "before": {
+     "menus": [],
+     "menusCount": 0,
+     "workspaceGlobal": "object",
+     "externalEntry": null,
+     "commandCenter": true,
+     "status": ""
+    },
+    "clicks": {
+     "back": [],
+     "forward": [],
+     "commandCenter": [],
+     "desktopSettings": [],
+     "checkUpdates": []
+    },
+    "afterFirstClick": {
+     "calls": [],
+     "status": ""
+    },
+    "afterSecondClick": []
+   },
+   "screenshots": [
+    "fixed-topbar-2560.png",
+    "broken-topbar-2560.png"
+   ],
+   "note": "真实 assets 离屏渲染 + 真实点击；对照运行中活动槽 536047 的旧组合复现故障"
+  }
+ ]
+}

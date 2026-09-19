@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict'
 import { PassThrough } from 'node:stream'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
+
+import { makeTrackedTempDir as mkdtemp, removeTempDir } from './helpers/tmp.js'
 
 import { APPLY_PLUGIN_UPDATES_IPC, OFFICIAL_DSH_VERSION, REQUEST_HARNESS_UPDATE_IPC } from '../src/bundled-plugins.js'
 import { createDesktopHostServices, DESKTOP_BRIDGE_FILES, ensureDesktopBridgeBundle, ensureDesktopBridgePatch, installDesktopBridge, mergeDesktopBridgePatch, officialPluginUpdateVersion, runBundledPnpm, shouldRecycleAfterPluginArgs, shouldRecycleAfterPluginResult } from '../src/desktop-host.js'
@@ -91,7 +93,7 @@ test('pnpm 成功但插件版本未变化时不应重载 DSH', async () => {
     await new Promise(resolve => setTimeout(resolve, 30))
     assert.deepEqual(sent, [])
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -130,7 +132,7 @@ test('pnpm 成功且插件版本变化时应重载 DSH', async () => {
     await waitFor(() => sent.length === 1)
     assert.deepEqual(sent, [APPLY_PLUGIN_UPDATES_IPC])
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -194,7 +196,7 @@ test('安装失败时不得把残留包写进运行清单或重启', async () =>
     assert.equal(manifest.dsh?.profile?.bundles?.includes('dsh-file-upload'), false)
     assert.deepEqual(sent, [])
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -233,7 +235,7 @@ test('会把桌面桥接插件写进 profile patch 顶部', async () => {
     assert.match(patch, /- insert:\n  - id: dsh-desktop-bridge\n    name: dsh-desktop-bridge/)
     assert.match(patch, /id: dsh-desktop-bridge/)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -325,7 +327,7 @@ test('安装桌面桥接时缺少任一依赖都会立即失败', async () => {
     await writeFile(join(source, DESKTOP_BRIDGE_FILES[0]), '', 'utf8')
     assert.throws(() => installDesktopBridge(profile, source), /桌面桥接文件缺失/)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -351,7 +353,7 @@ test('桌面桥接清单同时声明 host 与 client 入口', async () => {
     const profileManifest = JSON.parse(await readFile(join(profile, 'package.json'), 'utf8')) as { dsh?: { profile?: { bundles?: string[] } } }
     assert.equal(profileManifest.dsh?.profile?.bundles?.includes('dsh-desktop-bridge'), true)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -363,7 +365,7 @@ test('重复登记桌面桥接 bundle 不会产生重复项', async () => {
     const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as { dsh?: { profile?: { bundles?: string[] } } }
     assert.deepEqual(manifest.dsh?.profile?.bundles, ['dsh-desktop-bridge'])
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -396,7 +398,7 @@ test('后续成功安装不会激活上次失败留下的无关依赖', async ()
     assert.equal(manifest.dsh?.profile?.bundles?.includes('good-plugin'), true)
     assert.equal(manifest.dsh?.profile?.bundles?.includes('stale-plugin'), false)
   } finally {
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 
@@ -415,7 +417,7 @@ test('市场 pnpm 超时后会结束子进程并返回超时退出码', async ()
   } finally {
     if (previous === undefined) delete process.env.DSH_PNPM_ENTRY
     else process.env.DSH_PNPM_ENTRY = previous
-    await rm(root, { recursive: true, force: true })
+    await removeTempDir(root)
   }
 })
 

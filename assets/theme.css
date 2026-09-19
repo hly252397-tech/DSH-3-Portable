@@ -26,6 +26,23 @@
   --dsh-radius-sm: 8px;
   --dsh-radius-md: 12px;
   --dsh-motion: 170ms cubic-bezier(.22, 1, .36, 1);
+  /* 2026-09-16：codex-ui 1.1.11 新增变量（上游 v1.0.63 运行时换代后暴露的缺口）——
+     不补则这些页面回退到官方默认淡绿/teal 底色 */
+  --bg: #09090b;
+  --sp-bg: #18181b;
+  --sp-border: #27272a;
+  --sp-muted: #a1a1aa;
+  --muted: #71717a;
+  --dcu-composer-bg: transparent;
+  --dcu-tip-bg: #27272a;
+  --dsw-alias-background-secondary: #18181b;
+  --dsw-alias-border-subtle: #27272a;
+  --dsw-alias-state-warning-primary: #e4b550;
+  --accent-light: rgba(85, 167, 255, 0.08);
+  --accent-hover: rgba(85, 167, 255, 0.14);
+  --ok-bg: rgba(69, 201, 138, 0.10);
+  --bad-bg: rgba(255, 115, 115, 0.10);
+  --warn-bg: rgba(228, 181, 80, 0.10);
 }
 
 :root[data-color-scheme="light"] {
@@ -53,6 +70,22 @@
   --dsh-chart-7: #a34791;
   --dsh-chart-8: #667f22;
   --dsh-shadow-raised: 0 12px 32px rgba(27, 49, 60, 0.15);
+  /* 2026-09-16：codex-ui 1.1.11 新增变量——浅色模式同步覆盖 */
+  --bg: #ffffff;
+  --sp-bg: #ffffff;
+  --sp-border: #e4e4e7;
+  --sp-muted: #52525b;
+  --muted: #71717a;
+  --dcu-composer-bg: transparent;
+  --dcu-tip-bg: #ffffff;
+  --dsw-alias-background-secondary: #f4f4f5;
+  --dsw-alias-border-subtle: #e4e4e7;
+  --dsw-alias-state-warning-primary: #a46100;
+  --accent-light: rgba(23, 111, 209, 0.06);
+  --accent-hover: rgba(23, 111, 209, 0.12);
+  --ok-bg: rgba(22, 134, 83, 0.08);
+  --bad-bg: rgba(199, 53, 53, 0.08);
+  --warn-bg: rgba(164, 97, 0, 0.08);
 }
 
 :root[data-dsh-preset="qoder"] {
@@ -651,22 +684,47 @@ body .dcu-root button[aria-label="Collapse sidebar"] {
   pointer-events: none !important;
 }
 
-/* 工作台面板宽度钳制（比例参照 WorkBuddy 窄窗布局：对话列保底 ~560px 舒适宽度，
-   面板拿余量）。better-sidebar 的拖宽只钳到视口宽，拖宽一次再被 autoOpenSubagent
-   自动重开就会把对话列挤到竖排（2026-09-12 实证）。规则：面板上限 = 视口 − 1000px
-   （图标轨 40 + 侧栏 252 + 对话底线 560 + 间距），窗口窄于 ~1040px 时面板整个
-   隐藏、对话独占——面板先让位，对话列底线最后让位。 */
+/* ── 全局布局尺子（2026-09-16，用户要求「全局统一、自适应，不然以后都要一个一个改」）──────────
+   外壳每次 layout 只算一次，把结果下发到 :root：
+     --dsh-app-width / --dsh-app-height  DSH 视图可用尺寸（CSS px，已按缩放折算）
+     --dsh-app-zoom                      当前网页缩放
+     data-dsh-compact="1"                外壳判定「面板让位」（= shouldHideBrowserPanel() 的唯一结论）
+   页面与插件**只读**下列派生量，禁止再用 100vw / 1100px 之类的第二条尺子自行判断；
+   兜底值保证「旧外壳 + 新样式」组合下行为与从前一致（本仓库两者同批构建，实际不会长期错配）。 */
+:root {
+  --dsh-app-w: var(--dsh-app-width, 100vw);
+  --dsh-app-h: var(--dsh-app-height, 100vh);
+  --dsh-sidebar-w: 252px;   /* 侧栏固定宽（见下方 Fixed 252 px 规则）：只此一处定义 */
+  --dsh-rail-w: 40px;       /* 收起态图标轨 */
+  --dsh-chrome-w: calc(var(--dsh-sidebar-w) + var(--dsh-rail-w) + 48px);
+  --dsh-panel-margin: 640px; /* 面板让位预算：与外壳 browser-panel-layout 常量同值 */
+}
+/* 工作台面板宽度钳制（比例参照 WorkBuddy 窄窗布局：官方内容下限 680px
+   （clamp(680, 64%, 920) 下限）+ 图标轨 40 + 侧栏 252 + 间距 → 视口 − 1040px；
+   窗口窄于 1100px 时面板整个隐藏、对话独占——面板先让位，对话列底线最后让位）。
+   🔴 2026-09-14 修正（单一来源）：这里写的是 CSS px，而外壳（`src/browser-panel-layout.ts`
+   的 MAXIMUM_PANEL_WIDTH_MARGIN）钳的是 DIP —— 单位不同 + 数值曾不一致，缩放下卡片与
+   原生视图能差出上百像素：差出来的那条就是用户看到的右侧空白（卡片白底露出），反过来
+   视图也会压住对话列。现由外壳按同一常量算出上限、**折成 CSS px** 后写成
+   `--dsh-browser-panel-max-width` 下发；变量缺失（旧外壳/独立浏览器）时下面的兜底
+   与外壳常量保持一致。 */
+/* 兜底值与外壳常量同值：**视口 − 640**。页面自带一条同选择器、同 !important 的规则，
+   特异性更高时会胜出（2026-09-15 实测：视口 1384 → 计算 744 = 1384 − 640）。因此外壳的钳制
+   不许比它更紧——外壳用 1040 时，窄窗下视图被钳到 344 而卡仍有 581，右侧露出 237px 白带。 */
 body .nArs4W_panel {
-  max-width: calc(100vw - 1040px) !important;
+  max-width: var(--dsh-browser-panel-max-width, calc(var(--dsh-app-w) - var(--dsh-panel-margin))) !important;
 }
-@media (max-width: 1100px) {
-  body .nArs4W_panel {
-    display: none !important;
-    pointer-events: none !important;
-  }
+/* 2026-09-16：原为 `@media (max-width: 1100px)`，与外壳 shouldHideBrowserPanel() 是**两条尺子**
+   （缩放与外壳 chrome 一变就漂移，2026-09-14 实机「280px 浏览器 + 右边一片白」即此）。
+   现只认外壳那一次判定：compact=1 → 面板让位、对话独占。 */
+:root[data-dsh-compact="1"] body .nArs4W_panel {
+  display: none !important;
+  pointer-events: none !important;
 }
+/* 对话列自适应下限：仍以官方内容下限 680px 为目标，但**不许超过可用宽度** */
+/* —— 窄档自动让到剩余空间，避免被挤成溢出/白带（2026-09-16 全局尺子）。 */
 body .pI_x6G_centerCol {
-  min-width: 680px;
+  min-width: min(680px, calc(var(--dsh-app-w) - var(--dsh-chrome-w) - 24px));
 }
 
 /* 0.1.5-rc.2 新前端（dsh-web-frontend）的工作台标签菜单（_menu_17p4l_444，
@@ -674,7 +732,7 @@ body .pI_x6G_centerCol {
    会伸进便携侧栏区（2026-09-12 实证）。add 按钮固定在标签条左端（侧栏右缘
    之外），菜单强制左对齐到侧栏之外即可；类名哈希随构建变化，用前缀匹配。 */
 body [class*="_menu_17p4l"] {
-  left: 260px !important;
+  left: calc(var(--dsh-sidebar-w) + 8px) !important;
   right: auto !important;
 }
 
@@ -691,8 +749,10 @@ body .dcu-home-cards {
 body .wSkVaW_root {
   --dsh-chat-user-width: unset !important;
 }
+/* 对话列自适应下限：仍以官方内容下限 680px 为目标，但**不许超过可用宽度** */
+/* —— 窄档自动让到剩余空间，避免被挤成溢出/白带（2026-09-16 全局尺子）。 */
 body .pI_x6G_centerCol {
-  min-width: 680px;
+  min-width: min(680px, calc(var(--dsh-app-w) - var(--dsh-chrome-w) - 24px));
 }
 
 /* Fixed 252 px sidebar width across all color schemes and presets. */
@@ -769,3 +829,95 @@ body[data-color-scheme="light"][data-dsh-preset="qoder"] .dcu-settings-seat > bu
   --chrome-shadow: 0 1px 2px rgb(0 0 0 / .05);
   --chrome-shadow-pop: 0 4px 16px rgb(0 0 0 / .1);
 }
+
+/* 宠物小卡（插件 @michengai/dsh-codex-pet）安全区兜底：
+   它的位置由插件自己按视口分数算（lib/client.js L1553-1557：left = x·(innerWidth − size − 16)，
+   下限只夹到 0），**没有给左侧图标轨留安全区** ⇒ 分数接近 0 时宠物压在图标轨上、贴着窗口边缘
+   （2026-09-15 用户截图：界面缩放后出现）。
+   外壳只做兜底、不改插件：给一个左边距下限（图标轨 ~66px + 间距）。
+   拖拽不受影响——插件用 getBoundingClientRect 记录分数（同文件 L1593），会把该偏移一并算进去。 */
+.dcp-floating {
+  margin-left: 72px !important;
+}
+
+/* 输入区工具栏（codex-ui）：**只做两件中性的事**，布局沿用官方（flex-wrap:wrap + space-between）：
+   ① chips（+ / 计数 / 工作区内修改 / 专家 / PUA）flex:0 0 auto —— 固定尺寸，防止被挤压后互相重叠
+      （2026-09-15 用户截图："工作区内修改⌄" 压住 "专家" 就是这个原因）；
+   ② 模型名可收缩、按最小可读宽度 96px 截断 —— 防止越界压住发送按钮。
+   ⚠ 教训（2026-09-15，一天内三次返工）：
+   · 加过 `margin-left:auto` 想让换行后右对齐 —— 它在可换行 flex 里会抢走整行剩余空间，
+     **反而把右侧簇提前顶到第二行**，等于我自己制造了要消除的两行；已删除。
+   · 加过 `nowrap` 但没定收缩优先级 —— chips 被压到重叠；已改为 ①。
+   · 加过 @container + font-size:0 收起文字、隐藏 ¥ 芯片 —— 界面被改变但收益有限、用户未要求；已撤回。 */
+.uV2eYG_row > button,
+.uV2eYG_row > div:not(.uV2eYG_trailing) {
+  flex: 0 0 auto !important;
+}
+.uV2eYG_trailing {
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+/* 换行后第二行从**行首**开始（左对齐）——2026-09-15 用户："你就不能左对齐吗？"。
+   只动"换行时"的表现：单行时右侧簇仍靠右（justify-content:space-between 保持官方行为），
+   换行时该行只有一个子项，space-between 等价于 flex-start ⇒ 左对齐。这里再显式清掉
+   一切自动外边距、并把多行内容对齐到行首，避免任何来源把它推向右侧。 */
+.uV2eYG_row {
+  align-content: flex-start !important;
+}
+/* 窄了就只显图标、宽了图标+文字 —— 2026-09-15 用户设计指令
+   （"都有图标，为什么缩放后显示图标，展开显示图标和文字"）。
+   做法：以输入卡片为容器查询基准；窄档把带图标按钮的**字号压到 0**：
+   文字收起、按钮里的 SVG 图标按自身 width/height 继续显示（此招已验证有效：盾牌图标能留住）。
+   定位用**稳定属性** aria-label（不依赖构建哈希类名）：
+     "访问模式，当前：…" = 工作区内修改； "召唤专家" = 专家； 含 "PUA" = PUA 开关。
+   模型选择不参与（它只剩箭头图标会失去可辨识度），仍走"截断"策略。 */
+.uV2eYG_card {
+  container-type: inline-size;
+}
+@container (max-width: 620px) {
+  /* ⚠ 2026-09-15 两处修正（自抓图实证）：
+     ① 「专家」文字没收起 —— 其文字在**按钮同级的标签**里，压按钮字号够不着
+        ⇒ 用 `:has(> …)` 找到"包着按钮的那一层芯片容器"，连里面的文字一起收（SVG 有自身尺寸，不受字号影响）。
+     ② 作用域从**整张卡片**缩到**工具行**——此前 `.uV2eYG_card [aria-label*="PUA"] *` 泛匹配，
+        窄档疑似误伤模型块（它只剩图标，可辨识度掉了）。 */
+  .uV2eYG_row *:has(> [aria-label^="访问模式"]),
+  .uV2eYG_row *:has(> [aria-label*="专家"]),
+  .uV2eYG_row *:has(> [aria-label*="PUA"]),
+  .uV2eYG_row [aria-label^="访问模式"], .uV2eYG_row [aria-label^="访问模式"] *,
+  .uV2eYG_row [aria-label*="专家"], .uV2eYG_row [aria-label*="专家"] *,
+  .uV2eYG_row [aria-label*="PUA"], .uV2eYG_row [aria-label*="PUA"] * {
+    font-size: 0 !important;
+  }
+}
+/* 黑洞空间图标：把插件那张位图 logo 换成**细线描边**图标（用户选定 A 版：圆 + 倾斜环）。
+   ⚠ 2026-09-15 修正：它不是 `img src="*.png"`，而是**内嵌 WebP data-URI**
+   （插件 lib/client.js L23 `BANNER_IMAGE`，前 40 字符唯一）——所以此前按 aria-label/title 找 img 全部落空（自看实证）。
+   改为按 src 前缀精确命中：不猜类名、不依赖 aria-label。 */
+img[src^="data:image/webp;base64,UklGRvaKAABXRUJQVlA4IOqKAACQmwKdASoABgAC"] {
+  content: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='5.6'/><ellipse cx='12' cy='12' rx='9.4' ry='3.6' transform='rotate(-20 12 12)'/></svg>") !important;
+  width: 18px !important;
+  height: 18px !important;
+  object-fit: contain !important;
+}
+/* ⚠ 2026-09-15 复盘（此处曾有"把模型选择搬出去"的三次尝试，全部回滚）：
+   · 搬去"黑洞空间"那一行（绝对定位 top:-34px）—— 不是用户要的位置；
+   · 搬去底部状态行右端（bottom:-26px）—— **绝对定位只会"盖"上去**，压住了「缓存命中/443M」那截文字，
+     真机上直接糊成一片（用户截图实证）⇒ 界面被做坏。
+   根因：**外壳 CSS 无法把元素搬进另一个容器**。官方那行是 flex 布局，CSS 只能覆盖/偏移，不能入流。
+   结论：真正"搬进状态行"必须改插件 DOM/布局（React 控制，外壳补丁会被重渲染覆盖），
+   已停止在外壳侧硬搬。以下只保留两条**中性**规则（防重叠 + 防越界），不再改布局。 */
+._7KE1Ra_trigger {
+  min-width: 96px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+._7KE1Ra_trigger * {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+

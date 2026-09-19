@@ -1,0 +1,351 @@
+const { contextBridge, ipcRenderer } = require('electron') as typeof import('electron')
+
+const IPC = {
+  dshAction: 'dsh-shell:dsh-action',
+  action: 'dsh-shell:action',
+  dshLocale: 'dsh-shell:dsh-locale',
+  dshTheme: 'dsh-shell:dsh-theme',
+  desktopTheme: 'dsh-shell:desktop-theme',
+  dshSettingsVisibility: 'dsh-shell:dsh-settings-visibility',
+  dshOpenSession: 'dsh-shell:dsh-open-session',
+  dshBrowserCloseRequest: 'dsh-shell:dsh-browser-close-request',
+  browserPanelShow: 'dsh-shell:browser-panel-show',
+  browserPanelHide: 'dsh-shell:browser-panel-hide',
+  browserPanelPrepareOcclusion: 'dsh-shell:browser-panel-prepare-occlusion',
+  browserPanelOccluded: 'dsh-shell:browser-panel-occluded',
+  browserPanelBounds: 'dsh-shell:browser-panel-bounds',
+  dshNotificationReply: 'dsh-shell:dsh-notification-reply',
+  dshState: 'dsh-shell:dsh-state',
+  dshNotification: 'dsh-shell:dsh-notification',
+} as const
+
+let clientBridgeRegistrations = 0
+let selectionHistory: HTMLElement[] = []
+let selectionIndex = -1
+let selectionSyncScheduled = false
+const MAX_FALLBACK_HISTORY = 100
+
+function normalizedLabel(element: Element): string {
+  return `${element.getAttribute('aria-label') ?? ''} ${element.textContent ?? ''}`.trim()
+}
+
+function clickMatching(patterns: RegExp[]): boolean {
+  const candidates = [...document.querySelectorAll<HTMLElement>('button,[role="button"],[role="menuitem"]')]
+    .filter(element => element.offsetParent !== null)
+  const target = candidates.find(element => patterns.some(pattern => pattern.test(normalizedLabel(element))))
+  target?.click()
+  return target !== undefined
+}
+
+function sessionRows(): HTMLElement[] {
+  return [...document.querySelectorAll<HTMLElement>('.dcu-wb-session[role="treeitem"][aria-selected]')]
+    .filter(element => element.offsetParent !== null && normalizedLabel(element) !== '')
+}
+
+function currentSessionRow(): HTMLElement | undefined {
+  return sessionRows().find(element => element.getAttribute('aria-selected') === 'true'
+    || /selected|active/i.test(element.className))
+}
+
+function trackSelection(): void {
+  if (clientBridgeRegistrations > 0) return
+  const active = selectionHistory[selectionIndex]
+  selectionHistory = selectionHistory.filter(element => element.isConnected)
+  selectionIndex = active === undefined ? selectionHistory.length - 1 : selectionHistory.indexOf(active)
+  if (selectionIndex < 0) selectionIndex = selectionHistory.length - 1
+  const current = currentSessionRow()
+  if (current === undefined || selectionHistory[selectionIndex] === current) return
+  selectionHistory = selectionHistory.slice(0, selectionIndex + 1)
+  selectionHistory.push(current)
+  if (selectionHistory.length > MAX_FALLBACK_HISTORY) selectionHistory = selectionHistory.slice(-MAX_FALLBACK_HISTORY)
+  selectionIndex = selectionHistory.length - 1
+  reportFallbackState()
+}
+
+function scheduleTrackSelection(): void {
+  if (selectionSyncScheduled) return
+  selectionSyncScheduled = true
+  setTimeout(() => {
+    selectionSyncScheduled = false
+    trackSelection()
+  }, 60)
+}
+
+function reportFallbackState(): void {
+  if (clientBridgeRegistrations > 0) return
+  const rows = sessionRows()
+  const current = currentSessionRow()
+  const rowIndex = current === undefined ? -1 : rows.indexOf(current)
+  ipcRenderer.send(IPC.dshState, {
+    canBack: selectionIndex > 0,
+    canForward: selectionIndex >= 0 && selectionIndex < selectionHistory.length - 1,
+    canPreviousChat: rowIndex > 0,
+    canNextChat: rowIndex >= 0 && rowIndex < rows.length - 1,
+  })
+}
+
+function reportDocumentLocale(): void {
+  const locale = document.documentElement.lang.trim()
+  if (locale !== '') ipcRenderer.send(IPC.dshLocale, locale)
+}
+
+function reportDocumentTheme(): void {
+  const value = document.documentElement.style.colorScheme.trim().toLowerCase()
+  if (value === 'light' || value === 'dark') {
+    syncDocumentTheme(value, lastDesktopTheme.preset)
+    ipcRenderer.send(IPC.dshTheme, { colorScheme: value })
+  }
+}
+
+interface DesktopThemePayload {
+  colorScheme?: 'light' | 'dark'
+  preset?: string
+}
+
+let lastDesktopTheme: DesktopThemePayload = {}
+
+function syncDocumentTheme(colorScheme: 'light' | 'dark', preset?: string): void {
+  const root = document.documentElement
+  root.style.colorScheme = colorScheme
+  if (root.dataset) {
+    root.dataset.colorScheme = colorScheme
+    if (preset !== undefined) root.dataset.dshPreset = preset
+  }
+
+  // The official DSH theme presenter selects its dark token palette from this
+  // body attribute. Mirror the desktop theme onto both DOM scopes because the
+  // official --dsw-* variables are declared on body and therefore shadow
+  // inherited :root overrides.
+  const body = document.body
+  if (body === null) return
+  if (body.dataset) {
+    body.dataset.colorScheme = colorScheme
+    if (preset !== undefined) body.dataset.dshPreset = preset
+  }
+  body.toggleAttribute?.('data-ds-dark-theme', colorScheme === 'dark')
+}
+
+function applyDesktopTheme(value: unknown): void {
+  if (typeof value !== 'object' || value === null) return
+  const candidate = value as { colorScheme?: unknown; preset?: unknown }
+  const colorScheme = candidate.colorScheme === 'light' || candidate.colorScheme === 'dark'
+    ? candidate.colorScheme
+    : lastDesktopTheme.colorScheme
+  const preset = typeof candidate.preset === 'string' ? candidate.preset : lastDesktopTheme.preset
+  lastDesktopTheme = { colorScheme, preset }
+  if (colorScheme !== undefined) syncDocumentTheme(colorScheme, preset)
+}
+
+ipcRenderer.on(IPC.desktopTheme, (_event, value: unknown) => applyDesktopTheme(value))
+
+function runDomAction(id: string): void {
+  if (id === 'new-chat') clickMatching([/^新建任务$|^new task$/i, /^新聊天$|^new chat$/i])
+  else if (id === 'open-folder') clickMatching([/添加工作区|打开文件夹|add workspace|open folder/i])
+  else if (id === 'settings') {
+    // 优先直接点击设置触发器（兼容侧栏设置按钮缺失的情况）
+    const seat = document.querySelector('.dcu-settings-seat')
+    const trigger = seat?.querySelector<HTMLElement>('[data-dcu-settings-trigger],[aria-haspopup="dialog"]')
+    if (trigger !== null && trigger !== undefined) { trigger.click(); return }
+    // 兜底：按文本查找
+    clickMatching([/^设置$|^settings$|preferences/i])
+  }
+  else if (id === 'toggle-sidebar') clickMatching([/收起侧边栏|展开侧边栏|collapse sidebar|expand sidebar/i])
+  else if (id === 'find') {
+    const input = document.querySelector<HTMLInputElement>('input[placeholder*="搜索会话"],input[placeholder*="Search sessions"]')
+    if (input !== null) { input.focus(); input.select() }
+    else if (clickMatching([/搜索会话|search sessions/i])) setTimeout(() => {
+      const expanded = document.querySelector<HTMLInputElement>('input[placeholder*="搜索会话"],input[placeholder*="Search sessions"]')
+      expanded?.focus()
+      expanded?.select()
+    }, 120)
+  } else if (id === 'previous-chat' || id === 'next-chat') {
+    const rows = sessionRows()
+    const current = currentSessionRow()
+    const index = current === undefined ? -1 : rows.indexOf(current)
+    rows[index + (id === 'previous-chat' ? -1 : 1)]?.click()
+  } else if (id === 'back' || id === 'forward') {
+    const next = selectionIndex + (id === 'back' ? -1 : 1)
+    const row = selectionHistory[next]
+    if (row !== undefined && row.isConnected) { selectionIndex = next; row.click(); reportFallbackState() }
+  }
+}
+
+function exactLabel(element: Element): string {
+  return normalizedLabel(element).replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
+function dshSettingsDialog(): HTMLElement | undefined {
+  return [...document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]')]
+    .find(candidate => {
+      if (candidate.offsetParent === null) return false
+      const titleId = candidate.getAttribute('aria-labelledby')
+      const title = titleId === null ? undefined : document.getElementById(titleId)
+      return title !== undefined && title !== null && /^(设置|settings)$/i.test(exactLabel(title))
+    })
+}
+
+function closeDshSettingsDialogOnEscape(event: KeyboardEvent): void {
+  if (event.key !== 'Escape') return
+  const dialog = dshSettingsDialog()
+  if (dialog === undefined) return
+  const close = [...dialog.querySelectorAll<HTMLElement>('button')]
+    .find(candidate => /^(关闭|close)$/i.test(exactLabel(candidate)))
+  if (close === undefined) return
+  event.preventDefault()
+  event.stopImmediatePropagation()
+  close.click()
+}
+
+let lastReportedDshSettingsVisibility: boolean | undefined
+function reportDshSettingsVisibility(): void {
+  // 设置有**两种形态**：① 模态弹窗（[role=dialog][aria-modal=true] + 标题"设置"）；
+  // ② 整页视图（左侧栏"设置"进入：.dcu-settings-page 全屏、带 data-settings-section）。
+  // 2026-09-15 实机定案：整页形态下 [role=dialog] 命中 0，本通路从未触发 → 原生浏览器面板
+  // 不让位，把设置页挤在左边（用户截图 + 真实 DOM 实测）。两种形态都必须让位。
+  // ⚠ 2026-09-15 实机定案：这里**绝不能**用 offsetParent 校验 —— 设置页是 position:fixed 覆盖层，
+  // 而 fixed 元素的 offsetParent 恒为 null，判定会永远 false。桌面探针实证：DOM 里
+  // .dcu-settings-page 明明存在（hasDcuPage=true），preload 却报 false，唯一解释就是这句守卫。
+  // 关闭设置页时该元素被整块移除（探针 10:29:52 实证 hasDcuPage=false），故"元素存在即可见"
+  // 不会产生残留误报（面板能正常回来）。
+  const visible = dshSettingsDialog() !== undefined
+    || document.querySelector('.dcu-settings-page, [data-settings-section]') !== null
+  if (visible === lastReportedDshSettingsVisibility) return
+  lastReportedDshSettingsVisibility = visible
+  ipcRenderer.send(IPC.dshSettingsVisibility, visible)
+}
+
+ipcRenderer.on(IPC.dshAction, (_event, id: string) => {
+  setTimeout(() => { if (clientBridgeRegistrations === 0) runDomAction(id) }, 60)
+})
+
+// --- Sidebar width cap & auto-collapse ---
+// The dsh-better-sidebar plugin renders a 3-column CSS grid:
+//   `${sidebarWidth}px ${middle} ${details}px`
+// The sidebar track (first column) is clamped 240–420px in the plugin's JS.
+// We scan for any div whose inline gridTemplateColumns matches this pattern
+// (pixel + flexible + pixel) and clamp the first track to a smaller max.
+const SIDEBAR_MAX_WIDTH = 252
+const SIDEBAR_MIN_VISIBLE = 60
+const SIDEBAR_AUTO_COLLAPSE_THRESHOLD = 600
+let sidebarAutoCollapsed = false
+
+function parseSidebarGrid(value: string): { first: number; middle: string; details: number } | undefined {
+  const parts = value.trim().split(/\s+/)
+  if (parts.length < 3) return undefined
+  const first = parseInt(parts[0], 10)
+  const details = parseInt(parts[parts.length - 1], 10)
+  if (isNaN(first) || isNaN(details)) return undefined
+  if (first < SIDEBAR_MIN_VISIBLE) return undefined
+  const middle = parts.slice(1, -1).join(' ')
+  return { first, middle, details }
+}
+
+function findSidebarGridFrame(): HTMLElement | undefined {
+  if (typeof document === 'undefined') return undefined
+  const divs = document.querySelectorAll<HTMLElement>('div')
+  for (const div of divs) {
+    if (div.offsetParent === null) continue
+    if (parseSidebarGrid(div.style.gridTemplateColumns) !== undefined) return div
+  }
+  return undefined
+}
+
+function clampSidebarWidth(): void {
+  const frame = findSidebarGridFrame()
+  if (frame === undefined) return
+  if (frame.hasAttribute('data-sidebar-collapsed') || frame.hasAttribute('data-dragging')) return
+  const tracks = parseSidebarGrid(frame.style.gridTemplateColumns)
+  if (tracks === undefined) return
+  if (tracks.first > SIDEBAR_MAX_WIDTH) {
+    frame.style.gridTemplateColumns = SIDEBAR_MAX_WIDTH + 'px ' + tracks.middle + ' ' + tracks.details + 'px'
+    const handle = frame.querySelector<HTMLElement>('[data-side="sidebar"]')
+    if (handle !== null) handle.style.left = SIDEBAR_MAX_WIDTH + 'px'
+  }
+}
+
+function autoCollapseSidebarIfNeeded(): void {
+  if (sidebarAutoCollapsed) return
+  if (typeof window === 'undefined') return
+  if (window.innerWidth >= SIDEBAR_AUTO_COLLAPSE_THRESHOLD) return
+  const frame = findSidebarGridFrame()
+  if (frame === undefined) return
+  if (frame.hasAttribute('data-sidebar-collapsed')) return
+  sidebarAutoCollapsed = true
+  clickMatching([/收起侧边栏|展开侧边栏|collapse sidebar|expand sidebar/i])
+}
+
+let sidebarClampTimer: ReturnType<typeof setInterval> | undefined
+
+function installSidebarConstraints(): void {
+  if (typeof setInterval === 'function') sidebarClampTimer = setInterval(clampSidebarWidth, 500)
+  if (typeof window !== 'undefined') window.addEventListener('resize', autoCollapseSidebarIfNeeded)
+  autoCollapseSidebarIfNeeded()
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (lastDesktopTheme.colorScheme !== undefined) {
+    syncDocumentTheme(lastDesktopTheme.colorScheme, lastDesktopTheme.preset)
+  }
+  document.addEventListener('click', scheduleTrackSelection, true)
+  document.addEventListener('keydown', closeDshSettingsDialogOnEscape, true)
+  new MutationObserver(scheduleTrackSelection).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-selected', 'class'] })
+  new MutationObserver(reportDshSettingsVisibility).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-modal', 'aria-labelledby', 'class', 'style'] })
+  reportFallbackState()
+  reportDshSettingsVisibility()
+  reportDocumentLocale()
+  new MutationObserver(reportDocumentLocale).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] })
+  reportDocumentTheme()
+  new MutationObserver(reportDocumentTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['style'] })
+  installSidebarConstraints()
+})
+
+contextBridge.exposeInMainWorld('dshDesktopShell', {
+  onAction: (listener: (id: string) => void) => {
+    const wrapped = (_event: Electron.IpcRendererEvent, id: string) => listener(id)
+    clientBridgeRegistrations += 1
+    selectionHistory = []
+    selectionIndex = -1
+    ipcRenderer.on(IPC.dshAction, wrapped)
+    return () => {
+      ipcRenderer.removeListener(IPC.dshAction, wrapped)
+      clientBridgeRegistrations = Math.max(0, clientBridgeRegistrations - 1)
+      if (clientBridgeRegistrations === 0) scheduleTrackSelection()
+    }
+  },
+  onOpenSession: (listener: (id: string) => void) => {
+    const wrapped = (_event: Electron.IpcRendererEvent, id: string) => listener(id)
+    ipcRenderer.on(IPC.dshOpenSession, wrapped)
+    return () => ipcRenderer.removeListener(IPC.dshOpenSession, wrapped)
+  },
+  onNotificationReply: (listener: (value: { sessionId: string; text: string }) => void) => {
+    const wrapped = (_event: Electron.IpcRendererEvent, value: { sessionId: string; text: string }) => listener(value)
+    ipcRenderer.on(IPC.dshNotificationReply, wrapped)
+    return () => ipcRenderer.removeListener(IPC.dshNotificationReply, wrapped)
+  },
+  reportState: (state: unknown) => {
+    ipcRenderer.send(IPC.dshState, state)
+  },
+  reportNotification: (event: unknown) => {
+    ipcRenderer.send(IPC.dshNotification, event)
+  },
+  reportLocale: (locale: unknown) => {
+    ipcRenderer.send(IPC.dshLocale, locale)
+  },
+  reportTheme: (colorScheme: unknown) => {
+    ipcRenderer.send(IPC.dshTheme, colorScheme)
+  },
+  action: (id: string) => ipcRenderer.invoke(IPC.action, id),
+  browserPanel: {
+    version: 1,
+    show: (request: { owner: string; url?: string }) => ipcRenderer.invoke(IPC.browserPanelShow, request),
+    hide: (owner: string) => ipcRenderer.invoke(IPC.browserPanelHide, owner),
+    prepareOcclusion: () => ipcRenderer.invoke(IPC.browserPanelPrepareOcclusion),
+    setOccluded: (occluded: boolean, owner: string) => ipcRenderer.invoke(IPC.browserPanelOccluded, occluded, owner),
+    reportBounds: (bounds: unknown) => ipcRenderer.send(IPC.browserPanelBounds, bounds),
+    onCloseRequested: (listener: () => void) => {
+      const wrapped = () => listener()
+      ipcRenderer.on(IPC.dshBrowserCloseRequest, wrapped)
+      return () => ipcRenderer.removeListener(IPC.dshBrowserCloseRequest, wrapped)
+    },
+  },
+})

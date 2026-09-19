@@ -1,0 +1,159 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "label": "home no reminder",
+      "dock": {
+        "x": 450,
+        "right": 1218,
+        "top": 505.84375,
+        "bottom": 540.84375,
+        "width": 768
+      },
+      "card": {
+        "x": 450,
+        "right": 1218,
+        "top": 556.84375,
+        "width": 768
+      },
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "reminder": false
+    },
+    {
+      "label": "session with reminder",
+      "dock": {
+        "x": 441.515625,
+        "right": 1218.46875,
+        "top": 708,
+        "bottom": 760,
+        "width": 776.953125
+      },
+      "card": {
+        "x": 441.515625,
+        "right": 1218.46875,
+        "top": 766,
+        "width": 776.953125
+      },
+      "scrollWidth": 777,
+      "clientWidth": 777,
+      "reminder": true
+    },
+    {
+      "label": "capture popup remains aligned and reads conversation",
+      "width": 470
+    },
+    {
+      "label": "session zoom 1.25",
+      "dock": {
+        "x": 331.6000061035156,
+        "right": 1043.6000061035156,
+        "top": 530.4000244140625,
+        "bottom": 581.600025177002,
+        "width": 712
+      },
+      "card": {
+        "x": 331.6000061035156,
+        "right": 1043.6000061035156,
+        "top": 587.6000366210938,
+        "width": 712
+      },
+      "scrollWidth": 712,
+      "clientWidth": 712,
+      "reminder": true
+    },
+    {
+      "label": "session zoom 1.5",
+      "dock": {
+        "x": 276.66668701171875,
+        "right": 908.6666870117188,
+        "top": 412,
+        "bottom": 462.6666679382324,
+        "width": 632
+      },
+      "card": {
+        "x": 276.66668701171875,
+        "right": 908.6666870117188,
+        "top": 468.66668701171875,
+        "width": 632
+      },
+      "scrollWidth": 632,
+      "clientWidth": 632,
+      "reminder": true
+    },
+    {
+      "label": "session zoom 0.8",
+      "dock": {
+        "x": 652.24609375,
+        "right": 1364.23828125,
+        "top": 929.5703125,
+        "bottom": 982.7734375,
+        "width": 711.9921875
+      },
+      "card": {
+        "x": 652.24609375,
+        "right": 1364.23828125,
+        "top": 988.76953125,
+        "width": 711.9921875
+      },
+      "scrollWidth": 712,
+      "clientWidth": 712,
+      "reminder": true
+    },
+    {
+      "label": "narrow session",
+      "dock": {
+        "x": 304,
+        "right": 1016,
+        "top": 548,
+        "bottom": 600,
+        "width": 712
+      },
+      "card": {
+        "x": 304,
+        "right": 1016,
+        "top": 606,
+        "width": 712
+      },
+      "scrollWidth": 712,
+      "clientWidth": 712,
+      "reminder": true
+    },
+    {
+      "label": "right black hole card open",
+      "dock": {
+        "x": 277,
+        "right": 555,
+        "top": 416,
+        "bottom": 567,
+        "width": 278
+      },
+      "card": {
+        "x": 277,
+        "right": 555,
+        "top": 573,
+        "width": 278
+      },
+      "scrollWidth": 278,
+      "clientWidth": 278,
+      "reminder": true
+    },
+    {
+      "label": "narrow popup stays inside composer",
+      "popup": {
+        "x": 218.359375,
+        "y": 63,
+        "width": 336.640625,
+        "height": 421
+      },
+      "dock": {
+        "x": 218.359375,
+        "y": 492,
+        "width": 336.640625,
+        "height": 108
+      }
+    }
+  ],
+  "noMessagesSent": true,
+  "noDataWrites": true
+}

@@ -4,6 +4,29 @@
 
 > 🚀 **入口捷径**：凡开发功能、修复缺陷或改动插件/外壳/打包脚本，先加载 `dsh-dev-spec` 技能——它把本文件的「必读文档 → 审查清单 → 类型/测试门禁」固化为可执行流程，避免凭记忆跳过审查。技能未注册时才按本文件手工执行。
 
+## 🧭 智能体行为边界（全局，所有会话生效）
+
+**智能体是执行方，不是指挥方。** 凡智能体自己有能力完成的动作（浏览器自动化、文件读写、数据整理、脚本运行、检索调研），一律自己动手完成，不得反将其推回给用户。
+
+**仅允许找用户的三类事项：**
+
+1. 需要用户本人身份/凭据的操作（如输密码、扫码登录）；
+2. 难回滚写操作的最终确认（批量修改、删除、部署切换等——按各子目录 AGENTS.md 的红线执行）；
+3. 规则、口径或方案存在实质冲突，需要用户拍板。
+
+**找用户的方式也有约束：** 必须带选项与建议（"建议 A，理由…；备选 B，代价…"），不允许开放式甩任务（"你看怎么办？"）。遇到智能体无法完成的事，先说明原因、给出已做的最佳尝试，再列选项——而不是把原始任务原样退回。
+
+## 🧯 止损纪律（防"越修越坏"｜每轮必守）
+
+> 来源：2026-09-13 外壳顶栏失效修复的复盘（[41 号记录](docs/01-当前工作/I023-前后端UI全项目审核/41-顶栏工具组失效修复.md)）。当时 bug 是别人引入的，但"修好了用户却看不到"是执行失误——修复卡在候选槽、没让用户重启确认。以下六条专治这类失败。
+
+1. **诊断先行**：改代码/配置前先写一行 `问题是 ___；证据是 ___；下一步是 ___`。没有证据不动手，也不拿"先读一遍/先加载技能"充当诊断。
+2. **对照复现**：宣布"修好了"之前，必须能用旧制品**复现原故障**，并证明新制品不再复现。只有正向通过、没有反向对照，不算证据。
+3. **交付闭环**：候选槽就绪 ≠ 完成。凡需切换/重启才生效的改动，必须让用户重启后亲眼确认；未确认前只能说"候选已就绪"，不许宣布修复完成，也不许顺势去开下一个话题。
+4. **共享状态先读清单**：`ui-baseline --record`、改写 baseline / 索引 / 清单前，先比对"本次改动 vs 受保护清单"，并逐文件核对与上一版的差异。撞上他人会话在途写入时**不替它背书**，如实报漂移。
+5. **长任务留检查点**：上下文压缩或交接前落一段 `目标 / 已验 / 未验 / 下一步`；恢复时先复核任务身份与验收，再动手，不把别的任务的失败计数接过来。
+6. **一 bug 一会话**：得出结论就落文档或黑洞条目；跨天接力靠制品，不靠记忆。
+
 ## 官方兼容性双基线
 
 - **实现基线**：以便携版实际内置的 `@deepseek-ai/dsh` 版本、导出和类型声明为准；不得因为官方最新文档出现新 API 就直接在旧运行时中调用。
@@ -41,6 +64,10 @@
 
 ## 🔗 前后端与 UI 三项对齐（强制）
 
+**UI / 侧边栏修改与升级必读**：[UI 定制维护契约](docs/03-技术架构/UI定制维护契约.md)。这是用户要求的长期维护入口。每一轮落盘修改都要追加原因、改法、文件/构建路径和本轮验收证据，失败尝试也要记，禁止只在最终答复留一句结论。最新用户决定覆盖旧图；不得恢复已取消的顶部工作区条边框、旧浏览器入口或删掉右侧卡片。
+
+改动前、更新后及交付前运行 `App/resources/node/node.exe scripts/ui-baseline.mjs`。漂移必须调查，合法修改完成实际 UI 验证和记录后才可用 `--record --note ... --evidence ...` 追加新基线，再过全测。禁止直接改哈希/删测试放行。受保护源码快照与历史在 `customizations/ui/`，Data/artifacts 不入库的问题不能再被忽略。该检查是开发/构建门禁，不替代第三方更新后的真实点击和缩放验证。
+
 所有新增、修改、下线的用户功能，包括仅修改前端、样式或插件客户端的变更，必须执行 [变更与答复质量门禁第 6 节](docs/01-当前工作/便携版3-变更与答复质量门禁.md#6-前后端与-ui-三项对齐强制门禁)。该节是三项对齐规则的唯一事实源，进入功能开发前必须阅读。
 
 - 开发前更新功能清单，建立“用户入口与子界面 → 前端事件与调用 → 后端处理 → 结果反馈”的对应关系，并从后端反查用户入口。
@@ -48,16 +75,26 @@
 - 交付前完成适用的真实链路与 UI 验证并保存证据。有入口缺失、点击无反应、虚假成功、关键界面不可用或缺少运行证据时，不得标记验收通过。
 - 后续新增、修改和下线均须同步对齐记录；历史“已实现”标记不能替代本次验收。
 
+## 🧭 全局上下文检查 GCC / 全局影响复查 GIR（强制）
+
+中/大型任务（判定标准见模板）禁止收到任务后直接改代码。系统认知层入口：`docs/05-系统认知/00-总览索引.md`（阅读顺序 + 任务路由 + 最高优先级警报）。
+
+- **任务前**：按 [GCC 模板](docs/05-系统认知/10-GlobalContextCheck与ImpactReview模板.md) 完成 12 项前置检查并填写结论模板（Task Position / Direct & Indirect Impact / Reusable / Constraints / Expected Files / Do Not Touch / Regression Scope）。
+- **任务后**：按同一模板完成 10 项 GIR；实际修改范围超出预期（第 2 项 YES）必须重新执行影响分析；破坏公共接口/数据结构/架构（第 5–7 项）必须附论证；门禁与回归全 PASS 才能在 `docs/00-交接入口/07-功能清单.md` 登记"已实现"。
+- 模块职责、依赖、数据流、架构决策（32 条 D-xx）以 `docs/05-系统认知/` 为第一索引；该目录与代码冲突时以代码为准。
+- **codex-ui 双拷贝已退役（2026-09-11）**：`local/dsh-codex-ui` 陈旧副本（0.2.113 + 历史补丁）已删除，备份在 `Data/Development/archived-local-dsh-codex-ui-20260911.zip`；活动版是 npm `@michengai/dsh-codex-ui 1.1.2`。**1.1.2 缺失旧副本的定制功能**（批量归档 BatchArchivePanel、data-plugin 样式归属标记等），test/ 里相关用例处于 existsSync 跳过态——恢复这些功能要先做新迭代，不要试图复活旧副本。
+
 ## ✅ 强制验证：改动完成之后
 
 1. **类型与测试门禁**（必须全绿才算完成）：
 
    ```sh
    ./App/resources/node/node.exe node_modules/typescript/bin/tsc
-   ./App/resources/node/node.exe --test dist/test/*.test.js   # 以实际发现数量为准，要求 0 fail
+   ./App/resources/node/node.exe scripts/run-tests.mjs        # 全量测试：每次跑在独立临时目录，跑完自动清理
    ```
 
    注意：使用 `App/resources/node/node.exe`（版本以 `package.json` 的 `bundledNodeVersion` 为准），禁止用系统 Node（版本门禁）。
+   **不要直接裸跑 `node --test dist/test/*.test.js`**：多数测试用 `tmpdir()` 建目录且不自行清理，实证每轮残留约 270 个目录（曾累积到 `Data\Temp` 1.58 GB）。运行器把子进程 `TEMP/TMP/TMPDIR` 收口到本次运行目录、全绿即删、失败时保留路径；需要保留现场排查时先设 `DSH_TEST_KEEP_TMP=1`。单独跑某个文件同样走运行器：`scripts/run-tests.mjs dist/test/foo.test.js`。
 
 2. **重新打包 + A/B 候选部署**（`src/` 改动需要）：
 
@@ -67,12 +104,31 @@
 
    该命令完成类型检查、测试、打包和候选暂存，但不覆盖正在使用的 `App/`，也不结束桌面进程。之后从托盘正常退出或使用“重启应用”，`Start-DSH-Portable.ps1` 才会切换候选、验证健康文件并在失败时自动回滚。禁止恢复已删除的原地覆盖部署脚本。
 
+2.1. **只改界面素材（快通道，秒级）**：改动只落在 `assets/**` 时不必跑整条装配。`assets/*` 在 `build.extraResources` 里是原样复制到 `resources\`，不进 `app.asar`、不经 `tsc`，所以把差异素材铺进 `release\win-unpacked\resources\` 再走同一个候选槽即可。
+
+   ```sh
+   Build-UI-Only.cmd            # 门禁通过才同步素材并暂存候选槽
+   Build-UI-Only.cmd -DryRun    # 只跑门禁与差异报告，不动任何文件
+   Build-UI-Only.cmd -SkipStage # 只刷新 release\win-unpacked，不暂存
+   Build-UI-Only.cmd -Force     # 带着未打包的 src 改动强推界面（app.asar 仍是旧版）
+   ```
+
+   门禁会拦下必须全量构建的情况：`src/**`、`scripts/*.ts`、`package.json`、锁文件有改动，或 `dist/` 比 `resources\app.asar` 新。**被拦是预期行为**——界面快通道无法携带会进 `app.asar` / `resources\desktop-bridge\` 的改动，强行推进会得到"新界面 + 旧主进程"的混血槽。
+
 3. **端到端验证**：双击 `DSH便携版3.exe` 启动，确认候选通过清单哈希、主界面与 DSH readiness、`Data/Updates/Desktop/state.json` 进入 `completed`，且 `Data/Electron/UserData/startup-error.log` 没有新增错误。
 
 ## ⚠️ 本仓库已踩过的坑（不要再犯）
 
 - **GNU tar / bsdtar 差异**：`runtime-archive.ts` 必须运行时探测（GNU 才加 `--force-local`）。测试环境（Git Bash）解析到 GNU tar，用户双击启动器环境解析到 System32 bsdtar —— **测试通过 ≠ 用户可用，必须用双击启动器路径验证**
 - **ps1 脚本必须带 UTF-8 BOM**：PowerShell 5.1 按 ANSI 解析无 BOM 的 UTF-8，中文注释会导致语法错误
+- **`prepare-runtime` 的删除阶段曾要 20–50 分钟（2026-09-13 定案，并已在脚本内根治）**：装配第一步 `removePreparedPath` 要清掉 `runtime-node` / `runtime-plugins` / `runtime-dsh` / `runtime-dsh.tgz`。真实原因有两条，**都不是"沙箱静默挂起"**：
+  - ① **安全删除守卫是秒级抛错，从不挂起**。它经 `NODE_OPTIONS=--require node-language-shim.cjs` 注入每个 node 进程，撞阈值后 `bulk-guard check` 打印 `SAFE_DELETE_BULK_CONFIRM_REQUIRED` 并 `exit 2`，shim 转 `throw` —— 实测 **1.09 秒**就返回。若要旁路，三行一起设才干净：`NODE_OPTIONS=''`（根治，去掉注入）+ `CODEBUDDY_SAFE_DELETE_ENABLED='0'` + `CODEBUDDY_SAFE_DELETE_SANDBOX='0'`；只设其中一个**有可能传不到孙进程**。
+  - ② **真正的耗时是本盘删小文件极慢**。实测同一份 20 个小文件：**G: 盘 1008ms（50.4ms/个）、C: 盘 7ms（0.3ms/个）—— 慢 168 倍**；读 / stat / 列目录全都正常（200 次 stat 仅 14ms），所以**不是盘坏了，是删除被逐文件拦截**。`runtime-plugins` 有 **44116 个文件**（`store` 19224 / `staging` 20799 / `offline-verification` 4093）⇒ 单轮同步清理 **≈37 分钟**，全程 CPU≈0、无任何输出，与"进程卡死"外观完全一致。**它慢，但活着**，别杀进程。
+  - ✅ **已根治（2026-09-13，`scripts/prepare-runtime.ts`）**：`removePreparedPath` 现在**先尝试同卷 `rename` 进回收区**（`Data/Temp/prepare-recycle/`，O(1)），再由**脱离本进程树的后台清理器**（`spawn(detached).unref()`，配 `.sweeping` 心跳防止重复启动）真实删除。构建的删除阶段从 37 分钟降到**秒级**。语义不变 —— 函数返回时目标一定不存在；回退路径完整保留：**跨卷 / 被占用 / 显式设 `DSH_PREPARE_NO_RECYCLE=1`** 时仍走原来的 `rm(maxRetries)` + `rmdir /s /q` 兜底。
+  - **回收区自清理**：一次构建会依次回收 `runtime-node` / `runtime-plugins` / `runtime-dsh/.store` / `store/v11/projects` 等，后台清理器**循环清空回收区**（连续 3 轮扫空后自动退出），无需人工干预；`Data/Temp/` 本身在 `.gitignore` 内，也不进 `app.asar` / `extraResources`。
+  - **判"慢但活着"的三条独立证据**（只在强制关掉回收后才会用到）：`(Get-Process -Id <pid>).CPU` 两次相减 > 0；`Win32_Process` 的 `OtherOperationCount` 每 45 秒涨几十万而字节量 <1MB（元数据密集 = 在推进）；递归文件数**下降 = 正在删（正常）**。
+  - **进度指标陷阱**：`runtime-plugins\store\v11\files` 下是 **2 字符前缀目录**，数顶层条目恒等于 256 就"饱和"，必须**递归**数文件。
+  - **中断过的构建仍会让产物残缺**：`prepare-runtime` 按 `[runtime-node, runtime-plugins, runtime-dsh, runtime-dsh.tgz]` 先清后建；被中断的构建**只清不建** ⇒ `runtime-node\`、两个 `.tgz` 全缺，只能全量重跑 —— 回收区里的副本是临时的，别指望拿它复用产物。
 - **插件 `lib/` 结构**：`dsh-sidebar-spaces` 的 `node_modules` 实例曾因缺 `lib/index.js` 崩溃（ERR_MODULE_NOT_FOUND）；修复物在 `local/dsh-sidebar-spaces`，不要破坏
 - **禁止原地覆盖 App**：桌面更新和本地构建只可写入 `Data/Updates/Desktop/slots/` 的不可变候选槽；通过启动验证前必须保留当前槽，失败由启动器自动回滚。
 - **electron-builder TEMP**：NSIS 打包时 TEMP 必须指向真实可写的用户临时目录，否则找不到临时 include 文件。`Build-DSH-Portable.ps1` 已通过 `Portable-Environment.ps1` 的 `Set-DshPortableEnvironment` 设置（`TEMP/TMP` → `<便携根>\Data\Temp`，`ELECTRON_BUILDER_CACHE` → `Data\Development\electron-builder-cache`）；**绕过该包装脚本直接跑 electron-builder 时必须自行设置这两个变量**
@@ -89,13 +145,19 @@
 - **测试禁止读取实机 `Data/` 产物，CI 是全新检出**：`test/` 里凡直接 `readFile`/`import` 实机 profile 插件产物（`Data/DSH/profiles/web/local/*`、`profiles/web/node_modules/*`）、运行时槽或仓库外工作空间文件（如 `工作空间/`）的用例，本机全绿但 CI 直接 ENOENT 整组失败（2026-09-11 首次跑 CI 连挂两轮的根因）。必须 `existsSync` 守卫 + `t.skip('实机产物缺失（CI 全新检出）')`，模块级读取/导入一律改惰性；改完用干净克隆（`git clone . 别处` + `pnpm install --frozen-lockfile` + tsc + node --test）复验 0 fail 才算过
 - **认祖后的版本标签名归便携仓库**：`git fetch upstream --tags` 会把上游 `v<版本>` 标签拉进本地；认祖合并后要 `git tag -f v<版本>` 把名字声明给便携仓库自己的发布提交（发布契约脚本要求标签名恰为 `v<精确版本>`）。此后 `git fetch upstream --tags` 对该版本报标签冲突属预期，不要为消冲突删掉自己的发布标签
 
+## 🔢 版本号政策（2026-09-14 起）
+
+- **基础版本完全跟随上游**：认祖到哪个上游版本，便携版号就是它（现为 1.0.64）；禁止再自建 1.0.5x/1.0.6x 独立计数线
+- 同基座的便携重建/修复用**第 4 段迭代号**：1.0.64.1、1.0.64.2…（ 已支持，认祖新上游时归零）
+- 历史自建线 1.0.54–1.0.66 已退役：已部署实例继续运行，基础版本超过其号后自然恢复更新
+
 ## 🌐 社区插件生态实证（MichengAI 8 仓库，2026-09-07 源码核对）
 
 8 个已发布社区插件（`https://github.com/MichengAI/<repo>`，npm 安装：`dsh plugin --profile web add @michengai/<repo 名>@latest`）的源码核对结论，是本文件规则的一手实证。**注意：它们按官方 0.1.2-rc.1 API 开发，移植进便携版（alpha.3 运行时）前必须按「官方兼容性双基线」逐个核对 API 在内置运行时存在**（dsh-agency-agents 自带 settings-compat 双代桥接，就是这种版本漂移的活教材）。逐项存在性核对结论见 `docs/03-技术架构/DeepSeek-Harness-社区插件rc1-alpha3兼容对照.md`。生态全景目录：`https://github.com/awesome-dsh-plugin/awesome-dsh-plugin`（180+ 社区插件分类清单，均带 `dsh.bundle` 清单、走 `dsh plugin add` 安装；MichengAI 8 件套与 profile 里 `dsh-better-sidebar` 的同名家族 omdsh-dev/DSH-better-sidebar 都在其中）。
 
 | 仓库 | 实证价值 |
 |---|---|
-| `dsh-codex-ui` | 客户端 UI 全面重塑：slots 顶替 `ui-sidebar`（patch 禁行 + insert）；**已移植到本仓库** `Data/DSH/profiles/web/local/dsh-codex-ui` |
+| `dsh-codex-ui` | 客户端 UI 全面重塑：slots 顶替 `ui-sidebar`（patch 禁行 + insert）；活动版为 npm `@michengai/dsh-codex-ui 1.1.2`（旧 local 移植副本已退役删除，见 GCC 一节与坑清单） |
 | `dsh-skills-manager` | `@deepseek-ai/dsh-skill` 技能服务接入 + 客户端设置页（slots/locale） |
 | `dsh-agency-agents` | 命名导出 + 模块级 inject 标准范例、`systemPrompt.section`、settings 设置段、`ctx.reflect.provide` 自提供服务、settings-compat 双代 API 桥接 |
 | `dsh-archive-manager` | 替换式插件：整行 `disabled: true` 禁用 `workspace`/`session-projection-cache`/`ui-workspace` 再 insert 替代实现 |

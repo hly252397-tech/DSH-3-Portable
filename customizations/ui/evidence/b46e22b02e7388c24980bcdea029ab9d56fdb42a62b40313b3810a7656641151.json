@@ -1,0 +1,154 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "check": "profile 实际加载的插件目录与本次检验的目录是同一份（junction 解析一致）",
+      "ok": true,
+      "detail": {
+        "declared": "G:\\DSH-3-Portable\\Data\\DSH\\profiles\\web\\node_modules\\dsh-restart-button",
+        "inspected": "G:\\DSH-3-Portable\\Data\\DSH\\profiles\\web\\local\\dsh-restart-button"
+      }
+    },
+    {
+      "check": "退役前快照确实含底部注入痕迹（反向对照，证明检测器有效）",
+      "ok": true,
+      "detail": {
+        "hits": [
+          "RESTART_TIMEOUT_MS",
+          "sidebar.footer.action",
+          "setState(\"starting\")",
+          "setState(\"failed\")",
+          "dsh-restart-button: dictionaries"
+        ]
+      }
+    },
+    {
+      "check": "当前运行件不再含任何底部注入痕迹",
+      "ok": true,
+      "detail": {
+        "hits": []
+      }
+    },
+    {
+      "check": "客户端半侧保留模块形态（宿主 patch 仍按 id 加载它，形态坏了会变成解析失败）",
+      "ok": true
+    },
+    {
+      "check": "客户端半侧不再注册任何侧栏槽位",
+      "ok": true
+    },
+    {
+      "check": "宿主半侧仍提供受令牌保护的重启端点（本次只动客户端半侧）",
+      "ok": true,
+      "detail": {
+        "hasTokenHeader": true,
+        "bytes": 2189
+      }
+    },
+    {
+      "measurement": "dom",
+      "viewport": 1920,
+      "mountChildren": 0,
+      "mountHeight": 0,
+      "shellHeight": 0,
+      "overflowX": 0
+    },
+    {
+      "check": "1920px：宿主侧栏底部骨架在加载当前模块后未新增任何节点",
+      "ok": true,
+      "detail": {
+        "mountChildren": 0,
+        "mountHeight": 0,
+        "shellHeight": 0,
+        "overflowX": 0
+      }
+    },
+    {
+      "check": "1920px：无横向溢出",
+      "ok": true,
+      "detail": {
+        "overflowX": 0
+      }
+    },
+    {
+      "measurement": "module-before",
+      "moduleId": "dsh-restart-button",
+      "inject": [
+        "locale",
+        "slots"
+      ],
+      "injections": [
+        "sidebar.footer.action"
+      ],
+      "registrations": [
+        {
+          "name": "sidebar.footer.action",
+          "id": "dsh-restart-button",
+          "order": 90
+        }
+      ],
+      "mountDelta": 0,
+      "viewport": "1920x1080"
+    },
+    {
+      "measurement": "module-current",
+      "moduleId": "dsh-restart-button",
+      "inject": [
+        "locale",
+        "slots"
+      ],
+      "injections": [],
+      "registrations": [],
+      "mountDelta": 0,
+      "viewport": "1920x1080"
+    },
+    {
+      "check": "真 Chrome：退役前模块确实向 sidebar.footer.action 注册了渲染项（反向对照）",
+      "ok": true,
+      "detail": {
+        "injections": [
+          "sidebar.footer.action"
+        ],
+        "registrations": [
+          {
+            "name": "sidebar.footer.action",
+            "id": "dsh-restart-button",
+            "order": 90
+          }
+        ]
+      }
+    },
+    {
+      "check": "真 Chrome：当前模块不声明任何槽位、不提交任何渲染项（重复入口不会复活）",
+      "ok": true,
+      "detail": {
+        "injections": [],
+        "registrations": []
+      }
+    },
+    {
+      "check": "真 Chrome：当前模块 apply() 未向侧栏底部 DOM 注入节点",
+      "ok": true,
+      "detail": {
+        "mountDelta": 0
+      }
+    },
+    {
+      "check": "真 Chrome：当前模块仍导出 apply 与 inject（加载契约未变）",
+      "ok": true,
+      "detail": {
+        "moduleId": "dsh-restart-button",
+        "inject": [
+          "locale",
+          "slots"
+        ]
+      }
+    }
+  ],
+  "scope": "离屏渲染：盘内真 Chrome 152 + 盘上运行件源码 + 受保护快照中的退役前源码；两版均经真实 window.__ModuleLoader__.load 形态执行真实 apply()。宿主 ctx（effect/locale/slots）与 require(\"react\") 为声明的桩，DOM 骨架为声明的复刻。",
+  "artifacts": {
+    "harness": ".tmp/verify-restart-retired/harness.html",
+    "client": "Data/DSH/profiles/web/local/dsh-restart-button/lib/client.js"
+  },
+  "generatedAt": "2026-09-14T12:14:48.197Z"
+}

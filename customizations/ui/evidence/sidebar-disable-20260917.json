@@ -1,0 +1,22 @@
+{
+  "date": "2026-09-17T18:4x",
+  "change": "禁用 bundle dsh-better-sidebar（依赖+清单条目移除；文件保留原地）",
+  "reason": "事故⑤：其 lib/client.js（2026-09-17 16:01 生成）全域 m→i 字符损坏（naie×248 / docuient×107 / scheie×63 / custoi×90 / react-doi / jsx-runtiie / priiitives），语法与形状均合法但浏览器内 factory 抛错，46 个插件连坐 import failed；无法修补，待属主会话从源重建",
+  "verification": {
+    "rig": "副本 profile（HOME=home-bisect，经 HOME/profiles/web 联接走真实服务路径）",
+    "baseline_with_sidebar": "web boot: 48 entries did not activate（46 import failed + 2 pending）",
+    "without_sidebar_all_other_deltas_present": "failed 0 / pending 0，应用正常挂载（新建任务|扩展管理|专家|技能|插件）",
+    "present_deltas": ["dsh-ui-tweaks 16:06 live 字节", "dsh-sidebar-spaces 15:30", "dsh-agentos-trigger 15:04 修复版"]
+  },
+  "gates": {
+    "lint_ui_discipline": "11/11 PASS（新增检查⑧ require 规格白名单）",
+    "check8_control": "对损坏 bundle 对照命中 4 个未知规格（react-doi、react-doi/client、react/jsx-runtiie、@deepseek-ai/dsh-client-ui-priiitives）",
+    "tsc": "exit 0"
+  },
+  "backups": [
+    "Data/DSH/profiles/web/package.json.bak-before-sidebar-disable-20260917",
+    "Data/Development/better-sidebar-mangled-20260917/client.js.mangled",
+    "Data/Development/better-sidebar-mangled-20260917/client-registry.js"
+  ],
+  "rollback": "恢复备份 package.json 即重新启用（仅当 better-sidebar client.js 已重建为健康版本）"
+}

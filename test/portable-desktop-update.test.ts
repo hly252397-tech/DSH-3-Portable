@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdtemp, mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
 
 import { PortableDesktopUpdater, physicalFileIsRegular, physicalFileSha256, portableDesktopPointerPath, portableDesktopUpdateRoot, prunePortableDesktopSlots, resolvePortableReleaseSource, stageLocalDesktopBuild } from '../src/portable-desktop-update.js'
+// 用受跟踪的 mkdtemp：测试结束后自动删除临时目录（见 test/helpers/tmp.ts）。
+import { makeTrackedTempDir as mkdtemp } from './helpers/tmp.js'
 
 const requiredFiles = [
   'DSH Codex Desktop.exe',
@@ -602,4 +604,38 @@ test('候选启动用心跳续租且仍受有限绝对超时约束', async () =>
   assert.match(main, /startDesktopActivationHeartbeat/)
   assert.match(main, /setInterval\(writeHeartbeat, 5_000\)/)
   assert.match(main, /stopDesktopActivationHeartbeat\(\)\s*\r?\n\s*app\.exit\(1\)/)
+})
+
+test('重复启动启动器必须原子互斥（2026-09-16 双触发事故回归，第二版）', async () => {
+  const launcher = await readFile(new URL('../../Start-DSH-Portable.ps1', import.meta.url), 'utf8')
+  // 第一版用「尝试标记很新就让位」被真机验证打脸（两个实例都在对方写入前检查，TOCTOU）→ 该错误复杂度必须删净
+  assert.doesNotMatch(launcher, /候选部署正在进行中/, '不得再用非原子的标记守卫')
+  assert.doesNotMatch(launcher, /attemptAgeSeconds/, '非原子守卫的残留必须删净')
+  // 正解＝内核级原子锁
+  assert.match(launcher, /System\.Threading\.Mutex/, '必须用 Mutex 做互斥')
+  assert.match(launcher, /\.WaitOne\(0\)/, '必须是非阻塞 try-acquire')
+  assert.match(launcher, /AbandonedMutexException/, '上一个持有者崩溃时必须能接管（不能永久锁死）')
+  assert.match(launcher, /DSH-Portable-Launcher-/, '互斥锁名要带便携标识')
+  // 锁名按便携根路径取哈希：同机多个便携副本不能互相干扰
+  assert.match(launcher, /ComputeHash\(\[System\.Text\.Encoding\]::UTF8\.GetBytes\(\$portableRoot\)\)/)
+  // 让位分支必须早于交接握手与候选部署，且不撤指针、不抢启动
+  const yieldIdx = launcher.indexOf('已有另一个启动器实例在运行')
+  // 用最后一次出现定位「交接握手的实际调用点」（函数定义在前，会误命中）
+  const handoffIdx = launcher.lastIndexOf('Publish-HandoffReady')
+  const pointerIdx = launcher.indexOf('$pointer = Get-DesktopPointer')
+  assert.ok(yieldIdx > 0, '必须有让位分支')
+  assert.ok(handoffIdx > yieldIdx, '让位判定必须在交接握手之前')
+  assert.ok(pointerIdx > yieldIdx, '让位判定必须在读取指针/部署之前')
+  const yieldBranch = launcher.slice(yieldIdx, pointerIdx)
+  assert.doesNotMatch(yieldBranch, /Restore-CurrentDesktopPointer/, '让位分支不得撤销 pending')
+  assert.doesNotMatch(yieldBranch, /Start-DesktopApplicationReliable/, '让位分支不得抢启动桌面')
+  assert.match(yieldBranch, /exit 0/)
+  // 交接实例让位时仍要发布 ready，否则应用侧的接管等待会超时
+  assert.match(yieldBranch, /Publish-HandoffReady/)
+  // 原有安全网不变：过期尝试仍然回退并恢复当前槽
+  const rejectIdx = launcher.indexOf('拒绝重复启动并回退')
+  assert.ok(rejectIdx > 0)
+  const afterReject = launcher.slice(rejectIdx, rejectIdx + 700)
+  assert.match(afterReject, /Restore-CurrentDesktopPointer/)
+  assert.match(afterReject, /Start-DesktopApplicationReliable -Executable \$currentApplication/)
 })

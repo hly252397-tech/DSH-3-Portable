@@ -37,6 +37,7 @@
       zoomValue: byId('browser-zoom-value'),
       menuDownloads: byId('browser-menu-downloads'),
       menuLibrary: byId('browser-menu-library'),
+      menuExternal: byId('browser-menu-external'),
       menuClear: byId('browser-menu-clear'),
       menuClose: byId('browser-menu-close'),
       find: byId('browser-find'),
@@ -406,6 +407,7 @@
     elements.zoomReset.addEventListener('click', () => browser.pageZoom('reset'));
     elements.menuDownloads.addEventListener('click', () => browser.toggleDownloads());
     elements.menuLibrary.addEventListener('click', () => openManager());
+    elements.menuExternal?.addEventListener('click', () => { setMenu(false); browser.openExternal(); });
     elements.menuClear.addEventListener('click', async () => {
       await setMenu(false);
       if (!confirm('确定清除浏览器 Cookie、缓存和站点数据吗？收藏、历史和密码不会被删除。')) return;

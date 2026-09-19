@@ -1,0 +1,333 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "name": "outer sidebar grid",
+      "status": "pass",
+      "gridTemplateColumns": "56px 712px 0px",
+      "sidebarWidth": 56
+    },
+    {
+      "name": "settings icon-only footer",
+      "status": "pass",
+      "button": {
+        "text": "",
+        "overflow": "hidden",
+        "width": 36
+      }
+    }
+  ],
+  "data": {
+    "url": "http://127.0.0.1:55865/",
+    "html": "<aside class=\"dcu-root dcu-compact\" aria-label=\"DSH 导航\"><style>\n.dcu-global-panel[aria-current=page]{background:var(--dcu-sidebar-hover);font-weight:600}\n\n.dcu-root{--dcu-font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",\"Microsoft YaHei UI\",sans-serif;--dcu-sidebar-background:#eef7f5;--dcu-sidebar-primary:#393d3e;--dcu-sidebar-secondary:#676b6c;--dcu-sidebar-tertiary:#9a9f9f;--dcu-sidebar-navigation:#4e5253;--dcu-sidebar-icon:#4e5253;--dcu-sidebar-hover:#dfe8e5;--dcu-sidebar-border:rgba(37,46,41,.10);--dcu-tip-bg:#ffffff;--dcu-tip-shadow:0 10px 32px rgba(31,39,36,.22);width:100%;height:100%;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;background:var(--dcu-sidebar-background);color:var(--dcu-sidebar-primary);font:14px/20px var(--dcu-font)}body[data-ds-dark-theme] .dcu-root{--dcu-sidebar-background:#1d2120;--dcu-sidebar-primary:#b9bab9;--dcu-sidebar-secondary:#909191;--dcu-sidebar-tertiary:#666867;--dcu-sidebar-navigation:#b9bab9;--dcu-sidebar-icon:#afafaf;--dcu-sidebar-hover:#303432;--dcu-sidebar-border:rgba(255,255,255,.08);--dcu-tip-bg:#2a2a2a;--dcu-tip-shadow:0 10px 30px rgba(0,0,0,.28)}\n/* 滤镜只作用于背景，避免为设置和搜索等 f",
+    "computed": {
+      "width": "54px",
+      "display": "flex",
+      "parent": "DIV",
+      "parentClass": ""
+    },
+    "footerHtml": "<footer class=\"dcu-foot\"><div class=\"dcu-footer-actions\"><div data-slot=\"sidebar.footer.action\" style=\"display: contents;\"><div data-slot-error=\"sidebar.footer.action\"></div><button type=\"button\" data-dsh-restart=\"true\" title=\"重启应用\" aria-label=\"重启应用\" aria-pressed=\"false\" style=\"display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 30px; padding: 5px 8px; box-sizing: border-box; border: 0px; border-radius: 8px; background: transparent; color: var(--dcu-sidebar-navigation,currentColor); font: inherit; cursor: pointer; text-align: left;\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" style=\"flex-shrink: 0;\"><path d=\"M3 10a9 9 0 1 1 2.7 8M3 4v6h6\"></path></svg></button></div></div><div class=\"dcu-settings-seat\"><div data-slot=\"sidebar.settings\" style=\"display: contents;\"><style>\n.dcu-settings-page{--sp-bg:#fff;--sp-nav:var(--dcu-sidebar-background,#eef7f5);--sp-card:#fafafa;--sp-border:#e5e5e5;--sp-text:#303030;--sp-muted:#737373;--sp-hover:#e9e9e9;--sp-active:#e4e4e4;position:fixed;inset:0;z-index:1000;display:grid;grid-template-columns:clamp(240px,var(--dcu-sidebar-expanded-width,275px),min(520px,calc(100vw - 320px))) minmax(0,1fr);background:var(--sp-bg);color:var(--sp-text);font:14px/1.5 var(--dcu-font,system-ui);text-align:left;isolation:isolate}\nbody[data-ds-dark-theme] .dcu-settings-page{--sp-bg:#181818;--sp-nav:var(--dcu-sidebar-background,#1d2120);--sp-card:#232323;--sp-border:#333;--sp-text:#dedede;--sp-muted:#a1a1a1;--sp-hover:#292c2b;--sp-active:#303332;color-scheme:dark}\n.dcu-settings-page *{box-sizing:border-box}\n.dcu-settings-page button,.dcu-settings-page input{font:inherit}\n.dcu-settings-page button{cursor:pointer}\n.dcu-settings-page :focus-visible{outline:2px solid #459cff;outline-offset:3px}\n.dcu-settings-nav{--sp-text:var(--dcu-sidebar-navigation,#4e5253);--sp-muted:var(--dcu-sidebar-secondary,#676b6c);--sp-hover:var(--dcu-sidebar-hover,#dfe8e5);--sp-active:var(--dcu-sidebar-hover,#dfe8e5);--sp-border:var(--dcu-sidebar-border,rgba(37,46,41,.10));display:flex;flex-direction:column;min-height:0;padding:18px 8px;background:var(--sp-nav);box-shadow:inset -1px 0 var(--sp-border);overflow-y:auto}\nbody[data-ds-dark-theme] .dcu-settings-nav{--sp-text:var(--dcu-sidebar-navigation,#b9bab9);--sp-muted:var(--dcu-sidebar-secondary,#909191);--sp-hover:var(--dcu-sidebar-hover,#303432);--sp-active:var(--dcu-sidebar-hover,#303432);--sp-border:var(--dcu-sidebar-border,rgba(255,255,255,.08))}\n.dcu-settings-back{display:flex;align-items:center;flex-shrink:0;gap:8px;width:100%;height:30px;padding:5px 8px;border:0;border-radius:10px;background:transparent;color:var(--sp-text);text-align:left}\n.dcu-settings-back:hover,.dcu-settings-link:hover{background:var(--sp-hover)}\n.dcu-settings-search{display:flex;align-items:center;gap:8px;padding:5px 9px;margin:12px 0 18px;background:var(--sp-hover);border:1px solid transparent;border-radius:8px;color:var(--sp-muted)}\n.dcu-settings-search:focus-within{border-color:#459cff}\n.dcu-settings-search input{width:100%;min-width:0;border:0;background:transparent;color:var(--sp-text);outline:none;font-size:13px}\n.dcu-settings-search input[type=search]{appearance:none;padding:0;border-radius:0;box-shadow:none;line-height:20px}\n.dcu-settings-search input:focus,.dcu-settings-search input:focus-visible{outline:none;box-shadow:none}\n.dcu-settings-search input::placeholder{color:var(--sp-muted)}\n.dcu-settings-group{flex-shrink:0;margin:0 0 16px}\n.dcu-settings-group-label{margin:0 8px 4px;color:var(--sp-muted);font-size:12px;font-weight:500}\n.dcu-settings-link{display:flex;align-items:center;gap:8px;height:30px;min-height:30px;min-width:0;width:100%;padding:5px 8px;border:0;border-radius:10px;overflow:hidden;background:transparent;color:var(--sp-text);text-align:left;font-size:14px!important}\n/* Codex Desktop SidebarItem / SidebarSection：30px 行高、1px 行距、内收焦点圈。 */\n.dcu-settings-link+.dcu-settings-link{margin-top:1px}\n.dcu-settings-back:focus-visible,.dcu-settings-link:focus-visible{outline-offset:-2px}\n@supports(corner-shape:superellipse(1.5)){.dcu-settings-back,.dcu-settings-link{border-radius:12.5px;corner-shape:superellipse(1.5)}}\n.dcu-settings-link[aria-current=page]{background:var(--sp-active)}\n.dcu-settings-link svg{flex:none;color:var(--dcu-sidebar-icon,var(--sp-text));opacity:1}\n.dcu-settings-link span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n.dcu-settings-empty{padding:8px;color:var(--sp-muted);font-size:13px}\n.dcu-settings-main{min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain;background:var(--sp-bg);scrollbar-width:thin;scrollbar-color:var(--sp-border) transparent}\n.dcu-settings-inner{width:min(100%,864px);margin:0 auto;padding:48px 48px}\n.dcu-settings-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:24px}\n.dcu-settings-heading h1,.dcu-settings",
+    "footerActions": {
+      "display": "contents",
+      "cssText": null,
+      "className": "dcu-footer-actions"
+    },
+    "footerBox": {
+      "footer": {
+        "x": 16.965072631835938,
+        "width": 36,
+        "display": "grid",
+        "marginLeft": "10px",
+        "marginRight": "0px"
+      },
+      "seat": {
+        "x": 0,
+        "width": 0,
+        "display": "contents",
+        "marginLeft": "0px",
+        "marginRight": "0px"
+      },
+      "button": {
+        "x": 24.965072631835938,
+        "width": 36,
+        "display": "grid",
+        "marginLeft": "0px",
+        "marginRight": "0px"
+      },
+      "parent": ""
+    },
+    "selectorMatch": 1,
+    "settingsButton": {
+      "text": "",
+      "overflow": "hidden",
+      "width": 36
+    },
+    "roots": [
+      {
+        "x": 7,
+        "width": 54,
+        "className": "dcu-root dcu-compact"
+      }
+    ],
+    "layout": {
+      "selectors": [
+        {
+          "tag": "DIV",
+          "id": "root",
+          "className": "",
+          "attrs": [],
+          "x": 0,
+          "y": 0,
+          "width": 780,
+          "height": 835,
+          "display": "block",
+          "position": "static",
+          "gridTemplateColumns": "none",
+          "flex": "0 1 auto",
+          "paddingLeft": "0px",
+          "paddingRight": "0px",
+          "overflow": "visible"
+        },
+        {
+          "tag": "DIV",
+          "id": "",
+          "className": "pI_x6G_frame",
+          "attrs": [
+            [
+              "data-rightbar-collapsed",
+              "true"
+            ],
+            [
+              "data-dcu-codex-sidebar-initialized",
+              ""
+            ],
+            [
+              "data-sidebar-collapsed",
+              "true"
+            ]
+          ],
+          "x": 0,
+          "y": 0,
+          "width": 780,
+          "height": 835,
+          "display": "grid",
+          "position": "relative",
+          "gridTemplateColumns": "56px 712px 0px",
+          "flex": "0 1 auto",
+          "paddingLeft": "6px",
+          "paddingRight": "6px",
+          "overflow": "hidden"
+        },
+        {
+          "tag": "DIV",
+          "id": "",
+          "className": "pI_x6G_sidebarCol",
+          "attrs": [],
+          "x": 6,
+          "y": 6,
+          "width": 56,
+          "height": 823,
+          "display": "block",
+          "position": "static",
+          "gridTemplateColumns": "none",
+          "flex": "0 1 auto",
+          "paddingLeft": "0px",
+          "paddingRight": "0px",
+          "overflow": "hidden"
+        }
+      ],
+      "ancestors": [
+        {
+          "tag": "ASIDE",
+          "id": "",
+          "className": "dcu-root dcu-compact",
+          "attrs": [],
+          "x": 7,
+          "y": 7,
+          "width": 54,
+          "height": 821,
+          "display": "flex",
+          "position": "relative",
+          "gridTemplateColumns": "none",
+          "flex": "0 1 auto",
+          "paddingLeft": "0px",
+          "paddingRight": "0px",
+          "overflow": "hidden"
+        },
+        {
+          "tag": "DIV",
+          "id": "",
+          "className": "",
+          "attrs": [
+            [
+              "data-slot",
+              "sidebar"
+            ]
+          ],
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "display": "contents",
+          "position": "static",
+          "gridTemplateColumns": "none",
+          "flex": "0 1 auto",
+          "paddingLeft": "0px",
+          "paddingRight": "0px",
+          "overflow": "visible"
+        },
+        {
+          "tag": "DIV",
+          "id": "",
+          "className": "pI_x6G_sidebarCol",
+          "attrs": [],
+          "x": 6,
+          "y": 6,
+          "width": 56,
+          "height": 823,
+          "display": "block",
+          "position": "static",
+          "gridTemplateColumns": "none",
+          "flex": "0 1 auto",
+          "paddingLeft": "0px",
+          "paddingRight": "0px",
+          "overflow": "hidden"
+        },
+        {
+          "tag": "DIV",
+          "id": "",
+          "className": "pI_x6G_frame",
+          "attrs": [
+            [
+              "data-rightbar-collapsed",
+              "true"
+            ],
+            [
+              "data-dcu-codex-sidebar-initialized",
+              ""
+            ],
+            [
+              "data-sidebar-collapsed",
+              "true"
+            ]
+          ],
+          "x": 0,
+          "y": 0,
+          "width": 780,
+          "height": 835,
+          "display": "grid",
+          "position": "relative",
+          "gridTemplateColumns": "56px 712px 0px",
+          "flex": "0 1 auto",
+          "paddingLeft": "6px",
+          "paddingRight": "6px",
+          "overflow": "hidden"
+        },
+        {
+          "tag": "DIV",
+          "id": "",
+          "className": "",
+          "attrs": [
+            [
+              "data-slot",
+              "root"
+            ]
+          ],
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "display": "contents",
+          "position": "static",
+          "gridTemplateColumns": "none",
+          "flex": "0 1 auto",
+          "paddingLeft": "0px",
+          "paddingRight": "0px",
+          "overflow": "visible"
+        },
+        {
+          "tag": "DIV",
+          "id": "root",
+          "className": "",
+          "attrs": [],
+          "x": 0,
+          "y": 0,
+          "width": 780,
+          "height": 835,
+          "display": "block",
+          "position": "static",
+          "gridTemplateColumns": "none",
+          "flex": "0 1 auto",
+          "paddingLeft": "0px",
+          "paddingRight": "0px",
+          "overflow": "visible"
+        },
+        {
+          "tag": "BODY",
+          "id": "",
+          "className": "",
+          "attrs": [
+            [
+              "data-color-scheme",
+              "light"
+            ]
+          ],
+          "x": 0,
+          "y": 0,
+          "width": 1344,
+          "height": 835,
+          "display": "block",
+          "position": "static",
+          "gridTemplateColumns": "none",
+          "flex": "0 1 auto",
+          "paddingLeft": "0px",
+          "paddingRight": "0px",
+          "overflow": "visible"
+        },
+        {
+          "tag": "HTML",
+          "id": "",
+          "className": "",
+          "attrs": [
+            [
+              "data-color-scheme",
+              "light"
+            ],
+            [
+              "data-dcu-official-turn-navigator-supported",
+              "true"
+            ]
+          ],
+          "x": 0,
+          "y": 0,
+          "width": 1344,
+          "height": 835,
+          "display": "block",
+          "position": "static",
+          "gridTemplateColumns": "none",
+          "flex": "0 1 auto",
+          "paddingLeft": "0px",
+          "paddingRight": "0px",
+          "overflow": "visible"
+        }
+      ]
+    },
+    "settingsDom": "<div class=\"dcu-settings-seat\"><div data-slot=\"sidebar.settings\" style=\"display: contents;\"><style>\n.dcu-settings-page{--sp-bg:#fff;--sp-nav:var(--dcu-sidebar-background,#eef7f5);--sp-card:#fafafa;--sp-border:#e5e5e5;--sp-text:#303030;--sp-muted:#737373;--sp-hover:#e9e9e9;--sp-active:#e4e4e4;position:fixed;inset:0;z-index:1000;display:grid;grid-template-columns:clamp(240px,var(--dcu-sidebar-expanded-width,275px),min(520px,calc(100vw - 320px))) minmax(0,1fr);background:var(--sp-bg);color:var(--sp-text);font:14px/1.5 var(--dcu-font,system-ui);text-align:left;isolation:isolate}\nbody[data-ds-dark-theme] .dcu-settings-page{--sp-bg:#181818;--sp-nav:var(--dcu-sidebar-background,#1d2120);--sp-card:#232323;--sp-border:#333;--sp-text:#dedede;--sp-muted:#a1a1a1;--sp-hover:#292c2b;--sp-active:#303332;color-scheme:dark}\n.dcu-settings-page *{box-sizing:border-box}\n.dcu-settings-page button,.dcu-settings-page input{font:inherit}\n.dcu-settings-page button{cursor:pointer}\n.dcu-settings-page :focus-visible{outline:2px solid #459cff;outline-offset:3px}\n.dcu-settings-nav{--sp-text:var(--dcu-sidebar-navigation,#4e5253);--sp-muted:var(--dcu-sidebar-secondary,#676b6c);--sp-hover:var(--dcu-sidebar-hover,#dfe8e5);--sp-active:var(--dcu-sidebar-hover,#dfe8e5);--sp-border:var(--dcu-sidebar-border,rgba(37,46,41,.10));display:flex;flex-direction:column;min-height:0;padding:18px 8px;background:var(--sp-nav);box-shadow:inset -1px 0 var(--sp-border);overflow-y:auto}\nbody[data-ds-dark-theme] .dcu-settings-nav{--sp-text:var(--dcu-sidebar-navigation,#b9bab9);--sp-muted:var(--dcu-sidebar-secondary,#909191);--sp-hover:var(--dcu-sidebar-hover,#303432);--sp-active:var(--dcu-sidebar-hover,#303432);--sp-border:var(--dcu-sidebar-border,rgba(255,255,255,.08))}\n.dcu-settings-back{display:flex;align-items:center;flex-shrink:0;gap:8px;width:100%;height:30px;padding:5px 8px;border:0;border-radius:10px;background:transparent;color:var(--sp-text);text-align:left}\n.dcu-settings-back:hover,.dcu-settings-link:hover{background:var(--sp-hover)}\n.dcu-settings-search{display:flex;align-items:center;gap:8px;padding:5px 9px;margin:12px 0 18px;background:var(--sp-hover);border:1px solid transparent;border-radius:8px;color:var(--sp-muted)}\n.dcu-settings-search:focus-within{border-color:#459cff}\n.dcu-settings-search input{width:100%;min-width:0;border:0;background:transparent;color:var(--sp-text);outline:none;font-size:13px}\n.dcu-settings-search input[type=search]{appearance:none;padding:0;border-radius:0;box-shadow:none;line-height:20px}\n.dcu-settings-search input:focus,.dcu-settings-search input:focus-visible{outline:none;box-shadow:none}\n.dcu-settings-search input::placeholder{color:var(--sp-muted)}\n.dcu-settings-group{flex-shrink:0;margin:0 0 16px}\n.dcu-settings-group-label{margin:0 8px 4px;color:var(--sp-muted);font-size:12px;font-weight:500}\n.dcu-settings-link{display:flex;align-items:center;gap:8px;height:30px;min-height:30px;min-width:0;width:100%;padding:5px 8px;border:0;border-radius:10px;overflow",
+    "footer": [
+      {
+        "label": "设置",
+        "title": null,
+        "x": 24.965072631835938,
+        "y": 772,
+        "width": 36,
+        "height": 36,
+        "text": "",
+        "display": "grid",
+        "opacity": "1",
+        "color": "rgb(24, 24, 27)",
+        "svg": "rgb(82, 82, 91)"
+      }
+    ],
+    "tabs": []
+  }
+}

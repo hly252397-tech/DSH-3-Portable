@@ -1,0 +1,59 @@
+{
+  "status": "fail",
+  "checkedAt": "2026-09-17T14:48:36.909Z",
+  "viewport": {
+    "w": 1360,
+    "h": 1000
+  },
+  "compact": "0",
+  "results": [
+    {
+      "name": "探针数据新鲜（≤120s）",
+      "ok": true,
+      "measured": "13s",
+      "expected": "≤120s"
+    },
+    {
+      "name": "外壳尺子已下发（--dsh-app-width ≈ 视口宽）",
+      "ok": true,
+      "measured": "appW=1360px vw=1360",
+      "expected": "两者相等"
+    },
+    {
+      "name": "两框之间无空白带（无 body 带）",
+      "ok": true,
+      "measured": "无",
+      "expected": "无"
+    },
+    {
+      "name": "两框贴合（面板左缘 = 对话列右缘）",
+      "ok": true,
+      "measured": "root=800 panelFrom=800",
+      "expected": "相等 ±2px"
+    },
+    {
+      "name": "对话列保住内容下限",
+      "ok": true,
+      "measured": "root=800 vw=1360",
+      "expected": "≥680（窄窗豁免）"
+    },
+    {
+      "name": "拖动柄骑在两框中点（±4px）",
+      "ok": true,
+      "measured": "handle=793..801 mid=797",
+      "expected": "≈800"
+    },
+    {
+      "name": "右栏面板确实在画（宽 > 40px）",
+      "ok": true,
+      "measured": "panelFrom=800",
+      "expected": "< vw-40"
+    },
+    {
+      "name": "无被挤压成竖排的后台任务徽标",
+      "ok": false,
+      "measured": "div.QsffPG_root left=118 w=43 h=114 t=3 个后台任务 | button.QsffPG_trigger left=118 w=43 h=114 t=3 个后台任务 | span.QsffPG_count left=125 w=22 h=108 t=3 个后台任务",
+      "expected": "无"
+    }
+  ]
+}

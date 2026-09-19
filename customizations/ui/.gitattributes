@@ -1,0 +1,5 @@
+sources/*.txt -text
+evidence/*.json -text
+evidence/*.png -text
+history/*.json text eol=lf
+baseline.json text eol=lf

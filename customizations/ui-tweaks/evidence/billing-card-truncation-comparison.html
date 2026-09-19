@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>计费卡片显示问题 - 验收对比</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #1a1a1a;
+    color: #e0e0e0;
+    padding: 40px;
+    line-height: 1.6;
+  }
+  h1 { font-size: 24px; margin-bottom: 20px; color: #fff; }
+  h2 { font-size: 18px; margin: 30px 0 15px; color: #ccc; border-bottom: 1px solid #333; padding-bottom: 8px; }
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin: 20px 0;
+  }
+  .panel {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .panel h3 {
+    font-size: 16px;
+    margin-bottom: 15px;
+    color: #fff;
+  }
+  .panel.before h3 { color: #ff6b6b; }
+  .panel.after h3 { color: #51cf66; }
+  
+  /* 模拟侧边栏底部 */
+  .sidebar-footer {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 12px;
+    width: 280px;
+  }
+  
+  /* 当前状态 - 卡片被截断 */
+  .billing-card-before {
+    border: 1px solid #444;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(14px);
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    padding: 12px;
+    position: relative;
+  }
+  .billing-card-before .yen {
+    color: #888;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .billing-card-before .amount {
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  
+  /* 修复后 - 卡片完整显示 */
+  .billing-card-after {
+    border: 1px solid #444;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(14px);
+    width: 100%;
+    min-width: 0;
+    overflow: visible; /* 关键修复 */
+    padding: 12px;
+    position: relative;
+  }
+  .billing-card-after .yen {
+    color: #888;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .billing-card-after .amount {
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  
+  .issue-box {
+    background: #3a2020;
+    border-left: 3px solid #ff6b6b;
+    padding: 12px 16px;
+    margin: 15px 0;
+    border-radius: 4px;
+  }
+  .fix-box {
+    background: #203a20;
+    border-left: 3px solid #51cf66;
+    padding: 12px 16px;
+    margin: 15px 0;
+    border-radius: 4px;
+  }
+  code {
+    background: #1a1a1a;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  .screenshot-ref {
+    background: #2a2a2a;
+    border: 1px dashed #666;
+    padding: 20px;
+    text-align: center;
+    margin: 20px 0;
+    border-radius: 6px;
+    color: #888;
+  }
+</style>
+</head>
+<body>
+
+<h1>🔍 计费卡片显示问题 - 验收对比</h1>
+
+<div class="screenshot-ref">
+  <strong>用户截图：</strong>侧边栏底部 "¥0.20" 计费卡片右侧被截断
+</div>
+
+<h2>问题分析</h2>
+
+<div class="issue-box">
+  <strong>问题：</strong>计费卡片 (<code>.VWh0dG_trigger</code>) 的 <code>overflow: hidden</code> 导致内容被裁剪<br>
+  <strong>位置：</strong><code>sidebar.footer.action</code> 插槽<br>
+  <strong>原因：</strong>卡片容器宽度不足时，右侧内容（可能是图标或装饰元素）被隐藏
+</div>
+
+<h2>对比展示</h2>
+
+<div class="comparison">
+  <div class="panel before">
+    <h3>❌ 当前状态（截断）</h3>
+    <div class="sidebar-footer">
+      <div class="billing-card-before">
+        <div>
+          <span class="yen">¥</span>
+          <span class="amount">0.20</span>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:15px;font-size:13px;color:#888;">
+      卡片右侧边缘被裁剪，可能缺少图标或指示器
+    </p>
+  </div>
+
+  <div class="panel after">
+    <h3>✅ 修复后（完整显示）</h3>
+    <div class="sidebar-footer">
+      <div class="billing-card-after">
+        <div>
+          <span class="yen">¥</span>
+          <span class="amount">0.20</span>
+          <span style="margin-left:8px;font-size:16px;">📊</span>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:15px;font-size:13px;color:#888;">
+      卡片完整显示，包含所有装饰元素
+    </p>
+  </div>
+</div>
+
+<h2>修复方案</h2>
+
+<div class="fix-box">
+  <strong>方案 A（推荐）：</strong>修改插件 CSS<br>
+  文件：<code>Data/DSH/profiles/web/node_modules/@kenz1117/dsh-ui-usage-billing/lib/client.js</code><br>
+  改动：将 <code>.VWh0dG_trigger</code> 的 <code>overflow: hidden</code> 改为 <code>overflow: visible</code><br>
+  影响：仅影响该插件，风险低
+</div>
+
+<div class="fix-box">
+  <strong>方案 B（备选）：</strong>增加容器宽度<br>
+  通过 CSS 覆盖增加 <code>sidebar.footer.action</code> 的最小宽度<br>
+  影响：可能影响侧边栏布局，需要测试
+</div>
+
+<h2>验证步骤</h2>
+<ol style="margin:15px 0;padding-left:25px;">
+  <li>重启 DSH 应用</li>
+  <li>查看侧边栏底部计费卡片</li>
+  <li>确认 "¥0.20" 完整显示，无截断</li>
+  <li>悬停卡片确认交互正常</li>
+</ol>
+
+<h2>待确认</h2>
+<p style="color:#ffa94d;">
+  ⚠️ 需要确认截断的具体内容是什么（图标？装饰线？）。<br>
+  建议先用浏览器开发者工具检查实际被裁剪的元素。
+</p>
+
+</body>
+</html>

@@ -1,0 +1,140 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "label": "left schedule direct native management",
+      "legacyLink": 0,
+      "footer": 0,
+      "errors": []
+    },
+    {
+      "label": "create form opens and cancels; history readable"
+    },
+    {
+      "label": "schedule zoom 0.8",
+      "createButton": {
+        "x": 1006.4453125,
+        "y": 125.95703125,
+        "width": 134.47265625,
+        "height": 31.9921875
+      }
+    },
+    {
+      "label": "schedule zoom 1.25",
+      "createButton": {
+        "x": 717.6000366210938,
+        "y": 126,
+        "width": 133.5999755859375,
+        "height": 32
+      }
+    },
+    {
+      "label": "schedule zoom 1.5",
+      "createButton": {
+        "x": 270.97247314453125,
+        "y": 1562,
+        "width": 133.33331298828125,
+        "height": 32
+      }
+    },
+    {
+      "label": "settings contains only git management card",
+      "inventory": [
+        {
+          "id": "重启应用",
+          "text": ""
+        },
+        {
+          "id": "git",
+          "text": "源代码管理\ngit"
+        },
+        {
+          "id": "subagent",
+          "text": "任务管理\nsubagent"
+        },
+        {
+          "id": "sidechat",
+          "text": "侧边对话(beta)\nsidechat"
+        },
+        {
+          "id": "terminal",
+          "text": "终端\nterminal"
+        },
+        {
+          "id": "browser",
+          "text": "浏览器\nbrowser"
+        },
+        {
+          "id": "space-black-hole",
+          "text": "黑洞\nspace-black-hole"
+        },
+        {
+          "id": "space-knowledge",
+          "text": "知识中心\nspace-knowledge"
+        },
+        {
+          "id": "space-database",
+          "text": "数据库\nspace-database"
+        },
+        {
+          "id": "space-inventor-2027",
+          "text": "Inventor 2027\nspace-inventor-2027"
+        },
+        {
+          "id": "editor",
+          "text": "文件\neditor"
+        },
+        {
+          "id": "png · jpg · jpeg · gif · webp · svg · bmp · ico · avif",
+          "text": "图片\npng · jpg · jpeg · gif · webp · svg · bmp · ico · avif"
+        },
+        {
+          "id": "pdf",
+          "text": "PDF\npdf"
+        },
+        {
+          "id": "md · markdown",
+          "text": "Markdown\nmd · markdown"
+        },
+        {
+          "id": "html · htm",
+          "text": "HTML\nhtml · htm"
+        },
+        {
+          "id": "doc · xls · ppt",
+          "text": "二进制下载\ndoc · xls · ppt"
+        },
+        {
+          "id": "兜底：任意文件",
+          "text": "代码\n兜底：任意文件"
+        },
+        {
+          "id": "文件树面板",
+          "text": ""
+        }
+      ]
+    },
+    {
+      "label": "right menu consolidated",
+      "items": [
+        "文件",
+        "源代码管理",
+        "任务管理",
+        "侧边对话(beta)",
+        "终端",
+        "浏览器",
+        "黑洞",
+        "知识中心",
+        "数据库",
+        "Inventor 2027"
+      ]
+    },
+    {
+      "label": "git card opens without runtime errors",
+      "errors": []
+    }
+  ],
+  "noTaskCreated": true,
+  "noScheduleExecuted": true,
+  "noBusinessWrites": true
+}

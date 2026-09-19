@@ -1,0 +1,57 @@
+{
+  "status": "pass",
+  "generatedAt": "2026-09-14T16:27:47.133Z",
+  "chrome": "G:\\DSH-3-Portable\\宏建云系统\\browsers\\chrome-152.0.7977.64\\chrome.exe",
+  "results": [
+    {
+      "name": "单网页：收起标签条并把\"+\"搬进导航条（省一层 40px，功能不丢）",
+      "ok": true,
+      "detail": "display=none chrome 高=42（标签条 0 + 导航条 42）\"+\"在导航条内=true"
+    },
+    {
+      "name": "多网页：行为完全不变（标签条可见、chrome 82px、\"+\"在标签条）",
+      "ok": true,
+      "detail": "display=flex chrome 高=82（标签条 40 + 导航条 42）\"+\"在标签条内=true"
+    },
+    {
+      "name": "2→1 个网页往返后仍正确收起（非一次性状态）",
+      "ok": true,
+      "detail": "display=none \" 在导航条内=true"
+    }
+  ],
+  "measurements": [
+    {
+      "label": "1 个网页（应收起标签条）",
+      "pageTabBarVisible": false,
+      "tabsDisplay": "none",
+      "tabsHeight": 0,
+      "navHeight": 42,
+      "chromeHeight": 42,
+      "addInsideNav": true,
+      "addInsideTabs": false,
+      "actionsParent": "browser-nav"
+    },
+    {
+      "label": "2 个网页（应恢复标签条）",
+      "pageTabBarVisible": true,
+      "tabsDisplay": "flex",
+      "tabsHeight": 40,
+      "navHeight": 42,
+      "chromeHeight": 82,
+      "addInsideNav": false,
+      "addInsideTabs": true,
+      "actionsParent": "browser-tabs"
+    },
+    {
+      "label": "回到 1 个网页（应再次收起）",
+      "pageTabBarVisible": false,
+      "tabsDisplay": "none",
+      "tabsHeight": 0,
+      "navHeight": 42,
+      "chromeHeight": 42,
+      "addInsideNav": true,
+      "addInsideTabs": false,
+      "actionsParent": "browser-nav"
+    }
+  ]
+}

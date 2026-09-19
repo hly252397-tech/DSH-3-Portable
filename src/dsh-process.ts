@@ -8,7 +8,10 @@ import type { DshRuntime } from './runtime.js'
 
 export { APPLY_PLUGIN_UPDATES_IPC }
 
-const startupTimeoutMs = 45_000
+/** DSH 进程就绪等待：45s→120s（上游 v1.0.62 的冷启动保活结论：慢盘/慢机首次启动
+ *  45 秒不够用，会在加载插件期间把工作台误判成失败。测试注入自己的夹具值，不依赖此默认值。） */
+export const DSH_STARTUP_TIMEOUT_MS = 120_000
+const startupTimeoutMs = DSH_STARTUP_TIMEOUT_MS
 const maxCapturedOutputLength = 12_000
 const shutdownTimeoutMs = 5_000
 const forcedShutdownDeadlineMs = 2_000

@@ -1,0 +1,25 @@
+// dsh-restart-button — 客户端半侧（web）
+//
+// 2026-09-14：注销侧栏底部注入。
+// 本 half 原先在 DSH 侧栏底部「设置」旁多渲染一行「● DSH 工作台 ⚙」，是纯重复入口：
+//   1) 齿轮 onClick 走的是 bridge.action("desktop-settings")，与外壳顶栏齿轮
+//      （assets/shell.html:109  data-action="desktop-settings"）触发同一个动作、同一个窗口
+//      （src/main.ts:2547 → showDesktopSettingsWindow()）——上下两处功能完全相同；
+//   2) 「DSH 工作台」字样与顶栏 workspace-label（shell.html:101 / 233）同文；
+//   3) 左侧圆点使用固定色 --dcu-sidebar-primary，不绑定任何连接或运行状态，是假状态指示。
+// 重启已于 I023-39「外壳顶栏改版」移到顶栏 #restart-btn（power.svg + 两步确认 + 5s 超时），
+// 底栏不再承担重启职责；I023-34 的「重启 / 连接 / 设置」三列排版随之作废。
+//
+// 宿主半侧 lib/index.js 的受令牌保护重启端点（POST /api/dsh-restart-button/restart）
+// 与本文件无关，本次未改动。
+//
+// 回退：把本轮备份 client.js.orig 覆盖回本文件即恢复原状。
+
+window.__ModuleLoader__.load({
+	id: "dsh-restart-button",
+	factory: () => {
+		// 客户端半侧当前不注册任何 UI 槽位；保留空 apply 以维持模块形态与加载契约不变。
+		function apply() {}
+		return { apply, inject: ["locale", "slots"] };
+	}
+});

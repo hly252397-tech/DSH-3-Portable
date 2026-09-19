@@ -1,0 +1,400 @@
+{
+  "status": "pass",
+  "authority": "127.0.0.1:59095",
+  "results": [
+    {
+      "label": "home title dock at 100%",
+      "viewport": {
+        "width": 1488,
+        "height": 1058,
+        "zoom": 1
+      },
+      "hero": {
+        "x": 77,
+        "y": 247.34375,
+        "width": 769,
+        "height": 563.3125,
+        "top": 247.34375,
+        "right": 846,
+        "bottom": 810.65625,
+        "left": 77
+      },
+      "headline": {
+        "x": 257.3399963378906,
+        "y": 304.34375,
+        "width": 204,
+        "height": 44,
+        "top": 304.34375,
+        "right": 461.3399963378906,
+        "bottom": 348.34375,
+        "left": 257.3399963378906
+      },
+      "dock": {
+        "x": 538.328125,
+        "y": 309.34375,
+        "width": 183.296875,
+        "height": 34,
+        "top": 309.34375,
+        "right": 721.625,
+        "bottom": 343.34375,
+        "left": 538.328125
+      },
+      "cards": {
+        "x": 101,
+        "y": 389.34375,
+        "width": 721,
+        "height": 72,
+        "top": 389.34375,
+        "right": 822,
+        "bottom": 461.34375,
+        "left": 101
+      },
+      "activity": {
+        "x": 101,
+        "y": 485.34375,
+        "width": 721,
+        "height": 112.65625,
+        "top": 485.34375,
+        "right": 822,
+        "bottom": 598,
+        "left": 101
+      },
+      "input": {
+        "x": 101,
+        "y": 614,
+        "width": 721,
+        "height": 112.65625,
+        "top": 614,
+        "right": 822,
+        "bottom": 726.65625,
+        "left": 101
+      },
+      "hostClass": true,
+      "placement": "inline",
+      "dockPosition": "absolute"
+    },
+    {
+      "label": "capture popover opens below title dock and cancels",
+      "popover": {
+        "dock": {
+          "x": 538.328125,
+          "y": 309.34375,
+          "width": 183.296875,
+          "height": 34,
+          "top": 309.34375,
+          "right": 721.625,
+          "bottom": 343.34375,
+          "left": 538.328125
+        },
+        "menu": {
+          "x": 538.328125,
+          "y": 351.34375,
+          "width": 183.296875,
+          "height": 418.765625,
+          "top": 351.34375,
+          "right": 721.625,
+          "bottom": 770.109375,
+          "left": 538.328125
+        },
+        "viewport": {
+          "width": 1488,
+          "height": 1058
+        }
+      }
+    },
+    {
+      "label": "home title dock at zoom 0.8",
+      "viewport": {
+        "width": 1860,
+        "height": 1322,
+        "zoom": 0.800000011920929
+      },
+      "hero": {
+        "x": 322.55859375,
+        "y": 372.28515625,
+        "width": 815.99609375,
+        "height": 577.94921875,
+        "top": 372.28515625,
+        "right": 1138.5546875,
+        "bottom": 950.234375,
+        "left": 322.55859375
+      },
+      "headline": {
+        "x": 525.6768798828125,
+        "y": 429.27734375,
+        "width": 204.00390625,
+        "height": 44.00390625,
+        "top": 429.27734375,
+        "right": 729.6807861328125,
+        "bottom": 473.28125,
+        "left": 525.6768798828125
+      },
+      "dock": {
+        "x": 807.16796875,
+        "y": 434.27734375,
+        "width": 184.23828125,
+        "height": 33.984375,
+        "top": 434.27734375,
+        "right": 991.40625,
+        "bottom": 468.26171875,
+        "left": 807.16796875
+      },
+      "cards": {
+        "x": 346.5625,
+        "y": 514.27734375,
+        "width": 767.98828125,
+        "height": 71.9921875,
+        "top": 514.27734375,
+        "right": 1114.55078125,
+        "bottom": 586.26953125,
+        "left": 346.5625
+      },
+      "activity": {
+        "x": 346.54296875,
+        "y": 610.25390625,
+        "width": 768.02734375,
+        "height": 120,
+        "top": 610.25390625,
+        "right": 1114.5703125,
+        "bottom": 730.25390625,
+        "left": 346.54296875
+      },
+      "input": {
+        "x": 346.54296875,
+        "y": 746.25,
+        "width": 768.02734375,
+        "height": 120,
+        "top": 746.25,
+        "right": 1114.5703125,
+        "bottom": 866.25,
+        "left": 346.54296875
+      },
+      "hostClass": true,
+      "placement": "inline",
+      "dockPosition": "absolute"
+    },
+    {
+      "label": "home title dock at zoom 1.25",
+      "viewport": {
+        "width": 1190,
+        "height": 846,
+        "zoom": 1.25
+      },
+      "hero": {
+        "x": 93.70000457763672,
+        "y": 53.8125,
+        "width": 529.5,
+        "height": 738.7750244140625,
+        "top": 53.8125,
+        "right": 623.2000045776367,
+        "bottom": 792.5875244140625,
+        "left": 93.70000457763672
+      },
+      "headline": {
+        "x": 255.15000915527344,
+        "y": 105.5875015258789,
+        "width": 204,
+        "height": 44,
+        "top": 105.5875015258789,
+        "right": 459.15000915527344,
+        "bottom": 149.5875015258789,
+        "left": 255.15000915527344
+      },
+      "dock": {
+        "x": 117.70000457763672,
+        "y": 160.58750915527344,
+        "width": 182.5,
+        "height": 34,
+        "top": 160.58750915527344,
+        "right": 300.2000045776367,
+        "bottom": 194.58750915527344,
+        "left": 117.70000457763672
+      },
+      "cards": {
+        "x": 117.70000457763672,
+        "y": 214.58750915527344,
+        "width": 481.5,
+        "height": 154,
+        "top": 214.58750915527344,
+        "right": 599.2000045776367,
+        "bottom": 368.58750915527344,
+        "left": 117.70000457763672
+      },
+      "activity": {
+        "x": 117.70000457763672,
+        "y": 392.5874938964844,
+        "width": 481.5,
+        "height": 150,
+        "top": 392.5874938964844,
+        "right": 599.2000045776367,
+        "bottom": 542.5874938964844,
+        "left": 117.70000457763672
+      },
+      "input": {
+        "x": 117.70000457763672,
+        "y": 558.5875244140625,
+        "width": 481.5,
+        "height": 150,
+        "top": 558.5875244140625,
+        "right": 599.2000045776367,
+        "bottom": 708.5875244140625,
+        "left": 117.70000457763672
+      },
+      "hostClass": true,
+      "placement": "stacked",
+      "dockPosition": "absolute"
+    },
+    {
+      "label": "home title dock at zoom 1.5",
+      "viewport": {
+        "width": 992,
+        "height": 705,
+        "zoom": 1.5
+      },
+      "hero": {
+        "x": 76.66667175292969,
+        "y": 6.6666669845581055,
+        "width": 410.5520935058594,
+        "height": 730.3125,
+        "top": 6.6666669845581055,
+        "right": 487.21876525878906,
+        "bottom": 736.9791669845581,
+        "left": 76.66667175292969
+      },
+      "headline": {
+        "x": 178.77084350585938,
+        "y": 49.97916793823242,
+        "width": 204,
+        "height": 44,
+        "top": 49.97916793823242,
+        "right": 382.7708435058594,
+        "bottom": 93.97916793823242,
+        "left": 178.77084350585938
+      },
+      "dock": {
+        "x": 100.66667175292969,
+        "y": 104.96875,
+        "width": 181.96875,
+        "height": 34,
+        "top": 104.96875,
+        "right": 282.6354217529297,
+        "bottom": 138.96875,
+        "left": 100.66667175292969
+      },
+      "cards": {
+        "x": 100.66667175292969,
+        "y": 158.9791717529297,
+        "width": 362.5520935058594,
+        "height": 154,
+        "top": 158.9791717529297,
+        "right": 463.21876525878906,
+        "bottom": 312.9791717529297,
+        "left": 100.66667175292969
+      },
+      "activity": {
+        "x": 100.66667175292969,
+        "y": 336.97918701171875,
+        "width": 362.5520935058594,
+        "height": 150,
+        "top": 336.97918701171875,
+        "right": 463.21876525878906,
+        "bottom": 486.97918701171875,
+        "left": 100.66667175292969
+      },
+      "input": {
+        "x": 100.66667175292969,
+        "y": 502.97918701171875,
+        "width": 362.5520935058594,
+        "height": 150,
+        "top": 502.97918701171875,
+        "right": 463.21876525878906,
+        "bottom": 652.9791870117188,
+        "left": 100.66667175292969
+      },
+      "hostClass": true,
+      "placement": "stacked",
+      "dockPosition": "absolute"
+    },
+    {
+      "label": "home title dock at 1024x696",
+      "viewport": {
+        "width": 1024,
+        "height": 696,
+        "zoom": 1
+      },
+      "hero": {
+        "x": 77,
+        "y": 7,
+        "width": 442,
+        "height": 729.75,
+        "top": 7,
+        "right": 519,
+        "bottom": 736.75,
+        "left": 77
+      },
+      "headline": {
+        "x": 194.5,
+        "y": 49.75,
+        "width": 204,
+        "height": 44,
+        "top": 49.75,
+        "right": 398.5,
+        "bottom": 93.75,
+        "left": 194.5
+      },
+      "dock": {
+        "x": 101,
+        "y": 104.75,
+        "width": 183.296875,
+        "height": 34,
+        "top": 104.75,
+        "right": 284.296875,
+        "bottom": 138.75,
+        "left": 101
+      },
+      "cards": {
+        "x": 101,
+        "y": 158.75,
+        "width": 394,
+        "height": 154,
+        "top": 158.75,
+        "right": 495,
+        "bottom": 312.75,
+        "left": 101
+      },
+      "activity": {
+        "x": 101,
+        "y": 336.75,
+        "width": 394,
+        "height": 150,
+        "top": 336.75,
+        "right": 495,
+        "bottom": 486.75,
+        "left": 101
+      },
+      "input": {
+        "x": 101,
+        "y": 502.75,
+        "width": 394,
+        "height": 150,
+        "top": 502.75,
+        "right": 495,
+        "bottom": 652.75,
+        "left": 101
+      },
+      "hostClass": true,
+      "placement": "stacked",
+      "dockPosition": "absolute"
+    }
+  ],
+  "writeRequests": [
+    {
+      "url": "http://127.0.0.1:59095/black-hole/api/store",
+      "body": "{\"action\":\"load\"}"
+    }
+  ],
+  "pageErrors": [
+    "TypeError: Cannot read properties of undefined (reading 'store')\n    at getSnapshot (http://127.0.0.1:59095/plugins/??@deepseek-ai/dsh-api-gateway/client.js,@deepseek-ai/dsh-client-ui-open-in-app/client.js,@deepseek-ai/dsh-api-workspace-files/client.js,@deepseek-ai/dsh-client-hmr/client.js,@deepseek-ai/dsh-cordis-client-runner/client.js,@deepseek-ai/dsh-client-ui-theme/client.js,@deepseek-ai/dsh-client-locale/client.js,@deepseek-ai/dsh-client-ui-layout/client.js,@deepseek-ai/dsh-client-ui-renderer/client.js,@deepseek-ai/dsh-client-ui-session/client.js,@deepseek-ai/dsh-client-resources/client.js,@deepseek-ai/dsh-client-ui-sidebar-right/client.js,@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client.js,@deepseek-ai/dsh-client-ui-sidebar-files/client.js,@deepseek-ai/dsh-client-ui-settings/client.js,@deepseek-ai/dsh-client-ui-settings-models/client.js,@deepseek-ai/dsh-client-ui-settings-plugin-inventory/client.js,@deepseek-ai/dsh-client-ui-conversation/client.js,@deepseek-ai/dsh-client-ui-approval/client.js,@deepseek-ai/dsh-client-ui-chat/client.js,@deepseek-ai/dsh-client-ui-brand-official/client.js,@deepseek-ai/dsh-client-ui-attachment/client.js,@deepseek-ai/dsh-client-ui-tool/client.js,@deepseek-ai/dsh-client-ui-cordis/client.js,@deepseek-ai/dsh-client-ui-workflow-run/client.js,@deepseek-ai/dsh-client-ui-workspace/client.js,@deepseek-ai/dsh-client-ui-input-trigger/client.js,@deepseek-ai/dsh-client-ui-commands/client.js,@deepseek-ai/dsh-client-ui-skill/client.js,@deepseek-ai/dsh-client-ui-subagent/client.js,@deepseek-ai/dsh-client-ui-reference/client.js,@deepseek-ai/dsh-client-ui-jobs/client.js,@deepseek-ai/dsh-client-ui-goal/client.js,@deepseek-ai/dsh-client-ui-message-feedback/client.js,@deepseek-ai/dsh-client-ui-model-selection/client.js,@deepseek-ai/dsh-client-ui-permission-presets/client.js,@deepseek-ai/dsh-client-ui-agent-preset/client.js,@deepseek-ai/dsh-client-ui-settings-plugins/client.js,@deepseek-ai/dsh-client-ui-plan/client.js,@deepseek-ai/dsh-client-ui-user-questions/client.js,@deepseek-ai/dsh-client-ui-trajectory/client.js,@michengai/dsh-archive-manager/client.js,dsh-restart-button/client.js,dsh-sidebar-spaces/client.js,dsh-custom-spaces/client.js,dsh-black-hole/client.js,@michengai/dsh-btw/client.js,@michengai/dsh-codex-pet/client.js,@deepseek-ai/dsh-session-log-export/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-deliverables/client.js,@michengai/dsh-codex-ui/client.js,@michengai/dsh-skills-manager/client.js,dsh-desktop-bridge/client.js,dshmarket/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@michengai/dsh-im-connect/client.js,dsh-context/client.js,dsh-work-mode/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@michengai/dsh-agency-agents/client.js,@michengai/dsh-automation/client.js&rev=0745cd1c8640:46067:17)\n    at Object.useSyncExternalStore (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:54:24273)\n    at Xa.ve.useSyncExternalStore (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:25:6599)\n    at SpacesEntry (http://127.0.0.1:59095/plugins/??@deepseek-ai/dsh-api-gateway/client.js,@deepseek-ai/dsh-client-ui-open-in-app/client.js,@deepseek-ai/dsh-api-workspace-files/client.js,@deepseek-ai/dsh-client-hmr/client.js,@deepseek-ai/dsh-cordis-client-runner/client.js,@deepseek-ai/dsh-client-ui-theme/client.js,@deepseek-ai/dsh-client-locale/client.js,@deepseek-ai/dsh-client-ui-layout/client.js,@deepseek-ai/dsh-client-ui-renderer/client.js,@deepseek-ai/dsh-client-ui-session/client.js,@deepseek-ai/dsh-client-resources/client.js,@deepseek-ai/dsh-client-ui-sidebar-right/client.js,@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client.js,@deepseek-ai/dsh-client-ui-sidebar-files/client.js,@deepseek-ai/dsh-client-ui-settings/client.js,@deepseek-ai/dsh-client-ui-settings-models/client.js,@deepseek-ai/dsh-client-ui-settings-plugin-inventory/client.js,@deepseek-ai/dsh-client-ui-conversation/client.js,@deepseek-ai/dsh-client-ui-approval/client.js,@deepseek-ai/dsh-client-ui-chat/client.js,@deepseek-ai/dsh-client-ui-brand-official/client.js,@deepseek-ai/dsh-client-ui-attachment/client.js,@deepseek-ai/dsh-client-ui-tool/client.js,@deepseek-ai/dsh-client-ui-cordis/client.js,@deepseek-ai/dsh-client-ui-workflow-run/client.js,@deepseek-ai/dsh-client-ui-workspace/client.js,@deepseek-ai/dsh-client-ui-input-trigger/client.js,@deepseek-ai/dsh-client-ui-commands/client.js,@deepseek-ai/dsh-client-ui-skill/client.js,@deepseek-ai/dsh-client-ui-subagent/client.js,@deepseek-ai/dsh-client-ui-reference/client.js,@deepseek-ai/dsh-client-ui-jobs/client.js,@deepseek-ai/dsh-client-ui-goal/client.js,@deepseek-ai/dsh-client-ui-message-feedback/client.js,@deepseek-ai/dsh-client-ui-model-selection/client.js,@deepseek-ai/dsh-client-ui-permission-presets/client.js,@deepseek-ai/dsh-client-ui-agent-preset/client.js,@deepseek-ai/dsh-client-ui-settings-plugins/client.js,@deepseek-ai/dsh-client-ui-plan/client.js,@deepseek-ai/dsh-client-ui-user-questions/client.js,@deepseek-ai/dsh-client-ui-trajectory/client.js,@michengai/dsh-archive-manager/client.js,dsh-restart-button/client.js,dsh-sidebar-spaces/client.js,dsh-custom-spaces/client.js,dsh-black-hole/client.js,@michengai/dsh-btw/client.js,@michengai/dsh-codex-pet/client.js,@deepseek-ai/dsh-session-log-export/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-deliverables/client.js,@michengai/dsh-codex-ui/client.js,@michengai/dsh-skills-manager/client.js,dsh-desktop-bridge/client.js,dshmarket/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@michengai/dsh-im-connect/client.js,dsh-context/client.js,dsh-work-mode/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@michengai/dsh-agency-agents/client.js,@michengai/dsh-automation/client.js&rev=0745cd1c8640:110292:21)\n    at Y2 (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:54:17250)\n    at $4 (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:56:44433)\n    at D4 (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:56:40060)\n    at Y9 (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:56:39988)\n    at Ui (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:56:39841)\n    at _0 (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:56:36162)",
+    "slot entry crashed in 'sidebar.footer.action': TypeError: Cannot read properties of undefined (reading 'store')\n    at getSnapshot (http://127.0.0.1:59095/plugins/??@deepseek-ai/dsh-api-gateway/client.js,@deepseek-ai/dsh-client-ui-open-in-app/client.js,@deepseek-ai/dsh-api-workspace-files/client.js,@deepseek-ai/dsh-client-hmr/client.js,@deepseek-ai/dsh-cordis-client-runner/client.js,@deepseek-ai/dsh-client-ui-theme/client.js,@deepseek-ai/dsh-client-locale/client.js,@deepseek-ai/dsh-client-ui-layout/client.js,@deepseek-ai/dsh-client-ui-renderer/client.js,@deepseek-ai/dsh-client-ui-session/client.js,@deepseek-ai/dsh-client-resources/client.js,@deepseek-ai/dsh-client-ui-sidebar-right/client.js,@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client.js,@deepseek-ai/dsh-client-ui-sidebar-files/client.js,@deepseek-ai/dsh-client-ui-settings/client.js,@deepseek-ai/dsh-client-ui-settings-models/client.js,@deepseek-ai/dsh-client-ui-settings-plugin-inventory/client.js,@deepseek-ai/dsh-client-ui-conversation/client.js,@deepseek-ai/dsh-client-ui-approval/client.js,@deepseek-ai/dsh-client-ui-chat/client.js,@deepseek-ai/dsh-client-ui-brand-official/client.js,@deepseek-ai/dsh-client-ui-attachment/client.js,@deepseek-ai/dsh-client-ui-tool/client.js,@deepseek-ai/dsh-client-ui-cordis/client.js,@deepseek-ai/dsh-client-ui-workflow-run/client.js,@deepseek-ai/dsh-client-ui-workspace/client.js,@deepseek-ai/dsh-client-ui-input-trigger/client.js,@deepseek-ai/dsh-client-ui-commands/client.js,@deepseek-ai/dsh-client-ui-skill/client.js,@deepseek-ai/dsh-client-ui-subagent/client.js,@deepseek-ai/dsh-client-ui-reference/client.js,@deepseek-ai/dsh-client-ui-jobs/client.js,@deepseek-ai/dsh-client-ui-goal/client.js,@deepseek-ai/dsh-client-ui-message-feedback/client.js,@deepseek-ai/dsh-client-ui-model-selection/client.js,@deepseek-ai/dsh-client-ui-permission-presets/client.js,@deepseek-ai/dsh-client-ui-agent-preset/client.js,@deepseek-ai/dsh-client-ui-settings-plugins/client.js,@deepseek-ai/dsh-client-ui-plan/client.js,@deepseek-ai/dsh-client-ui-user-questions/client.js,@deepseek-ai/dsh-client-ui-trajectory/client.js,@michengai/dsh-archive-manager/client.js,dsh-restart-button/client.js,dsh-sidebar-spaces/client.js,dsh-custom-spaces/client.js,dsh-black-hole/client.js,@michengai/dsh-btw/client.js,@michengai/dsh-codex-pet/client.js,@deepseek-ai/dsh-session-log-export/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-deliverables/client.js,@michengai/dsh-codex-ui/client.js,@michengai/dsh-skills-manager/client.js,dsh-desktop-bridge/client.js,dshmarket/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@michengai/dsh-im-connect/client.js,dsh-context/client.js,dsh-work-mode/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@michengai/dsh-agency-agents/client.js,@michengai/dsh-automation/client.js&rev=0745cd1c8640:46067:17)\n    at Object.useSyncExternalStore (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:54:24273)\n    at Xa.ve.useSyncExternalStore (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:25:6599)\n    at SpacesEntry (http://127.0.0.1:59095/plugins/??@deepseek-ai/dsh-api-gateway/client.js,@deepseek-ai/dsh-client-ui-open-in-app/client.js,@deepseek-ai/dsh-api-workspace-files/client.js,@deepseek-ai/dsh-client-hmr/client.js,@deepseek-ai/dsh-cordis-client-runner/client.js,@deepseek-ai/dsh-client-ui-theme/client.js,@deepseek-ai/dsh-client-locale/client.js,@deepseek-ai/dsh-client-ui-layout/client.js,@deepseek-ai/dsh-client-ui-renderer/client.js,@deepseek-ai/dsh-client-ui-session/client.js,@deepseek-ai/dsh-client-resources/client.js,@deepseek-ai/dsh-client-ui-sidebar-right/client.js,@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client.js,@deepseek-ai/dsh-client-ui-sidebar-files/client.js,@deepseek-ai/dsh-client-ui-settings/client.js,@deepseek-ai/dsh-client-ui-settings-models/client.js,@deepseek-ai/dsh-client-ui-settings-plugin-inventory/client.js,@deepseek-ai/dsh-client-ui-conversation/client.js,@deepseek-ai/dsh-client-ui-approval/client.js,@deepseek-ai/dsh-client-ui-chat/client.js,@deepseek-ai/dsh-client-ui-brand-official/client.js,@deepseek-ai/dsh-client-ui-attachment/client.js,@deepseek-ai/dsh-client-ui-tool/client.js,@deepseek-ai/dsh-client-ui-cordis/client.js,@deepseek-ai/dsh-client-ui-workflow-run/client.js,@deepseek-ai/dsh-client-ui-workspace/client.js,@deepseek-ai/dsh-client-ui-input-trigger/client.js,@deepseek-ai/dsh-client-ui-commands/client.js,@deepseek-ai/dsh-client-ui-skill/client.js,@deepseek-ai/dsh-client-ui-subagent/client.js,@deepseek-ai/dsh-client-ui-reference/client.js,@deepseek-ai/dsh-client-ui-jobs/client.js,@deepseek-ai/dsh-client-ui-goal/client.js,@deepseek-ai/dsh-client-ui-message-feedback/client.js,@deepseek-ai/dsh-client-ui-model-selection/client.js,@deepseek-ai/dsh-client-ui-permission-presets/client.js,@deepseek-ai/dsh-client-ui-agent-preset/client.js,@deepseek-ai/dsh-client-ui-settings-plugins/client.js,@deepseek-ai/dsh-client-ui-plan/client.js,@deepseek-ai/dsh-client-ui-user-questions/client.js,@deepseek-ai/dsh-client-ui-trajectory/client.js,@michengai/dsh-archive-manager/client.js,dsh-restart-button/client.js,dsh-sidebar-spaces/client.js,dsh-custom-spaces/client.js,dsh-black-hole/client.js,@michengai/dsh-btw/client.js,@michengai/dsh-codex-pet/client.js,@deepseek-ai/dsh-session-log-export/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-deliverables/client.js,@michengai/dsh-codex-ui/client.js,@michengai/dsh-skills-manager/client.js,dsh-desktop-bridge/client.js,dshmarket/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@michengai/dsh-im-connect/client.js,dsh-context/client.js,dsh-work-mode/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@michengai/dsh-agency-agents/client.js,@michengai/dsh-automation/client.js&rev=0745cd1c8640:110292:21)\n    at Y2 (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:54:17250)\n    at $4 (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:56:44433)\n    at D4 (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:56:40060)\n    at Y9 (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:56:39988)\n    at Ui (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:56:39841)\n    at _0 (http://127.0.0.1:59095/assets/index-BKQ_L1z6.js:56:36162)"
+  ]
+}

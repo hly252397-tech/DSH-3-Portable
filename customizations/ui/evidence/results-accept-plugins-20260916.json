@@ -1,0 +1,59 @@
+{
+  "status": "pass",
+  "note": "接受 profile 插件批量升级（2026-09-16 用户授权 A）：随包矩阵 12 项对齐实装、自动化工作台补丁重钉 0.1.44、真机 UI 验收后重记 UI 基线。",
+  "recordedAt": "2026-09-16T12:00:00Z",
+  "record": "docs/01-当前工作/20260916-接受插件批量升级与随包矩阵对齐.md",
+  "results": [
+    {
+      "check": "插件全量加载（真实 profile + 内置运行时 0.1.5-rc.2）",
+      "method": "诊断实例启动：监听端口 + 打印就绪 URL + 检查 stderr",
+      "expected": "端口在听、就绪 URL 出现、stderr 无 failed to apply / 模块解析错误",
+      "actual": "端口 61885 LISTENING；stdout 打印 dsh web: http://127.0.0.1:61885/?token=…；stderr 为空",
+      "evidence": "Data/Temp/diag-web13.log, Data/Temp/diag-web13.err",
+      "status": "pass"
+    },
+    {
+      "check": "自动化工作台补丁在 0.1.44 上仍可应用",
+      "method": "node Customize/Automation-Workbench/build.mjs <实装 client.js> <临时输出>",
+      "expected": "exit 0，且产物哈希 = 源哈希（退役后只校验不改内容）",
+      "actual": "exit 0；upstreamHash=outputHash=cd0bfb30ab049aacdcd0672571b81fdf7416a171919c779c55ca17b346587321",
+      "status": "pass"
+    },
+    {
+      "check": "补丁锚点完整性（0.1.44）",
+      "method": "在实装 client.js 中统计三锚点与退役标记出现次数",
+      "expected": "apply / runtime / 原生页面返回行 各 1 次；三个退役标记 0 次；import_react11 存在",
+      "actual": "apply=1、runtime=1、oldPage=1；PORTABLE_AUTOMATION_WORKBENCH=0、installPortableAutomationWorkbench=0、data-daw-launcher=0；import_react11=6",
+      "status": "pass"
+    },
+    {
+      "check": "随包矩阵与实装一致（12 项社区插件）",
+      "method": "逐项比对 src/bundled-plugins.ts 的 pin 与 profile 实装版本",
+      "expected": "12 项全部相等；better-sidebar 保持 0.18.0；官方作用域不参与",
+      "actual": "codex-ui 1.1.10 / im-connect 0.1.50 / automation 0.1.44 / skills-manager 0.1.52 / archive-manager 0.1.43 / agency-agents 0.1.43 / codex-pet 0.1.6 / btw 0.1.8 / simplify 0.1.5 / code-review 0.1.2 / pua 0.3.13 / dshmarket 1.47.0 全部对齐",
+      "status": "pass"
+    },
+    {
+      "check": "真机 UI：主界面结构（App 实拍）",
+      "method": "scripts/look-ui.ps1 抓应用窗口 + 人工核读",
+      "expected": "左栏、输入区、右侧面板可用；新版插件 UI 渲染正常",
+      "actual": "automation 0.1.44 的「任务管理」新 UI（主代理运行中 + 后台任务列表）正常渲染；Files 与 任务管理 双标签共存；左侧底部用量圆钮与设置齿轮上下分开（09-16 收起态修复生效）；输入区右上角「平价 ¥40.6 + 模型」贴右显示",
+      "evidence": "Data/Temp/app-after-upgrade.png",
+      "status": "pass"
+    },
+    {
+      "check": "已声明但不覆盖本运行时的 peer 范围（已知风险，非阻塞）",
+      "method": "semver 求值 peerDependencies（仅 @deepseek-ai/dsh* 家族）对 0.1.5-rc.2",
+      "expected": "理想情况下全部满足",
+      "actual": "agency-agents 声明 dsh-client-runtime@0.1.0-rc.8||0.1.1-rc.2、code-review 声明 dsh-agent@0.1.6-alpha.1 → 均不含 0.1.5-rc.2；但实机加载与运行无报错，按实机为准并记录为已知风险",
+      "status": "pass"
+    },
+    {
+      "check": "契约 §5 完整清单（部分未执行，如实标注）",
+      "method": "本轮未执行：Files 拖窄/树拖宽/预览、首页同宽同高、暗色状态、80/125/150% 缩放、底部重启隔离桥测试",
+      "expected": "严格覆盖需单独一轮",
+      "actual": "未执行（本轮边界：矩阵对齐 + 补丁重钉 + 加载与主界面验收）",
+      "status": "skipped"
+    }
+  ]
+}

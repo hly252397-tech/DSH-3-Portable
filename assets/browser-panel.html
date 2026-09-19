@@ -23,7 +23,12 @@
     .browser-nav{display:flex;align-items:center;gap:3px;height:42px;padding:6px 8px;background:var(--browser-surface);border-bottom:1px solid var(--browser-border);flex:none}.browser-nav input{flex:1;min-width:0;height:30px;margin:0 5px;padding:0 12px;border-radius:var(--chrome-radius-sm);border:1px solid var(--chrome-border-strong);background:var(--chrome-bg);color:var(--browser-text);font-size:12px;outline:none;transition:background-color 120ms ease,border-color 120ms ease,box-shadow 120ms ease}.browser-nav input:hover{border-color:var(--browser-muted)}.browser-nav input:focus{border-color:var(--focus-ring,var(--browser-accent));box-shadow:0 0 0 2px color-mix(in srgb,var(--browser-accent) 18%,transparent)}
     .browser.loading .browser-nav input{opacity:.6}.browser.loading [data-browser="reload"] img{animation:browser-spin .8s linear infinite}@keyframes browser-spin{to{transform:rotate(360deg)}}
     :root[data-color-scheme="light"]{color-scheme:light;background:var(--chrome-bg);color:var(--chrome-text)}:root[data-color-scheme="light"] .browser{background:var(--browser-surface)}:root[data-color-scheme="light"] .browser img{filter:brightness(0);opacity:.72}
-    @media(max-width:620px){.browser-tool.optional{display:none}}
+    .browser-tool.optional{display:none}
+    /* 只开一个网页时隐藏这一层网页标签条（省约 40px 垂直；"+" 由 JS 移进导航条，功能零损失）。
+       判定与原生视图的垂直偏移**同源**：外壳下发 state.browser.pageTabBarVisible。
+       用户 2026-09-15 截图指出「只有浏览器有」的正是这层冗余（文档 40 的优化 1）。 */
+    .browser.single-page-tab .browser-tabs{display:none}
+    .browser.single-page-tab .browser-nav .browser-tabs-actions{margin:0}
     @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
   </style>
   <link rel="stylesheet" href="browser-workspace.css">
@@ -47,7 +52,7 @@
     <div id="browser-overflow" class="browser-overflow" hidden role="menu">
       <button id="browser-menu-find" type="button">在页面中查找</button><button id="browser-menu-print" type="button">打印当前页面</button><button id="browser-menu-screenshot" type="button">截取页面并保存到便携盘</button><button id="browser-menu-devtools" type="button">开发者工具</button><hr>
       <div class="zoom-row" role="group" aria-label="页面缩放"><button id="browser-zoom-out" type="button">−</button><span id="browser-zoom-value" class="zoom-value">100%</span><button id="browser-zoom-in" type="button">＋</button><button id="browser-zoom-reset" type="button">重置</button></div><hr>
-      <button id="browser-menu-downloads" type="button">下载内容</button><button id="browser-menu-library" type="button">浏览器资料与设置</button><button id="browser-menu-clear" type="button">清除 Cookie、缓存和站点数据</button><button id="browser-menu-close" type="button">关闭浏览器 Tab</button>
+      <button id="browser-menu-downloads" type="button">下载内容</button><button id="browser-menu-library" type="button">浏览器资料与设置</button><button id="browser-menu-external" type="button">在系统浏览器打开</button><button id="browser-menu-clear" type="button">清除 Cookie、缓存和站点数据</button><button id="browser-menu-close" type="button">关闭浏览器 Tab</button>
     </div>
     <aside id="browser-download-drawer" class="browser-downloads" hidden><header class="browser-drawer-header"><div class="browser-drawer-copy"><strong>下载内容</strong><span>文件保存在便携盘 Downloads 文件夹</span></div><div class="browser-drawer-actions"><button id="browser-download-folder" class="browser-tool" type="button">打开文件夹</button><button id="browser-download-clear" class="browser-tool danger" type="button">清空记录</button><button id="browser-download-close" class="browser-tool" type="button">收起</button></div></header><div id="browser-download-list" class="browser-download-list"></div></aside>
     <section id="browser-manager" class="browser-manager" hidden>
@@ -72,6 +77,12 @@
       const tabs=Array.isArray(browser.tabs)?browser.tabs:[];const strip=document.getElementById('browser-tabs');strip.replaceChildren();const items=[];
       for(const tab of tabs){const item=document.createElement('div');item.className='tab'+(tab.id===browser.activeId?' active':'')+(tab.crashed?' crashed':'');item.role='tab';item.tabIndex=tab.id===browser.activeId?0:-1;item.ariaSelected=String(tab.id===browser.activeId);item.title=tab.url||'';const icon=document.createElement('span');icon.className='tab-icon';if(tab.favicon){const image=document.createElement('img');image.src=tab.favicon;image.alt='';icon.append(image)}else{const dot=document.createElement('span');dot.className='tab-dot';icon.append(dot)}const label=document.createElement('span');label.className='tab-label';label.textContent=tab.title||tab.url;const close=document.createElement('button');close.className='tab-close';close.ariaLabel=close.title=zh()?'关闭标签页':'Close tab';close.innerHTML='<img src="shell-icons/xmark.svg" alt="">';close.addEventListener('click',event=>{event.stopPropagation();api.browser.closeTab(tab.id)});item.append(icon,label,close);const activate=()=>{if(tab.crashed)api.browser.reload();api.browser.activateTab(tab.id)};item.addEventListener('click',activate);item.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();activate()}else if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();const delta=event.key==='ArrowLeft'?-1:1;items[(items.indexOf(item)+delta+items.length)%items.length]?.focus()}});items.push(item);strip.append(item)}
       const actions=document.getElementById('browser-tabs-actions');actions.replaceChildren();const add=document.createElement('button');add.className='tab-add';add.ariaLabel=add.title=zh()?'新标签页':'New tab';add.innerHTML='<img src="shell-icons/plus.svg" alt="">';add.addEventListener('click',()=>api.browser.newTab(''));actions.append(add);
+      /* 单网页：收起标签条并把"+"搬进导航条（放在地址栏之前），只认外壳下发的判定；
+         多网页：原样恢复。判定同源 ⇒ 页面与原生视图的垂直偏移不会错开 40px。 */
+      const singleTab=browser.pageTabBarVisible===false;host.classList.toggle('single-page-tab',singleTab);
+      const tabsRow=document.querySelector('.browser-tabs'),navRow=document.querySelector('.browser-nav'),addressInput=document.getElementById('browser-address');
+      if(singleTab){if(actions.parentElement!==navRow)navRow.insertBefore(actions,addressInput)}
+      else if(actions.parentElement!==tabsRow)tabsRow.append(actions);
       document.querySelector('[data-browser="back"]').disabled=!browser.canBack;document.querySelector('[data-browser="forward"]').disabled=!browser.canForward;const address=document.getElementById('browser-address');const active=tabs.find(tab=>tab.id===browser.activeId);if(active&&document.activeElement!==address)address.value=active.url;workspace.render(browser)
     }
     function applyState(next){state=next;render(next.browser)}

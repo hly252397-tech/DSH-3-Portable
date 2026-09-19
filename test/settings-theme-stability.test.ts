@@ -10,14 +10,14 @@ test('repeated host bootstrap preserves theme controls while locale changes rebu
   const end = source.indexOf('let themeSaving=', start)
   const node = () => ({ dataset: {}, style: {}, children: [] as unknown[], setAttribute() {}, addEventListener() {}, append(...items: unknown[]) { this.children.push(...items) } })
   const grid = { ...node(), replaceChildren() { this.children = [] } }
-  let selected = 'qoder'
+  let selected = 'deep-sea'
   let shown: string | undefined
   const context: Record<string, any> = {
     window: { DshThemes: true }, themeGrid: grid, themeOptions: [], locale: 'zh-CN',
     document: { createElement: node }, selectTheme() {}, selectThemeFromKey() {},
     isZh: () => context.locale.startsWith('zh'),
     setThemeChecked: (value: string) => { shown = value },
-    DshThemes: { saved: () => selected, THEMES: { qoder: { zh: '工作台', en: 'Workbench', swatch: '#668877' }, lake: { zh: '湖蓝', en: 'Lake', swatch: '#0961f6' } } },
+    DshThemes: { saved: () => selected, THEMES: { 'deep-sea': { zh: '深海蓝', en: 'Deep Sea', swatch: '#176fd1' }, lake: { zh: '湖蓝', en: 'Lake', swatch: '#0961f6' } } },
   }
   runInNewContext(source.slice(start, end), context)
   context.renderThemes()
