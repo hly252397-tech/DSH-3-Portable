@@ -4,6 +4,10 @@
 > 而 **`Data/` 被 `.gitignore` 忽略**（第 21 行）。也就是说实体**没有版本历史**。
 > 这份归档是它的**入库副本**，用于追溯、比对和灾难恢复；改东西请改实体，再同步到这里。
 
+## 2026-09-19 计费胶囊视觉统一
+
+普通/提醒/额度不足使用同一26px中性胶囊；平价/峰时与金额不再各套一层彩色框，额度告警保留黄/红小点与原悬停详情。样式由稳定的billing-live-cost-chip / billing-live-tier定位，避免只覆盖feeInline漏掉feeInlineError。实机前后截图和24组样式状态证据见 `evidence/cost-chip-20260919/`；详细验证与恢复见 [I023-48](../../docs/01-当前工作/I023-前后端UI全项目审核/48-计费胶囊视觉统一.md)。本轮仅同步新增CSS块，保留活动副本已有诊断/布局差异，不代表两份文件全文一致。
+
 ## 它解决什么问题
 
 1. **输入区右上角布局**：把输入框工具行右侧的「平价/峰时 消耗胶囊 + 模型选择」
@@ -198,5 +202,53 @@ html body:has(.nArs4W_panel .nArs4W_paneEmptyCards)   #root{margin-right:min(var
 - 证据：`evidence/seam-strip-before-adaptive-verify-20260917.json`（FAIL 态数字）→
   `evidence/seam-strip-after-adaptive-verify-20260917.json`（PASS 态）+
   `evidence/accepted-seam-zoom-20260917.png`（边界 2× 放大：无竖线、无色差断层）。
-- 未决项（顺手发现，非本轮引入、不代改）：有后台任务时「3 个后台任务」徽标被挤成竖排
-  （左上 x≈118，43×114），修复前轮次即复现，待另立任务。
+- ~~未决项（顺手发现，非本轮引入、不代改）：有后台任务时「3 个后台任务」徽标被挤成竖排
+  （左上 x≈118，43×114），修复前轮次即复现，待另立任务。~~ → **2026-09-21 已修复**，见下一节。
+
+## 后台任务徽标竖排（官方 `@deepseek-ai/dsh-client-ui-jobs`，2026-09-21）
+
+**用户原话**：「为什么每个会话还不一样，能统一吗？」——头部出现竖排文字，且只在部分会话出现。
+
+**渲染条件（官方源码）**：`JobListAction` 读 `state.jobsBySession[sessionId]`，为空则整块返回 `null`
+⇒ 只有「本会话有后台任务」时才渲染这块，别的会话看不到 —— 这就是"每个会话不一样"的来源。
+
+**根因（有数字）**：官方 `.QsffPG_count` 是 flex 项且**未设 `min-width:0`** ⇒ `min-width:auto = min-content`；
+头部操作区宽度随会话/布局在 **60~224px** 之间变，放不下「N 个后台任务运行中」时官方样式**不截断、改逐字折行**。
+原故障态实测：文字被压成 **23×144（8 行）**、按钮被撑到 **150px 高**且 **y=-17 越出视口顶部**。
+
+**改法（`lib/client.js` 的 CSS 数组，语义选择器 `aria-label`，不用哈希类名）**：
+
+```css
+body button[aria-label*="后台任务"],body button[aria-label*="background task" i]{white-space:nowrap!important;min-width:0!important;max-width:100%!important;max-height:32px!important}
+body button[aria-label*="后台任务"]>span,body button[aria-label*="background task" i]>span{white-space:nowrap!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:none!important}
+```
+
+- 先用的 `span{max-width:4.5ch}` **能止住折行但会白截断**（224px 档仍只显示 2 字、浪费 157px），已废弃；
+- 正解是**让按钮自己可收缩**（`min-width:0`）＋`max-width:100%` 防越界，文字随之"有空间就全显示、没空间就省略号"。
+
+**实测（真实页面、真实容器、同一同步帧内 A/B）**：
+
+| 容器宽 | 旧行为（还原换行） | 现行 |
+|---|---|---|
+| 60px | 60×96、5 行、y=-24 越界 | **60×28、1 行、显 3 字** |
+| 76px | 76×60、3 行、y=-6 越界 | **76×28、1 行、显 4 字** |
+| 120px | 120×42、2 行 | **120×28、1 行、显 7 字** |
+| 224px | 144×28、1 行、显 9 字 | **144×28、1 行、显 9 字（全显示）** |
+
+真实徽标修复后实测：span `[661,15,106,18]`（全字宽、1 行、nowrap）、button `[641,10,150,28]`、
+容器 `headerActions` `[565,10,226,28]`、`checkVisibility=true`。
+
+**证据**：`evidence/badge-wrap-20260921/`（`ab-legacy-vs-fixed-20260921.png` 并排实物、
+`fixed-in-header-20260921.png` 真实头部内联、`sweep-v4-live.json` 四档 A/B 原始载荷、
+`real-badge-*.json` 真实元素坐标与可见性链、`results.json` 结论汇总）。
+
+**取证工具纠错（本轮踩到，已成脚本）**：用 `CopyFromScreen` 抓"应用窗口矩形"时，若 DSH 窗口被别的
+窗口压住，抓到的是**压在上面那个窗口**（本轮实测抓到用户的 Chrome/宏建云页面，并因此一度误判
+"徽标没画出来"）。新增 `scripts/capture-app-window.ps1`：`PrintWindow(PW_RENDERFULLCONTENT)` 直接
+渲染窗口自身内容，**与遮挡无关、不抢焦点、不会拍到别的应用**；既有 `scripts/look-ui.ps1` 走
+"临时置顶再抓"，可用但会改窗口层级并抢焦点。
+
+**未决项（如实记录）**：官方徽标只在"页面活着时收到 job 事件"才挂载（页面重载不重取 jobs 快照），
+故未取到它的定点实拍；已用「同结构复刻进真实容器 + 真实级联 A/B + 真实元素坐标」代替。
+另：本目录归档副本落后实体（791 行 vs 957 行；实体独有 176 行含本轮修法与采样仪器，归档独有 10 行含
+`:where` 中缝规则）——本轮**只增量补证据与本节**，未整体覆盖归档，避免替其它在途改动背书。

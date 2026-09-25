@@ -34,7 +34,8 @@
     }
     .whale-mark {
       position: relative;
-      width: clamp(232px, min(26vw, 36vh), 316px);
+      /* Stable through normal startup window restoration; shrink only to fit. */
+      width: min(316px, calc(100vw - 48px), calc(100vh - 160px));
       aspect-ratio: 4 / 3;
       flex: none;
       contain: layout paint size;
@@ -91,8 +92,11 @@
       height: 100%;
     }
     .whale-fallback {
-      padding: 10px 7px 7px;
-      object-fit: contain;
+      /* Same full-image coordinates as updateMotion, including transparent margins. */
+      inset: 50% auto auto 3%;
+      width: 94%;
+      height: auto;
+      transform: translateY(-50%);
       opacity: .32;
       filter: invert(1) drop-shadow(0 0 13px color-mix(in srgb, var(--accent, var(--dsh-accent)) 34%, transparent));
       transition: opacity .22s ease;
@@ -188,7 +192,6 @@
     }
     @media (max-width: 560px), (max-height: 560px) {
       .stage { gap: 12px; }
-      .whale-mark { width: clamp(204px, min(42vw, 39vh), 244px); }
     }
     @media (prefers-reduced-motion: reduce) {
       .stage { animation: none; }

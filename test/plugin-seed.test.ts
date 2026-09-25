@@ -8,7 +8,7 @@ import test from 'node:test'
 import { makeTrackedTempDir as mkdtemp, removeTempDir } from './helpers/tmp.js'
 
 import { OFFICIAL_DSH_VERSION, OFFICIAL_LAUNCH_PEERS, OFFICIAL_RUNTIME, OFFICIAL_RUNTIME_RESOLUTION_MODE, SUITE_PACKAGE, officialDshVersionOverrides } from '../src/bundled-plugins.js'
-import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, ensurePnpm11BuildPolicy, ensureRuntimeResolutionMode, hasUnresolvedStore, isOfflineSeedRequested, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, needsIgnoredBuildRepair, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, rebasePortablePnpmState, reconcileOfficialRuntimeManifest, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, storelessSeedWarning, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
+import { applyPendingProfileUpdates, buildSeedPluginArgs, ensureAutoInstallPeersEnabled, ensurePnpm11BuildPolicy, ensureRuntimeResolutionMode, hasUnresolvedStore, isOfflineSeedRequested, isOfficialRuntimeLaunchable, missingOfficialLaunchPeers, needsIgnoredBuildRepair, officialRuntimeInstallArgs, planBundledPluginSeed, finalizeProfileBundlesAfterInstall, pruneMissingProfileBundles, rebasePortablePnpmState, reconcileOfficialRuntimeManifest, reconcileProfileBundles, resolvePnpmStoreDir, seedBundledPlugins, shouldUsePackagedStore, storelessSeedWarning, stripOfficialProfileDependencies, writeOfficialRuntimeManifest } from '../src/plugin-seed.js'
 
 const catalog = [
   { packageName: '@michengai/dsh-codex-ui', version: '0.2.58' },
@@ -589,49 +589,26 @@ test('会把已有 workspace 的 autoInstallPeers 打开', async () => {
   }
 })
 
-test('会从 Web profile 依赖里清掉官方包', async () => {
+test('官方依赖剥离已回退：官方包与目录在 profile 中原样保留（2026-09-19）', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-strip-'))
   try {
+    const official = join(root, 'node_modules', '@deepseek-ai', 'dsh-base')
+    await mkdir(official, { recursive: true })
+    await writeFile(join(official, 'package.json'), JSON.stringify({ name: '@deepseek-ai/dsh-base', version: '0.1.6-alpha.2' }), 'utf8')
     await writeFile(join(root, 'package.json'), JSON.stringify({
-      dependencies: {
-        '@deepseek-ai/dsh': '0.1.0-rc.7',
-        '@michengai/dsh-codex-ui': '0.2.58',
-      },
-      dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', '@michengai/dsh-codex-suite'] } },
+      dependencies: { '@deepseek-ai/dsh-base': '0.1.6-alpha.2', '@michengai/dsh-codex-ui': '1.1.14' },
+      dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', '@michengai/dsh-codex-ui'] } },
     }), 'utf8')
-    const removed = await stripOfficialProfileDependencies(root)
-    assert.deepEqual(removed, ['@deepseek-ai/dsh'])
-    const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as {
-      dependencies?: Record<string, string>
-      dsh?: { profile?: { bundles?: string[] } }
-    }
-    assert.equal(manifest.dependencies?.['@michengai/dsh-codex-ui'], '0.2.58')
-    assert.equal(manifest.dependencies?.['@deepseek-ai/dsh'], undefined)
-    assert.deepEqual(manifest.dsh?.profile?.bundles, ['@deepseek-ai/dsh-base'])
+    assert.deepEqual(await stripOfficialProfileDependencies(root), [])
+    const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+    assert.equal(manifest.dependencies?.['@deepseek-ai/dsh-base'], '0.1.6-alpha.2')
+    assert.deepEqual(manifest.dsh?.profile?.bundles, ['@deepseek-ai/dsh-base', '@michengai/dsh-codex-ui'])
+    assert.equal(existsSync(official), true)
   } finally {
     await removeTempDir(root)
   }
 })
 
-test('会清掉 Web profile 里的官方 node_modules，避免盖掉运行时', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-strip-modules-'))
-  try {
-    const official = join(root, 'node_modules', '@deepseek-ai', 'dsh-client-ui-primitives')
-    await mkdir(official, { recursive: true })
-    await writeFile(join(official, 'package.json'), JSON.stringify({ name: '@deepseek-ai/dsh-client-ui-primitives' }), 'utf8')
-    await writeFile(join(root, 'node_modules', '@deepseek-ai', '.keep'), 'keep', 'utf8')
-    await writeFile(join(root, 'package.json'), JSON.stringify({
-      dependencies: { '@michengai/dsh-codex-ui': '0.2.61' },
-      dsh: { profile: { bundles: ['@deepseek-ai/dsh-base'] } },
-    }), 'utf8')
-    const removed = await stripOfficialProfileDependencies(root)
-    assert.equal(removed.includes('@deepseek-ai'), true)
-    assert.equal(existsSync(official), false)
-    assert.equal(existsSync(join(root, 'node_modules', '@deepseek-ai', '.keep')), true)
-  } finally {
-    await removeTempDir(root)
-  }
-})
 
 test('启动前会按 pending 清单升级社区插件，官方残留条目被清掉而不是留成幽灵', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-pending-'))
@@ -751,6 +728,35 @@ test('桌面内部 bridge bundle 不依赖 profile dependencies 仍会保留', a
     await writeFile(join(root, 'node_modules', 'dsh-desktop-bridge', 'package.json'), '{}', 'utf8')
     await writeFile(join(root, 'package.json'), JSON.stringify({ dsh: { profile: { bundles: ['dsh-desktop-bridge'] } } }), 'utf8')
     assert.deepEqual(await pruneMissingProfileBundles(root), [])
+  } finally {
+    await removeTempDir(root)
+  }
+})
+
+test('启动前保留不在 profile 依赖里的官方层，不靠桌面白名单', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-keep-official-layers-'))
+  try {
+    await writeFile(join(root, 'package.json'), JSON.stringify({
+      dsh: { profile: { bundles: [
+        '@deepseek-ai/dsh-base',
+        '@deepseek-ai/dsh-web-app',
+        '@deepseek-ai/dsh-experimental-future-layer',
+      ] } },
+    }), 'utf8')
+    assert.deepEqual(await pruneMissingProfileBundles(root), [])
+    assert.deepEqual(await reconcileProfileBundles(root), [
+      '@deepseek-ai/dsh-base',
+      '@deepseek-ai/dsh-web-app',
+      '@deepseek-ai/dsh-experimental-future-layer',
+    ])
+    const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as {
+      dsh?: { profile?: { bundles?: string[] } }
+    }
+    assert.deepEqual(manifest.dsh?.profile?.bundles, [
+      '@deepseek-ai/dsh-base',
+      '@deepseek-ai/dsh-web-app',
+      '@deepseek-ai/dsh-experimental-future-layer',
+    ])
   } finally {
     await removeTempDir(root)
   }

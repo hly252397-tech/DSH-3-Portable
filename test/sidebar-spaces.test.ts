@@ -29,8 +29,12 @@ test('sidebar spaces host plugin exposes a named plugin and finds local Inventor
   if (!haveLiveSpacesPlugin) return t.skip('实机 sidebar-spaces 插件缺失（CI 全新检出）')
   const plugin = await loadSpaces()
   assert.equal(plugin.name, 'dsh-sidebar-spaces')
-  assert.match(plugin.resolveInventorExecutable() ?? '', /Autodesk[\\/]Inventor 2027[\\/]Bin[\\/]Inventor\.exe$/i)
   assert.equal(plugin.resolveInventorExecutable('', {}, 'linux'), undefined)
+  // 本机路径断言只在 Autodesk Inventor 2027 真实存在时执行；未安装的机器/CI 跳过
+  // （AGENTS.md：测试禁止假设实机软件一定在，必须 existsSync 守卫 + t.skip）。
+  const resolved = plugin.resolveInventorExecutable()
+  if (resolved === undefined || resolved === '') return t.skip('本机未安装 Autodesk Inventor 2027（环境缺失）')
+  assert.match(resolved, /Autodesk[\\/]Inventor 2027[\\/]Bin[\\/]Inventor\.exe$/i)
 })
 
 test('Inventor routes accept same-origin loopback requests and reject cross-site requests', async t => {

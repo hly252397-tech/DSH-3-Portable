@@ -20,6 +20,7 @@
   const ambientParticles = []
   const glowParticles = []
   const motion = {}
+  let imageBounds = null
   const frameInterval = 1000 / 30
   const maximumPixelRatio = 2.25
   const maximumBackingPixels = 720000
@@ -139,6 +140,7 @@
       }
     }
     if (maxX <= minX || maxY <= minY) return false
+    imageBounds = { minX, minY, width: maxX - minX, height: maxY - minY }
 
     particles.length = 0
     particleLayers.forEach(layer => { layer.length = 0 })
@@ -184,9 +186,6 @@
           shimmerSin: Math.sin(shimmerAngle),
           shimmerCos: Math.cos(shimmerAngle),
           tail,
-          arrivalDelay: (edge ? 92 : 18) + seeded(index, 10) * (edge ? 116 : 74),
-          entryX: (nx - .5) * 38 + (seeded(index, 5) - .5) * 15,
-          entryY: (ny - .5) * 29 + (seeded(index, 6) - .5) * 12,
           glow: edge && seeded(index, 7) > .62,
           x: 0,
           y: 0,
@@ -202,10 +201,14 @@
   }
 
   function updateMotion(elapsed) {
-    motion.drawWidth = cssWidth * .91
-    motion.drawHeight = motion.drawWidth * .752
-    motion.left = (cssWidth - motion.drawWidth) * .5
-    motion.top = (cssHeight - motion.drawHeight) * .5 - 1
+    // Match the fallback image's 94%-wide, vertically centered image box.
+    // Both renderers include its transparent margins instead of fitting twice.
+    const imageWidth = cssWidth * .94
+    const imageHeight = imageWidth * fallback.naturalHeight / fallback.naturalWidth
+    motion.drawWidth = imageWidth * imageBounds.width / maskSize
+    motion.drawHeight = imageHeight * imageBounds.height / maskSize
+    motion.left = cssWidth * .03 + imageWidth * imageBounds.minX / maskSize
+    motion.top = (cssHeight - imageHeight) * .5 + imageHeight * imageBounds.minY / maskSize
     motion.centerX = motion.left + motion.drawWidth * .5
     motion.centerY = motion.top + motion.drawHeight * .52
     motion.scale = clamp(motion.drawWidth / (236 * .91), .92, 1.18)
@@ -225,9 +228,7 @@
     motion.calm = calm
   }
 
-  function updateParticlePosition(particle, elapsed) {
-    const arrival = motion.calm ? 1 : clamp((elapsed - particle.arrivalDelay) / 780, 0, 1)
-    const formation = motion.calm ? 1 : 1 - Math.pow(1 - arrival, 4)
+  function updateParticlePosition(particle) {
     const depthShift = (particle.depth - .5) * motion.yaw * 34 * motion.scale
     const localX = motion.left + particle.nx * motion.drawWidth - motion.centerX
     const localY = motion.top + particle.ny * motion.drawHeight - motion.centerY
@@ -236,9 +237,9 @@
     const tailDrift = motion.swimCos * particle.tail * .58 * motion.scale
     const breathing = (particle.ny - .5) * motion.breathe * .72 * motion.scale
     const shimmer = motion.shimmerSin * particle.shimmerCos + motion.shimmerCos * particle.shimmerSin
-    particle.x = motion.centerX + localX * motion.cosine - localY * motion.sine + depthShift + tailDrift + particle.entryX * (1 - formation)
-    particle.y = motion.centerY + localX * motion.sine + localY * motion.cosine + motion.floatY + tailLift + breathing + particle.entryY * (1 - formation)
-    particle.drawRadius = particle.radius * motion.scale * (.92 + particle.depth * .12) * (.7 + formation * .3) * (1 + shimmer * (particle.edge ? .026 : .01))
+    particle.x = motion.centerX + localX * motion.cosine - localY * motion.sine + depthShift + tailDrift
+    particle.y = motion.centerY + localX * motion.sine + localY * motion.cosine + motion.floatY + tailLift + breathing
+    particle.drawRadius = particle.radius * motion.scale * (.92 + particle.depth * .12) * (1 + shimmer * (particle.edge ? .026 : .01))
   }
 
   function addParticleShape(particle, radiusScale = 1) {
@@ -264,7 +265,7 @@
       ? (reducedMotion.matches ? .7 : ((elapsed / 6200) % 1.34) - .17)
       : .05 + progressRatio * .9
     updateMotion(elapsed)
-    for (const particle of particles) updateParticlePosition(particle, elapsed)
+    for (const particle of particles) updateParticlePosition(particle)
 
     context.clearRect(0, 0, cssWidth, cssHeight)
     context.globalCompositeOperation = palette.light ? 'source-over' : 'lighter'

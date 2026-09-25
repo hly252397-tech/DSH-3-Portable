@@ -16,11 +16,19 @@ if (!bundle.includes('existingBrowser = inputTabs.find')) {
       }`);
   assert.ok(bundle.includes('existingBrowser = inputTabs.find'), 'upstream browser URL landing changed');
 }
-const factory = readFileSync(resolve(root, 'portable/browser-view.js'), 'utf8').replace('export function ', 'function ');
+const embeddedSource = readFileSync(resolve(root, 'portable/embedded-browser-view.js'), 'utf8');
+assert.ok(embeddedSource.includes("document.createElement('webview')"), 'embedded browser must create DOM-owned webviews');
+assert.ok(embeddedSource.includes("data-embedded-browser-card"), 'embedded browser must own a distinct card surface');
+const embeddedFactory = embeddedSource.replace('export function ', 'function ');
 const start = bundle.indexOf('\t\t//#region src/client/BrowserView.tsx');
 const end = bundle.indexOf('\t\t//#endregion', start);
 assert.ok(start > 0 && end > start, 'upstream BrowserView boundary changed');
-bundle = bundle.slice(0, start) + '\t\t//#region src/client/BrowserView.tsx\n' + factory + '\nconst BrowserView = createNativeBrowserView(react, t);\n' + bundle.slice(end);
+bundle = bundle.slice(0, start) + '\t\t//#region src/client/BrowserView.tsx\n' + embeddedFactory + `
+const EmbeddedBrowserView = createEmbeddedBrowserView(react, t);
+function BrowserView(props) {
+  return react.createElement(EmbeddedBrowserView, props);
+}
+` + bundle.slice(end);
 for (const key of ['browserNoSandbox', 'browserAllowedLoopback']) {
   // Remove only this browser descriptor's obsolete iframe settings, not stored user data.
   const descriptor = bundle.indexOf('id: "browser",', bundle.indexOf('function builtinTabs'));
@@ -45,5 +53,29 @@ for (const [needle, fields] of [
 ]) {
   if (!bundle.includes(fields)) bundle = bundle.replaceAll(needle, needle + fields);
 }
-writeFileSync(path, bundle);
-console.log('Native browser card client generated');
+// 互斥补丁（2026-09-23 用户令「直接移除/防下次构建又出现」）：
+// 文件预览/编辑器上屏时必须收掉原生 WebContentsView（它永远在 HTML 之上）。
+// 这些补丁必须随每次 build-native-browser-card 重放，否则上游 bundle 重建会把它们冲掉。
+if (!bundle.includes('browserPanel?.hide?.(); } catch {}')) {
+  const openSidebarNeedle = 'const title = at === -1 ? absolute : absolute.slice(at + 1);\n\t\t\tctx.get("betterSidebar")?.openTab({';
+  if (bundle.includes(openSidebarNeedle)) {
+    bundle = bundle.replace(
+      openSidebarNeedle,
+      'const title = at === -1 ? absolute : absolute.slice(at + 1);\n\t\t\ttry { window.dshDesktopShell?.browserPanel?.hide?.(); } catch {}\n\t\t\tctx.get("betterSidebar")?.openTab({',
+    );
+  }
+}
+if (!bundle.includes('文件预览/编辑器与原生浏览器互斥')) {
+  const editorNeedle = 'const [reloadSeq, setReloadSeq] = (0, react.useState)(0);\n\t\t\tconst refreshFile = () => {';
+  if (bundle.includes(editorNeedle)) {
+    bundle = bundle.replace(
+      editorNeedle,
+      'const [reloadSeq, setReloadSeq] = (0, react.useState)(0);\n\t\t\t// 文件预览/编辑器与原生浏览器互斥：WebContentsView 永远在 HTML 之上。\n\t\t\t(0, react.useEffect)(() => {\n\t\t\t\tif (path === "" || isDir) return;\n\t\t\t\ttry { window.dshDesktopShell?.browserPanel?.hide?.(); } catch {}\n\t\t\t}, [path, isDir]);\n\t\t\tconst refreshFile = () => {',
+    );
+  }
+}
+const outputIndex = process.argv.indexOf('--output');
+const outputPath = outputIndex < 0 ? path : resolve(process.argv[outputIndex + 1]);
+if (outputIndex >= 0 && !process.argv[outputIndex + 1]) throw new Error('--output requires a path');
+writeFileSync(outputPath, bundle);
+console.log(`Browser card client generated: ${outputPath}`);

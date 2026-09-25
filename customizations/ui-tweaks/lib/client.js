@@ -32,6 +32,13 @@ window.__ModuleLoader__.load({
     const module = { exports: {} };
 
     const CSS = [
+      // I023/53: the settings portal is outside .dcu-root; supply its light sidebar palette too.
+      'body[data-color-scheme="light"]:not([data-ds-dark-theme]) .dcu-settings-page{',
+      '--dcu-sidebar-background:#ffffff;--dcu-sidebar-hover:#f4f4f5;--dcu-sidebar-border:#e4e4e7;',
+      '--dcu-sidebar-primary:#18181b;--dcu-sidebar-secondary:#52525b;--dcu-sidebar-tertiary:#71717a;',
+      '--dcu-sidebar-navigation:#18181b;--dcu-sidebar-icon:#52525b;}',
+      'body[data-color-scheme="light"]:not([data-ds-dark-theme]) .dcu-settings-nav{--sp-active:#e4e4e7;}',
+      // End I023/53 settings palette.
       // —— 输入框工具行：不允许挤压，允许尾部容器收缩（防止芯片互相压住）——
       '.uV2eYG_row>button,.uV2eYG_row>div:not(.uV2eYG_trailing){flex:0 0 auto!important}',
       '.uV2eYG_trailing{flex:0 1 auto!important;min-width:0!important}',
@@ -216,17 +223,50 @@ window.__ModuleLoader__.load({
       '.dsh-tweaks-model :not(svg):not(svg *):not(:has(svg)){display:none!important}',
       '.dsh-tweaks-model::before{content:""!important;position:absolute!important;left:0!important;right:0!important;top:0!important;bottom:0!important;margin:auto!important;',
       'width:16px!important;height:16px!important;pointer-events:none!important;background-repeat:no-repeat!important;background-position:center!important;background-size:16px 16px!important;',
-      'background-image:url("data:image/svg+xml;utf8,',
-      '<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 16 16\' fill=\'none\' stroke=\'%234e5253\' stroke-width=\'1.5\' stroke-linecap=\'round\'>',
-      '<rect x=\'2.2\' y=\'4.6\' width=\'11.6\' height=\'8.8\' rx=\'2.2\'/>',
-      '<path d=\'M5.8 4.6V3.4c0-.7.6-1.2 1.2-1.2h2c.7 0 1.2.5 1.2 1.2v1.2\'/>',
-      '<path d=\'M6.2 9h3.6\'/></svg>")!important}',
+      // Model selector: a theme-aware microchip, not the previous briefcase.
+      'background-image:none!important;background-color:var(--dsw-alias-label-secondary,CanvasText)!important;',
+      'mask-repeat:no-repeat!important;mask-position:center!important;mask-size:16px 16px!important;',
+      'mask-image:url("data:image/svg+xml;utf8,',
+      '<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 16 16\' fill=\'none\' stroke=\'%23000\' stroke-width=\'1.4\' stroke-linecap=\'round\' stroke-linejoin=\'round\'>',
+      '<rect x=\'3.5\' y=\'3.5\' width=\'9\' height=\'9\' rx=\'2\'/>',
+      '<rect x=\'6\' y=\'6\' width=\'4\' height=\'4\' rx=\'.6\'/>',
+      '<path d=\'M6 1.5v2m4-2v2M6 12.5v2m4-2v2M1.5 6h2m-2 4h2m9-4h2m-2 4h2\'/></svg>")!important}',
       // 「调」（2026-09-16 用户）：目标是让黑洞行四项回到一行 —— 只缩计价胶囊的字号/内边距并收紧行内间距，
       // **不删任何信息**（"平价"保留，只是变紧凑），模型名不做任何裁剪。
       '.dbh-dock:has(.dsh-tweaks-seat){gap:6px!important}',
       '.dsh-tweaks-lifted .VWh0dG_feeInline{font-size:11px!important;height:18px!important;padding:0 4px!important}',
       '.dsh-tweaks-lifted .VWh0dG_triggerMetric{font-size:13px!important;line-height:18px!important}',
       '.dsh-tweaks-lifted .VWh0dG_triggerYen{font-size:11px!important;line-height:18px!important}',
+      // Unified live-cost capsule: stable plugin test IDs cover normal, alert and error states.
+      // Keep the quota signal as a dot; do not recolor an ordinary amount as an error block.
+      // 2026-09-23 简洁协调：无金额/无档位时不要空壳胶囊（用户圈出的空白圆角块）。
+      // :has() 可能仍命中“有节点但无文字”，再补一条空文本隐藏。
+      // 真凶是 conversation.composer.dock 的 billing-live-cost-bar（feeBar 玻璃胶囊）：
+      // 无档位/无金额/无配额时只剩一枚图标，看起来像空白壳 —— 一并藏掉。
+      'body [data-testid="billing-live-cost-chip"]:not(:has(.VWh0dG_feeInlineNum)):not(:has([data-testid="billing-live-tier"])){display:none!important}',
+      'body [data-testid="billing-live-cost-chip"].dsh-tweaks-empty{display:none!important}',
+      'body [data-testid="billing-live-cost-bar"]:not(:has([data-testid="billing-live-tier"])):not(:has([data-testid="billing-live-turn"])):not(:has([data-testid="billing-live-session"])):not(:has([data-testid="billing-live-quota"])){display:none!important}',
+      'body [data-testid="billing-live-cost-bar"].dsh-tweaks-empty{display:none!important}',
+      // 空壳 feeInline / 被搬运的空节点：无文字就不要占一块白底圆角
+      '.dsh-tweaks-lifted:empty,.dsh-tweaks-lifted.dsh-tweaks-empty{display:none!important}',
+      '.dsh-tweaks-lifted .VWh0dG_feeInline:empty{display:none!important}',
+      'body [data-testid="billing-live-cost-chip"]{box-sizing:border-box!important;display:inline-flex!important;',
+      'align-items:center!important;gap:7px!important;white-space:nowrap!important;flex:none!important;',
+      'height:26px!important;min-height:26px!important;padding:0 8px!important;border-radius:7px!important;',
+      'border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.18))!important;',
+      'background:color-mix(in srgb,var(--dsw-alias-label-primary,CanvasText) 4%,var(--dsw-alias-bg-base,Canvas))!important;',
+      'color:var(--dsw-alias-label-primary,CanvasText)!important;box-shadow:none!important;',
+      'font-family:inherit!important;font-size:12px!important;line-height:18px!important;font-variant-numeric:tabular-nums!important}',
+      'body [data-testid="billing-live-cost-chip"]>[data-testid="billing-live-tier"]{',
+      'height:auto!important;min-height:0!important;padding:0!important;border:0!important;border-radius:0!important;',
+      'background:transparent!important;box-shadow:none!important;font-family:inherit!important;font-size:11px!important;',
+      'line-height:18px!important;font-weight:500!important;color:var(--dsw-alias-label-secondary,GrayText)!important}',
+      'body [data-testid="billing-live-cost-chip"]>.VWh0dG_feeInlineNum{padding:0!important;',
+      'font-family:inherit!important;font-size:12px!important;font-weight:600!important;line-height:18px!important;color:inherit!important}',
+      'body [data-testid="billing-live-cost-chip"]:is(.VWh0dG_feeInlineAlert,.VWh0dG_feeInlineError)::before{',
+      'content:""!important;display:block!important;width:5px!important;height:5px!important;',
+      'border-radius:50%!important;flex:none!important;background:var(--ds-amber,#f59e0b)!important}',
+      'body [data-testid="billing-live-cost-chip"].VWh0dG_feeInlineError::before{background:var(--ds-red,#ef4444)!important}',
       // seat 容器承载「整体贴右」：内部计价与模型并排（nowrap），所以**不会再互相断行**。
       '.dsh-tweaks-seat{display:flex!important;align-items:center!important;gap:8px!important;',
       'margin-left:auto!important;flex:0 0 auto!important;flex-wrap:nowrap!important}',
@@ -257,12 +297,7 @@ window.__ModuleLoader__.load({
       'box-shadow:0 6px 18px rgba(0,0,0,.12);padding:4px 8px;font-size:12px;line-height:16px;',
       'font-family:Inter,ui-sans-serif,system-ui,"Microsoft YaHei",sans-serif;white-space:nowrap;transition:opacity .12s}',
       '.tw-rail-tip.on{opacity:1}',
-      'body[data-color-scheme="dark"] .tw-rail-tip{background:#1f1f22;color:#f4f4f5;border-color:rgba(255,255,255,.12)}',
-      // :where 降低优先级，给空卡片态和占位态补上 #root 边距同步（面板宽度由 seam-exact 的 max-width 控制）。
-      'body:where(:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_editorPlaceholder)){--dss-panel-width:min(max(var(--dsh-sidebar-width,0px),286px),420px)}',
-      'body:where(:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_editorPlaceholder)) #root{margin-right:var(--dss-panel-width)!important;width:calc(100% - var(--dss-panel-width))!important}',
-      'body:where(:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_paneEmptyCards)){--dss-panel-width:min(max(var(--dsh-sidebar-width,0px),286px),560px)}',
-      'body:where(:has(.nArs4W_panel:not(.nArs4W_panelHidden) .nArs4W_paneEmptyCards)) #root{margin-right:var(--dss-panel-width)!important;width:calc(100% - var(--dss-panel-width))!important}'
+      'body[data-color-scheme="dark"] .tw-rail-tip{background:#1f1f22;color:#f4f4f5;border-color:rgba(255,255,255,.12)}'
     ].join('');
 
     const LIFT = 'dsh-tweaks-lifted';
@@ -272,7 +307,8 @@ window.__ModuleLoader__.load({
       if (document.getElementById('dsh-ui-tweaks-style')) return;
       const style = document.createElement('style');
       style.id = 'dsh-ui-tweaks-style';
-      style.textContent = CSS;
+      // Replacing an identical text node still fires our childList observer.
+      if (style.textContent !== CSS) style.textContent = CSS;
       (document.head || document.documentElement).appendChild(style);
     }
 
@@ -431,7 +467,14 @@ window.__ModuleLoader__.load({
         return;
       }
       const chipRaw = findCostChip();
-      const chip = chipRaw && chipRaw !== modelRaw && !dock.contains(chipRaw) ? boxOf(chipRaw) : null;
+      // 空壳计价胶囊（无可见文字）不搬运、直接标空隐藏 —— 否则右侧只留一块空白圆角壳
+      if (chipRaw) {
+        const text = (chipRaw.textContent || '').replace(/\s+/g, '');
+        if (!text) chipRaw.classList.add('dsh-tweaks-empty');
+        else chipRaw.classList.remove('dsh-tweaks-empty');
+      }
+      const chip = chipRaw && chipRaw !== modelRaw && !dock.contains(chipRaw) && !chipRaw.classList.contains('dsh-tweaks-empty')
+        ? boxOf(chipRaw) : null;
       const modelW = Math.round(model.getBoundingClientRect().width) || 90;
       const mh = model.getBoundingClientRect().height || 28;
       const chipW = chip ? Math.round(chip.getBoundingClientRect().width) || 80 : 0;

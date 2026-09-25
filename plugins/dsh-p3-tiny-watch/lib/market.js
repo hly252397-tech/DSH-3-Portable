@@ -30,6 +30,7 @@ export class P3TinyMonitor {
       signal,
       timeoutMs: this.config.timeoutMs,
       userAgent: this.config.userAgent,
+      mockEnabled: this.config.enableMockSource === true,
     })
     const normalized = dedupeListings(collected.listings
       .map(item => normalizeListing(item, { rates: this.config.currencyRates }))
@@ -75,4 +76,11 @@ export class P3TinyMonitor {
       summary: summarizeListings(listings, this.config.thresholdCny),
     }
   }
+}
+
+export function isScheduledCheckDue(state, config = {}, now = Date.now()) {
+  const intervalMs = Math.max(1, Number(config.checkIntervalHours) || 168) * 3_600_000
+  const last = Date.parse(state?.lastRun?.completedAt ?? state?.lastRun?.startedAt ?? '')
+  if (!Number.isFinite(last)) return true
+  return now - last >= intervalMs
 }

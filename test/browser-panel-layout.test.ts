@@ -134,10 +134,17 @@ test('顶部外壳不再含浏览器开关按钮，回归保护', async () => {
   assert.equal(/class=["']bar["'][^>]*\sdata-action=["']browser-toggle["']/.test(shell), false)
 })
 
-test('浏览器工作区 CSS 修复仍在：page-snapshot 隐藏选择器特异性高于基础规则', async () => {
+test('卡片内嵌浏览器菜单即使可选快照失败也能打开', async () => {
   const css = await readFile(new URL('../../assets/browser-workspace.css', import.meta.url), 'utf8')
-  const highRule = /\.browser\s+img\.browser-page-snapshot\[hidden\]\s*\{\s*display\s*:\s*none\s*;?\s*\}/
-  assert.match(css, highRule, '必须保留 .browser img.browser-page-snapshot[hidden]{display:none} 规则以压过 .browser img.browser-page-snapshot')
+  const panel = await readFile(new URL('../../assets/browser-panel.html', import.meta.url), 'utf8')
+  const workspace = await readFile(new URL('../../assets/browser-workspace.js', import.meta.url), 'utf8')
+  assert.match(css, /\.browser img\.browser-page-snapshot\[hidden\]\{display:none\}/)
+  assert.match(panel, /\.browser img:not\(\.browser-page-snapshot\)\{[^}]*filter:/)
+  assert.match(panel, /\[data-color-scheme="light"\] \.browser img:not\(\.browser-page-snapshot\)\{[^}]*filter:/,
+    '工具栏图标的亮暗过滤不能把菜单下方的网页快照涂黑')
+  assert.match(workspace, /try \{ await prepareMenuSnapshot\(\); \} catch \{ clearMenuSnapshot\(\); \}/)
+  assert.doesNotMatch(workspace, /if \(!await prepareMenuSnapshot\(\)\)/)
+  assert.match(css, /\.browser-overflow\{[^}]*z-index:10/, '菜单仍须覆盖工具栏内容')
 })
 
 test('顶部外壳分隔线改用 ::after，避免被 WCO 覆盖在右侧', async () => {
@@ -168,4 +175,58 @@ test('工作台面板宽度钳制：比例再大也不超过视口余量（对�
   assert.equal(capBrowserWorkspacePanelWidth(2560, 900), 900)
   // 面板自身最小宽度 280 兜底
   assert.equal(capBrowserWorkspacePanelWidth(900, 800), 280)
+})
+
+test('内置浏览器历史 chrome 已整段删除：唯一 chrome 是 browser-panel.html', async () => {
+  // 2026-09-22 用户报「内置浏览器和移植浏览器打架」；2026-09-23 用户令「直接移除，担心下次构建又出现」。
+  // shell.html 的 #browser 历史副本已**整段删除**（不只隐藏），构建复制 assets 也不会复活。
+  const shell = await readFile(new URL('../../assets/shell.html', import.meta.url), 'utf8')
+  const panel = await readFile(new URL('../../assets/browser-panel.html', import.meta.url), 'utf8')
+  assert.doesNotMatch(shell, /id="browser"/, 'shell.html 不得再含 #browser（已永久删除）')
+  assert.doesNotMatch(shell, /browser-workspace\.(js|css)/, 'shell.html 不得再加载 browser-workspace 资源')
+  assert.doesNotMatch(shell, /DshBrowserWorkspace/, 'shell.html 不得再调用 DshBrowserWorkspace')
+  assert.doesNotMatch(shell, /renderBrowser/, 'shell.html 不得再有 renderBrowser')
+  // 正式 chrome 必须完整保留
+  assert.match(panel, /id="browser"/, 'browser-panel.html 必须保留 #browser')
+  assert.match(panel, /DshBrowserWorkspace\.create/, 'browser-panel.html 必须创建工作区')
+  assert.match(panel, /toggleMaximize/, 'browser-panel.html 必须含最大化入口')
+  assert.match(panel, /browser-maximize/, 'browser-panel.html 必须含最大化图标')
+})
+
+test('完整版浏览器只在卡片内嵌网页，外链仍进内置浏览器', async () => {
+  const main = await readFile(new URL('../../src/main.ts', import.meta.url), 'utf8')
+  const embedded = await readFile(new URL('../../Data/DSH/profiles/web/local/dsh-better-sidebar/portable/embedded-browser-view.js', import.meta.url), 'utf8')
+  assert.doesNotMatch(main, /browserPanelView|tab\.view|DSH_EMBEDDED_BROWSER/, '旧浏览器叠加层不得重新出现')
+  assert.match(main, /webviewTag: true/, 'DSH 卡片必须允许内嵌网页组件')
+  assert.match(main, /classifyEmbeddedBrowserGuest/, '网页组件必须由主进程校验')
+  assert.match(embedded, /document\.createElement\('webview'\)/, '网页必须在卡片 DOM 内呈现')
+  assert.match(main, /function openBrowser[\s\S]{0,600}createBrowserTab/, 'openBrowser 必须走 createBrowserTab')
+  // 外链进内置浏览器（不是系统浏览器）
+  assert.match(main, /function routeDshExternalLink[\s\S]{0,200}openBrowser\(/, '外链必须进完整版浏览器')
+  // 默认首页 = DeepSeek
+  assert.match(main, /BROWSER_DEFAULT_HOMEPAGES.*deepseek/i, '默认首页必须含 DeepSeek')
+})
+
+test('卡片生命周期撤销不关闭无 owner 的 shell 浏览器工作区', async () => {
+  const main = await readFile(new URL('../../src/main.ts', import.meta.url), 'utf8')
+  assert.doesNotMatch(main, /panelLifecycleOk|shouldShowNativePanel/, '网页卡片不得再依赖原生叠加层可见性门禁')
+  // 撤销只在曾有 owner 时关掉工作区可见性
+  assert.match(main, /if \(hadOwner && browserVisible\) browserVisible = false/)
+  // 卡片缺席 / DSH 生命周期 / 切会话：仅卡片内嵌才撤销
+  assert.match(main, /if \(browserPanelOwner !== undefined\) revokeBrowserPanel\(`card-\$\{cardState\}`\)/)
+  assert.match(main, /if \(browserPanelOwner !== undefined\) revokeBrowserPanel\(`renderer-\$\{reason\}`\)/)
+  assert.match(main, /if \(browserPanelOwner !== undefined\) revokeBrowserPanel\('session-switch'\)/)
+})
+
+test('文件预览与完整浏览器互斥：编辑器打开时收掉浏览器视图', async () => {
+  const bundle = await readFile(new URL('../../Data/DSH/profiles/web/local/dsh-better-sidebar/lib/client.js', import.meta.url), 'utf8')
+  const browserView = await readFile(new URL('../../Data/DSH/profiles/web/local/dsh-better-sidebar/portable/browser-view.js', import.meta.url), 'utf8')
+  const main = await readFile(new URL('../../src/main.ts', import.meta.url), 'utf8')
+  assert.match(bundle, /function openSidebarFile[\s\S]{0,400}browserPanel\?\.hide/, 'openSidebarFile 必须先收原生层')
+  assert.match(bundle, /function EditorHost[\s\S]{0,800}browserPanel\?\.hide/, 'EditorHost 挂载文件时必须收原生层')
+  assert.match(browserView, /bridge\.show\(/, 'BrowserView 必须接入完整浏览器')
+  assert.match(browserView, /react\.useLayoutEffect\(/, '首次可见时须在布局阶段认领完整浏览器')
+  assert.doesNotMatch(browserView, /createElement\(['"]iframe['"]/, '不得再叠加第二套 iframe 浏览器')
+  // 主进程：hide(undefined) 允许强制收
+  assert.match(main, /if \(owner !== undefined && owner !== null && owner !== browserPanelOwner\) return/, 'hide 无 owner 时必须允许强制收')
 })

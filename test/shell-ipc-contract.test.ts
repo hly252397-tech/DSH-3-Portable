@@ -57,7 +57,8 @@ test('sandbox preload 的 IPC 字面量与主契约保持一致', async () => {
     SHELL_IPC.browserToggleMenu, SHELL_IPC.getBootstrap, SHELL_IPC.state,
   ].sort())
   assert.deepEqual(channelLiterals(dsh), [
-    SHELL_IPC.action, SHELL_IPC.browserPanelBounds, SHELL_IPC.browserPanelHide, SHELL_IPC.browserPanelOccluded, SHELL_IPC.browserPanelPrepareOcclusion, SHELL_IPC.browserPanelShow,
+    SHELL_IPC.action, SHELL_IPC.browserEmbeddedConfig, SHELL_IPC.browserEmbeddedGuestAttached, SHELL_IPC.browserEmbeddedState,
+    SHELL_IPC.browserPanelBounds, SHELL_IPC.browserPanelExecuteJs, SHELL_IPC.browserPanelHide, SHELL_IPC.browserPanelOccluded, SHELL_IPC.browserPanelPrepareOcclusion, SHELL_IPC.browserPanelShow, SHELL_IPC.browserPanelTabs,
     SHELL_IPC.dshAction, SHELL_IPC.dshBrowserCloseRequest, SHELL_IPC.dshLocale, SHELL_IPC.dshNotification,
     SHELL_IPC.dshNotificationReply, SHELL_IPC.dshOpenSession, SHELL_IPC.dshSettingsVisibility,
     SHELL_IPC.dshState, SHELL_IPC.dshTheme,

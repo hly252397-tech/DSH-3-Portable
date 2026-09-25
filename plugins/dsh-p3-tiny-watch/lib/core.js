@@ -118,8 +118,16 @@ export function cpuGeneration(cpu) {
   return undefined
 }
 
+// ASCII 词项按词边界匹配，避免跨语言子串误报（如德语 Zustand 含 stand、released 含 lease）；
+// 中文等非 ASCII 词项没有 \b 语义，保持子串匹配。
+function containsTerm(text, term) {
+  if (!/^[\x20-\x7e]+$/.test(term)) return text.includes(term)
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`\\b${escaped}\\b`).test(text)
+}
+
 function containsAny(text, terms) {
-  return terms.some(term => text.includes(term))
+  return terms.some(term => containsTerm(text, term))
 }
 
 export function classifyListing(title, description = '') {

@@ -493,37 +493,14 @@ export async function applyOfficialRuntimeVersion(options: SeedOptions, version:
 }
 
 export async function stripOfficialProfileDependencies(profileDir: string): Promise<string[]> {
-  const manifestPath = join(profileDir, 'package.json')
-  if (!existsSync(manifestPath)) return []
-  const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as {
-    dependencies?: Record<string, string>
-    dsh?: { profile?: { bundles?: string[] } }
-  }
-  const removed: string[] = []
-  const nextDependencies = { ...(manifest.dependencies ?? {}) }
-  for (const packageName of Object.keys(nextDependencies)) {
-    if (!isOfficialProfileDependency(packageName)) continue
-    delete nextDependencies[packageName]
-    removed.push(packageName)
-  }
-  const nextBundles = [...(manifest.dsh?.profile?.bundles ?? [])].filter((name) => {
-    if (name === SUITE_PACKAGE) return false
-    if (!isOfficialProfileDependency(name)) return true
-    return (OFFICIAL_PROFILE_BUNDLES as readonly string[]).includes(name)
-  })
-  const officialModules = join(profileDir, 'node_modules', '@deepseek-ai')
-  if (existsSync(officialModules)) {
-    for (const entry of await readdir(officialModules, { withFileTypes: true })) {
-      if (!entry.isDirectory() && !entry.isSymbolicLink()) continue
-      await rm(join(officialModules, entry.name), { recursive: true, force: true })
-    }
-    if (!removed.includes('@deepseek-ai')) removed.push('@deepseek-ai')
-  }
-  if (removed.length === 0 && nextBundles.join('\0') === (manifest.dsh?.profile?.bundles ?? []).join('\0')) return []
-  manifest.dependencies = nextDependencies
-  manifest.dsh = { ...manifest.dsh, profile: { ...manifest.dsh?.profile, bundles: nextBundles } }
-  await writeTextFileAtomic(manifestPath, `${JSON.stringify(manifest, undefined, 2)}\n`)
-  return removed
+  // 2026-09-19 彻底回退上游 v1.0.65 的「官方依赖剥离」（本函数曾无条件全删 @deepseek-ai 并把官方包
+  // 摘出 dependencies）：上游设计假设官方层由运行时槽自管，但便携盘（G:，4.4 万文件级）上运行时
+  // 自装被 minimumReleaseAge 政策拒绝 + pnpm 全量校验耗时 7-8 分钟 → 主视图永远停在加载屏、
+  // 激活候选连续回滚；且官方包一旦离开 dependencies，任何 pnpm 装配（含启动补种）都会把官方层
+  // prune 掉，物理层永远保不住。便携版官方层必须落在 profile dependencies + node_modules
+  // （12:46 前口径，12:08-14:50 实测正常）；官方运行时升级由 harness-update 的 A/B 槽负责。
+  void profileDir
+  return []
 }
 
 export async function applyPendingProfileUpdates(options: SeedOptions): Promise<readonly string[]> {
@@ -877,11 +854,8 @@ export async function reconcileProfileBundles(profileDir: string, packageNames?:
     dependencies?: Record<string, string>
     dsh?: { profile?: { bundles?: string[] } }
   }
-  const bundles = [...(manifest.dsh?.profile?.bundles ?? [...OFFICIAL_PROFILE_BUNDLES])].filter((name) => {
-    if (name === SUITE_PACKAGE) return false
-    if (!isOfficialProfileDependency(name)) return true
-    return (OFFICIAL_PROFILE_BUNDLES as readonly string[]).includes(name)
-  })
+  // 官方 bundle 一律保留（由运行时解析），桌面只负责社区插件与套件遗留项。
+  const bundles = [...(manifest.dsh?.profile?.bundles ?? [...OFFICIAL_PROFILE_BUNDLES])].filter((name) => name !== SUITE_PACKAGE)
   const marketDisabled = readMarketDisabledPackages(profileDir)
   const quarantined = await activeQuarantinedProfileBundles(profileDir)
   let changed = false
@@ -922,7 +896,7 @@ export async function pruneMissingProfileBundles(profileDir: string, extraDirs: 
   }
   const current = manifest.dsh?.profile?.bundles ?? []
   const dependencies = new Set(Object.keys(manifest.dependencies ?? {}))
-  const next = current.filter((packageName) => (OFFICIAL_PROFILE_BUNDLES as readonly string[]).includes(packageName)
+  const next = current.filter((packageName) => isOfficialProfileDependency(packageName)
     // Internal package name: keep synchronized with DESKTOP_BRIDGE_PACKAGE in desktop-host.ts.
     || (packageName === 'dsh-desktop-bridge' && isResolvableProfileBundle(profileDir, packageName, extraDirs))
     || (dependencies.has(packageName) && isResolvableProfileBundle(profileDir, packageName, extraDirs)))

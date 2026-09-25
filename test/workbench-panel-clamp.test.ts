@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import test from 'node:test'
 
-test('工作台面板宽度被钳制，对话列保留官方内容下限', async () => {
+test('工作台面板宽度被钳制，对话列能缩到实际剩余空间', async () => {
   const css = await readFile(join(process.cwd(), 'assets/theme.css'), 'utf8')
   // better-sidebar 的拖宽只钳到视口宽（clampWidth 上限 = innerWidth），面板一旦存成
   // 接近全屏的宽度，autoOpenSubagent 自动重开就会把对话列挤到竖排（2026-09-12 实证）。
@@ -17,7 +17,8 @@ test('工作台面板宽度被钳制，对话列保留官方内容下限', async
   assert.match(css, /:root\[data-dsh-compact="1"\] body \.nArs4W_panel \{\s*display: none !important;/)
   assert.doesNotMatch(css, /@media \(max-width: \d+px\) \{\s*body \.nArs4W_panel/, '页面不得再自带面板的视口阈值（注释里引用旧规则不算）')
   // 对话列仍以官方内容下限 680px 为目标，但**不许超过可用宽度**（窄档自适应，不再硬撑出溢出）
-  assert.match(css, /body \.pI_x6G_centerCol \{\s*min-width: min\(680px, calc\(var\(--dsh-app-w\) - var\(--dsh-chrome-w\) - 24px\)\);/)
+  assert.match(css, /body \.pI_x6G_centerCol \{\s*min-width: 0;\s*max-width: 100%;/)
+  assert.doesNotMatch(css, /min-width: min\(680px/, 'The full viewport is not the remaining conversation track')
   assert.match(css, /body \.dcu-home-cards \{\s*flex-wrap: wrap !important;/)
 })
 

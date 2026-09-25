@@ -1,5 +1,5 @@
-import { app, BrowserWindow, Menu, Notification, Tray, WebContentsView, clipboard, dialog, ipcMain, nativeImage, nativeTheme, net, protocol, safeStorage, session, shell, type Input, type MenuItemConstructorOptions, type WebContents } from 'electron'
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import { app, BrowserWindow, Menu, Notification, Tray, WebContentsView, clipboard, dialog, ipcMain, nativeImage, nativeTheme, net, protocol, safeStorage, screen, session, shell, webContents, type Input, type MenuItemConstructorOptions, type WebContents } from 'electron'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { writeFile as writeTextFile } from 'node:fs/promises'
 import { createHash, randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
@@ -11,6 +11,9 @@ import { DESKTOP_APP_NAME, DESKTOP_APP_USER_MODEL_ID, DESKTOP_TOAST_ACTIVATOR_CL
 import { OFFICIAL_DSH_VERSION } from './bundled-plugins.js'
 import { resolveAppIconPath, resolveCompactIconCrop, resolveNotificationIconPath, resolveRasterIconPath, resolveTaskBadgeIconPath, resolveTaskbarIconPath, resolveTrayIconPath, TRAY_ICON_SIZE } from './app-icon.js'
 import { isLoopbackFaviconRequest } from './window-icon.js'
+import { bindContainedSettingsWindow, centeredSettingsBounds } from './contained-settings-window.js'
+import { writeTextFileAtomicSync } from './atomic-file.js'
+import { sweepOrphanDshProcesses } from './orphan-sweep.js'
 import { quitDesktopApp, shouldHideInsteadOfClose } from './app-lifecycle.js'
 import type { DshServer, StartDshOptions } from './dsh-process.js'
 import { isExternalHttpUrl, isExternalOpenUrl, isSameOrigin } from './navigation.js'
@@ -35,8 +38,11 @@ import { SHELL_BAR_HEIGHT, SHELL_IPC, type BrowserDownloadState, type BrowserPag
 import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayAccessThemePreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeBrowserIpc, mayInvokeFeaturePanelsCopy, mayInvokeShellAction, mayManageBrowserPanel, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility, type ShellRendererKind } from './shell-ipc-policy.js'
 import { FEATURE_PANEL_CATEGORIES, FEATURE_PANELS } from './feature-panels.js'
 import { browserPanelMaxWidthCss, capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight, resolveBrowserPageTop, shouldHideBrowserPanel, shouldShowPageTabBar } from './browser-panel-layout.js'
+import { isPanelRawVisible, parseActiveSessionSignal, parsePanelCardSignal, shouldAcceptPageToken, type PanelCardState } from './browser-panel-state.js'
 import { normalizeNativeBrowserRequest } from './native-browser-request.js'
 import { clearStaleDshAuthCookies } from './dsh-session-cookies.js'
+import { classifyEmbeddedBrowserGuest, EMBEDDED_BROWSER_CHROME_PARTITION, EMBEDDED_BROWSER_PAGE_PARTITION } from './embedded-browser-guest.js'
+import { normalizeSavedBrowserSessions, normalizeSavedBrowserTabs, type SavedBrowserSession } from './browser-workspace-sessions.js'
 import { DEFAULT_DESKTOP_THEME_PREFERENCES, DESKTOP_THEME_PALETTES, loadDesktopThemePreferences, normalizeDesktopThemeSnapshot, saveDesktopThemePreferences, type DesktopColorScheme, type DesktopThemePreference, type DesktopThemePreferences } from './desktop-theme.js'
 import { DSH_MARKET_STATUS_PATH, isDshMarketOperationBusy, waitForDshMarketBatchToSettle } from './dshmarket-batch.js'
 import { DEFAULT_NOTIFICATION_PREFERENCES, buildWindowsReplyToastXml, loadNotificationPreferences, parseDesktopNotificationBridgeEvent, parseWindowsNotificationReplyActivation, saveNotificationPreferences, shouldShowDesktopNotification, windowsNotificationReplyArguments, type DesktopNotificationEvent, type DesktopNotificationPreferences } from './desktop-notifications.js'
@@ -65,7 +71,8 @@ const { isApplyPluginUpdatesIpc, isRequestHarnessUpdateIpc, startDsh } = dshProc
 
 let mainWindow: BrowserWindow | undefined
 let dshView: WebContentsView | undefined
-let browserPanelView: WebContentsView | undefined
+let browserPanelGuest: WebContents | undefined
+const embeddedBrowserGuestIds = new Set<number>()
 let shortcutsWindow: BrowserWindow | undefined
 let aboutWindow: BrowserWindow | undefined
 let featurePanelsWindow: BrowserWindow | undefined
@@ -142,6 +149,8 @@ const BROWSER_MAXIMUM_TABS = 12
 const BROWSER_DEFAULT_WIDTH_RATIO = 0.36
 const BROWSER_PARTITION = 'persist:dsh-browser'
 const DSH_PARTITION = 'persist:dsh-ui'
+// Browser chrome and pages are owned by the right-card DOM. The old
+// pixel-positioned browser WebContentsViews must not be recreated.
 
 interface BrowserTab {
   readonly id: string
@@ -150,7 +159,17 @@ interface BrowserTab {
   favicon: string
   crashed: boolean
   lastRecordedUrl?: string
-  readonly view: WebContentsView
+  guest?: WebContents
+}
+
+function browserTabContents(tab: BrowserTab | null | undefined): WebContents | undefined {
+  const contents = tab?.guest
+  return contents === undefined || contents.isDestroyed() ? undefined : contents
+}
+
+function browserChromeContents(): WebContents | undefined {
+  const contents = browserPanelGuest
+  return contents === undefined || contents.isDestroyed() ? undefined : contents
 }
 
 interface BrowserLibrarySnapshot {
@@ -188,6 +207,8 @@ interface BrowserWorkspaceFile {
   browserMaximized: boolean
   activeTabId: string | null
   tabs: { id: string; title: string; url: string }[]
+  activeSessionName?: string | null
+  sessions?: Record<string, SavedBrowserSession>
 }
 
 // 库延迟到首次使用时初始化：app.setPath('userData') 的便携重定向发生在此模块顶层之后，
@@ -244,9 +265,44 @@ let browserPanelOccluded = false
 let browserPanelBounds: BrowserPanelBounds | undefined
 /** 上一次下发给页面的面板宽度上限（CSS px）；`-1` 表示本文档尚未下发（导航后需重发）。 */
 let browserPanelMaxCss = -1
+/** publishLayoutContext 的去重键：宽度/高度/缩放/让位状态全同则不下发。 */
+let layoutContextKey = ''
 /** 上一次算出的面板宽度（DIP），用于导航后按同一把尺子重新下发。 */
 let browserPanelWidthDip = 0
 let browserPanelOwner: string | undefined
+/**
+ * 浏览器面板的**生命周期信号**（2026-09-21 P0 修复，见
+ * docs/01-当前工作/20260921-移除原生浏览器面板并移植到完整浏览器-方案.md §12）。
+ *
+ * 病根：原生面板由主进程持有，而拥有它的卡片在页面里、按会话存在；两边各自维护"可见性"且没有握手，
+ * 于是 切会话 / 页面重载 / 收起侧栏 / 卡片卸载 任一条路径失配，外壳就继续画面板底（白/幽灵面板）。
+ * 不变式：**没有当前页面"卡片可见"的心跳，原生面板绝不允许可见**——判定全部收归主进程。
+ */
+let browserPanelSignalAt = 0
+let browserPanelCardState: PanelCardState | undefined
+/** 最近一次 raw bounds 是否与视口有足够交集（**clamp 之前**判定；clamp 会抹掉"飞出屏幕"的证据）。 */
+let browserPanelRawVisible = false
+/**
+ * 按会话分桶的原生标签（补丁 2）：`browserTabs` 始终是**当前会话**那一桶。
+ * 官方右栏状态本来就按会话存（`dsh-sidebar:v1:session-<id>`），页面把活动会话 id 放进心跳上报。
+ */
+const browserTabsBySession = new Map<string, BrowserTab[]>()
+const browserActiveTabBySession = new Map<string, string | null>()
+let browserSessionName: string | undefined
+/**
+ * 页面实例令牌（补丁 1）：导航/重载后清空，由新页面实例的第一条 claim 建立；
+ * 之后不一致的 claim（僵尸 renderer 的迟到 IPC）一律拒绝。
+ */
+let browserPanelPageToken: string | undefined
+/**
+ * 调用方所属会话（2026-09-21 用户令「别的会话不要自动给我开面板」）。
+ * 只有与当前活动会话一致时才允许把面板显示出来；别的会话的打开请求降级为"开个后台标签"，不弹面板。
+ */
+let browserPanelSessionId: string | undefined
+/** bounds 的**独立**新鲜度（Codex 第三轮 P0 漏洞）：心跳新鲜 ≠ bounds 新鲜，两者必须各自计时。 */
+let browserPanelBoundsAt = 0
+/** 是否已挂上 dsh 视图的生命周期钩子（补丁 1，只需一次）。 */
+let dshLifecycleHooked = false
 let browserWidthRatio = BROWSER_DEFAULT_WIDTH_RATIO
 let browserMaximized = false
 let browserManagerOpen = false
@@ -255,6 +311,7 @@ let browserDownloadsOpen = false
 let browserDownloadsDrawerHeight = 0
 let browserPageZoom = 1
 let browserWorkspaceSaveTimer: NodeJS.Timeout | undefined
+let browserWorkspaceRestored = false
 let browserSessionConfigured = false
 let browserDownloadSequence = 0
 type BrowserDownloadRecord = { -readonly [Key in keyof BrowserDownloadState]: BrowserDownloadState[Key] } & { readonly path: string; readonly url: string }
@@ -297,20 +354,32 @@ function saveBrowserWorkspace(): void {
     clearTimeout(browserWorkspaceSaveTimer)
     browserWorkspaceSaveTimer = undefined
   }
+  const currentTabs = browserTabs.map(tab => ({ id: tab.id, title: tab.title, url: tab.url }))
+  const allSessions = new Map(browserTabsBySession)
+  if (browserSessionName !== undefined) allSessions.set(browserSessionName, [...browserTabs])
+  const sessions: Record<string, SavedBrowserSession> = Object.create(null) as Record<string, SavedBrowserSession>
+  for (const [sessionId, tabs] of allSessions) {
+    sessions[sessionId] = {
+      activeTabId: sessionId === browserSessionName ? activeBrowserTabId : browserActiveTabBySession.get(sessionId) ?? tabs[0]?.id ?? null,
+      tabs: tabs.map(tab => ({ id: tab.id, title: tab.title, url: tab.url })),
+    }
+  }
   const state: BrowserWorkspaceFile = {
     version: 1,
     browserVisible,
     browserWidthRatio,
     browserMaximized,
     activeTabId: activeBrowserTabId,
-    tabs: browserTabs.map(tab => ({ id: tab.id, title: tab.title, url: tab.url })),
+    tabs: currentTabs,
+    activeSessionName: browserSessionName ?? null,
+    sessions,
   }
   try {
     const target = browserWorkspacePath()
     mkdirSync(dirname(target), { recursive: true })
-    const temporary = `${target}.tmp`
-    writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, 'utf8')
-    renameSync(temporary, target)
+    // 2026-09-21：改走统一的原子写 helper（同步 + 瞬时占用重试），不再手搓 write+rename。
+    // 原先裸 renameSync 在 Windows 撞杀软/索引器短暂持有时会 EPERM，被 catch 吞成一行日志 = 静默丢工作区。
+    writeTextFileAtomicSync(target, `${JSON.stringify(state, null, 2)}\n`)
   } catch (error) {
     console.error('浏览器工作区保存失败：', error)
   }
@@ -415,8 +484,8 @@ function configureBrowserSession(): void {
 }
 
 function updateBrowserTabFromContents(tab: BrowserTab, persist = false): void {
-  const contents = tab.view.webContents
-  if (contents.isDestroyed()) return
+  const contents = browserTabContents(tab)
+  if (contents === undefined) return
   tab.url = contents.getURL() || tab.url
   tab.title = contents.getTitle() || tab.title || '新标签页'
   tab.crashed = false
@@ -424,85 +493,74 @@ function updateBrowserTabFromContents(tab: BrowserTab, persist = false): void {
   broadcastShellState()
 }
 
-function createBrowserTab(url: string = primaryBrowserHomepage(), requestedId?: string): BrowserTab {
-  if (browserTabs.length >= BROWSER_MAXIMUM_TABS) {
-    // 达到上限时不再静默丢弃 URL，改为在当前活动标签中打开（L-1）
-    const existing = getActiveBrowserTab() ?? browserTabs[0]
-    if (existing !== undefined) {
-      const fallbackUrl = isAllowedBrowserUrl(url) ? url : normalizeBrowserAddress(url)
-      existing.url = fallbackUrl
-      void existing.view.webContents.loadURL(fallbackUrl).catch((error: Error) => console.error(`浏览器加载失败：${error.message}`))
-      relayout()
-    }
-    return existing
-  }
-  const id = requestedId || randomUUID()
-  const targetUrl = isAllowedBrowserUrl(url) ? url : normalizeBrowserAddress(url)
-  const view = new WebContentsView({
-    webPreferences: {
-      partition: BROWSER_PARTITION,
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true,
-      safeDialogs: true,
-      spellcheck: true,
-    },
-  })
-  const tab: BrowserTab = { id, title: targetUrl, url: targetUrl, favicon: '', crashed: false, view }
-  browserTabs.push(tab)
-  if (mainWindow !== undefined && !mainWindow.isDestroyed()) mainWindow.contentView.addChildView(view)
-  view.setVisible(false)
-  applyBrowserPageZoom(view.webContents)
-  view.webContents.setWindowOpenHandler(({ url: popupUrl }) => {
-    // 回调内避免同步做创建视图的重活（L-5）
+function bindBrowserTabContents(tab: BrowserTab, contents: WebContents): void {
+  applyBrowserPageZoom(contents)
+  contents.setWindowOpenHandler(({ url: popupUrl }) => {
     if (isAllowedBrowserUrl(popupUrl)) queueMicrotask(() => { openBrowser(popupUrl, true) })
     return { action: 'deny' }
   })
-  view.webContents.on('will-navigate', (event, targetUrl) => {
+  contents.on('will-navigate', (event, targetUrl) => {
     if (!isAllowedBrowserUrl(targetUrl)) event.preventDefault()
   })
-  view.webContents.on('did-start-loading', () => updateBrowserTabFromContents(tab))
-  view.webContents.on('did-stop-loading', () => {
+  contents.on('did-start-loading', () => updateBrowserTabFromContents(tab))
+  contents.on('did-stop-loading', () => {
     updateBrowserTabFromContents(tab)
     if (tab.url !== '' && tab.lastRecordedUrl !== tab.url) {
       tab.lastRecordedUrl = tab.url
       queueBrowserHistory(tab.url, tab.title, tab.favicon)
     }
   })
-  view.webContents.on('did-navigate', () => updateBrowserTabFromContents(tab, true))
-  view.webContents.on('did-navigate-in-page', () => updateBrowserTabFromContents(tab, true))
-  view.webContents.on('did-fail-load', (_event, code, description, failedUrl, isMainFrame) => {
+  contents.on('did-navigate', () => updateBrowserTabFromContents(tab, true))
+  contents.on('did-navigate-in-page', () => updateBrowserTabFromContents(tab, true))
+  contents.on('did-fail-load', (_event, _code, _description, failedUrl, isMainFrame) => {
     if (!isMainFrame || !isAllowedBrowserUrl(failedUrl)) return
     tab.url = failedUrl
     tab.title = failedUrl
     scheduleBrowserWorkspaceSave()
     broadcastShellState()
   })
-  view.webContents.on('page-title-updated', (_event, title) => {
+  contents.on('page-title-updated', (_event, title) => {
     tab.title = String(title || '新标签页').trim()
     updateBrowserTabFromContents(tab, true)
   })
-  view.webContents.on('page-favicon-updated', (_event, favicons) => {
+  contents.on('page-favicon-updated', (_event, favicons) => {
     tab.favicon = favicons.find(favicon => /^https?:\/\//i.test(favicon)) || ''
     broadcastShellState()
   })
-  view.webContents.on('found-in-page', (_event, result) => {
-    if (browserPanelView !== undefined && !browserPanelView.webContents.isDestroyed()) browserPanelView.webContents.send(SHELL_IPC.browserFindResult, result)
+  contents.on('found-in-page', (_event, result) => {
+    browserChromeContents()?.send(SHELL_IPC.browserFindResult, result)
   })
-  view.webContents.on('context-menu', (_event, params) => {
+  contents.on('context-menu', (_event, params) => {
     const template: MenuItemConstructorOptions[] = []
     if (params.selectionText !== '') template.push({ role: 'copy', label: desktopText('复制', 'Copy') })
     if (params.isEditable) template.push({ role: 'paste', label: desktopText('粘贴', 'Paste') })
     if (template.length > 0) Menu.buildFromTemplate(template).popup({ window: mainWindow })
   })
-  view.webContents.on('render-process-gone', (_event, details) => {
+  contents.on('render-process-gone', (_event, details) => {
     tab.crashed = true
     console.error(`浏览器标签渲染进程停止 ${tab.url} ${JSON.stringify(details)}`)
     broadcastShellState()
   })
+  installShortcutHandler(contents)
+}
+
+function createBrowserTab(url: string = primaryBrowserHomepage(), requestedId?: string): BrowserTab {
+  if (browserTabs.length >= BROWSER_MAXIMUM_TABS) {
+    const existing = getActiveBrowserTab() ?? browserTabs[0]
+    if (existing !== undefined) {
+      const fallbackUrl = isAllowedBrowserUrl(url) ? url : normalizeBrowserAddress(url)
+      existing.url = fallbackUrl
+      const contents = browserTabContents(existing)
+      if (contents !== undefined) void contents.loadURL(fallbackUrl).catch((error: Error) => console.error(`浏览器加载失败：${error.message}`))
+      relayout()
+    }
+    return existing
+  }
+  const id = requestedId || randomUUID()
+  const targetUrl = isAllowedBrowserUrl(url) ? url : normalizeBrowserAddress(url)
+  const tab: BrowserTab = { id, title: targetUrl, url: targetUrl, favicon: '', crashed: false }
+  browserTabs.push(tab)
   activeBrowserTabId = id
-  tab.crashed = false
-  void view.webContents.loadURL(targetUrl).catch((error: Error) => console.error(`浏览器加载失败：${error.message}`))
   scheduleBrowserWorkspaceSave()
   relayout()
   return tab
@@ -525,9 +583,12 @@ function closeBrowserTab(id: string): void {
   const index = browserTabs.findIndex(tab => tab.id === id)
   if (index < 0) return
   const [tab] = browserTabs.splice(index, 1)
+  for (const retained of browserTabsBySession.values()) {
+    const retainedIndex = retained.findIndex(candidate => candidate.id === id)
+    if (retainedIndex >= 0) retained.splice(retainedIndex, 1)
+  }
   try {
-    mainWindow?.contentView.removeChildView(tab.view)
-    if (!tab.view.webContents.isDestroyed()) tab.view.webContents.close()
+    if (tab.guest !== undefined && !tab.guest.isDestroyed()) tab.guest.close()
   } catch {
     // 视图已随窗口销毁
   }
@@ -552,11 +613,10 @@ function exitDshSettingsPage(): void {
   })()`).catch(() => undefined)
 }
 
-/** DSH 外链统一路由：http/https 进内置浏览器（新标签页），mailto:/tel: 走系统默认程序。 */
+/** DSH 外链统一路由：http/https 进完整版浏览器（新标签页），mailto:/tel: 走系统默认程序。 */
 function routeDshExternalLink(url: string): void {
   if (isExternalHttpUrl(url, allowedOrigin)) {
-    // 建视图是重活，排到微任务队列，避免在导航回调里同步执行
-    browserPanelRequested = true // 用户点链接 = 显式要看浏览器，压过设置页让位
+    browserPanelRequested = true
     if (dshSettingsDialogVisible) exitDshSettingsPage()
     queueMicrotask(() => { openBrowser(url, true) })
     return
@@ -565,13 +625,17 @@ function routeDshExternalLink(url: string): void {
 }
 
 function openBrowser(url?: string, newTab = false): BrowserTab {
-  browserPanelRequested = true // 任何"打开浏览器"的显式请求都要压过设置页让位（同源情况一并覆盖）
+  browserPanelRequested = true
   browserVisible = true
   browserManagerOpen = false
   browserMenuOpen = false
   let tab = getActiveBrowserTab()
   if (tab === null || newTab) tab = createBrowserTab(url || primaryBrowserHomepage())
-  else if (url) void tab.view.webContents.loadURL(normalizeBrowserAddress(url)).catch((error: Error) => console.error(`浏览器加载失败：${error.message}`))
+  else if (url) {
+    tab.url = normalizeBrowserAddress(url)
+    const contents = browserTabContents(tab)
+    if (contents !== undefined) void contents.loadURL(tab.url).catch((error: Error) => console.error(`浏览器加载失败：${error.message}`))
+  }
   activeBrowserTabId = tab.id
   relayout()
   focusActiveBrowserTab()
@@ -582,7 +646,7 @@ function openBrowser(url?: string, newTab = false): BrowserTab {
 function focusActiveBrowserTab(): void {
   // 面板可见时把键盘焦点交给页面，用户无需先点一下才能打字（L-3）
   if (!browserVisible) return
-  const contents = getActiveBrowserTab()?.view.webContents
+  const contents = browserTabContents(getActiveBrowserTab())
   if (contents !== undefined && !contents.isDestroyed()) contents.focus()
 }
 
@@ -591,7 +655,8 @@ function createHomepageTabs(): void {
 }
 
 function openHomepageGroup(): void {
-  browserPanelRequested = true // 外壳菜单"主页"也是显式要看浏览器
+  // 完整版浏览器：首页组在内置浏览器打开（默认 DeepSeek）。
+  browserPanelRequested = true
   if (dshSettingsDialogVisible) exitDshSettingsPage()
   browserVisible = true
   const homepages = configuredBrowserHomepages()
@@ -601,7 +666,8 @@ function openHomepageGroup(): void {
   } else {
     firstTab.url = homepages[0]
     firstTab.title = homepages[0]
-    void firstTab.view.webContents.loadURL(homepages[0]).catch(() => undefined)
+    const contents = browserTabContents(firstTab)
+    if (contents !== undefined) void contents.loadURL(homepages[0]).catch(() => undefined)
   }
   activeBrowserTabId = firstTab.id
   const homepageTabs = new Set<string>([firstTab.id])
@@ -615,19 +681,44 @@ function openHomepageGroup(): void {
 }
 
 function restoreBrowserWorkspace(): void {
-  // Start with the workspace closed; the visible shell control opens it explicitly.
+  // Restore the data, not visibility: the card claims its own display lease.
   browserVisible = false
+  if (!browserWorkspaceRestored) {
+    browserWorkspaceRestored = true
+    const saved = loadBrowserWorkspace()
+    if (saved !== null) {
+      if (typeof saved.browserWidthRatio === 'number' && saved.browserWidthRatio >= 0.2 && saved.browserWidthRatio <= 0.55) {
+        browserWidthRatio = saved.browserWidthRatio
+      }
+      const sessions = normalizeSavedBrowserSessions(saved.sessions)
+      browserTabsBySession.clear()
+      browserActiveTabBySession.clear()
+      for (const [sessionId, bucket] of sessions) {
+        browserTabsBySession.set(sessionId, bucket.tabs.map(tab => ({ ...tab, favicon: '', crashed: false })))
+        browserActiveTabBySession.set(sessionId, bucket.activeTabId)
+      }
+      if (browserSessionName === undefined && typeof saved.activeSessionName === 'string' && sessions.has(saved.activeSessionName)) {
+        browserSessionName = saved.activeSessionName
+      }
+      const active = browserSessionName === undefined ? undefined : sessions.get(browserSessionName)
+      const restoredTabs = active?.tabs ?? (sessions.size === 0 ? normalizeSavedBrowserTabs(saved.tabs) : [])
+      browserTabs.splice(0, browserTabs.length, ...restoredTabs.map(tab => ({ ...tab, favicon: '', crashed: false })))
+      const requestedActive = active?.activeTabId ?? (typeof saved.activeTabId === 'string' ? saved.activeTabId : null)
+      activeBrowserTabId = browserTabs.some(tab => tab.id === requestedActive) ? requestedActive : browserTabs[0]?.id ?? null
+    }
+  }
   relayout()
   broadcastShellState()
 }
 
 function browserShellState(): BrowserShellState {
   const active = getActiveBrowserTab()
-  const contents = active?.view.webContents
+  const contents = browserTabContents(active)
   const library = browserData().publicSnapshot()
   return {
     visible: browserVisible,
     tabs: browserTabs.map((tab): BrowserTabState => ({ id: tab.id, title: tab.title, url: tab.url, favicon: tab.favicon, crashed: tab.crashed })),
+    retainedTabIds: [...new Set([...browserTabs.map(tab => tab.id), ...[...browserTabsBySession.values()].flatMap(tabs => tabs.map(tab => tab.id))])],
     activeId: activeBrowserTabId,
     canBack: contents?.navigationHistory.canGoBack() ?? false,
     canForward: contents?.navigationHistory.canGoForward() ?? false,
@@ -817,6 +908,9 @@ async function shutdownDesktop(exit: () => void): Promise<void> {
 async function startApplication(): Promise<void> {
   startDesktopActivationHeartbeat()
   await app.whenReady()
+  // 清扫上一代残留的孤儿 DSH 服务进程（死占端口会让本代桥接失败、主视图黑屏）。
+  // 必须在启动任何 harness/桥接之前执行；失败静默（清扫只是自愈手段，不阻断启动）。
+  void sweepOrphanDshProcesses()
   ensureWindowsNotificationIdentity()
   installWindowsNotificationActivationHandler()
   notificationPreferences = await loadNotificationPreferences(notificationPreferencesPath())
@@ -1208,19 +1302,76 @@ function reportSeedProgress(progress: StartupProgress): void {
 
 let allowedOrigin = ''
 
+/**
+ * DSH keeps long-lived client requests open during boot. Electron's loadURL()
+ * promise can therefore remain pending even after the authenticated document
+ * has reached DOM-ready, which would hold the desktop activation lease until
+ * it eventually rejects as ERR_FAILED. DOM-ready is the useful boundary for
+ * the shell: the main same-origin document exists and can be rendered.
+ */
+async function loadDshDocument(view: WebContentsView, serverUrl: string): Promise<void> {
+  const domReady = new Promise<void>((resolvePromise, rejectPromise) => {
+    const timeout = setTimeout(() => {
+      cleanup()
+      rejectPromise(new Error('DSH 主文档 DOM 就绪超时。'))
+    }, 120_000)
+    const cleanup = (): void => {
+      clearTimeout(timeout)
+      view.webContents.removeListener('dom-ready', onDomReady)
+      view.webContents.removeListener('did-fail-load', onFail)
+    }
+    const onDomReady = (): void => {
+      const currentUrl = view.webContents.getURL()
+      if (!isSameOrigin(currentUrl, allowedOrigin)) return
+      cleanup()
+      resolvePromise()
+    }
+    const onFail = (_event: Electron.Event, code: number, description: string, failedUrl: string, isMainFrame: boolean): void => {
+      if (!isMainFrame || !isSameOrigin(failedUrl, allowedOrigin)) return
+      cleanup()
+      rejectPromise(new Error(`${description} (${code}) loading '${failedUrl}'`))
+    }
+    view.webContents.on('dom-ready', onDomReady)
+    view.webContents.on('did-fail-load', onFail)
+  })
+  const load = view.webContents.loadURL(serverUrl).then(
+    () => ({ kind: 'loaded' as const }),
+    error => ({ kind: 'failed' as const, error }),
+  )
+  const outcome = await Promise.race([
+    load,
+    domReady.then(() => ({ kind: 'dom-ready' as const })),
+  ])
+  if (outcome.kind === 'failed') throw outcome.error
+}
+
 async function createMainWindow(serverUrl: string): Promise<void> {
   allowedOrigin = new URL(serverUrl).origin
   mainWindow ??= createWindow()
   configureBrowserSession()
   const view = requireDshView()
   await clearStaleDshAuthCookies(view.webContents.session.cookies, serverUrl)
-  await windowNavigation.navigate(view, () => view.webContents.loadURL(serverUrl))
+  await windowNavigation.navigate(view, () => loadDshDocument(view, serverUrl))
   await applyDshDesktopTheme(view)
   // 仅在首次启动（标签页为空）时恢复浏览器工作区；插件热更新回收时保留现有标签页
   if (browserTabs.length === 0) {
     restoreBrowserWorkspace()
   } else {
     relayout()
+  }
+  // 补丁 1：renderer 生命周期撤销 —— 导航/重载/崩溃/销毁 ⇒ **立即**撤销并作废页面实例令牌。
+  // 比心跳 TTL 强：页面重载本身已说明原 renderer 生命周期结束，不必再等最多 4 秒。
+  if (!dshLifecycleHooked) {
+    dshLifecycleHooked = true
+    view.webContents.on('did-navigate', () => onRendererLifecycle('navigate'))
+    view.webContents.on('did-finish-load', () => onRendererLifecycle('load'))
+    view.webContents.on('render-process-gone', () => onRendererLifecycle('gone'))
+    view.webContents.on('destroyed', () => onRendererLifecycle('destroyed'))
+    // 卡死但没崩（Codex 第三轮 P1）：别等 4 秒 TTL，立刻撤销
+    view.webContents.on('unresponsive', () => onRendererLifecycle('unresponsive'))
+    // 窗口最小化/隐藏：主进程自己就知道，不必等页面心跳（同样别留残影）
+    mainWindow?.on('minimize', () => onRendererLifecycle('window-minimize'))
+    mainWindow?.on('hide', () => onRendererLifecycle('window-hide'))
   }
   broadcastShellState()
 }
@@ -1409,6 +1560,36 @@ function publishBrowserPanelMaxWidth(panelWidthDip: number): void {
     .catch(() => { browserPanelMaxCss = -1 })
 }
 
+/** 页面侧**唯一**的布局尺子（2026-09-16 用户要求「全局统一、自适应，不然以后都要一个一个改」）。
+ *
+ *  此前每个自适应点各自为政：页面 CSS 用 `@media (max-width:1100px)`、外壳用 `shouldHideBrowserPanel()`、
+ *  插件用 JS 量到像素再写变量 —— 三把尺子必然漂移（2026-09-14 实机「280px 浏览器 + 右边一片白」即此）。
+ *  现在由外壳在**一次 layout 里算一次**，整体下发：
+ *  - `--dsh-app-width` / `--dsh-app-height`：DSH 视图可用 CSS px（已按缩放折算）
+ *  - `--dsh-app-zoom`：当前网页缩放因子
+ *  - `data-dsh-compact`：面板是否让位（= `shouldHideBrowserPanel()` 的唯一判定结果）
+ *  页面与插件一律**只读**这些值（CSS 变量 + 属性选择器 / 容器查询），不得再用窗口宽度自行判断。
+ *  未变化不下发（沿用 browserPanelMaxCss 的缓存思路，避免每次 resize 都多走一次 IPC）。 */
+function publishLayoutContext(widthDip: number, heightDip: number, panelYields: boolean): void {
+  if (dshView === undefined || dshView.webContents.isDestroyed()) return
+  const zoom = dshView.webContents.getZoomFactor()
+  const cssWidth = Math.round(widthDip / zoom)
+  const cssHeight = Math.round(heightDip / zoom)
+  const compact = panelYields ? '1' : '0'
+  const key = `${cssWidth}x${cssHeight}@${zoom}|${compact}`
+  if (key === layoutContextKey) return
+  layoutContextKey = key
+  const script = `(() => {
+    const root = document.documentElement
+    root.style.setProperty('--dsh-app-width', '${cssWidth}px')
+    root.style.setProperty('--dsh-app-height', '${cssHeight}px')
+    root.style.setProperty('--dsh-app-zoom', '${zoom}')
+    if (root.dataset.dshCompact !== '${compact}') root.dataset.dshCompact = '${compact}'
+    window.dispatchEvent(new Event('dsh:layout-context'))
+  })()`
+  void dshView.webContents.executeJavaScript(script, true).catch(() => { layoutContextKey = '' })
+}
+
 /** 网页缩放一变，两个依赖它的东西都要重算：① 下发到页面的 CSS px 宽度上限（同一 DIP 在不同缩放下
  *  对应不同 CSS px）② 窄视口隐藏面板的判定（阈值按 CSS px 比较）。
  *  外壳自己的缩放动作走的是**程序化** `setZoomFactor`，**不会**触发 webContents 的 `zoom-changed`，
@@ -1419,12 +1600,96 @@ function syncBrowserPanelForZoom(): void {
   if (mainWindow !== undefined) layoutDshView(mainWindow)
 }
 
+/**
+ * 撤销浏览器面板：清 owner/bounds；网页 guest 由卡片停放。
+ * 会话切换、页面报告卡片不再可见、心跳超时（页面重载/崩溃）都收敛到这里 —— 由主进程单方执行，
+ * 页面只提供它能看到的事实（卡片可见性），不反向改主进程状态。
+ */
+function revokeBrowserPanel(reason: string): void {
+  const hadOwner = browserPanelOwner !== undefined
+  const hadPanel = hadOwner || browserPanelBounds !== undefined || browserVisible
+  browserPanelOwner = undefined
+  browserPanelBounds = undefined
+  browserPanelRawVisible = false
+  browserPanelOccluded = false
+  browserManagerOpen = false
+  browserMenuOpen = false
+  browserDownloadsOpen = false
+  // 只有卡片内嵌（曾有 owner）的撤销才关掉工作区可见性。
+  // shell 工作区（openBrowser / 外链，无 owner）不因「页面没有浏览器卡片」或 DSH 导航而关闭。
+  if (hadOwner && browserVisible) browserVisible = false
+  if (!hadPanel) return
+  console.log(`[browser-panel] revoke: ${reason}`)
+  if (mainWindow !== undefined) relayout()
+  scheduleBrowserWorkspaceSave()
+}
+
+/**
+ * 切换"当前会话"的标签桶（补丁 2：浏览器跟着会话走）。
+ * 现场换数组内容而不是换引用 —— 全文件有 150+ 处读 `browserTabs`，原地替换让它们全部继续有效。
+ * 标签视图常驻窗口（`addChildView` 只在创建/关闭时发生），所以切换只需改可见性 + 活动标签。
+ */
+function swapBrowserTabsForSession(nextSession: string | undefined): void {
+  const nextName = nextSession === undefined || nextSession === '' ? undefined : nextSession
+  if (nextName === browserSessionName) return
+  // 🔴 首次收到会话信号（重启后 `browserSessionName` 还是 undefined）时**认领**现有标签，
+  //    绝不能清空重建 —— 2026-09-21 实测：首次换桶把恢复出来的标签丢掉，浏览器看着像"打不开"。
+  if (browserSessionName === undefined) {
+    browserSessionName = nextName
+    if (nextName !== undefined) {
+      const restored = browserTabsBySession.get(nextName)
+      if (restored !== undefined) {
+        browserTabs.splice(0, browserTabs.length, ...restored)
+        const savedActive = browserActiveTabBySession.get(nextName)
+        activeBrowserTabId = browserTabs.some(tab => tab.id === savedActive) ? savedActive ?? null : browserTabs[0]?.id ?? null
+      } else if (browserTabs.length > 0) {
+        browserTabsBySession.set(nextName, [...browserTabs])
+        browserActiveTabBySession.set(nextName, activeBrowserTabId)
+      }
+    }
+    if (mainWindow !== undefined) relayout()
+    return
+  }
+  if (browserSessionName !== undefined) {
+    browserTabsBySession.set(browserSessionName, [...browserTabs])
+    browserActiveTabBySession.set(browserSessionName, activeBrowserTabId)
+  }
+  const stash = nextName === undefined ? undefined : browserTabsBySession.get(nextName)
+  browserTabs.length = 0
+  if (stash !== undefined) browserTabs.push(...stash)
+  const savedActive = nextName === undefined ? null : browserActiveTabBySession.get(nextName)
+  activeBrowserTabId = browserTabs.some(tab => tab.id === savedActive) ? savedActive ?? null : browserTabs[0]?.id ?? null
+  browserSessionName = nextName
+  if (mainWindow !== undefined) relayout()
+  scheduleBrowserWorkspaceSave()
+  console.log(`[browser-panel] session tabs: ${nextName ?? '(default)'} → ${browserTabs.length} 个标签`)
+}
+
+/** 活动会话变化：先撤销面板（旧会话的 visible 绝不带进新会话），再换标签桶。 */
+function onActiveSessionChanged(nextSession: string | undefined): void {
+  if (nextSession === undefined || nextSession === browserSessionName) return
+  // 卡片内嵌：切会话必须撤销（旧会话的 visible 绝不带进新会话）。
+  // shell 工作区只换标签桶，不关浏览器（否则点开链接后一切会话就没了）。
+  if (browserPanelOwner !== undefined) revokeBrowserPanel('session-switch')
+  swapBrowserTabsForSession(nextSession)
+}
+
+/**
+ * renderer 生命周期撤销（补丁 1）：页面导航 / 重载 / renderer 崩溃 / 销毁 ⇒ **立即**撤销并作废页面令牌。
+ * 比心跳 TTL 更强：页面重载本身已说明原 renderer 生命周期结束，不必再等几秒判断它是不是死了。
+ */
+function onRendererLifecycle(reason: string): void {
+  browserPanelPageToken = undefined
+  browserPanelCardState = undefined
+  browserPanelSignalAt = 0
+  // 仅卡片内嵌跟着 DSH 页面生命周期撤销；shell 工作区是外壳自己的面板，导航/重载不关它。
+  if (browserPanelOwner !== undefined) revokeBrowserPanel(`renderer-${reason}`)
+}
+
 function layoutDshView(window: BrowserWindow): void {
   const bounds = window.getContentBounds()
   if (mainWindowContentSuppressed) {
     dshView?.setVisible(false)
-    browserPanelView?.setVisible(false)
-    for (const tab of browserTabs) tab.view.setVisible(false)
     broadcastShellState()
     return
   }
@@ -1433,29 +1698,18 @@ function layoutDshView(window: BrowserWindow): void {
     return
   }
   const dshHeight = Math.max(0, bounds.height - SHELL_BAR_HEIGHT)
-  const panel = browserWorkspacePanelBounds(bounds.width, dshHeight)
   // 下发**钳后**的上限：变量是页面侧唯一的宽度依据，必须与外壳真正执行的钳制同值
   // （以前下发的是未钳的面板比例宽度 → 等于空操作，页面照旧按自己的上限撑开 → 白带）。
-  publishBrowserPanelMaxWidth(capBrowserWorkspacePanelWidth(bounds.width, panel.width))
+  // A parent layout limit must not depend on its inset browser child width.
+  publishBrowserPanelMaxWidth(capBrowserWorkspacePanelWidth(bounds.width, bounds.width))
   // 页面在窄视口会把整块面板隐藏（theme.css 的 @media max-width:1100px：面板先让位、对话独占）。
   // 外壳必须用**同一把尺子**一起收手，否则会出现「一条 280px 的浏览器 + 右边一片白」：
   // 面板已被页面隐藏，原生视图却还在按最小宽度画（2026-09-14 实机截图实证）。阈值按 CSS px 比较。
   const panelHiddenByViewport = shouldHideBrowserPanel(bounds.width, dshView?.webContents.getZoomFactor() ?? 1)
-  const settingsYields = dshSettingsDialogVisible && !browserPanelRequested
-  const visible = !panelHiddenByViewport && browserVisible && !browserPanelOccluded && !settingsYields
-    && (browserPanelOwner === undefined || browserPanelBounds !== undefined)
+  // 同一把尺子下发页面：宽度/高度/缩放 + 面板让位状态（页面与插件只读，不再各自判断）
+  publishLayoutContext(bounds.width, dshHeight, panelHiddenByViewport)
   dshView?.setVisible(true)
   dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: bounds.width, height: dshHeight })
-  browserPanelView?.setVisible(visible)
-  if (visible) browserPanelView?.setBounds({ x: panel.x, y: panel.y + SHELL_BAR_HEIGHT, width: panel.width, height: panel.height })
-  const pageTop = resolveBrowserPageTop(browserTabs.length, BROWSER_TABS_BAR_HEIGHT, BROWSER_NAV_BAR_HEIGHT)
-  const drawer = resolveBrowserDownloadsDrawerHeight(browserDownloadsOpen, browserDownloads.length, panel.height)
-  const pageHeight = Math.max(0, panel.height - pageTop - drawer)
-  for (const tab of browserTabs) {
-    const show = visible && tab.id === activeBrowserTabId && !browserManagerOpen && !browserMenuOpen && pageHeight > 0
-    tab.view.setVisible(show)
-    if (show) tab.view.setBounds({ x: panel.x, y: panel.y + SHELL_BAR_HEIGHT + pageTop, width: panel.width, height: pageHeight })
-  }
   broadcastShellState()
 }
 
@@ -1467,8 +1721,6 @@ function setMainWindowContentVisible(window: BrowserWindow, visible: boolean): v
   }
   mainWindowContentSuppressed = true
   dshView?.setVisible(false)
-  browserPanelView?.setVisible(false)
-  for (const tab of browserTabs) tab.view.setVisible(false)
 }
 
 function installWindowSurfaceGuard(window: BrowserWindow): void {
@@ -1555,7 +1807,7 @@ function browserWorkspacePanelBounds(viewportWidth: number, viewportHeight: numb
 
 async function captureBrowserPanelSnapshot(): Promise<BrowserPanelSnapshot | null> {
   const window = mainWindow
-  const chrome = browserPanelView?.webContents
+  const chrome = browserChromeContents()
   if (window === undefined || chrome === undefined || chrome.isDestroyed() || !browserVisible || browserPanelOccluded) return null
   const content = window.getContentBounds()
   const dshHeight = Math.max(0, content.height - SHELL_BAR_HEIGHT)
@@ -1563,7 +1815,7 @@ async function captureBrowserPanelSnapshot(): Promise<BrowserPanelSnapshot | nul
   const pageTop = resolveBrowserPageTop(browserTabs.length, BROWSER_TABS_BAR_HEIGHT, BROWSER_NAV_BAR_HEIGHT)
   const drawerHeight = resolveBrowserDownloadsDrawerHeight(browserDownloadsOpen, browserDownloads.length, panel.height)
   const pageHeight = Math.max(0, panel.height - pageTop - drawerHeight)
-  const active = getActiveBrowserTab()?.view.webContents
+  const active = browserTabContents(getActiveBrowserTab())
   try {
     const [chromeImage, pageImage] = await Promise.all([
       chrome.capturePage(),
@@ -1584,22 +1836,72 @@ async function captureBrowserPanelSnapshot(): Promise<BrowserPanelSnapshot | nul
 }
 
 async function captureBrowserMenuPageSnapshot(): Promise<BrowserPageSnapshot | null> {
-  const window = mainWindow
-  if (window === undefined || window.isDestroyed() || !browserVisible || browserPanelOccluded || browserManagerOpen || browserMenuOpen) return null
-  const content = window.getContentBounds()
-  const dshHeight = Math.max(0, content.height - SHELL_BAR_HEIGHT)
-  const panel = browserWorkspacePanelBounds(content.width, dshHeight)
-  const pageTop = resolveBrowserPageTop(browserTabs.length, BROWSER_TABS_BAR_HEIGHT, BROWSER_NAV_BAR_HEIGHT)
-  const drawerHeight = resolveBrowserDownloadsDrawerHeight(browserDownloadsOpen, browserDownloads.length, panel.height)
-  const pageHeight = Math.max(0, panel.height - pageTop - drawerHeight)
-  const page = getActiveBrowserTab()?.view.webContents
-  if (page === undefined || page.isDestroyed() || pageHeight === 0) return null
+  if (!browserVisible || browserPanelOccluded || browserManagerOpen || browserMenuOpen) return null
+  let captured: Awaited<ReturnType<typeof captureEmbeddedBrowserPage>> = null
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    // Freshly restored guests can report a non-empty but all-white image
+    // before Chromium has painted their first frame. Do not freeze that frame
+    // behind the overflow menu.
+    getActiveBrowserTab()?.guest?.invalidate()
+    if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 100))
+    captured = await captureEmbeddedBrowserPage(1)
+    if (captured !== null && !isBlankLightBrowserImage(captured.image)) break
+    captured = null
+  }
+  return captured === null ? null : {
+    pageDataUrl: captured.image.toDataURL(),
+    pageTop: captured.pageTop,
+    pageHeight: captured.pageHeight,
+  }
+}
+
+function isBlankLightBrowserImage(image: Electron.NativeImage): boolean {
+  if (image.isEmpty()) return true
+  const pixels = image.toBitmap()
+  if (pixels.length < 4) return true
+  for (let offset = 0; offset + 2 < pixels.length; offset += 64) {
+    if (pixels[offset] < 245 || pixels[offset + 1] < 245 || pixels[offset + 2] < 245) return false
+  }
+  return true
+}
+
+async function captureEmbeddedBrowserPage(attempts: number): Promise<{ image: Electron.NativeImage; pageTop: number; pageHeight: number } | null> {
+  const host = dshView?.webContents
+  if (host === undefined || host.isDestroyed()) return null
   try {
-    const image = await page.capturePage()
-    if (image.isEmpty()) return null
-    return { pageDataUrl: image.toDataURL(), pageTop, pageHeight }
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const geometry = await host.executeJavaScript(`(() => {
+        const root = document.querySelector('[data-embedded-browser-root]');
+        const pages = root?.querySelector('[data-embedded-browser-pages]');
+        if (!root || !pages || getComputedStyle(root).visibility !== 'visible' || getComputedStyle(pages).visibility !== 'visible') return null;
+        const active = [...pages.children].find(node => node.tagName === 'WEBVIEW' && getComputedStyle(node).visibility === 'visible');
+        if (!active) return null;
+        const outer = root.getBoundingClientRect();
+        const rect = pages.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, pageTop: rect.y - outer.y };
+      })()`, true) as { x: number; y: number; width: number; height: number; pageTop: number } | null
+      if (geometry !== null && Object.values(geometry).every(Number.isFinite) && geometry.width > 0 && geometry.height > 0) {
+        const zoom = host.getZoomFactor()
+        const rect = {
+          x: Math.max(0, Math.round(geometry.x * zoom)),
+          y: Math.max(0, Math.round(geometry.y * zoom)),
+          width: Math.max(1, Math.round(geometry.width * zoom)),
+          height: Math.max(1, Math.round(geometry.height * zoom)),
+        }
+        // Capture the actual page guest first. Capturing the host can return a
+        // stale/dark compositor surface for a nested webview even while the
+        // same page is visibly rendered in the card.
+        const guest = getActiveBrowserTab()?.guest
+        const image = guest !== undefined && !guest.isDestroyed()
+          ? await guest.capturePage()
+          : await host.capturePage(rect)
+        if (!image.isEmpty()) return { image, pageTop: geometry.pageTop, pageHeight: geometry.height }
+      }
+      if (attempt + 1 < attempts) await new Promise(resolve => setTimeout(resolve, 50))
+    }
+    return null
   } catch (error) {
-    console.warn(`浏览器菜单网页快照生成失败：${error instanceof Error ? error.message : String(error)}`)
+    console.warn(`浏览器卡片网页截图失败：${error instanceof Error ? error.message : String(error)}`)
     return null
   }
 }
@@ -1634,25 +1936,52 @@ function createWindow(): BrowserWindow {
     partition: DSH_PARTITION,
     preload: resolvePreload('dsh-view-preload.cjs'),
     sandbox: true,
+    webviewTag: true,
   } })
   dshView = view
   window.contentView.addChildView(view)
-  const panelView = new WebContentsView({ webPreferences: {
-    contextIsolation: true,
-    nodeIntegration: false,
-    preload: resolvePreload('browser-panel-preload.cjs'),
-    sandbox: true,
-  } })
-  browserPanelView = panelView
-  window.contentView.addChildView(panelView)
-  panelView.setVisible(false)
+  {
+    const chromeUrl = pathToFileURL(resolveShellAsset('browser-panel.html')).href
+    view.webContents.on('will-attach-webview', (event, preferences, params) => {
+      const kind = classifyEmbeddedBrowserGuest(params.src, params.partition, chromeUrl)
+      if (kind === 'reject') { event.preventDefault(); return }
+      preferences.nodeIntegration = false
+      preferences.contextIsolation = true
+      preferences.sandbox = true
+      preferences.webviewTag = false
+      preferences.partition = kind === 'chrome' ? EMBEDDED_BROWSER_CHROME_PARTITION : EMBEDDED_BROWSER_PAGE_PARTITION
+      if (kind === 'chrome') preferences.preload = resolvePreload('browser-panel-preload.cjs')
+      else delete preferences.preload
+    })
+    view.webContents.on('did-attach-webview', (_event, guest) => {
+      embeddedBrowserGuestIds.add(guest.id)
+      guest.on('destroyed', () => {
+        embeddedBrowserGuestIds.delete(guest.id)
+        if (browserPanelGuest === guest) browserPanelGuest = undefined
+        for (const tab of browserTabs) if (tab.guest === guest) tab.guest = undefined
+        broadcastShellState()
+      })
+      guest.setWindowOpenHandler(() => ({ action: 'deny' }))
+      guest.on('will-navigate', (event, url) => {
+        if (guest.session === session.fromPartition(EMBEDDED_BROWSER_PAGE_PARTITION) && !isAllowedBrowserUrl(url)) event.preventDefault()
+        if (guest.session === session.fromPartition(EMBEDDED_BROWSER_CHROME_PARTITION) && url !== chromeUrl) event.preventDefault()
+      })
+      if (guest.session === session.fromPartition(EMBEDDED_BROWSER_CHROME_PARTITION)) {
+        browserPanelGuest = guest
+        guest.on('dom-ready', () => {
+          guest.send(SHELL_IPC.bootstrap, shellBootstrap(currentShellState()))
+          guest.send(SHELL_IPC.state, currentShellState())
+        })
+        installShortcutHandler(guest)
+      }
+    })
+  }
   installWindowSurfaceGuard(window)
   layoutDshView(window)
   window.on('resize', () => layoutDshView(window))
   window.on('maximize', () => layoutDshView(window))
   window.on('unmaximize', () => layoutDshView(window))
   runMainTask(window.loadFile(resolveShellAsset('shell.html'), { query: desktopThemeQuery() }))
-  runMainTask(panelView.webContents.loadFile(resolveShellAsset('browser-panel.html'), { query: desktopThemeQuery() }))
 
   view.webContents.setWindowOpenHandler(({ url }) => {
     routeDshExternalLink(url)
@@ -1665,17 +1994,24 @@ function createWindow(): BrowserWindow {
     // Share this document's insertion with the initial startup readiness check.
     dshDocumentThemeLoads.delete(view)
     runMainTask(applyDshDesktopTheme(view))
+    // 布局尺子必须跟着文档走：每次（重）加载都是全新 document，之前下发的
+    // `--dsh-app-*` / `data-dsh-compact` 随旧文档一起消失；而外壳只在 layout 事件里下发，
+    // 首帧又早于页面就绪 ⇒ 不在这里补一次，页面永远拿不到尺子（2026-09-16 实测量到空值）。
+    layoutContextKey = ''
+    if (mainWindow !== undefined) layoutDshView(mainWindow)
   })
   view.webContents.on('will-navigate', (event, url) => {
-    if (windowNavigation.isNavigating()) {
-      event.preventDefault()
-      return
-    }
+    // `WindowNavigationCoordinator` marks a controlled `loadURL()` as active
+    // before Electron emits `will-navigate`. Let the coordinator own that
+    // navigation; otherwise Electron can self-cancel the startup load as
+    // ERR_FAILED before the origin check is even useful.
+    if (windowNavigation.isNavigating()) return
     if (isSameOrigin(url, allowedOrigin)) return
     event.preventDefault()
     routeDshExternalLink(url)
   })
   view.webContents.on('will-redirect', (event, url) => {
+    if (windowNavigation.isNavigating()) return
     if (isSameOrigin(url, allowedOrigin)) return
     event.preventDefault()
     routeDshExternalLink(url)
@@ -1684,7 +2020,6 @@ function createWindow(): BrowserWindow {
   view.webContents.on('zoom-changed', () => syncBrowserPanelForZoom())
   installShortcutHandler(window.webContents)
   installShortcutHandler(view.webContents)
-  installShortcutHandler(panelView.webContents)
   applyInitialWindowState(window)
   window.on('enter-full-screen', broadcastShellState)
   window.on('leave-full-screen', broadcastShellState)
@@ -1698,7 +2033,8 @@ function createWindow(): BrowserWindow {
     if (mainWindow === window) {
       mainWindow = undefined
       dshView = undefined
-      browserPanelView = undefined
+      browserPanelGuest = undefined
+      embeddedBrowserGuestIds.clear()
       mainWindowContentSuppressed = false
       mainWindowLayoutDeferred = false
       browserPanelBounds = undefined
@@ -1766,9 +2102,7 @@ function broadcastShellBootstrap(): void {
   for (const window of [mainWindow, shortcutsWindow, aboutWindow, featurePanelsWindow, settingsWindow]) {
     if (window !== undefined && !window.isDestroyed()) window.webContents.send(SHELL_IPC.bootstrap, bootstrap)
   }
-  if (browserPanelView !== undefined && !browserPanelView.webContents.isDestroyed()) {
-    browserPanelView.webContents.send(SHELL_IPC.bootstrap, shellBootstrap(state))
-  }
+  browserChromeContents()?.send(SHELL_IPC.bootstrap, shellBootstrap(state))
   sendDesktopThemeToDsh()
 }
 
@@ -1830,8 +2164,9 @@ function broadcastShellState(): void {
   for (const window of [mainWindow, shortcutsWindow, aboutWindow, featurePanelsWindow, settingsWindow]) {
     if (window !== undefined && !window.isDestroyed()) window.webContents.send(SHELL_IPC.state, hiddenBrowserState)
   }
-  if (browserPanelView !== undefined && !browserPanelView.webContents.isDestroyed()) {
-    browserPanelView.webContents.send(SHELL_IPC.state, state)
+  browserChromeContents()?.send(SHELL_IPC.state, state)
+  if (dshView !== undefined && !dshView.webContents.isDestroyed()) {
+    dshView.webContents.send(SHELL_IPC.browserEmbeddedState, state.browser)
   }
 }
 
@@ -1896,6 +2231,33 @@ function setDesktopUpdateStatus(status: DesktopUpdateStatus, checked = false): v
 }
 
 function installShellIpc(): void {
+  ipcMain.removeHandler(SHELL_IPC.browserEmbeddedConfig)
+  ipcMain.removeHandler(SHELL_IPC.browserEmbeddedGuestAttached)
+  ipcMain.handle(SHELL_IPC.browserEmbeddedConfig, event => {
+    if (!mayManageBrowserPanel(shellRendererKind(event.sender))) return { enabled: false }
+    return {
+      enabled: true,
+      chromeUrl: pathToFileURL(resolveShellAsset('browser-panel.html')).href,
+      chromePartition: EMBEDDED_BROWSER_CHROME_PARTITION,
+      pagePartition: EMBEDDED_BROWSER_PAGE_PARTITION,
+      browser: browserShellState(),
+    }
+  })
+  ipcMain.handle(SHELL_IPC.browserEmbeddedGuestAttached, (event, tabId: unknown, guestId: unknown) => {
+    if (!mayManageBrowserPanel(shellRendererKind(event.sender))) return false
+    if (typeof tabId !== 'string' || typeof guestId !== 'number' || !Number.isSafeInteger(guestId)) return false
+    const tab = browserTabs.find(candidate => candidate.id === tabId)
+    const guest = embeddedBrowserGuestIds.has(guestId) ? webContents.fromId(guestId) : undefined
+    if (tab === undefined || guest === undefined || guest.isDestroyed() || guest.session !== session.fromPartition(BROWSER_PARTITION)) return false
+    if (tab.guest === guest) return true
+    if (tab.guest !== undefined || browserTabs.some(candidate => candidate !== tab && candidate.guest === guest)) return false
+    tab.guest = guest
+    bindBrowserTabContents(tab, guest)
+    if (guest.getURL() !== tab.url) void guest.loadURL(tab.url).catch(error => console.error(`浏览器加载失败：${error.message}`))
+    else updateBrowserTabFromContents(tab)
+    broadcastShellState()
+    return true
+  })
   ipcMain.removeHandler(SHELL_IPC.getBootstrap)
   ipcMain.removeHandler(SHELL_IPC.action)
   ipcMain.removeHandler(SHELL_IPC.popupMenu)
@@ -2000,7 +2362,7 @@ function installShellIpc(): void {
     // The shell may open/close the workspace; privileged browser operations stay in its own renderer.
     if (kind !== 'main' && !mayInvokeBrowserIpc(kind)) return
     browserVisible = !browserVisible
-    if (browserVisible && getActiveBrowserTab() === null) activeBrowserTabId = createBrowserTab(primaryBrowserHomepage()).id
+    if (browserVisible && getActiveBrowserTab() === null) openBrowser(primaryBrowserHomepage())
     if (!browserVisible) {
       browserManagerOpen = false
       browserMenuOpen = false
@@ -2040,24 +2402,32 @@ function installShellIpc(): void {
     if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
     if (typeof value !== 'string' || value.trim() === '') return
     const tab = getActiveBrowserTab()
-    if (tab !== null) void tab.view.webContents.loadURL(normalizeBrowserAddress(value)).catch((error: Error) => console.error(`浏览器加载失败：${error.message}`))
+    if (tab !== null) {
+      tab.url = normalizeBrowserAddress(value)
+      const contents = browserTabContents(tab)
+      if (contents !== undefined) void contents.loadURL(tab.url).catch((error: Error) => console.error(`浏览器加载失败：${error.message}`))
+      // Persist the accepted address immediately. A webview guest may not emit
+      // the same navigation callbacks as the former WebContentsView path.
+      scheduleBrowserWorkspaceSave()
+      broadcastShellState()
+    }
   })
   ipcMain.removeHandler(SHELL_IPC.browserBack)
   ipcMain.handle(SHELL_IPC.browserBack, event => {
     if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
-    const contents = getActiveBrowserTab()?.view.webContents
+    const contents = browserTabContents(getActiveBrowserTab())
     if (contents !== undefined && !contents.isDestroyed() && contents.navigationHistory.canGoBack()) contents.navigationHistory.goBack()
   })
   ipcMain.removeHandler(SHELL_IPC.browserForward)
   ipcMain.handle(SHELL_IPC.browserForward, event => {
     if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
-    const contents = getActiveBrowserTab()?.view.webContents
+    const contents = browserTabContents(getActiveBrowserTab())
     if (contents !== undefined && !contents.isDestroyed() && contents.navigationHistory.canGoForward()) contents.navigationHistory.goForward()
   })
   ipcMain.removeHandler(SHELL_IPC.browserReload)
   ipcMain.handle(SHELL_IPC.browserReload, event => {
     if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
-    const contents = getActiveBrowserTab()?.view.webContents
+    const contents = browserTabContents(getActiveBrowserTab())
     if (contents === undefined || contents.isDestroyed()) return
     if (contents.isLoading()) contents.stop()
     else contents.reload()
@@ -2073,7 +2443,7 @@ function installShellIpc(): void {
   ipcMain.removeHandler(SHELL_IPC.browserPrint)
   ipcMain.handle(SHELL_IPC.browserPrint, event => {
     if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return false
-    const contents = getActiveBrowserTab()?.view.webContents
+    const contents = browserTabContents(getActiveBrowserTab())
     if (contents === undefined || contents.isDestroyed()) return false
     contents.print({ printBackground: true })
     return true
@@ -2081,9 +2451,9 @@ function installShellIpc(): void {
   ipcMain.removeHandler(SHELL_IPC.browserScreenshot)
   ipcMain.handle(SHELL_IPC.browserScreenshot, async event => {
     if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return null
-    const contents = getActiveBrowserTab()?.view.webContents
-    if (contents === undefined || contents.isDestroyed()) return null
-    const image = await contents.capturePage()
+    const captured = await captureEmbeddedBrowserPage(10)
+    if (captured === null || captured.image.isEmpty()) return null
+    const image = captured.image
     const now = new Date()
     const pad = (value: number): string => String(value).padStart(2, '0')
     const fileName = `screenshot-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.png`
@@ -2102,7 +2472,7 @@ function installShellIpc(): void {
     await browserSession.clearStorageData({
       storages: ['cachestorage', 'cookies', 'filesystem', 'indexdb', 'localstorage', 'serviceworkers', 'shadercache'],
     })
-    getActiveBrowserTab()?.view.webContents.reload()
+    browserTabContents(getActiveBrowserTab())?.reload()
     return true
   })
   ipcMain.removeHandler(SHELL_IPC.browserGetLibrary)
@@ -2194,7 +2564,7 @@ function installShellIpc(): void {
   ipcMain.removeHandler(SHELL_IPC.browserFillCredential)
   ipcMain.handle(SHELL_IPC.browserFillCredential, async (event, id: unknown) => {
     if (!mayInvokeBrowserIpc(shellRendererKind(event.sender)) || typeof id !== 'string') return null
-    const contents = getActiveBrowserTab()?.view.webContents
+    const contents = browserTabContents(getActiveBrowserTab())
     if (contents === undefined || contents.isDestroyed()) throw new Error('没有可填充的活动页面。')
     const credential = browserData().credentialSecret(id)
     const pageOrigin = new URL(contents.getURL()).origin
@@ -2211,7 +2581,7 @@ function installShellIpc(): void {
   ipcMain.removeHandler(SHELL_IPC.browserAutofillPage)
   ipcMain.handle(SHELL_IPC.browserAutofillPage, async event => {
     if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return { filled: 0 }
-    const contents = getActiveBrowserTab()?.view.webContents
+    const contents = browserTabContents(getActiveBrowserTab())
     if (contents === undefined || contents.isDestroyed()) return { filled: 0 }
     const payload = JSON.stringify(browserData().publicSnapshot().autofill.slice(0, 500))
     return contents.executeJavaScript(`(() => {
@@ -2243,7 +2613,7 @@ function installShellIpc(): void {
   ipcMain.removeHandler(SHELL_IPC.browserFind)
   ipcMain.handle(SHELL_IPC.browserFind, async (event, text: unknown, options: unknown) => {
     if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return null
-    const contents = getActiveBrowserTab()?.view.webContents
+    const contents = browserTabContents(getActiveBrowserTab())
     const queryText = typeof text === 'string' ? text.slice(0, 500) : ''
     if (contents === undefined || contents.isDestroyed() || queryText === '') return null
     const input = typeof options === 'object' && options !== null ? options as Record<string, unknown> : {}
@@ -2255,13 +2625,13 @@ function installShellIpc(): void {
   ipcMain.removeHandler(SHELL_IPC.browserFindStop)
   ipcMain.handle(SHELL_IPC.browserFindStop, event => {
     if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return
-    const contents = getActiveBrowserTab()?.view.webContents
+    const contents = browserTabContents(getActiveBrowserTab())
     if (contents !== undefined && !contents.isDestroyed()) contents.stopFindInPage('keepSelection')
   })
   ipcMain.removeHandler(SHELL_IPC.browserDevTools)
   ipcMain.handle(SHELL_IPC.browserDevTools, event => {
     if (!mayInvokeBrowserIpc(shellRendererKind(event.sender))) return false
-    const contents = getActiveBrowserTab()?.view.webContents
+    const contents = browserTabContents(getActiveBrowserTab())
     if (contents === undefined || contents.isDestroyed()) return false
     if (contents.isDevToolsOpened()) contents.closeDevTools()
     else contents.openDevTools({ mode: 'detach', activate: true })
@@ -2303,7 +2673,7 @@ function installShellIpc(): void {
     if (action === 'reset') browserPageZoom = 1
     else if (action === 'in') browserPageZoom = Math.min(2, Math.round((browserPageZoom + 0.1) * 10) / 10)
     else if (action === 'out') browserPageZoom = Math.max(0.5, Math.round((browserPageZoom - 0.1) * 10) / 10)
-    for (const tab of browserTabs) applyBrowserPageZoom(tab.view.webContents)
+    for (const tab of browserTabs) applyBrowserPageZoom(browserTabContents(tab))
     broadcastShellState()
     return Math.round(browserPageZoom * 100)
   })
@@ -2367,6 +2737,20 @@ function installShellIpc(): void {
   ipcMain.handle(SHELL_IPC.browserPanelShow, (event, value: unknown) => {
     if (!mayManageBrowserPanel(shellRendererKind(event.sender))) throw new Error('Browser card sender rejected')
     const request = normalizeNativeBrowserRequest(value, allowedOrigin)
+    // 补丁 1：拒绝迟到 IPC —— 旧页面实例（僵尸 renderer / 上一次加载）的 claim 不得重新占住面板。
+    if (!shouldAcceptPageToken(request.pageToken, browserPanelPageToken)) {
+      console.log('[browser-panel] 拒绝迟到 claim（页面实例令牌不匹配）')
+      return { owner: request.owner, stale: true }
+    }
+    if (request.pageToken !== undefined) browserPanelPageToken = request.pageToken
+    // 🔴 只有"当前活动会话"能打开面板（用户 2026-09-21 令「别的会话不要自动给我开面板」）。
+    // 非当前会话的请求**降级为后台开标签**：它的页照样打开（能力不丢），但不抢当前会话的面板与焦点。
+    if (request.sessionId !== undefined && browserSessionName !== undefined && request.sessionId !== browserSessionName) {
+      if (request.url !== undefined) openBrowser(request.url, true)
+      console.log('[browser-panel] 非当前会话的打开请求：只建后台标签，不弹面板')
+      return { owner: request.owner, foreignSession: true, opened: request.url === undefined ? 'none' : 'background' }
+    }
+    if (request.sessionId !== undefined) browserPanelSessionId = request.sessionId
     if (browserPanelOwner !== request.owner) browserPanelBounds = undefined
     browserPanelOwner = request.owner
     browserPanelRequested = true // 显式请求显示面板：压过设置页让位
@@ -2377,15 +2761,26 @@ function installShellIpc(): void {
     browserManagerOpen = false
     browserMenuOpen = false
     browserDownloadsOpen = false
-    if (request.url !== undefined) openBrowser(request.url, true)
-    else if (getActiveBrowserTab() === null) activeBrowserTabId = createBrowserTab(primaryBrowserHomepage()).id
+    // 同一 URL 已在某个标签打开 → 复用它，不新建（用户 2026-09-21 令「有就是用现成的」；一处定源）。
+    // 必要性：better-sidebar 的浏览器标签**每次挂载**都用它的 path 调本接口，而 openBrowser(url, true) 必新建
+    // ⇒ 每次页面重载都会多出一个重复标签（2026-09-21 两轮对照实测：起始恒为 2 → 关到 1 → 重载又回 2）。
+    // 判据与 openHomepageGroup 同源；兼容「原始 URL」与「规范化 URL」两种 tab.url 形态（createBrowserTab 两种都会写）。
+    if (request.url !== undefined) {
+      const target = normalizeBrowserAddress(request.url)
+      const existing = browserTabs.find(tab => tab.url === target || tab.url === request.url)
+      if (existing === undefined) openBrowser(request.url, true)
+      else activateBrowserTab(existing.id)
+    } else if (getActiveBrowserTab() === null) openBrowser(primaryBrowserHomepage())
     relayout()
     scheduleBrowserWorkspaceSave()
     return { owner: request.owner }
   })
   ipcMain.removeHandler(SHELL_IPC.browserPanelHide)
   ipcMain.handle(SHELL_IPC.browserPanelHide, (event, owner: unknown) => {
-    if (!mayManageBrowserPanel(shellRendererKind(event.sender)) || owner !== browserPanelOwner) return
+    if (!mayManageBrowserPanel(shellRendererKind(event.sender))) return
+    // hide(undefined) = 强制收掉（文件预览/编辑器接管右侧时）；hide(owner) = 仅当 owner 仍匹配。
+    // 否则 WebContentsView 永远压在 HTML 预览上 —— 用户报「内置浏览器和移植浏览器打架」。
+    if (owner !== undefined && owner !== null && owner !== browserPanelOwner) return
     browserPanelOwner = undefined
     browserVisible = false
     browserPanelOccluded = false
@@ -2408,13 +2803,68 @@ function installShellIpc(): void {
     browserPanelOccluded = value
     relayout()
   })
+  // 智能体探针通道：在侧边栏浏览器的活动 tab 里执行 JS（2026-09-20 用户令 B 方案）
+  ipcMain.removeHandler(SHELL_IPC.browserPanelExecuteJs)
+  ipcMain.handle(SHELL_IPC.browserPanelExecuteJs, async (event, code: unknown) => {
+    if (!mayManageBrowserPanel(shellRendererKind(event.sender))) return { ok: false, error: 'forbidden' }
+    if (typeof code !== 'string' || code.length > 200_000) return { ok: false, error: 'invalid code' }
+    const tab = getActiveBrowserTab()
+    const contents = browserTabContents(tab)
+    if (contents === undefined) return { ok: false, error: 'no active browser tab' }
+    try {
+      const result = await contents.executeJavaScript(code, true)
+      return { ok: true, result: result === undefined ? null : JSON.parse(JSON.stringify(result)) }
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+  // 标签管理（用户 2026-09-21 令「先查再开、只保留一个」）：列清单 / 激活 / 关闭。
+  // 关标签只有主进程能做：页面视图无 preload（调不到 API），chrome 视图的 closeTab 不在这条通道内。
+  ipcMain.removeHandler(SHELL_IPC.browserPanelTabs)
+  ipcMain.handle(SHELL_IPC.browserPanelTabs, (event, value: unknown) => {
+    if (!mayManageBrowserPanel(shellRendererKind(event.sender))) return { ok: false, error: 'forbidden' }
+    const request = (value ?? {}) as { action?: unknown; id?: unknown }
+    const action = typeof request.action === 'string' ? request.action : 'list'
+    const listing = () => browserTabs.map(tab => ({ id: tab.id, title: tab.title, url: tab.url, active: tab.id === activeBrowserTabId }))
+    // 补丁 3：把"当前 owner + 面板是否真的可见 + 所属会话"回给页面。有了它，页面可以在**收起瞬间**
+    // 直接调 hide(owner) 立刻收掉原生层（≈ACK 效果），而不必依赖卡片在被隐藏时仍上报 bounds。
+    const panelState = () => ({
+      owner: browserPanelOwner ?? null,
+      visible: browserVisible && browserPanelOwner !== undefined,
+      cardState: browserPanelCardState ?? null,
+      session: browserSessionName ?? null,
+    })
+    if (action === 'list') return { ok: true, active: activeBrowserTabId ?? null, tabs: listing(), ...panelState() }
+    if (typeof request.id !== 'string') return { ok: false, error: 'missing id' }
+    if (action === 'activate') {
+      activateBrowserTab(request.id)
+      return { ok: true, active: request.id, tabs: listing() }
+    }
+    if (action === 'close') {
+      closeBrowserTab(request.id)
+      return { ok: true, closed: request.id, active: activeBrowserTabId ?? null, tabs: listing() }
+    }
+    return { ok: false, error: 'unknown action' }
+  })
   ipcMain.removeAllListeners(SHELL_IPC.browserPanelBounds)
   ipcMain.on(SHELL_IPC.browserPanelBounds, (event, value: unknown) => {
     if (!mayManageBrowserPanel(shellRendererKind(event.sender))) return
     if (typeof value !== 'object' || value === null || (value as { owner?: unknown }).owner !== browserPanelOwner) return
     const content = mainWindow?.getContentBounds()
     if (content === undefined) return
-    const panel = normalizeBrowserPanelBounds(value, content.width, Math.max(0, content.height - SHELL_BAR_HEIGHT), event.sender.getZoomFactor())
+    const viewport = { width: content.width, height: Math.max(0, content.height - SHELL_BAR_HEIGHT) }
+    // **先判 raw ∩ viewport，最后才 clamp**：clamp 会把"已经飞出屏幕"的证据抹掉。
+    // 实测例（2026-09-21）：页面收起右栏时宿主 div 被 translateX 推到视口右侧之外，
+    // 上报 x≈2589 / width≈1398 / viewport 2560 ⇒ 交集宽 0，应判不可见；若先 clamp 成 x=1162
+    // 就变成"完整落在屏幕内"，幽灵面板就再也判不出来。
+    const raw = value as { x?: unknown; y?: unknown; width?: unknown; height?: unknown }
+    const rawRect = { x: Number(raw.x), y: Number(raw.y), width: Number(raw.width), height: Number(raw.height) }
+    if (Number.isFinite(rawRect.x) && Number.isFinite(rawRect.y) && Number.isFinite(rawRect.width) && Number.isFinite(rawRect.height)) {
+      browserPanelRawVisible = isPanelRawVisible(rawRect, viewport)
+    }
+    browserPanelSignalAt = Date.now()
+    browserPanelBoundsAt = Date.now()
+    const panel = normalizeBrowserPanelBounds(value, content.width, viewport.height, event.sender.getZoomFactor())
     browserPanelBounds = panel
     if (browserVisible) relayout()
   })
@@ -2422,13 +2872,33 @@ function installShellIpc(): void {
   ipcMain.on(SHELL_IPC.dshState, (event, state: Partial<DshNavigationState>) => {
     if (!mayReportDshState(shellRendererKind(event.sender))) return
     if (typeof state !== 'object' || state === null) return
-    dshNavigationState = {
-      canBack: state.canBack === true,
-      canForward: state.canForward === true,
-      canNextChat: state.canNextChat === true,
-      canPreviousChat: state.canPreviousChat === true,
+    // 只认官方页面的导航状态上报：带 can* 字段才更新，否则会把面板心跳的载荷误当成"全部禁用"
+    if ('canBack' in state || 'canForward' in state || 'canNextChat' in state || 'canPreviousChat' in state) {
+      dshNavigationState = {
+        canBack: state.canBack === true,
+        canForward: state.canForward === true,
+        canNextChat: state.canNextChat === true,
+        canPreviousChat: state.canPreviousChat === true,
+      }
     }
     broadcastShellState()
+    // 面板生命周期信号（我的插件每秒上报）：卡片可见 / 隐藏 / 缺失 + 心跳时间。
+    // 不把官方页面自身的导航状态上报（只带 canBack 等）当成面板心跳。
+    const cardState = parsePanelCardSignal(state)
+    if (cardState !== undefined) {
+      browserPanelCardState = cardState
+      browserPanelSignalAt = Date.now()
+      if (cardState !== 'visible') {
+        // 收起右栏 / 切到没有浏览器卡片的会话：立刻撤销，别让旧会话的面板留在新会话里。
+        // 仅当面板由卡片持有时才撤销 —— shell 工作区（无 owner）不因页面报告卡片缺席而被关掉。
+        if (browserPanelOwner !== undefined) revokeBrowserPanel(`card-${cardState}`)
+      } else if (browserVisible && browserPanelOwner !== undefined) {
+        relayout()
+      }
+    }
+    // 补丁 2：活动会话 → 先撤销面板、再换标签桶（浏览器跟着会话走）
+    const sessionSignal = parseActiveSessionSignal(state)
+    if (sessionSignal !== undefined) onActiveSessionChanged(sessionSignal)
   })
   ipcMain.removeAllListeners(SHELL_IPC.dshLocale)
   ipcMain.on(SHELL_IPC.dshLocale, (event, value: unknown) => {
@@ -2492,7 +2962,7 @@ function installShellIpc(): void {
 
 function shellRendererKind(sender: WebContents): ShellRendererKind {
   if (sender === mainWindow?.webContents) return 'main'
-  if (sender === browserPanelView?.webContents) return 'browser-panel'
+  if (sender === browserChromeContents()) return 'browser-panel'
   if (sender === shortcutsWindow?.webContents) return 'shortcuts'
   if (sender === aboutWindow?.webContents) return 'about'
   if (sender === featurePanelsWindow?.webContents) return 'feature-panels'
@@ -2591,18 +3061,18 @@ function dismissDshSettingsDialog(): void {
 function installShortcutHandler(contents: Electron.WebContents): void {
   contents.on('before-input-event', (event, input: Input) => {
     if (input.type !== 'keyDown') return
-    const browserTab = browserTabs.find(tab => tab.view.webContents === contents)
+    const browserTab = browserTabs.find(tab => browserTabContents(tab) === contents)
     if (browserTab !== undefined) {
       const command = process.platform === 'darwin' ? input.meta : input.control
       const key = input.key.toLowerCase()
       if (command && key === 'f') {
         event.preventDefault()
-        browserPanelView?.webContents.send(SHELL_IPC.browserOpenFind)
+        browserChromeContents()?.send(SHELL_IPC.browserOpenFind)
         return
       }
       if (command && key === 'l') {
         event.preventDefault()
-        browserPanelView?.webContents.send(SHELL_IPC.browserFocusAddress)
+        browserChromeContents()?.send(SHELL_IPC.browserFocusAddress)
         return
       }
       if (command && key === 't') {
@@ -2666,6 +3136,18 @@ function sendDshAction(id: DshShellActionId): void {
 
 async function executeShellAction(id: ShellActionId): Promise<void> {
   if (!isActionEnabled(id)) return
+  // 设置界面打开时，这些入口的再次点击 = 关闭设置界面（切换行为，用户 2026-09-20 确认期望）。
+  // 必须先关桌面端设置窗口：旧实现只退出 DSH 网页内设置页，窗口不关——用户实机反馈"二次点击没有生效"。
+  if (id === 'settings' || id === 'find' || id === 'check-updates' || id === 'desktop-settings' || id === 'feature-panels') {
+    if (settingsWindow !== undefined && !settingsWindow.isDestroyed()) {
+      settingsWindow.close()
+      return
+    }
+    if (dshSettingsDialogVisible) {
+      exitDshSettingsPage()
+      return
+    }
+  }
   if (id === 'toggle-devtools') {
     const target = resolveDevToolsContents()
     if (target?.isDevToolsOpened() === true) target.closeDevTools()
@@ -2925,18 +3407,33 @@ function removeNativeWindowMenu(window: BrowserWindow): void {
 }
 
 function showDesktopSettingsWindow(section: DesktopSettingsSection = 'notifications'): void {
+  if (mainWindow !== undefined && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+  }
   if (settingsWindow !== undefined && !settingsWindow.isDestroyed()) {
     settingsWindow.show()
     settingsWindow.focus()
     settingsWindow.webContents.send(SHELL_IPC.settingsSection, section)
     return
   }
+  // 创建前先算好居中 bounds 并显式传入：无坐标的窗口会被 OS 按默认/层叠规则摆放，
+  // 这正是设置窗口跑到宿主窗口外的根源；显式定位后再由 bindContainedSettingsWindow 持续约束。
+  const ownerBounds = mainWindow !== undefined && !mainWindow.isDestroyed()
+    ? mainWindow.getContentBounds()
+    : screen.getPrimaryDisplay().workArea
+  const initialBounds = centeredSettingsBounds(ownerBounds, screen.getDisplayMatching(ownerBounds).workArea)
   const window = new BrowserWindow({
     parent: mainWindow,
-    width: 760,
-    height: 620,
-    minWidth: 680,
-    minHeight: 540,
+    x: initialBounds.x,
+    y: initialBounds.y,
+    width: initialBounds.width,
+    height: initialBounds.height,
+    show: false,
+    movable: false,
+    resizable: false,
+    maximizable: false,
+    minimizable: false,
     title: desktopText('桌面端设置', 'Desktop Settings'),
     autoHideMenuBar: true,
     backgroundColor: DESKTOP_THEME_PALETTES[activeDshColorScheme].settingsBackground,
@@ -2944,6 +3441,8 @@ function showDesktopSettingsWindow(section: DesktopSettingsSection = 'notificati
   })
   removeNativeWindowMenu(window)
   settingsWindow = window
+  bindContainedSettingsWindow(window, mainWindow, screen)
+  window.once('ready-to-show', () => { if (!window.isDestroyed()) window.show() })
   window.on('closed', () => { if (settingsWindow === window) settingsWindow = undefined })
   installShortcutHandler(window.webContents)
   window.webContents.once('did-finish-load', () => {

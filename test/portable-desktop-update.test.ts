@@ -357,6 +357,7 @@ test('槽位回收保留指针引用与最近候选，清理历史槽和下载�
     await utimes(path, mtime, mtime)
   }
   await makeSlot('keep-current', 9_000)
+  await makeSlot('keep-previous', 8_500)
   await makeSlot('keep-pending', 8_000)
   for (const [index, mtime] of [[1, 1_000], [2, 2_000], [3, 3_000], [4, 4_000], [5, 5_000]] as const) {
     await makeSlot(`old-${index}`, mtime)
@@ -373,6 +374,7 @@ test('槽位回收保留指针引用与最近候选，清理历史槽和下载�
   await writeFile(portableDesktopPointerPath(updateRoot), `${JSON.stringify({
     schema: 1,
     current: { relativePath: 'Data/Updates/Desktop/slots/keep-current', version: '1.0.0', sha256: sha },
+    previous: { relativePath: 'Data/Updates/Desktop/slots/keep-previous', version: '0.7.0', sha256: sha },
     pending: { relativePath: 'Data/Updates/Desktop/slots/keep-pending', version: '1.1.0-local-abc', sha256: sha, transactionId: '01234567-89ab-cdef-0123-456789abcdef' },
     updatedAt: new Date().toISOString(),
   })}\n`)
@@ -381,6 +383,7 @@ test('槽位回收保留指针引用与最近候选，清理历史槽和下载�
   assert.deepEqual([...result.removedSlots].sort(), ['old-1', 'old-2', 'old-3'])
   assert.deepEqual([...result.removedDownloads].sort(), ['0.9.0'])
   assert.ok(existsSync(join(slotsDir, 'keep-current')))
+  assert.ok(existsSync(join(slotsDir, 'keep-previous')))
   assert.ok(existsSync(join(slotsDir, 'keep-pending')))
   assert.ok(existsSync(join(slotsDir, 'old-4')))
   assert.ok(existsSync(join(slotsDir, 'old-5')))
@@ -399,6 +402,30 @@ test('槽位回收保留指针引用与最近候选，清理历史槽和下载�
   assert.equal(after, before)
 })
 
+test('默认回收策略只留指针引用槽：旧版本仅保留一个 previous', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-slot-gc-default-'))
+  const updateRoot = portableDesktopUpdateRoot(root)
+  const slotsDir = join(updateRoot, 'slots')
+  const sha = 'b'.repeat(64)
+  for (const [name, mtime] of [['current', 9_000], ['previous', 8_000], ['older-a', 3_000], ['older-b', 2_000], ['older-c', 1_000]] as const) {
+    const path = join(slotsDir, name)
+    await mkdir(path, { recursive: true })
+    await writeFile(join(path, 'marker'), name)
+    await utimes(path, mtime, mtime)
+  }
+  await writeFile(portableDesktopPointerPath(updateRoot), `${JSON.stringify({
+    schema: 1,
+    current: { relativePath: 'Data/Updates/Desktop/slots/current', version: '1.0.65', sha256: sha },
+    previous: { relativePath: 'Data/Updates/Desktop/slots/previous', version: '1.0.64+build.2', sha256: sha },
+    updatedAt: new Date().toISOString(),
+  })}\n`)
+
+  const result = await prunePortableDesktopSlots({ portableRoot: root })
+  assert.deepEqual([...result.removedSlots].sort(), ['older-a', 'older-b', 'older-c'])
+  assert.ok(existsSync(join(slotsDir, 'current')))
+  assert.ok(existsSync(join(slotsDir, 'previous')))
+})
+
 test('本地构建暂存后自动触发回收，历史候选槽收敛', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-local-build-gc-'))
   const source = join(root, 'release', 'app')
@@ -412,14 +439,14 @@ test('本地构建暂存后自动触发回收，历史候选槽收敛', async ()
     await utimes(path, mtime, mtime)
   }
   await stageLocalDesktopBuild({ portableRoot: root, appDirectory: source, version: '1.0.0', readProductVersion: async () => '1.0.0.0' })
-  // 指针引用（App 当前槽 + 新 pending 槽）之外保留最近 3 个：stale-a 最旧被回收。
-  assert.equal(existsSync(join(slotsDir, 'stale-a')), false)
-  assert.ok(existsSync(join(slotsDir, 'stale-b')))
-  assert.ok(existsSync(join(slotsDir, 'stale-c')))
-  assert.ok(existsSync(join(slotsDir, 'stale-d')))
+  // 默认只留指针引用槽（App 当前槽 + 新 pending 槽）：未引用的历史槽全删，不额外留版本。
+  for (const name of ['stale-a', 'stale-b', 'stale-c', 'stale-d']) {
+    assert.equal(existsSync(join(slotsDir, name)), false, `${name} 应被回收`)
+  }
   const events = await readFile(join(portableDesktopUpdateRoot(root), 'events.jsonl'), 'utf8')
   assert.match(events, /"source":"slot-gc"/)
   assert.match(events, /stale-a/)
+  assert.match(events, /stale-d/)
 })
 
 test('发布流水线生成并上传与 Windows ZIP 摘要绑定的便携兼容契约', async () => {
@@ -483,9 +510,61 @@ test('仅修改额外 UI 资源也会产生新候选，相同内容仍复用原�
   const second = await stageLocalDesktopBuild(options)
   assert.notEqual(second.slotRelativePath, first.slotRelativePath)
   assert.equal(await readFile(join(root, second.slotRelativePath, 'resources', 'settings.html'), 'utf8'), 'fixed-ui')
-  assert.equal(await readFile(join(root, first.slotRelativePath, 'resources', 'settings.html'), 'utf8'), 'old-ui')
+  // 被替换掉的候选槽已无人引用，暂存提交点即回收（旧槽只留 current + previous 两版）。
+  assert.equal(existsSync(join(root, first.slotRelativePath)), false)
   const same = await stageLocalDesktopBuild(options)
   assert.equal(same.slotRelativePath, second.slotRelativePath)
+})
+
+test('暂存复制期间的并发提交不能被写回覆盖，正在运行的槽也不能被回收', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-local-concurrent-commit-'))
+  const source = join(root, 'release', 'app')
+  await materializePackagedApp(source)
+  await mkdir(join(root, 'App'), { recursive: true })
+  await writeFile(join(root, 'App', 'DSH Codex Desktop.exe'), 'legacy-app')
+  const pointerPath = portableDesktopPointerPath(portableDesktopUpdateRoot(root))
+  const running = {
+    relativePath: 'Data/Updates/Desktop/slots/1.0.0-local-running',
+    version: '1.0.0',
+    sha256: 'a'.repeat(64),
+  }
+  await mkdir(join(root, running.relativePath), { recursive: true })
+  const sha = (character: string): string => character.repeat(64)
+  await writeFile(pointerPath, `${JSON.stringify({
+    schema: 1,
+    current: { relativePath: 'App', version: '0.9.0', sha256: sha('b') },
+    previous: { relativePath: 'Data/Updates/Desktop/slots/0.8.0-local-previous', version: '0.8.0', sha256: sha('c') },
+    updatedAt: new Date().toISOString(),
+  })}\n`, 'utf8')
+
+  const staged = await stageLocalDesktopBuild({
+    portableRoot: root,
+    appDirectory: source,
+    version: '1.0.0',
+    readProductVersion: async () => '1.0.0.0',
+    replacePending: true,
+    // 复制 `app` 树期间候选启动并提交：current 前进、pending 消失、previous 轮换。
+    onCopyComplete: async () => {
+      await writeFile(pointerPath, `${JSON.stringify({
+        schema: 1,
+        current: running,
+        previous: { relativePath: 'App', version: '0.9.0', sha256: sha('b') },
+        updatedAt: new Date().toISOString(),
+      })}\n`, 'utf8')
+    },
+  })
+
+  const pointer = JSON.parse(await readFile(pointerPath, 'utf8')) as {
+    current: { relativePath: string }
+    previous?: { relativePath: string }
+    pending: { transactionId: string }
+  }
+  assert.equal(pointer.current.relativePath, running.relativePath)
+  assert.equal(pointer.previous?.relativePath, 'App')
+  assert.equal(pointer.pending.transactionId, staged.transactionId)
+  const pruned = await prunePortableDesktopSlots({ portableRoot: root })
+  assert.equal(pruned.removedSlots.includes('1.0.0-local-running'), false)
+  assert.equal(existsSync(join(root, running.relativePath)), true)
 })
 
 test('本地构建只有显式授权时才原子替换尚未激活的候选', async () => {
@@ -558,6 +637,28 @@ test('候选提交使用 Electron original-fs 读取物理 app.asar，避免把�
   assert.equal(await physicalFileSha256(archive), createHash('sha256').update('physical archive bytes').digest('hex'))
   const smoke = await readFile(new URL('../../scripts/verify-electron-physical-asar.cjs', import.meta.url), 'utf8')
   assert.match(smoke, /physicalFileIsRegular/)
+})
+
+test('启动器 pointer 失效时优先恢复 slots 而非 legacy App', async () => {
+  const launcher = await readFile(new URL('../../Start-DSH-Portable.ps1', import.meta.url), 'utf8')
+  assert.match(launcher, /function Resolve-BestAvailableDesktopApplication/)
+  assert.match(launcher, /function New-SlotReferenceFromManifest/)
+  assert.match(launcher, /function Save-RecoveredDesktopPointer/)
+  assert.match(launcher, /pointer-current/)
+  assert.match(launcher, /pointer-previous/)
+  assert.match(launcher, /slot-scan/)
+  // 恢复顺序：current → previous → 扫描 slots，最后才允许 legacy App
+  const currentIdx = launcher.indexOf("Source = 'pointer-current'")
+  const previousIdx = launcher.indexOf("Source = 'pointer-previous'")
+  const scanIdx = launcher.indexOf("Source = 'slot-scan'")
+  const legacyFallbackIdx = launcher.indexOf('无可用不可变桌面槽，回退 legacy App')
+  assert.ok(currentIdx > 0 && previousIdx > currentIdx && scanIdx > previousIdx && legacyFallbackIdx > scanIdx)
+  // 扫描必须走与 pending 相同的 Resolve-SlotApplication 完整性校验
+  assert.match(launcher, /New-SlotReferenceFromManifest[\s\S]*Resolve-SlotApplication \$reference/)
+  // 恢复成功后要写回 pointer，避免下次再盲回退
+  assert.match(launcher, /Save-RecoveredDesktopPointer -Reference \$launchSelection\.Reference/)
+  // 不得为了“修 App”原地覆盖 App/
+  assert.doesNotMatch(launcher, /Copy-Item[\s\S]{0,80}portablePaths\.App/)
 })
 
 test('启动器先持久化回滚再清理失败候选，并阻止同一事务重复启动', async () => {

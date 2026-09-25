@@ -14,6 +14,11 @@ const IPC = {
   browserPanelPrepareOcclusion: 'dsh-shell:browser-panel-prepare-occlusion',
   browserPanelOccluded: 'dsh-shell:browser-panel-occluded',
   browserPanelBounds: 'dsh-shell:browser-panel-bounds',
+  browserPanelExecuteJs: 'dsh-shell:browser-panel-execute-js',
+  browserPanelTabs: 'dsh-shell:browser-panel-tabs',
+  browserEmbeddedConfig: 'dsh-shell:browser-embedded-config',
+  browserEmbeddedGuestAttached: 'dsh-shell:browser-embedded-guest-attached',
+  browserEmbeddedState: 'dsh-shell:browser-embedded-state',
   dshNotificationReply: 'dsh-shell:dsh-notification-reply',
   dshState: 'dsh-shell:dsh-state',
   dshNotification: 'dsh-shell:dsh-notification',
@@ -141,7 +146,14 @@ ipcRenderer.on(IPC.desktopTheme, (_event, value: unknown) => applyDesktopTheme(v
 function runDomAction(id: string): void {
   if (id === 'new-chat') clickMatching([/^新建任务$|^new task$/i, /^新聊天$|^new chat$/i])
   else if (id === 'open-folder') clickMatching([/添加工作区|打开文件夹|add workspace|open folder/i])
-  else if (id === 'settings') clickMatching([/^设置$|^settings$|preferences/i])
+  else if (id === 'settings') {
+    // 优先直接点击设置触发器（兼容侧栏设置按钮缺失的情况）
+    const seat = document.querySelector('.dcu-settings-seat')
+    const trigger = seat?.querySelector<HTMLElement>('[data-dcu-settings-trigger],[aria-haspopup="dialog"]')
+    if (trigger !== null && trigger !== undefined) { trigger.click(); return }
+    // 兜底：按文本查找
+    clickMatching([/^设置$|^settings$|preferences/i])
+  }
   else if (id === 'toggle-sidebar') clickMatching([/收起侧边栏|展开侧边栏|collapse sidebar|expand sidebar/i])
   else if (id === 'find') {
     const input = document.querySelector<HTMLInputElement>('input[placeholder*="搜索会话"],input[placeholder*="Search sessions"]')
@@ -330,11 +342,20 @@ contextBridge.exposeInMainWorld('dshDesktopShell', {
   action: (id: string) => ipcRenderer.invoke(IPC.action, id),
   browserPanel: {
     version: 1,
+    embeddedConfig: () => ipcRenderer.invoke(IPC.browserEmbeddedConfig),
+    guestAttached: (id: string, guestId: number) => ipcRenderer.invoke(IPC.browserEmbeddedGuestAttached, id, guestId),
+    onEmbeddedState: (listener: (state: unknown) => void) => {
+      const wrapped = (_event: Electron.IpcRendererEvent, state: unknown) => listener(state)
+      ipcRenderer.on(IPC.browserEmbeddedState, wrapped)
+      return () => ipcRenderer.removeListener(IPC.browserEmbeddedState, wrapped)
+    },
     show: (request: { owner: string; url?: string }) => ipcRenderer.invoke(IPC.browserPanelShow, request),
     hide: (owner: string) => ipcRenderer.invoke(IPC.browserPanelHide, owner),
     prepareOcclusion: () => ipcRenderer.invoke(IPC.browserPanelPrepareOcclusion),
     setOccluded: (occluded: boolean, owner: string) => ipcRenderer.invoke(IPC.browserPanelOccluded, occluded, owner),
     reportBounds: (bounds: unknown) => ipcRenderer.send(IPC.browserPanelBounds, bounds),
+    executeJs: (code: string) => ipcRenderer.invoke(IPC.browserPanelExecuteJs, code),
+    tabs: (request: unknown) => ipcRenderer.invoke(IPC.browserPanelTabs, request),
     onCloseRequested: (listener: () => void) => {
       const wrapped = () => listener()
       ipcRenderer.on(IPC.dshBrowserCloseRequest, wrapped)

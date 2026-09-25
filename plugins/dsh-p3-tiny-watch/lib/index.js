@@ -1,17 +1,19 @@
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { appendFileSync, mkdirSync } from 'node:fs'
 import Schema from 'schemastery'
 
-import { P3TinyMonitor } from './market.js'
+import { isScheduledCheckDue, P3TinyMonitor } from './market.js'
 import { WatchStore } from './storage.js'
 
 export const name = 'dsh-p3-tiny-watch'
 export const inject = ['commands']
 
 const DEFAULT_SOURCES = [
-  'https://www.ebay.com/sch/i.html?_nkw=Lenovo+ThinkStation+P3+Tiny&_sop=15',
-  'https://www.ebay.co.uk/sch/i.html?_nkw=Lenovo+ThinkStation+P3+Tiny&_sop=15',
+  'https://www.kleinanzeigen.de/s-lenovo-p3-tiny/k0',
 ]
+
+const DEFAULT_SOURCE_ALLOWLIST = ['kleinanzeigen.de', 'ebay.com', 'ebay.co.uk', 'ebay.de', 'ebay.fr']
 
 export const Config = Schema.object({
   enabled: Schema.boolean().default(true),
@@ -31,7 +33,8 @@ export const Config = Schema.object({
   batchDiscountRatio: Schema.number().default(0.7),
   priceDropRatio: Schema.number().default(0.9),
   sourceUrls: Schema.array(Schema.string()).default(DEFAULT_SOURCES),
-  sourceAllowlist: Schema.array(Schema.string()).default(['ebay.com', 'ebay.co.uk', 'ebay.de', 'ebay.fr']),
+  sourceAllowlist: Schema.array(Schema.string()).default(DEFAULT_SOURCE_ALLOWLIST),
+  enableMockSource: Schema.boolean().default(false),
   currencyRates: Schema.object({
     CNY: Schema.number().default(1),
     USD: Schema.number().default(7.2),
@@ -107,27 +110,51 @@ export function apply(ctx, rawConfig = {}) {
     handler: () => commandSuccess(formatConfig(config, dataRoot)),
   }))
 
-  if (config.enabled && config.scheduleEnabled) installSchedule(ctx, monitor, config)
+  if (config.enabled && config.scheduleEnabled) installSchedule(ctx, monitor, config, dataRoot)
+  writeBootDiagnostic(dataRoot, config, ctx)
 }
 
-function installSchedule(ctx, monitor, config) {
-  if (typeof ctx.interval !== 'function' || typeof ctx.timeout !== 'function') {
+// 活体诊断：apply 是否执行、timer 服务是否可用。文件式一行日志，便于在无法观察
+// harness 进程内部时确认装载状态；失败静默（诊断绝不影响插件本身）。
+function writeBootDiagnostic(dataRoot, config, ctx) {
+  try {
+    const timerAvailable = typeof ctx.get === 'function' ? Boolean(ctx.get('timer')) : 'ctx.get 不可用'
+    const line = `${new Date().toISOString()} apply ok; timer=${timerAvailable}; schedule=${config.enabled && config.scheduleEnabled}; sources=${config.sourceUrls.length}\n`
+    appendFileSyncSafe(join(dataRoot, 'boot-diagnostics.log'), line)
+  } catch {
+    // 诊断写入失败不影响插件功能。
+  }
+}
+
+function appendFileSyncSafe(path, content) {
+  try {
+    mkdirSync(dirname(path), { recursive: true })
+    appendFileSync(path, content, 'utf8')
+  } catch {
+    // 诊断写入失败不影响插件功能。
+  }
+}
+
+function installSchedule(ctx, monitor, config, dataRoot) {
+  const timer = typeof ctx.get === 'function' ? ctx.get('timer') : null
+  if (!timer || typeof timer.interval !== 'function' || typeof timer.timeout !== 'function') {
     ctx.logger?.warn?.('dsh-p3-tiny-watch：当前组合未提供 timer 服务，已保留手动检查命令。')
     return
   }
-  const intervalMs = Math.max(1, config.checkIntervalHours) * 3_600_000
   const runIfDue = async () => {
     try {
       const { state } = await monitor.status()
-      const last = Date.parse(state.lastRun?.completedAt ?? state.lastRun?.startedAt ?? '')
-      if (Number.isFinite(last) && Date.now() - last < intervalMs) return
+      const due = isScheduledCheckDue(state, config)
+      appendFileSyncSafe(join(dataRoot, 'boot-diagnostics.log'), `${new Date().toISOString()} runIfDue fired; due=${due}; lastRun=${state.lastRun?.completedAt ?? 'none'}\n`)
+      if (!due) return
       await monitor.check('schedule')
     } catch (error) {
+      appendFileSyncSafe(join(dataRoot, 'boot-diagnostics.log'), `${new Date().toISOString()} runIfDue error: ${error instanceof Error ? error.message : String(error)}\n`)
       ctx.logger?.warn?.('dsh-p3-tiny-watch 自动检查失败：', error)
     }
   }
-  ctx.timeout(() => { void runIfDue() }, Math.max(1, config.startupDelaySeconds) * 1000)
-  ctx.interval(() => { void runIfDue() }, Math.min(intervalMs, 3_600_000))
+  timer.timeout(() => { void runIfDue() }, Math.max(1, config.startupDelaySeconds) * 1000)
+  timer.interval(() => { void runIfDue() }, Math.min(Math.max(1, config.checkIntervalHours) * 3_600_000, 3_600_000))
 }
 
 function normalizeConfig(value) {
@@ -149,7 +176,8 @@ function normalizeConfig(value) {
     batchDiscountRatio: boundedNumber(value.batchDiscountRatio, 0.7, 0.1, 1),
     priceDropRatio: boundedNumber(value.priceDropRatio, 0.9, 0.1, 1),
     sourceUrls: normalizeStringArray(value.sourceUrls, DEFAULT_SOURCES, 20),
-    sourceAllowlist: normalizeStringArray(value.sourceAllowlist, ['ebay.com', 'ebay.co.uk', 'ebay.de', 'ebay.fr'], 50),
+    sourceAllowlist: normalizeStringArray(value.sourceAllowlist, DEFAULT_SOURCE_ALLOWLIST, 50),
+    enableMockSource: value.enableMockSource === true,
     currencyRates: normalizeRates(value.currencyRates),
     userAgent: String(value.userAgent || 'DSH-P3-Tiny-Watch/0.1 (+local price monitor)').slice(0, 240),
   }
@@ -226,6 +254,7 @@ function formatConfig(config, dataRoot) {
     `周期：${config.scheduleEnabled ? `${config.checkIntervalHours} 小时` : '关闭'}`,
     `来源：${config.sourceUrls.join('；')}`,
     `域名允许列表：${config.sourceAllowlist.join(', ')}`,
+    `开发用 Mock 源：${config.enableMockSource ? '已启用（仅用于链路验证，数据标记 source=mock）' : '关闭'}`,
     `单次最大结果：${config.maxResultsPerRun}`,
     `最低可信度：${config.minimumConfidence}`,
     `包含损坏/未测试机器：${config.includeDamaged ? '是' : '否'}`,

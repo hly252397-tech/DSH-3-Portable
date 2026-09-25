@@ -1,4 +1,8 @@
 :root {
+  /* I023/57: one UI font stack; content sizes and monospace faces stay owned by their components. */
+  --dsh-font-ui: "Segoe UI", "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  --dsh-font-size-control: 12px;
+  --dsh-font-size-menu: 13px;
   --dsh-bg-canvas: #09090b;
   --dsh-bg-surface-1: #18181b;
   --dsh-bg-surface-2: #27272a;
@@ -43,6 +47,22 @@
   --ok-bg: rgba(69, 201, 138, 0.10);
   --bad-bg: rgba(255, 115, 115, 0.10);
   --warn-bg: rgba(228, 181, 80, 0.10);
+}
+
+/* Loaded in local pages and injected into the DSH view, never into external browser pages.
+   Family-only overrides deliberately preserve the conversation font-size preference. */
+html, body, .dcu-root, .dcu-settings-page {
+  --dcu-font: var(--dsh-font-ui) !important;
+  --dsw-font-family: var(--dsh-font-ui) !important;
+  font-family: var(--dsh-font-ui) !important;
+}
+body :is(button, input, select, textarea):not(:where(pre *, code *, .panel-file, .monaco-editor *, .cm-editor *, .xterm *)) {
+  font-family: var(--dsh-font-ui) !important;
+}
+/* Legacy cost widgets supplied their own Inter stacks outside the shared aliases. */
+body .dcu-foot .VWh0dG_triggerMetric,
+body .dsh-tweaks-lifted :is(.VWh0dG_feeInline, .VWh0dG_triggerLabel) {
+  font-family: var(--dsh-font-ui) !important;
 }
 
 :root[data-color-scheme="light"] {
@@ -721,10 +741,11 @@ body .nArs4W_panel {
   display: none !important;
   pointer-events: none !important;
 }
-/* 对话列自适应下限：仍以官方内容下限 680px 为目标，但**不许超过可用宽度** */
-/* —— 窄档自动让到剩余空间，避免被挤成溢出/白带（2026-09-16 全局尺子）。 */
+/* The grid already subtracts both sidebars. A viewport-based minimum here
+   overflows that remaining track; let the conversation own only its track. */
 body .pI_x6G_centerCol {
-  min-width: min(680px, calc(var(--dsh-app-w) - var(--dsh-chrome-w) - 24px));
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* 0.1.5-rc.2 新前端（dsh-web-frontend）的工作台标签菜单（_menu_17p4l_444，
@@ -749,10 +770,10 @@ body .dcu-home-cards {
 body .wSkVaW_root {
   --dsh-chat-user-width: unset !important;
 }
-/* 对话列自适应下限：仍以官方内容下限 680px 为目标，但**不许超过可用宽度** */
-/* —— 窄档自动让到剩余空间，避免被挤成溢出/白带（2026-09-16 全局尺子）。 */
+/* Same remaining-track contract after the legacy conversation overrides. */
 body .pI_x6G_centerCol {
-  min-width: min(680px, calc(var(--dsh-app-w) - var(--dsh-chrome-w) - 24px));
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Fixed 252 px sidebar width across all color schemes and presets. */
@@ -920,4 +941,3 @@ img[src^="data:image/webp;base64,UklGRvaKAABXRUJQVlA4IOqKAACQmwKdASoABgAC"] {
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
 }
-

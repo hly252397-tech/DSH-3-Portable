@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-import { BUNDLED_PLUGINS } from '../src/bundled-plugins.js'
+import { STORE_PACKAGES } from '../src/bundled-plugins.js'
 import { buildSeedPluginArgs, buildSeedRemoveArgs, ensureProfileScaffold, officialRuntimeInstallArgs, seedPackagedPluginLockfile } from '../src/plugin-seed.js'
 import { pnpmStoreOptions } from '../src/plugin-toolchain.js'
 import { stageBundledPlugins, verifyPreparedPluginStore } from '../scripts/prepare-runtime.js'
@@ -30,7 +30,8 @@ test('制品生成顺序固定为联网解析、冻结锁文件策略验证、�
       calls.push([...args])
       assert.ok(args.includes('--cache-dir=' + store))
       const dir = args.find(arg => arg.startsWith('--dir='))?.slice(6) ?? args[args.indexOf('--dir') + 1]!
-      for (const plugin of BUNDLED_PLUGINS) {
+      // store 装配含退役保留项（上游 v1.0.66：RETAINED_STORE_PACKAGES 仍在离线仓库），mock 必须铺全量
+      for (const plugin of STORE_PACKAGES) {
         const path = join(dir, 'node_modules', ...plugin.packageName.split('/'))
         mkdirSync(path, { recursive: true })
         writeFileSync(join(path, 'package.json'), JSON.stringify({ version: plugin.version }))
@@ -92,7 +93,7 @@ test('打包门禁实际走空白 Profile 补种，失败不能通过联网重�
     const success = join(root, 'success')
     await verifyPreparedPluginStore(success, store, root, args => {
       assert.equal(args[0], 'add')
-      for (const plugin of BUNDLED_PLUGINS) {
+      for (const plugin of STORE_PACKAGES) {
         const path = join(success, 'node_modules', ...plugin.packageName.split('/'))
         mkdirSync(path, { recursive: true })
         writeFileSync(join(path, 'package.json'), JSON.stringify({ version: plugin.version }))

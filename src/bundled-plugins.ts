@@ -45,26 +45,31 @@ export const OFFICIAL_LAUNCH_PEERS: readonly BundledPlugin[] = [
  *   `import_react11` 别名未漂移、退役标记零残留后，把 `upstreamHash` 重钉到 0.1.42 并记录在案。
  */
 export const BUNDLED_PLUGINS: readonly BundledPlugin[] = [
-  { packageName: '@michengai/dsh-codex-ui', version: '1.1.13' },
+  { packageName: '@michengai/dsh-codex-ui', version: '1.1.14' },
   { packageName: '@michengai/dsh-im-connect', version: '0.1.51' },
   { packageName: '@michengai/dsh-automation', version: '0.1.45' },
-  { packageName: '@michengai/dsh-skills-manager', version: '0.1.53' },
-  { packageName: '@michengai/dsh-archive-manager', version: '0.1.44' },
-  { packageName: '@michengai/dsh-agency-agents', version: '0.1.44' },
+  { packageName: '@michengai/dsh-skills-manager', version: '1.0.1' },
+  { packageName: '@michengai/dsh-archive-manager', version: '1.0.2' },
+  { packageName: '@michengai/dsh-agency-agents', version: '1.0.1' },
   { packageName: '@michengai/dsh-codex-pet', version: '0.1.7' },
   { packageName: '@michengai/dsh-btw', version: '0.1.10' },
   { packageName: '@michengai/dsh-simplify', version: '0.1.7' },
   { packageName: '@michengai/dsh-code-review', version: '0.1.4' },
   { packageName: '@michengai/dsh-pua', version: '0.3.16' },
-  { packageName: 'dsh-context', version: '0.53.3' },
   { packageName: 'dsh-better-sidebar', version: '0.19.1' },
-  { packageName: 'dsh-mcp-connector', version: '0.2.51' },
-  { packageName: '@kenz1117/dsh-ui-usage-billing', version: '1.4.0' },
-  { packageName: 'dshmarket', version: '1.47.0' },
+  { packageName: 'dsh-mcp-connector', version: '0.2.54' },
+  { packageName: 'dshmarket', version: '1.53.0' },
 ]
 
 /** 离线 store 只放社区插件，官方运行时单独预装，避免安装包把同一份依赖打两遍。 */
-export const STORE_PACKAGES: readonly BundledPlugin[] = BUNDLED_PLUGINS
+/** 已移出内置清单，但仍放进离线仓库。旧 Profile 的 lockfile 还可能引用它们。
+ * 逐 hunk 取自上游 v1.0.66（3f6a83d fix: keep retired plugins in the offline store）。 */
+export const RETAINED_STORE_PACKAGES: readonly BundledPlugin[] = [
+  { packageName: 'dsh-context', version: '0.53.3' },
+  { packageName: '@kenz1117/dsh-ui-usage-billing', version: '1.4.0' },
+]
+
+export const STORE_PACKAGES: readonly BundledPlugin[] = [...BUNDLED_PLUGINS, ...RETAINED_STORE_PACKAGES]
 
 /** 首次补种的完整清单：官方运行时加全部社区插件/市场组件。 */
 export const SEEDED_PACKAGES: readonly BundledPlugin[] = [OFFICIAL_RUNTIME, ...BUNDLED_PLUGINS]
@@ -114,6 +119,8 @@ export function compareReleaseVersions(left: string, right: string): number {
       minor: Number(match[2]),
       patch: Number(match[3]),
       // 第 4 段是便携迭代号：基础版本完全跟随上游（上游永远 3 段），同基座重建 .1/.2 递增，默认 0。
+      // 打包链路写不了 4 段版本（electron-builder 把 1.0.65.1 写成 ProductVersion 1.0.6.0，暂存校验拒收），
+      // 实际发布用 +build.N 构建元数据后缀，故 + 后缀在此有意忽略（1.0.65+build.1 与 1.0.65 同版）。
       portable: match[4] === undefined ? 0 : Number(match[4]),
       ...(match[5] === undefined ? {} : { prerelease: match[5].split('.') }),
     }

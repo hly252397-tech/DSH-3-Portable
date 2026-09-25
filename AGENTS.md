@@ -18,7 +18,7 @@
 
 ## 🧯 止损纪律（防"越修越坏"｜每轮必守）
 
-> 来源：2026-09-13 外壳顶栏失效修复的复盘（[41 号记录](docs/01-当前工作/I023-前后端UI全项目审核/41-顶栏工具组失效修复.md)）。当时 bug 是别人引入的，但"修好了用户却看不到"是执行失误——修复卡在候选槽、没让用户重启确认。以下六条专治这类失败。
+> 来源：2026-09-13 外壳顶栏失效修复的复盘（[41 号记录](docs/01-当前工作/I023-前后端UI全项目审核/41-顶栏工具组失效修复.md)）。当时 bug 是别人引入的，但"修好了用户却看不到"是执行失误——修复卡在候选槽、没让用户重启确认。以下七条专治这类失败。
 
 1. **诊断先行**：改代码/配置前先写一行 `问题是 ___；证据是 ___；下一步是 ___`。没有证据不动手，也不拿"先读一遍/先加载技能"充当诊断。
 2. **对照复现**：宣布"修好了"之前，必须能用旧制品**复现原故障**，并证明新制品不再复现。只有正向通过、没有反向对照，不算证据。
@@ -26,12 +26,14 @@
 4. **共享状态先读清单**：`ui-baseline --record`、改写 baseline / 索引 / 清单前，先比对"本次改动 vs 受保护清单"，并逐文件核对与上一版的差异。撞上他人会话在途写入时**不替它背书**，如实报漂移。
 5. **长任务留检查点**：上下文压缩或交接前落一段 `目标 / 已验 / 未验 / 下一步`；恢复时先复核任务身份与验收，再动手，不把别的任务的失败计数接过来。
 6. **一 bug 一会话**：得出结论就落文档或黑洞条目；跨天接力靠制品，不靠记忆。
+7. **构建与候选激活不并发**：`Build-DSH-Portable.ps1` 会启动脱离进程的回收清理器，在 G: 盘逐文件删除数万个文件（实测 20 分钟删掉 3.3 万个），候选槽冷启动撞上这段盘 I/O 会卡住主视图加载。2026-09-19 实证：候选 14:51:30 启动、其 DSH 服务端 14:51:52 正常 boot，但同一时刻另有构建在建（14:54:07）且回收器正在删 4.4 万文件，7 分钟后主视图 `ERR_FAILED` → fail-closed 退出 → 启动器自动回滚（候选内容已排除：与现役槽只差一个非启动路径默认值）。**规则**：构建与"请用户重启激活候选"必须串行——先让 `Data/Temp/prepare-recycle/` 排空（回收器连扫 3 轮空后自行退出）再请人重启；被杀的构建会留下孤儿回收桶与冻结的 `.sweeping` 心跳，下一个构建才接手清理。
 
 ## 官方兼容性双基线
 
 - **实现基线**：以便携版实际内置的 `@deepseek-ai/dsh` 版本、导出和类型声明为准；不得因为官方最新文档出现新 API 就直接在旧运行时中调用。
 - **审查基线**：每个功能开始前运行 `App/resources/node/node.exe scripts/verify-dsh-official-baseline.mjs --online`，核对 `deepseek-ai/deepseek-harness` 官方 HEAD。官方变化时，必须先人工审阅官方 `AGENTS.md`、架构、测试规范和受影响子系统，禁止自动接受后继续开发。
 - 机器可读版本记录和适用规则见 `docs/03-技术架构/DeepSeek-Harness-官方兼容基线.json` 与同名 `.md`。无法联网核对时只能继续诊断，不得宣称“符合官方最新要求”。
+- **上游同步与便携保护基线（2026-09-19）**：吸收桌面上游（MichengAI/dsh-codex-desktop）前必读 [上游同步与便携保护基线.md](docs/03-技术架构/上游同步与便携保护基线.md)——保护文件三档清单、四类差异处理、固定 10 步升级流程与发布门禁；混合文件（`src/main.ts`、`src/plugin-seed.ts`、`src/bundled-plugins.ts`、`package.json`、`cordis.patch.yml`、`assets/**`）**禁止整文件取上游**，必须逐 hunk 人工核对。
 
 ## ⛔ 强制流程：任何功能增加或缺陷修复之前
 
@@ -131,6 +133,8 @@
   - **中断过的构建仍会让产物残缺**：`prepare-runtime` 按 `[runtime-node, runtime-plugins, runtime-dsh, runtime-dsh.tgz]` 先清后建；被中断的构建**只清不建** ⇒ `runtime-node\`、两个 `.tgz` 全缺，只能全量重跑 —— 回收区里的副本是临时的，别指望拿它复用产物。
 - **插件 `lib/` 结构**：`dsh-sidebar-spaces` 的 `node_modules` 实例曾因缺 `lib/index.js` 崩溃（ERR_MODULE_NOT_FOUND）；修复物在 `local/dsh-sidebar-spaces`，不要破坏
 - **禁止原地覆盖 App**：桌面更新和本地构建只可写入 `Data/Updates/Desktop/slots/` 的不可变候选槽；通过启动验证前必须保留当前槽，失败由启动器自动回滚。
+- **候选槽只留两版：current + previous（用户规则，2026-09-19）**：单槽 ≈780 MB，A/B 契约只需要「当前槽 + 一个回滚目标」。`prunePortableDesktopSlots` 默认 `keepUnreferencedSlots = 0`——指针引用的 `current` / `previous` / `pending` 永远保留，**其余槽一律删除**，不额外留历史版本；需要多留几版只允许通过显式传参（测试用），不得改默认值。调用点只有两个，都在事务提交点之后：`confirmRunningCandidate`（健康提交后）与 `stageLocalDesktopBuild`（暂存后）。**手工删槽前必须先读 `pointer.json` 的 current/previous 与 `state.json` 的 pending 事务**，只删三者之外的目录；`Data/Runtime/Harness/slots/` 是运行时槽，不适用本规则（另有自己的保留策略）。
+- **上游"启动清理"移植必须评估便携盘 I/O 量级（2026-09-19 死页事故）**：上游 v1.0.65 的 `stripOfficialProfileDependencies` 每次启动全删 profile 的 `node_modules/@deepseek-ai`，靠"运行时自装官方层"兜底——上游环境（SSD、store 对齐）秒级完成；便携盘 G: 上是 4.4 万文件级 pnpm 全量校验重装，实测 7-8 分钟且失败 → 主视图永远停在加载屏 → 候选激活连续超时回滚、现役槽也死页（现象极像"候选槽坏了"，实为每次启动都发生）。**凡移植上游启动路径改动，先问"这个操作在 G: 盘 4.4 万文件规模下要多久、失败会怎样"**；修复后的护栏语义见 07-功能清单 47 行。
 - **electron-builder TEMP**：NSIS 打包时 TEMP 必须指向真实可写的用户临时目录，否则找不到临时 include 文件。`Build-DSH-Portable.ps1` 已通过 `Portable-Environment.ps1` 的 `Set-DshPortableEnvironment` 设置（`TEMP/TMP` → `<便携根>\Data\Temp`，`ELECTRON_BUILDER_CACHE` → `Data\Development\electron-builder-cache`）；**绕过该包装脚本直接跑 electron-builder 时必须自行设置这两个变量**
 - **PowerShell 转义**：Git Bash 里调用含 `$_` 的 PowerShell 命令会被 Bash 展开，用单引号包裹或写成 ps1 文件
 - **DSH 插件服务名与注入**：`ctx.command()` 不存在——命令服务名是 **`commands`（复数）**，注册 API 是 `ctx.commands.register({name, description, input:{hint}, handler(invocation)→{kind:'success',text}})`；服务未在组合中时改用 `ctx.get('name')` 可选访问，**不要**把不存在的服务写进 inject（否则 PENDING 导致启动失败）。注入声明的有效通道**按导出形态区分**（2026-09 对照 MichengAI 8 个社区插件与本仓库 plan-quota / dsh-sidebar-spaces 源码核实，见下方「社区插件生态实证」）：① **命名导出** `name`+`inject`+`apply` → 模块级 `export const inject` 即生效，patch 条目只写 `id`+`name`；② **default export 类** → 类静态 `static inject = [...]`；③ **default export 函数** → loader 不读模块级 inject，必须在 cordis 条目（bundle 的 cordis.patch.yml）写 `inject:` 字段——plan-quota 即此形态，缺失时抛 "cannot get property command without inject"
@@ -143,12 +147,15 @@
 - **影子验证不覆盖社区插件，运行时升级必须带失败退避**：`src/harness-shadow.ts` 造的是一次性 profile（只装 `OFFICIAL_PROFILE_BUNDLES`、`cordis.patch.yml` 为空），因此候选可以「影子验证通过 → 真实 profile 切换崩溃 → 自动回滚」（历史实例 `0.1.5-alpha.1`：`cannot get property webServer without inject`）。启动自修复只挡得住「无法解析的 bundle」，挡不住 `apply()` 里同步抛错的服务依赖插件。`state.json` 的 `deploymentFailures` + `evaluateDeploymentRetryGate` 按版本退避（默认 2 次 / 24 小时，手动检查永远放行）就是为此存在——**不要为了让自动升级更积极而绕过它**；同时新增部署失败点时（`deployHarnessCandidate` 抛错、切换回滚）必须记一次，切换提交成功必须清除该版本记录
 - **指纹槽的清单损坏没有启动检查能发现，靠 `reconcileOfficialRuntimeManifest` 自愈**：`isOfficialRuntimeLaunchable` 只看入口与 peer 是否存在，`.dsh-runtime-fingerprint` 只覆盖 lock 与家族清单（**根 `package.json` 被有意排除**），而指纹槽在 `seedOfficialRuntime` 里直接早返回——三者叠加的结果是「清单 `0.1.5-rc.2` + `node_modules` `0.1.2-rc.1`」的坏槽永远不会被修，错误版本号一路传到「关于」页与更新器。自愈只在**家族版本单一可读**时把已存在的根清单与 `resolutionMode` 拉回实际版本（不动 lock、不动物化依赖，指纹语义不变）；家族混用时保持原样交给 A/B 门禁；**绝不在指纹槽里凭空造文件**（会打破「槽是不可变制品」约束与其回归测试）
 - **测试禁止读取实机 `Data/` 产物，CI 是全新检出**：`test/` 里凡直接 `readFile`/`import` 实机 profile 插件产物（`Data/DSH/profiles/web/local/*`、`profiles/web/node_modules/*`）、运行时槽或仓库外工作空间文件（如 `工作空间/`）的用例，本机全绿但 CI 直接 ENOENT 整组失败（2026-09-11 首次跑 CI 连挂两轮的根因）。必须 `existsSync` 守卫 + `t.skip('实机产物缺失（CI 全新检出）')`，模块级读取/导入一律改惰性；改完用干净克隆（`git clone . 别处` + `pnpm install --frozen-lockfile` + tsc + node --test）复验 0 fail 才算过
+- **🔴 客户端 bundle 里禁止任何重启/退出动作（2026-09-21 无限重启事故）**：把 `dshDesktopShell.action('app-restart')` 写进 `Data/DSH/profiles/web/local/*/lib/client.js` 后，**该 bundle 每次页面加载都会执行** ⇒ 重启后页面又加载 ⇒ 又重启 ⇒ **自激无限重启**（用户端表现为窗口反复重启、工具调用全部 `outcome unknown`、GUI 端口每次都在变）。**铁律**：客户端 bundle 里禁止出现 `app-restart` / `app-quit` / `dshDesktopShell.action('app-restart'|'app-quit')` —— 这类动作必须由**用户显式操作**触发，走受控通道（既有范例 `local/dsh-restart-button`：仅本机 webServer 可达 + 共享密钥 + 必须显式 POST）。护栏用例：`test/no-self-scheduled-restart.test.ts`（对事故原文能命中、对安全写法不误报）。**排查提示**：出现"无限重启"时先看进程存活时长（正常应持续增长）与最近改动过的客户端 bundle；**第一动作是让那个 bundle 加载不到或去掉触发行**，不要在同一种改法上反复重试。
 - **认祖后的版本标签名归便携仓库**：`git fetch upstream --tags` 会把上游 `v<版本>` 标签拉进本地；认祖合并后要 `git tag -f v<版本>` 把名字声明给便携仓库自己的发布提交（发布契约脚本要求标签名恰为 `v<精确版本>`）。此后 `git fetch upstream --tags` 对该版本报标签冲突属预期，不要为消冲突删掉自己的发布标签
+- **🔧 禁止用 here-string / 行切片脚本改源码文件（2026-09-21 事故）**：用 PowerShell here-string 拼接改 `lib/client.js` 时终止符写成 `'@ -split …`（**终止符必须独占一行**），脚本把文件**截断成 67 行**、原 396 行主体全丢；该文件不在 git、无 `.bak`、junction 指向同一份、Electron 缓存为空，恢复花了 40 分钟（多帧 zstd 会话日志逐帧解码 + 确定性装配，脚本在 `Data/Temp/unzstd-multiframe.cjs`）。**规矩**：改源码一律用 `edit` 工具或 Node 脚本（语义明确）；**动实机产物前先复制 `.bak`**。另：`test/no-self-scheduled-restart.test.ts` 按**字面量**扫描客户端 bundle，若某段代码是要**拦截**重启类动作，把字面量拆开拼（`'app-' + 'restart'`）——不要为过测而改护栏。
+- **🖼️ 抓"应用窗口"必须用 `PrintWindow`，裸用 `CopyFromScreen` 会抓到别的应用（2026-09-21 实测）**：`CopyFromScreen` 抓的是**屏幕物理像素**——当 DSH 窗口被别的窗口压住（用户切到 Chrome 干活）时，抓到的就是那个窗口。当时现象是「DOM 的 `checkVisibility=true`、坐标正常，但截图里怎么也看不到该元素」，差点据此下"元素没渲染"的错误结论；同时**把用户的 ERP 页面拍进了取证文件（隐私风险）**。**正解**：`scripts/capture-app-window.ps1`（`PrintWindow(hwnd,hdc,PW_RENDERFULLCONTENT=2)`，渲染窗口自身内容、与遮挡无关、不抢焦点）；`scripts/look-ui.ps1` 是"临时置顶→抓→还原"，可用但会改窗口层级并抢焦点，用户正在别处干活时优先用新脚本。**判据**：截图"看不见某元素"时，先确认"我截的是不是那个窗口/那个页面"，再下结论。
 
 ## 🔢 版本号政策（2026-09-14 起）
 
-- **基础版本完全跟随上游**：认祖到哪个上游版本，便携版号就是它（现为 1.0.64）；禁止再自建 1.0.5x/1.0.6x 独立计数线
-- 同基座的便携重建/修复用**第 4 段迭代号**：1.0.64.1、1.0.64.2…（ 已支持，认祖新上游时归零）
+- **基础版本完全跟随上游**：认祖到哪个上游版本，便携版号就是它（现为 1.0.65）；禁止再自建 1.0.5x/1.0.6x 独立计数线
+- 同基座的便携重建/修复用 **`+build.N` 构建元数据后缀**：`1.0.65+build.1`、`1.0.65+build.2`…（认祖新上游时归零重计）。**不要用第 4 段数字**（`1.0.65.1`）——比较器认识它，打包链路不认识：2026-09-19 实测 electron-builder 把 `1.0.65.1` 写成 exe 元数据 `FileVersion=1.0.6-5.1` / `ProductVersion=1.0.6.0`，`validatePackagedApp` 据实拒收（`候选程序版本 1.0.6 与目标 1.0.65.1 不一致`）⇒ 构建白跑一轮、暂存中止。`+build.N` 被 `compareReleaseVersions` 有意忽略（`1.0.65+build.1` ≡ `1.0.65`，不会有假更新提示），且已由 `1.0.64+build.2` 槽实测走通完整发布链路
 - 历史自建线 1.0.54–1.0.66 已退役：已部署实例继续运行，基础版本超过其号后自然恢复更新
 
 ## 🌐 社区插件生态实证（MichengAI 8 仓库，2026-09-07 源码核对）

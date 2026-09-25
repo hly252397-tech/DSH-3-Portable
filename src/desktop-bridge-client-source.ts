@@ -252,7 +252,11 @@ export function desktopBridgeClientFactory(moduleRequire: (id: string) => unknow
         else if (id === 'back') openHistory(-1)
         else if (id === 'forward') openHistory(1)
         else if (id === 'find') clickByLabel([/^(?:搜索会话|查找|search sessions|find)$/i])
-        else if (id === 'settings') clickByLabel([/^设置$|^settings$|preferences/i])
+        else if (id === 'settings') {
+          const trigger = document.querySelector<HTMLElement>('.dcu-settings-seat [data-dcu-settings-trigger],.dcu-settings-seat [aria-haspopup="dialog"]')
+          if (trigger !== null) trigger.click()
+          else clickByLabel([/^设置$|^settings$|preferences/i])
+        }
       }
 
       ctx.effect(() => {

@@ -4,7 +4,15 @@
 
 The five most recent published versions are listed below.
 
-> **Versioning policy (2026-09-14):** the portable version now follows upstream exactly — base version equals the rebaselined upstream release (currently 1.0.64); portable-only rebuilds on the same base append a 4th component (1.0.64.1, 1.0.64.2, …). The earlier self-counted line 1.0.54–1.0.66 is retired; already-deployed 1.0.66-local installs keep running and pick up updates once the base exceeds 1.0.66.
+> **Versioning policy (2026-09-14):** the portable version now follows upstream exactly — base version equals the rebaselined upstream release (currently 1.0.66); portable-only rebuilds on the same base append a 4th component (1.0.65.1, 1.0.65.2, …). The earlier self-counted line 1.0.54–1.0.66 is retired; already-deployed 1.0.66-local installs keep running and pick up updates once the base exceeds 1.0.66.
+
+## 1.0.66 (portable absorption) — 2026-09-21
+
+- Absorbed upstream v1.0.66 (2 commits / 7 files, hunks ported manually per the upstream-sync baseline): ① slim the bundled catalog — `dsh-context` and `@kenz1117/dsh-ui-usage-billing` leave `BUNDLED_PLUGINS` but stay in the offline store via the new `RETAINED_STORE_PACKAGES` (the local profile still uses both, so old lockfiles must keep resolving); ② 5 bundled plugins refreshed — Skills Manager 1.0.1, Archive Manager 1.0.2, Agency Agents 1.0.1, MCP Connector 0.2.54, dshmarket 1.53.0. Official DSH remains 0.1.6-alpha.2.
+
+## 1.0.65 (portable absorption) — 2026-09-19
+
+- Absorbed upstream v1.0.65: ① startup cleanup now strips only official packages that leaked into the Web profile's dependencies, instead of keeping a Desktop allowlist of official optional layers (`stripOfficialProfileDependencies` / `reconcileProfileBundles` / `pruneMissingProfileBundles` now share one rule), so future official plugins no longer require Desktop changes; ② two bundled plugins refreshed to npm latest — Codex UI 1.1.14 and dshmarket 1.48.0 (the other 14 bundled plugins and official DSH 0.1.6-alpha.2 were already latest).
 
 ## 1.0.64 (portable re-baseline) — 2026-09-14
 

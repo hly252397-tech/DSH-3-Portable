@@ -6,15 +6,25 @@
 
 | 项目 | 当前值 | 用途 |
 |---|---|---|
-| **实现基线（活动运行时槽）** | `@deepseek-ai/dsh 0.1.5-rc.2`，槽 `Harness/slots/0.1.5-rc.2-fd316e6b895e48c1`（2026-09-11 17:09 提交） | **编译、运行、API 与 Profile 兼容性的最终依据**；上一槽 `0.1.2-rc.1` 保留以支撑回滚。出处：`Data/Runtime/Harness/current.json` |
-| 打包内置运行时（回退） | `@deepseek-ai/dsh 0.1.6-alpha.1`（2026-09-16 随上游 v1.0.63 对齐） | 随桌面安装包分发的**回退**运行时，必须与 `package.json` 的 `config.bundledDshVersion` 一致（门禁脚本强制）。它不是正在使用的运行时；npm `latest` 当前为 `0.1.5-rc.1`，故二者已不再"与 latest 稳定线一致" |
-| 官方审查基线 | `deepseek-ai/deepseek-harness@c291e7961a515f6d7af9304e7fd1d257929aef26` | 检查官方最新架构、开发和测试要求 |
-| 官方审查版本 | `@deepseek-ai/dsh 0.1.5-rc.2` | master 已携带 rc.2 发布；已进受信清单，作为桌面 A/B 更新器的迁移目标 |
-| 运行时迁移目标 | `@deepseek-ai/dsh 0.1.5-rc.2`（受信；`0.1.5-rc.1` 亦受信） | `checkHarnessUpdate` 经 npm integrity + GitHub 标签 commit + 受信清单三重核对后可自动切换；rc.1 保留受信以支撑回滚/降级路径 |
-| npm 标签快照 | `latest=0.1.5-rc.1`、`next=0.1.5-rc.2`、`alpha=0.1.5-alpha.2`（2026-09-13 复核 npm registry） | 更新器发现通道与插件「关于」页展示口径的来源 |
-| 核对日期 | `2026-09-13`（复核；官方 HEAD 未变，仍 `c291e79…`） | 判断本地规范是否过期 |
+| **实现基线（活动运行时槽）** | `@deepseek-ai/dsh 0.1.6-alpha.2`，槽 `Harness/slots/0.1.6-alpha.2-cf1f0a33455401b5`（2026-09-18 16:30 UTC 提交） | **编译、运行、API 与 Profile 兼容性的最终依据**；上一槽 `0.1.6-alpha.1` 保留以支撑回滚。出处：`Data/Runtime/Harness/current.json` |
+| 打包内置运行时（回退） | `@deepseek-ai/dsh 0.1.6-alpha.2`（2026-09-18 随上游 v1.0.64 吸收烘焙；v1.0.65 未改运行时） | 随桌面安装包分发的**回退**运行时，必须与 `package.json` 的 `config.bundledDshVersion` 一致（门禁脚本强制）。**本次起它与活动槽同版本**——不再是"落后一代"的回退件；npm `alpha` 标签亦为 `0.1.6-alpha.2` |
+| 官方审查基线 | `deepseek-ai/deepseek-harness@46a7f68b0922371ce7144b668b90e377d8e799f4` | 2026-09-24 人工审阅；不代表已安装该版本 |
+| 官方审查版本 | `@deepseek-ai/dsh 0.1.7-rc.1` | 精确提交的 CLI manifest 实读；实现仍为 0.1.6-alpha.2，不在本轮升级 |
+| 运行时迁移目标 | `@deepseek-ai/dsh 0.1.6-alpha.2`（受信且已切换为活动槽） | `checkHarnessUpdate` 经 npm integrity + GitHub 标签 commit + 受信清单三重核对后可自动切换；清单当前事实源为 `src/harness-update.ts` 的 `BUILTIN_TRUSTED_HARNESS_RELEASES`（0.1.2-alpha.3 … 0.1.6-alpha.2 共 7 项） |
+| npm 标签快照 | `latest=0.1.5-rc.2`、`next=0.1.5-rc.2`、`alpha=0.1.6-alpha.2`（2026-09-19 复核 npm registry） | 更新器发现通道与插件「关于」页展示口径的来源；0.1.6-alpha.2 仅存在于 alpha 通道，稳定线仍是 0.1.5-rc.2 |
+| 核对日期 | `2026-09-24`（人工审阅并推进审查基线；实现基线未变） | 判断本地规范是否过期 |
 
 机器可读记录见 `DeepSeek-Harness-官方兼容基线.json`。
+
+## 2026-09-24 人工审阅记录（I035 系统认知与手册）
+
+- 在线门禁发现 HEAD 漂移，人工阅读精确提交的 AGENTS、architecture、testing、defensive-patterns，以及 system-prompt/tools 子系统；保留既有历史审阅记录。
+- 继续使用插件、服务和 scope 扩展，不修改官方运行时；模型可见内容必须由持久会话事件重建，新增认知采用已有系统提示/动态上下文记录链。
+- 已安装 alpha.2 的类型实读支持 `section`、`context` 和 `system-prompt/assemble`。完整提示 `complete:true` 会排除附加系统节，故不能只靠 section 宣称覆盖所有 Agent。
+- `tools.schemas(scope)` 是可调用能力目录，不等于模型 wire schemas；PTC 模式入口可能只有 `run_code`。本轮须分别测试 scope 隔离与实际调用说明。
+- 官方要求非平凡可见变化保留 keyless recorded-session 场景、真实 Loader 组合与生命周期清理；本地仍执行更严格的 tsc/全测门禁。
+- 持久化不改 Session 格式，手册独立存于 Data；采用显式修订和冲突检测。处置须等待异步工作结束，junction 只解除链接、不递归删目标。
+- 上述为审查基线更新，不表示运行时升级、不自动接受未来 HEAD、不改变 UI 基线哈希。
 
 ## 每个功能开始前的强制动作
 
@@ -27,13 +37,30 @@
 ## 官方兼容性判定
 
 - 自定义 Harness 行为优先通过 Profile、Bundle、插件、服务、事件和 Client Slot 扩展，不直接改写官方运行时包。
-- 代码必须以**已内置** `0.1.6-alpha.1` 的实际导出和类型声明为准（2026-09-16 由 `0.1.2-rc.1` 对齐上游 v1.0.63 时更新；活动运行时槽仍为 `0.1.5-rc.2`，未切换）；官方文档只作为迁移预警，运行时经 A/B 切换真正生效前不得假定新 API 存在。
+- 代码必须以**已内置** `0.1.6-alpha.2` 的实际导出和类型声明为准（2026-09-18 随上游 v1.0.64 吸收时更新，2026-09-19 复核时**活动运行时槽已同为 `0.1.6-alpha.2`**，声明、回退件与实跑三者一致）；官方文档只作为迁移预警，更新尚未经 A/B 切换生效前不得假定新 API 存在。
 - 运行时升级属于兼容性迁移：需要独立候选、依赖闭包锁定、Profile 真实组合测试、会话格式评估、A/B 切换和自动回滚。
 - 产品可见插件不能只做手工 `ctx.plugin()` 单元测试，必须通过 Loader + Profile 的真实组合路径验证。
 - 用户可见状态只能在事务提交点后发布；失败前不得显示“完成”。
 - UI 文案由本地化字典拥有；不得在新增 Client UI 中散落硬编码产品文案。
 - 生命周期、并发、子进程或清理改动必须额外审阅官方 defensive patterns，并验证取消、处置、超时和进程树回收。
 - 非平凡变更必须留下决策、替代方案、兼容影响和验证证据；本仓库使用对应迭代的实施/审查记录承载，不照搬官方仓库内部 PR 流程。
+
+## 2026-09-19 人工审阅记录（上游 v1.0.65 吸收期间）
+
+- **触发**：`scripts/verify-dsh-official-baseline.mjs --online` 报「官方 HEAD 已变化：基线 `c291e7961a515f6d7af9304e7fd1d257929aef26`，当前 `ddefc45fbc7f8e46dd73185e68295696d1297887`」。按强制动作第 4 条先人工审阅，未自动改写基线。
+- **HEAD 判读（关键，避免误当成"官方又跑远了"）**：新 HEAD `ddefc45f` 就是标签 **`dsh-v0.1.6-alpha.2` 的发布合并提交**（2026-09-17，PR #4469 `worktree/release-dsh-0.1.6-alpha.2`），`apps/cli/package.json` 版本经实读为 `0.1.6-alpha.2`；旧基线 `c291e79` 则是 2026-09-10 的 PR #3977（0.1.5-rc.2 线）。**即漂移方向是"追上了我们已经在跑的版本"**，不是引入了更新一代。旁证：本仓库 `src/harness-update.ts` 受信清单里 `0.1.6-alpha.2` 登记的 `githubCommit` 正是 `ddefc45f…`（2026-09-18 由 npm integrity + GitHub 标签双凭据核对）。
+- **规范文件差异（逐行审阅 AGENTS.md / docs/architecture.md / docs/testing.md）**：
+  - `AGENTS.md`（156 → 180 行）：① 持久化规则新增"必须确认已声明的持久化类型变更"并要求引用 `docs/cookbook/reviewing-persistence-type-changes.md`；② 仓库结构表整体重写并**大幅扩容**（新增 `ssh/`、`ptc-runtime/`、`sandbox/`、`deliverables/`、`computer-use/`、`browser-use/`、`jobs/`、`goal/`、`schedule/`、`session-query/`、`attachment/`、`spill/`、`storage/`、`workspace/`、`feedback/`、`host/`、`client/`、`mcp/`、`runtime-diagnostics/`、`test-support/`；`experimental/` 语义反转为"默认公开、显式列举私有例外"）；③ 写作铁律收紧——空 `catch` 必须点名吞掉的错误、评论只许局部、**禁用 `prove`/`nance` 含糊来源标签**；④ **Agent Note 政策放宽**：只有"持久决策依据"才必须写，机械与局部编辑（含本地 UI 改动）豁免；⑤ 新增"Windows 打包/签名必读"与"浏览器自动化/GIF 录制要用 `pin-browse-picker` 覆盖层"两条流程条目。
+  - `docs/architecture.md`（161 → 165 行）：① **HMR 改为由 YAML 决定**——base 启用"仅配置"的 `dsh-hmr`，headless/SDK/ACP 关闭，`sdk-minimal` 不加载，profile patch 可覆盖；② base 为 Web 与 agent 引入 Plugin Manager；③ **官方桌面宿主重构**——Electron 以 Electron Node 模式启动 Desktop Host，Host 调用共享 CLI profile runner 与完整 Web 应用，窗口先载打包好的 Web 资源再等 boot injections 激活客户端插件，Node IPC 改载 boot/readiness/fatal/shutdown，**桌面默认端口 `19387`**（profile 可覆盖）；④ AgentLoop 串行等待 `agent/created` 初始化，失败回滚创建；⑤ "model-visible means logged" 补充——**修改既有消息内容的插件须注册纯消息投影**（detached readers 需显式提供同样定义）。
+  - `docs/testing.md`（56 行，仅 1 处）：真实入口路径的举例更新——`lib/worker.cjs`（worker-thread 兄弟入口）改为 `lib/process.js`（Node 程序引导），smoke 用例随之从 `code-runtime/code-runtime-worker-thread` 迁到 `ptc-runtime/ptc-runtime-node`（包重命名）。
+- **受影响子系统逐条判定本仓库影响**：
+  - 官方桌面宿主重构（③，含 `19387` 端口）：属**官方私有桌面实现**，与便携版外壳无同步关系。实测本仓库 `src/main.ts`、`src/dsh-view-preload.cts` 无 `listen(`/`createServer`/`19387`，外壳不监听任何端口（走 WebContentsView + `app://` 协议 + preload IPC），因此不存在端口冲突面；`Data/DSH/profiles/` 下也不使用官方保留的 `profiles/desktop`（本仓库是 `web` profile + 自管 seeding），故"公共 CLI 不得管理 Desktop profile"这条约束不适用于本 fork 的自管路径。**决策：不移植**（与 2026-09-11、2026-09-08 两次同类判定一致）。
+  - HMR（①）：实读活动槽 `dsh-base@0.1.6-alpha.2` 的 `cordis.patch.yml`，`hmr` 条目为 `disabled: !!js "!ctx.get('profileContext')"` + `config: { root: [] }`——**有 profile 上下文即启用、且仅配置级（模块根为空）**。本仓库 profile patch 未提及 `hmr`，即沿用该默认；`src/` 内无 HMR 相关代码。**决策：不改**（这是随包运行时的官方默认，且本仓库 profile 由 seeding 生成、不做运行期改写）。
+  - 消息投影（⑤）：本仓库触达模型可见面的方式只有 `systemPrompt.section`（dsh-agency-agents 的实证形态）与会话事件订阅，**不修改既有消息内容**，故不涉及纯消息投影注册义务。**决策：不改**，但作为规则候选补进知识库（"要改既有消息必须注册投影"）。
+  - `agent/created` 串行初始化与失败回滚（④）：属运行时内部时序保证，本仓库无插件监听该事件（已 grep `src/` 与 `local/` 插件），无需适配。
+  - 测试入口/包重命名（testing.md）：官方仓库内部路径，本仓库测试不引用其包路径，无影响。
+  - `AGENTS.md` 写作铁律（③）：`prove`/`nance` 禁词、空 `catch` 点名、评论局部化三条**对本仓库仍然适用**，已在本轮新增代码与注释中遵守；"Agent Note 只为持久决策"的放宽与本仓库"非平凡变更留记录"的既有口径一致，本仓库继续按自己的迭代记录承载。
+- **本仓库决策与动作**：实现基线不动（活动槽已是 `0.1.6-alpha.2`，与本次官方 HEAD 同版本，**无需运行时迁移**）；审查基线由 `c291e79` 推进到 `ddefc45f`（JSON 的 `official.commit`/`official.dshVersion` 与本节表格同步更新）；受信清单不动（`0.1.6-alpha.2` 早已受信）；不产生任何移植补丁；HMR/端口/消息投影三项作为"已知官方现状"记录备查。
 
 ## 2026-09-11 人工审阅记录
 

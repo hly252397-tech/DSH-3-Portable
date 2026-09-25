@@ -87,6 +87,8 @@ Data/Updates/Harness/
 
 所有指针保存便携根目录相对路径。`Data/DSH/`、`Data/Electron/`、`工作空间/` 和社区插件不属于桌面制品，任何更新流程都不得删除或覆盖它们。
 
+**保留策略（2026-09-19 定案）**：桌面候选槽只保留指针引用的两版——`current`（正在运行）与 `previous`（唯一回滚目标）；`pending`（在途事务）另受保护。其余未引用槽一律回收，单槽约 780 MB，不留多版历史。回收只发生在两个提交点之后：健康验证提交（`confirmRunningCandidate`）与本地构建暂存（`stageLocalDesktopBuild`），实现为 `prunePortableDesktopSlots`，默认 `keepUnreferencedSlots = 0`。下载缓存同理只留指针版本与最近一个目录。`Data/Runtime/Harness/slots/` 是运行时槽，遵循自己的保留策略，不受此条约束。
+
 ## 5. 故障与恢复合同
 
 | 故障 | 必须行为 |

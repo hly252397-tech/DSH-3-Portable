@@ -11,7 +11,7 @@
     :root{color-scheme:dark;font-family:Inter,"Segoe UI","Microsoft YaHei UI",sans-serif;background:var(--chrome-bg);color:var(--chrome-text)}
     *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}button{font:inherit;color:inherit;border:0;background:transparent}
     .browser{position:relative;isolation:isolate;width:100%;height:100%;display:flex;flex-direction:column;background:var(--browser-surface);border:0;overflow:hidden}
-    .browser img{width:14px;height:14px;filter:invert(91%) sepia(5%) saturate(80%) hue-rotate(80deg)}
+    .browser img:not(.browser-page-snapshot){width:14px;height:14px;filter:invert(91%) sepia(5%) saturate(80%) hue-rotate(80deg)}
     .browser-tabs{position:relative;display:flex;align-items:center;gap:4px;height:40px;padding:5px 8px 4px;flex:none;background:var(--browser-surface-soft);border-bottom:1px solid var(--browser-border)}
     .browser-tabs-list{display:flex;align-items:center;gap:3px;min-width:0;max-width:calc(100% - 36px);flex:0 1 auto;overflow-x:auto;scrollbar-width:none}.browser-tabs-list::-webkit-scrollbar{display:none}
     .browser-tabs-actions{display:flex;align-items:center;flex:none;margin:0 auto 0 0}
@@ -22,7 +22,7 @@
     .nav{width:28px;height:28px;border-radius:var(--chrome-radius-sm);display:grid;place-items:center;opacity:.72;transition:background-color 120ms ease,opacity 120ms ease}.nav:hover:not(:disabled){background:var(--browser-surface-raised);opacity:1}.nav:disabled{opacity:.32}.nav:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus-ring,var(--browser-accent))}
     .browser-nav{display:flex;align-items:center;gap:3px;height:42px;padding:6px 8px;background:var(--browser-surface);border-bottom:1px solid var(--browser-border);flex:none}.browser-nav input{flex:1;min-width:0;height:30px;margin:0 5px;padding:0 12px;border-radius:var(--chrome-radius-sm);border:1px solid var(--chrome-border-strong);background:var(--chrome-bg);color:var(--browser-text);font-size:12px;outline:none;transition:background-color 120ms ease,border-color 120ms ease,box-shadow 120ms ease}.browser-nav input:hover{border-color:var(--browser-muted)}.browser-nav input:focus{border-color:var(--focus-ring,var(--browser-accent));box-shadow:0 0 0 2px color-mix(in srgb,var(--browser-accent) 18%,transparent)}
     .browser.loading .browser-nav input{opacity:.6}.browser.loading [data-browser="reload"] img{animation:browser-spin .8s linear infinite}@keyframes browser-spin{to{transform:rotate(360deg)}}
-    :root[data-color-scheme="light"]{color-scheme:light;background:var(--chrome-bg);color:var(--chrome-text)}:root[data-color-scheme="light"] .browser{background:var(--browser-surface)}:root[data-color-scheme="light"] .browser img{filter:brightness(0);opacity:.72}
+    :root[data-color-scheme="light"]{color-scheme:light;background:var(--chrome-bg);color:var(--chrome-text)}:root[data-color-scheme="light"] .browser{background:var(--browser-surface)}:root[data-color-scheme="light"] .browser img:not(.browser-page-snapshot){filter:brightness(0);opacity:.72}
     .browser-tool.optional{display:none}
     /* 只开一个网页时隐藏这一层网页标签条（省约 40px 垂直；"+" 由 JS 移进导航条，功能零损失）。
        判定与原生视图的垂直偏移**同源**：外壳下发 state.browser.pageTabBarVisible。
@@ -77,6 +77,8 @@
       const tabs=Array.isArray(browser.tabs)?browser.tabs:[];const strip=document.getElementById('browser-tabs');strip.replaceChildren();const items=[];
       for(const tab of tabs){const item=document.createElement('div');item.className='tab'+(tab.id===browser.activeId?' active':'')+(tab.crashed?' crashed':'');item.role='tab';item.tabIndex=tab.id===browser.activeId?0:-1;item.ariaSelected=String(tab.id===browser.activeId);item.title=tab.url||'';const icon=document.createElement('span');icon.className='tab-icon';if(tab.favicon){const image=document.createElement('img');image.src=tab.favicon;image.alt='';icon.append(image)}else{const dot=document.createElement('span');dot.className='tab-dot';icon.append(dot)}const label=document.createElement('span');label.className='tab-label';label.textContent=tab.title||tab.url;const close=document.createElement('button');close.className='tab-close';close.ariaLabel=close.title=zh()?'关闭标签页':'Close tab';close.innerHTML='<img src="shell-icons/xmark.svg" alt="">';close.addEventListener('click',event=>{event.stopPropagation();api.browser.closeTab(tab.id)});item.append(icon,label,close);const activate=()=>{if(tab.crashed)api.browser.reload();api.browser.activateTab(tab.id)};item.addEventListener('click',activate);item.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();activate()}else if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();const delta=event.key==='ArrowLeft'?-1:1;items[(items.indexOf(item)+delta+items.length)%items.length]?.focus()}});items.push(item);strip.append(item)}
       const actions=document.getElementById('browser-tabs-actions');actions.replaceChildren();const add=document.createElement('button');add.className='tab-add';add.ariaLabel=add.title=zh()?'新标签页':'New tab';add.innerHTML='<img src="shell-icons/plus.svg" alt="">';add.addEventListener('click',()=>api.browser.newTab(''));actions.append(add);
+      // 最大化入口跟正式 chrome 走（原先只在 shell 历史副本里，退役后必须在这里）
+      const maxBtn=document.createElement('button');maxBtn.className='tab-add';maxBtn.ariaLabel=maxBtn.title=zh()?(browser.maximized?'还原':'最大化'):(browser.maximized?'Restore':'Maximize');maxBtn.innerHTML=`<img src="shell-icons/${browser.maximized?'browser-restore':'browser-maximize'}.svg" alt="">`;maxBtn.addEventListener('click',()=>api.browser.toggleMaximize());actions.append(maxBtn);
       /* 单网页：收起标签条并把"+"搬进导航条（放在地址栏之前），只认外壳下发的判定；
          多网页：原样恢复。判定同源 ⇒ 页面与原生视图的垂直偏移不会错开 40px。 */
       const singleTab=browser.pageTabBarVisible===false;host.classList.toggle('single-page-tab',singleTab);
@@ -90,6 +92,13 @@
     document.querySelectorAll('[data-browser]').forEach(button=>button.addEventListener('click',()=>{const action=button.dataset.browser;if(action==='back')api.browser.back();else if(action==='forward')api.browser.forward();else if(action==='reload')api.browser.reload();else if(action==='home')api.browser.openHomepages()}));
     const address=document.getElementById('browser-address');address.addEventListener('keydown',event=>{if(event.key==='Enter'){const value=address.value.trim();if(value)api.browser.navigate(value);address.blur()}else if(event.key==='Escape'){const active=state?.browser?.tabs?.find(tab=>tab.id===state.browser.activeId);if(active)address.value=active.url;address.blur()}});
     api.getBootstrap().then(applyBootstrap);api.onBootstrap(applyBootstrap);api.onState(applyState);
+    if(typeof api.reportChromeHeight==='function'){
+      const rows=[document.querySelector('.browser-tabs'),document.querySelector('.browser-nav'),document.getElementById('browser-find')];
+      const reportHeight=()=>{const height=rows.reduce((sum,row)=>sum+(row?.getBoundingClientRect().height||0),0);if(height>=42)api.reportChromeHeight(Math.round(height))};
+      const resizeObserver=new ResizeObserver(reportHeight);for(const row of rows)if(row)resizeObserver.observe(row);
+      const hiddenObserver=new MutationObserver(reportHeight);for(const row of rows)if(row)hiddenObserver.observe(row,{attributes:true,attributeFilter:['hidden','style','class']});
+      requestAnimationFrame(reportHeight);
+    }
   </script>
 </body>
 </html>

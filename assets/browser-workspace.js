@@ -95,25 +95,19 @@
     pageSnapshot.hidden = true;
     elements.overflow.parentElement.insertBefore(pageSnapshot, elements.overflow);
 
-    const nextPaint = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
     function clearMenuSnapshot() {
       pageSnapshot.hidden = true;
       pageSnapshot.removeAttribute('src');
-      pageSnapshot.style.removeProperty('top');
-      pageSnapshot.style.removeProperty('height');
     }
     async function prepareMenuSnapshot() {
       const snapshot = await browser.prepareMenuSnapshot();
-      if (!snapshot || typeof snapshot.pageDataUrl !== 'string' || !snapshot.pageDataUrl.startsWith('data:image/')) return false;
+      if (!snapshot || typeof snapshot.pageDataUrl !== 'string' || !snapshot.pageDataUrl.startsWith('data:image/')) return;
       pageSnapshot.src = snapshot.pageDataUrl;
       pageSnapshot.style.top = `${Math.max(0, Number(snapshot.pageTop) || 0)}px`;
       pageSnapshot.style.height = `${Math.max(0, Number(snapshot.pageHeight) || 0)}px`;
       try { await pageSnapshot.decode(); }
-      catch { clearMenuSnapshot(); return false; }
+      catch { clearMenuSnapshot(); return; }
       pageSnapshot.hidden = false;
-      await nextPaint();
-      await nextPaint();
-      return true;
     }
 
     function setNote(target, message, isError = false) {
@@ -326,17 +320,16 @@
       const requestedOpen = Boolean(open);
       menuTransition = menuTransition.catch(() => undefined).then(async () => {
         if (requestedOpen) {
-          if (!await prepareMenuSnapshot()) {
-            clearMenuSnapshot();
-            console.warn('浏览器菜单未打开：当前网页快照不可用，已保留原生网页。');
-            return;
-          }
-          try { await browser.toggleMenu(true); }
-          catch (error) { clearMenuSnapshot(); throw error; }
+          // The menu remains usable if capture fails; the snapshot is only a
+          // visual backdrop now that chrome and page share one card.
+          // The guest surface can lag the menu click by one compositor frame;
+          // capture only after it has settled, just as for saved screenshots.
+          await new Promise(resolve => setTimeout(resolve, 250));
+          try { await prepareMenuSnapshot(); } catch { clearMenuSnapshot(); }
+          await browser.toggleMenu(true);
           return;
         }
         await browser.toggleMenu(false);
-        await nextPaint();
         clearMenuSnapshot();
       });
       return menuTransition;
@@ -366,7 +359,7 @@
       const drawerHeight = Math.max(0, Number(state.downloadsDrawerHeight) || 0);
       elements.downloadDrawer.style.setProperty('--browser-downloads-height', `${drawerHeight}px`);
       elements.more.setAttribute('aria-expanded', String(Boolean(state.menuOpen)));
-      if (!state.menuOpen && elements.overflow.hidden && !pageSnapshot.hidden) clearMenuSnapshot();
+      if (!state.menuOpen && !pageSnapshot.hidden) clearMenuSnapshot();
       elements.downloads.setAttribute('aria-pressed', String(Boolean(state.downloadsOpen)));
       elements.downloads.textContent = state.downloads?.some(entry => entry.status === 'progressing') ? '下载中' : '下载';
       elements.bookmark.setAttribute('aria-pressed', String(Boolean(state.bookmarked)));
@@ -398,6 +391,9 @@
     elements.menuPrint.addEventListener('click', () => { setMenu(false); browser.printPage(); });
     elements.menuScreenshot.addEventListener('click', async () => {
       await setMenu(false);
+      // The page webview is made visible by another renderer after the IPC
+      // reply. Give that surface one settled frame before capturing it.
+      await new Promise(resolve => setTimeout(resolve, 250));
       try { const name = await browser.captureScreenshot(); if (name) setNote(elements.importNote, `截图已保存：${name}`); }
       catch (error) { setNote(elements.importNote, `截图失败：${errorText(error)}`, true); }
     });

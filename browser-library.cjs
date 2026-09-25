@@ -71,10 +71,42 @@ function createBrowserLibrary({ safeStorage, browserDataRoot, stateRoot, appendL
 
   let data = load();
 
+  /**
+   * 同步 rename + 瞬时占用重试（2026-09-21）。
+   * 策略与 `src/atomic-file.ts` 的 renameWithRetry **同源**（EACCES/EBUSY/EPERM + 25/50/100/200/400ms 退避）。
+   * 背景：本文件是根目录独立 .cjs，不走 atomic-file helper，原先直接 `renameSync` ⇒
+   * Windows 上杀软/索引器/并发读短暂持有目标文件时会 EPERM，表现为间歇性失败
+   * （test/browser-extension-state.test.ts 隔离连跑 3 过 1 挂即为实证）。
+   */
+  /** 同步睡眠：优先 Atomics.wait（阻塞不烧 CPU）；环境不支持时退回极短自旋。 */
+  function sleepSync(ms) {
+    try {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+    } catch {
+      const until = Date.now() + ms;
+      while (Date.now() < until) { /* 退路 */ }
+    }
+  }
+
+  function renameWithRetrySync(source, destination) {
+    const delays = [25, 50, 100, 200, 400];
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        fs.renameSync(source, destination);
+        return;
+      } catch (error) {
+        const code = error && error.code;
+        const delay = delays[attempt];
+        if (delay === undefined || !['EACCES', 'EBUSY', 'EPERM'].includes(String(code))) throw error;
+        sleepSync(delay);
+      }
+    }
+  }
+
   function save() {
     const temporary = `${libraryPath}.tmp`;
     fs.writeFileSync(temporary, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
-    fs.renameSync(temporary, libraryPath);
+    renameWithRetrySync(temporary, libraryPath);
   }
 
   function backup(reason) {

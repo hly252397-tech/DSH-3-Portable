@@ -2,6 +2,9 @@
   bottom:0;
   overflow:hidden;
   color:var(--browser-text);
+  font-family:var(--dsh-font-ui);
+  font-size:var(--dsh-font-size-control,12px);
+  line-height:1.5;
   --browser-surface:var(--chrome-surface);
   --browser-surface-raised:var(--chrome-surface-2);
   --browser-surface-soft:var(--chrome-surface-2);
@@ -13,7 +16,7 @@
   container-name:browser-workspace;
   container-type:inline-size;
 }
-.browser button,.browser input,.browser textarea{font:inherit}
+.browser button,.browser input,.browser textarea{font-family:inherit}
 .browser-tool{height:26px;min-width:26px;padding:0 7px;border-radius:var(--chrome-radius-sm);display:inline-flex;align-items:center;justify-content:center;color:var(--browser-muted);font-size:12px;white-space:nowrap}
 .browser-tool:hover:not(:disabled),.browser-tool[aria-pressed="true"]{background:var(--browser-surface-raised);color:var(--browser-text)}
 .browser-tool:disabled{opacity:.4}
@@ -21,8 +24,7 @@
 .browser-tool.danger{color:var(--browser-danger)}
 .browser-nav{position:relative}
 .browser-nav .browser-tool{flex:none}
-.browser img.browser-page-snapshot{position:absolute;z-index:1;left:0;width:100%;display:block;pointer-events:none;user-select:none;object-fit:fill;background:var(--browser-surface);filter:none;opacity:1}
-:root[data-color-scheme="light"] .browser img.browser-page-snapshot{filter:none;opacity:1}
+.browser img.browser-page-snapshot{position:absolute;z-index:1;left:0;width:100%;display:block;pointer-events:none;user-select:none;object-fit:fill;background:var(--browser-surface)}
 .browser img.browser-page-snapshot[hidden]{display:none}
 .browser-find{position:absolute;z-index:8;left:0;right:0;top:38px;height:36px;padding:4px 7px;display:flex;align-items:center;gap:5px;background:var(--browser-surface);border-top:1px solid var(--browser-border)}
 .browser-find[hidden]{display:none}
@@ -31,7 +33,8 @@
 .browser-find-count{min-width:44px;text-align:center;color:var(--browser-muted);font-size:11px}
 .browser-overflow{position:absolute;z-index:10;right:8px;top:76px;width:270px;padding:7px;border:1px solid var(--browser-border);border-radius:var(--chrome-radius);background:var(--browser-surface);box-shadow:var(--chrome-shadow-pop);display:grid;gap:3px}
 .browser-overflow[hidden]{display:none}
-.browser-overflow button{height:31px;padding:0 10px;border-radius:var(--chrome-radius-sm);text-align:left;color:var(--browser-text)}
+.browser-overflow button{height:31px;padding:0 10px;border-radius:var(--chrome-radius-sm);text-align:left;color:var(--browser-text);font-size:var(--dsh-font-size-menu,13px);line-height:20px}
+.browser :is(button,input,textarea):focus-visible{outline:2px solid var(--browser-accent);outline-offset:-2px}
 .browser-overflow button:hover{background:var(--browser-surface-raised)}
 .browser-overflow hr{width:100%;height:1px;border:0;background:var(--browser-border);margin:4px 0}
 .browser-overflow .zoom-row{display:grid;grid-template-columns:1fr 52px 1fr 1fr;gap:3px;align-items:center}

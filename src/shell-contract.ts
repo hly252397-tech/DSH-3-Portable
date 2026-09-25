@@ -79,6 +79,11 @@ export const SHELL_IPC = {
   browserPanelPrepareOcclusion: 'dsh-shell:browser-panel-prepare-occlusion',
   browserPanelOccluded: 'dsh-shell:browser-panel-occluded',
   browserPanelBounds: 'dsh-shell:browser-panel-bounds',
+  browserPanelExecuteJs: 'dsh-shell:browser-panel-execute-js',
+  browserPanelTabs: 'dsh-shell:browser-panel-tabs',
+  browserEmbeddedConfig: 'dsh-shell:browser-embedded-config',
+  browserEmbeddedGuestAttached: 'dsh-shell:browser-embedded-guest-attached',
+  browserEmbeddedState: 'dsh-shell:browser-embedded-state',
   featurePanelsCopy: 'dsh-shell:feature-panels-copy',
 } as const
 
@@ -131,6 +136,7 @@ export interface BrowserDownloadState {
 export interface BrowserShellState {
   readonly visible: boolean
   readonly tabs: readonly BrowserTabState[]
+  readonly retainedTabIds: readonly string[]
   readonly activeId: string | null
   readonly canBack: boolean
   readonly canForward: boolean

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { BUNDLED_PLUGINS, OFFICIAL_DSH_VERSION, OFFICIAL_LAUNCH_PEERS, OFFICIAL_RUNTIME, OFFICIAL_RUNTIME_RESOLUTION_MODE, compareReleaseVersions, isDeepSeekOfficialPackage, isOfficialDshPackage, officialDshVersionOverrides, officialRuntimeDependencies, officialRuntimePnpmConfig, planOfficialRuntimeTarget, pnpmAllowBuildsManifest, pnpmWorkspaceYaml, SUITE_PACKAGE, bundledPluginNames, seededPackageNames } from '../src/bundled-plugins.js'
+import { BUNDLED_PLUGINS, OFFICIAL_DSH_VERSION, OFFICIAL_LAUNCH_PEERS, OFFICIAL_RUNTIME, OFFICIAL_RUNTIME_RESOLUTION_MODE, RETAINED_STORE_PACKAGES, STORE_PACKAGES, compareReleaseVersions, isDeepSeekOfficialPackage, isOfficialDshPackage, officialDshVersionOverrides, officialRuntimeDependencies, officialRuntimePnpmConfig, planOfficialRuntimeTarget, pnpmAllowBuildsManifest, pnpmWorkspaceYaml, SUITE_PACKAGE, bundledPluginNames, seededPackageNames } from '../src/bundled-plugins.js'
 
 test('内置目录包含全部随包社区插件和市场组件', () => {
   assert.deepEqual(bundledPluginNames(), [
@@ -16,15 +16,26 @@ test('内置目录包含全部随包社区插件和市场组件', () => {
     '@michengai/dsh-simplify',
     '@michengai/dsh-code-review',
     '@michengai/dsh-pua',
-    'dsh-context',
     'dsh-better-sidebar',
     'dsh-mcp-connector',
-    '@kenz1117/dsh-ui-usage-billing',
     'dshmarket',
   ])
-  assert.equal(BUNDLED_PLUGINS.length, 16)
+  assert.equal(BUNDLED_PLUGINS.length, 14)
   assert.equal(SUITE_PACKAGE, '@michengai/dsh-codex-suite')
 })
+
+test('离线仓库保留已移出内置清单的包，供旧 Profile 升级', () => {
+  assert.deepEqual(RETAINED_STORE_PACKAGES.map(plugin => plugin.packageName), [
+    'dsh-context',
+    '@kenz1117/dsh-ui-usage-billing',
+  ])
+  assert.equal(STORE_PACKAGES.length, BUNDLED_PLUGINS.length + RETAINED_STORE_PACKAGES.length)
+  for (const plugin of RETAINED_STORE_PACKAGES) {
+    assert.equal(BUNDLED_PLUGINS.some(item => item.packageName === plugin.packageName), false)
+    assert.equal(STORE_PACKAGES.some(item => item.packageName === plugin.packageName && item.version === plugin.version), true)
+  }
+})
+
 
 test('所有 DeepSeek 官方作用域包使用同一套隔离判定', () => {
   assert.equal(isOfficialDshPackage('@deepseek-ai/dsh'), true)
@@ -38,31 +49,28 @@ test('每个内置插件都钉死精确版本', () => {
     assert.match(plugin.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/)
     assert.equal(
       plugin.packageName.startsWith('@michengai/')
-        || plugin.packageName === '@kenz1117/dsh-ui-usage-billing'
-        || ['dsh-context', 'dsh-better-sidebar', 'dsh-mcp-connector', 'dshmarket'].includes(plugin.packageName),
+        || ['dsh-better-sidebar', 'dsh-mcp-connector', 'dshmarket'].includes(plugin.packageName),
       true,
     )
   }
-  assert.equal(BUNDLED_PLUGINS.find(plugin => plugin.packageName === 'dshmarket')?.version, '1.47.0')
+  assert.equal(BUNDLED_PLUGINS.find(plugin => plugin.packageName === 'dshmarket')?.version, '1.53.0')
   assert.deepEqual(Object.fromEntries(BUNDLED_PLUGINS.map(plugin => [plugin.packageName, plugin.version])), {
-    '@michengai/dsh-codex-ui': '1.1.13',
+    '@michengai/dsh-codex-ui': '1.1.14',
     '@michengai/dsh-im-connect': '0.1.51',
     // 0.1.44（2026-09-16 用户授权接受 profile 批量升级）：自动化工作台补丁已按授权重钉到 0.1.44 的
     // 三锚点契约（apply / runtime / 原生页面返回行），详见 build.mjs 注释与 I030 记录。
     '@michengai/dsh-automation': '0.1.45',
-    '@michengai/dsh-skills-manager': '0.1.53',
-    '@michengai/dsh-archive-manager': '0.1.44',
-    '@michengai/dsh-agency-agents': '0.1.44',
+    '@michengai/dsh-skills-manager': '1.0.1',
+    '@michengai/dsh-archive-manager': '1.0.2',
+    '@michengai/dsh-agency-agents': '1.0.1',
     '@michengai/dsh-codex-pet': '0.1.7',
     '@michengai/dsh-btw': '0.1.10',
     '@michengai/dsh-simplify': '0.1.7',
     '@michengai/dsh-code-review': '0.1.4',
     '@michengai/dsh-pua': '0.3.16',
-    'dsh-context': '0.53.3',
     'dsh-better-sidebar': '0.19.1',
-    'dsh-mcp-connector': '0.2.51',
-    '@kenz1117/dsh-ui-usage-billing': '1.4.0',
-    dshmarket: '1.47.0',
+    'dsh-mcp-connector': '0.2.54',
+    dshmarket: '1.53.0',
   })
 })
 
@@ -92,6 +100,16 @@ test('版本号完全跟随上游：第 4 段便携迭代号的比较语义', ()
   // 预发布语义不破坏：rc 仍小于正式，便携迭代不影响 prerelease 比较。
   assert.equal(compareReleaseVersions('1.0.64', '1.0.64-rc.1'), 1)
   assert.equal(compareReleaseVersions('1.0.64-rc.2', '1.0.64-rc.1'), 1)
+})
+
+test('同基座重建用 +build.N 后缀：构建元数据不影响比较，不产生假更新', () => {
+  // 打包链路承载不了 4 段版本（electron-builder 把 1.0.65.1 写成 ProductVersion 1.0.6.0，
+  // validatePackagedApp 会据实拒收），实际发布用 +build.N；该后缀必须与基座同版，
+  // 否则 GitHub 上同号的 Release 会被判成"可更新"而触发一次无意义的下载。
+  assert.equal(compareReleaseVersions('1.0.65+build.1', '1.0.65'), 0)
+  assert.equal(compareReleaseVersions('1.0.65', '1.0.65+build.1'), 0)
+  assert.equal(compareReleaseVersions('1.0.65+build.1', '1.0.64+build.2'), 1)
+  assert.equal(compareReleaseVersions('1.0.66', '1.0.65+build.1'), 1)
 })
 
 test('官方版本比较和升级目标不会把已对齐的新版本降回去', () => {

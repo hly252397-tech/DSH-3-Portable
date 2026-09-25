@@ -63,6 +63,11 @@ const on = (channel: string, listener: (value?: unknown) => void): (() => void) 
 }
 
 contextBridge.exposeInMainWorld('dshShell', {
+  reportChromeHeight: (height: number) => {
+    if (!Number.isFinite(height) || height < 42 || height > 300) return
+    // The standalone legacy panel has no webview host; this signal is only for the embedded card.
+    try { ipcRenderer.sendToHost('browser-chrome-height', height) } catch { /* no host in standalone panel */ }
+  },
   getBootstrap: async () => {
     const value: unknown = await ipcRenderer.invoke(IPC.getBootstrap)
     applyThemeBootstrap(value)

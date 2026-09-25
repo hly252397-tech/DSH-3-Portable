@@ -35,6 +35,14 @@ test('主窗口导航完成前不结束启动或插件热重载', async () => {
   assert.match(source, /DSH_MARKET_BATCH_MAX_WAIT_MS/)
 })
 
+test('受控导航不会被 will-navigate 自己拦截', async () => {
+  const source = await readFile(new URL('../../src/main.ts', import.meta.url), 'utf8')
+  const handlerStart = source.indexOf("view.webContents.on('will-navigate'")
+  const activeNavigation = source.indexOf('if (windowNavigation.isNavigating())', handlerStart)
+  assert.ok(handlerStart >= 0)
+  assert.ok(activeNavigation > handlerStart)
+})
+
 test('桌面壳与 DSH 内容分层并复用托盘重载实现', async () => {
   const source = await readFile(new URL('../../src/main.ts', import.meta.url), 'utf8')
   assert.match(source, /new WebContentsView/)
@@ -234,14 +242,16 @@ test('第一套全功能浏览器原位接入 DSH 浏览器 Tab 且不压缩主�
   assert.match(main, /active\.capturePage\(\)/)
   assert.match(main, /SHELL_IPC\.browserPanelPrepareOcclusion/)
   assert.match(main, /SHELL_IPC\.browserPanelOccluded/)
-  assert.match(main, /SHELL_IPC\.browserPrepareMenuSnapshot/)
-  assert.match(main, /if \(image\.isEmpty\(\)\) return null/)
-  assert.match(workspace, /await browser\.prepareMenuSnapshot\(\)/)
-  assert.ok(workspace.indexOf('await pageSnapshot.decode()') < workspace.indexOf('await browser.toggleMenu(true)'))
-  assert.ok(workspace.indexOf('await nextPaint();\n      await nextPaint();') < workspace.indexOf('await browser.toggleMenu(true)'))
-  assert.match(workspace, /当前网页快照不可用，已保留原生网页/)
-  assert.match(workspaceStyles, /\.browser img\.browser-page-snapshot\{[^}]*width:100%[^}]*filter:none[^}]*opacity:1/)
-  assert.match(workspaceStyles, /:root\[data-color-scheme="light"\] \.browser img\.browser-page-snapshot\{filter:none;opacity:1\}/)
+  assert.match(main, /await guest\.capturePage\(\)/, 'screenshots should first capture the active page guest')
+  assert.match(main, /host\.capturePage\(rect\)/, 'screenshots still need a host fallback before the guest is attached')
+  assert.match(main, /!isBlankLightBrowserImage\(captured\.image\)/,
+    'the overflow menu must not freeze an all-white pre-paint guest frame')
+  assert.match(main, /captured === null \|\| captured\.image\.isEmpty\(\)\) return null/,
+    'empty screenshots must never be written as files')
+  assert.match(workspace, /try \{ await prepareMenuSnapshot\(\); \} catch \{ clearMenuSnapshot\(\); \}/)
+  assert.match(workspace, /await browser\.toggleMenu\(true\)/, 'snapshot failure must not block the menu')
+  assert.doesNotMatch(workspace, /if \(!await prepareMenuSnapshot\(\)\)/)
+  assert.match(workspaceStyles, /\.browser img\.browser-page-snapshot\[hidden\]\{display:none\}/)
   assert.match(panel, /\.browser-tabs-list\{[^}]*max-width:calc\(100% - 36px\)[^}]*flex:0 1 auto/)
   assert.match(panel, /\.browser-tabs-actions\{[^}]*margin:0 auto 0 0/)
   assert.match(panel, /\.browser-tabs \.tab\.active::after\{[^}]*background:var\(--browser-accent\)/)
@@ -366,18 +376,19 @@ test('侧栏底部不再重复注入重启/设置入口，且模块加载形态�
   assert.match(client, /inject:\s*\["locale", "slots"\]/)
 })
 
-test('浏览器工作区脚本引用的元素在它加载的每个文档里都存在', async () => {
-  // browser-workspace.js 同时被 shell.html（外壳顶栏所在文档）与 browser-panel.html 加载。
-  // 任一 byId 命中 null，create() 里紧跟的 addEventListener 就会抛错，而 shell.html 是在顶层
-  // 调用 create()：整个内联脚本中断 ⇒ 菜单空白、返回/前进/搜索胶囊/重启/桌面设置/检查更新
-  // 全部点不动（2026-09-13 实机故障：漏了 browser-menu-external 一个 id）。
+test('浏览器工作区脚本引用的元素在它加载的文档里都存在', async () => {
+  // browser-workspace.js 只被 browser.html 加载（shell.html 的历史副本已于 2026-09-23 整段删除）。
+  // 任一 byId 命中 null，create() 里紧跟的 addEventListener 就会抛错。
   const workspace = await readFile(new URL('../../assets/browser-workspace.js', import.meta.url), 'utf8')
   const ids = [...new Set([...workspace.matchAll(/byId\(\s*'([^']+)'\s*\)/g)].map(match => match[1]))]
   assert.ok(ids.length > 40, `未解析到浏览器工作区元素 id（只解析出 ${ids.length} 个）`)
-  for (const document of ['shell.html', 'browser-panel.html']) {
-    const html = await readFile(new URL(`../../assets/${document}`, import.meta.url), 'utf8')
-    const missing = ids.filter(id => !html.includes(`id="${id}"`))
-    assert.deepEqual(missing, [], `${document} 缺少 browser-workspace.js 需要的元素：${missing.join(', ')}`)
-  }
+  const html = await readFile(new URL('../../assets/browser-panel.html', import.meta.url), 'utf8')
+  const missing = ids.filter(id => !html.includes(`id="${id}"`))
+  assert.deepEqual(missing, [], `browser-panel.html 缺少 browser-workspace.js 需要的元素：${missing.join(', ')}`)
   assert.match(workspace, /elements\.menuExternal\?\.addEventListener\('click'/)
+  // shell.html 不得再加载 browser-workspace.js 或含 #browser（历史副本永久删除，防构建复活）
+  const shell = await readFile(new URL('../../assets/shell.html', import.meta.url), 'utf8')
+  assert.doesNotMatch(shell, /browser-workspace\.js/, 'shell.html 不得再加载 browser-workspace.js')
+  assert.doesNotMatch(shell, /id="browser"/, 'shell.html 不得再含 #browser 历史副本')
+  assert.doesNotMatch(shell, /DshBrowserWorkspace/, 'shell.html 不得再调用 DshBrowserWorkspace')
 })

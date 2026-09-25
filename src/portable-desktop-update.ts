@@ -483,6 +483,8 @@ export async function stageLocalDesktopBuild(options: {
   version: string
   readProductVersion?: (executable: string) => Promise<string>
   replacePending?: boolean
+  /** 测试缝：复制完成、重读指针之前运行，用于注入复制期间发生的并发提交。 */
+  onCopyComplete?: () => Promise<void>
 }): Promise<StagedLocalDesktopBuild> {
   const root = resolve(options.portableRoot)
   const updateRoot = portableDesktopUpdateRoot(root)
@@ -504,8 +506,17 @@ export async function stageLocalDesktopBuild(options: {
   try {
     await mkdir(transactionRoot, { recursive: true })
     await cp(source, staging, { recursive: true, force: false, errorOnExist: true })
+    if (options.onCopyComplete !== undefined) await options.onCopyComplete()
     await writeSlotManifest(staging, options.version, sourceSha256)
     await validateSlotManifest(staging, options.version, sourceSha256)
+    // 复制 `app` 树可能持续数分钟，期间候选可能已启动并在提交点重写指针（current 前进、
+    // pending 消失）并触发回收。写指针前必须重读：拿复制前的快照回写会把刚提交的 current
+    // 覆盖成旧槽，而回收器只认指针引用——那个「旧 current」就成了未引用槽被删，正在运行的槽
+    // 也会一起失去引用。重读同时覆盖复制期间别处新增 pending 的情况。
+    const latest = (await loadPortableDesktopPointer(pointerPath, root)) ?? existing
+    if (latest?.pending !== undefined && options.replacePending !== true) {
+      throw new UpdateError('PENDING_ACTIVATION', '已有桌面候选等待启动验证，不能覆盖待部署事务。')
+    }
     await mkdir(dirname(slot), { recursive: true })
     if (existsSync(slot)) {
       await validateSlotManifest(slot, options.version, sourceSha256)
@@ -514,7 +525,7 @@ export async function stageLocalDesktopBuild(options: {
       await rename(staging, slot)
       await removePhysicalPath(transactionRoot, { recursive: true, force: true })
     }
-    const current = existing?.current ?? {
+    const current = latest?.current ?? {
       relativePath: 'App',
       version: options.version,
       sha256: await fileSha256(join(root, 'App', 'DSH Codex Desktop.exe')),
@@ -528,7 +539,7 @@ export async function stageLocalDesktopBuild(options: {
     await savePortableDesktopPointer(pointerPath, {
       schema: 1,
       current,
-      ...(existing?.previous === undefined ? {} : { previous: existing.previous }),
+      ...(latest?.previous === undefined ? {} : { previous: latest.previous }),
       pending,
       updatedAt: new Date().toISOString(),
     })
@@ -555,9 +566,9 @@ export async function stageLocalDesktopBuild(options: {
       currentVersion: current.version,
       targetVersion: options.version,
       source: 'local-build',
-      ...(existing?.pending === undefined ? {} : { replacedTransactionId: existing.pending.transactionId }),
+      ...(latest?.pending === undefined ? {} : { replacedTransactionId: latest.pending.transactionId }),
     })}\n`, 'utf8')
-    // 本地构建是候选槽的主要来源；暂存完成后立即回收，指针引用之外只保留有限历史。
+    // 本地构建是候选槽的主要来源；暂存完成后立即回收，指针引用之外一律回收（每槽 ≈780MB）。
     await prunePortableDesktopSlots({ portableRoot: root }).catch(() => undefined)
     return { transactionId, slotRelativePath: pending.relativePath, version: options.version }
   } catch (error) {
@@ -573,9 +584,10 @@ export interface PrunePortableDesktopSlotsResult {
 
 /**
  * 回收历史候选槽和下载缓存。只在事务提交点之后调用：指针引用的
- * current/previous/pending 槽永远保留，未引用槽按修改时间保留最近
- * keepUnreferencedSlots 个，其余删除；下载缓存保留指针版本与最近一个目录。
- * transactions/ 不在此回收（各自流程负责清理），避免与进行中的事务竞争。
+ * current/previous/pending 槽永远保留，**其余未引用槽一律删除**——历史只保留
+ * 指针里的那个 previous（唯一回滚目标），不额外留多版；下载缓存保留指针版本与
+ * 最近一个目录。transactions/ 不在此回收（各自流程负责清理），避免与进行中的
+ * 事务竞争。
  */
 export async function prunePortableDesktopSlots(options: {
   portableRoot: string
@@ -584,7 +596,7 @@ export async function prunePortableDesktopSlots(options: {
 }): Promise<PrunePortableDesktopSlotsResult> {
   const root = resolve(options.portableRoot)
   const updateRoot = portableDesktopUpdateRoot(root)
-  const keepCount = Math.max(0, options.keepUnreferencedSlots ?? 3)
+  const keepCount = Math.max(0, options.keepUnreferencedSlots ?? 0)
   const pointer = await loadPortableDesktopPointer(portableDesktopPointerPath(updateRoot), root)
   const protectedSlots = new Set<string>()
   const protectedVersions = new Set<string>()
@@ -923,7 +935,8 @@ async function validatePackagedApp(directory: string, expectedVersion: string, r
     if (!await physicalFileIsRegular(path)) throw new UpdateError('PACKAGE_INCOMPLETE', `候选槽缺少 ${required}。`)
   }
   const productVersion = (await readProductVersion(join(directory, 'DSH Codex Desktop.exe'))).replace(/\.0$/, '')
-  if (productVersion !== expectedVersion) throw new UpdateError('PACKAGE_VERSION', `候选程序版本 ${productVersion} 与目标 ${expectedVersion} 不一致。`)
+  const baseVersion = expectedVersion.split('+')[0]
+  if (productVersion !== baseVersion) throw new UpdateError('PACKAGE_VERSION', `候选程序版本 ${productVersion} 与目标 ${expectedVersion} 不一致。`)
   await verifySidecar(join(directory, 'resources', 'dsh-runtime.tgz'))
   await verifySidecar(join(directory, 'resources', 'plugins-store.tgz'))
   await verifyContentSidecar(join(directory, 'resources', 'dsh-runtime.tgz'))

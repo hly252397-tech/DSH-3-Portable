@@ -1,18 +1,20 @@
 {
   "schemaVersion": 1,
-  "verifiedAt": "2026-09-11T11:00:00+08:00",
+  "verifiedAt": "2026-09-24T22:00:00+08:00",
   "official": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
     "branch": "master",
-    "commit": "c291e7961a515f6d7af9304e7fd1d257929aef26",
-    "dshVersion": "0.1.5-rc.2",
+    "commit": "46a7f68b0922371ce7144b668b90e377d8e799f4",
+    "dshVersion": "0.1.7-rc.1",
     "documentation": "https://deepseek-harness.github.io/deepseek-harness/",
-    "stability": "developer-preview"
+    "stability": "developer-preview",
+    "note": "2026-09-24 人工审阅 AGENTS、architecture、testing、defensive-patterns、system-prompt 与 tools 后推进官方审查基线；CLI manifest 实读 0.1.7-rc.1。实现仍以活动和随包 0.1.6-alpha.2 声明为准，本次不升级运行时。详见同名 MD 的 2026-09-24 审阅与 I035。"
   },
   "bundled": {
-    "dshVersion": "0.1.6-alpha.1",
+    "dshVersion": "0.1.6-alpha.2",
     "desktopManifest": "package.json",
-    "runtimeManifest": "Data/Runtime/dsh-runtime/node_modules/@deepseek-ai/dsh/package.json"
+    "runtimeManifest": "Data/Runtime/dsh-runtime/node_modules/@deepseek-ai/dsh/package.json",
+    "note": "2026-09-19 对齐：随包回退运行时自上游 v1.0.64 吸收起即为 0.1.6-alpha.2（prepare-runtime 按 OFFICIAL_DSH_VERSION 烘焙），此前本字段与 package.json 的 config.bundledDshVersion 仍写 0.1.6-alpha.1，属声明滞后，门禁 verify-dsh-official-baseline.mjs 实测槽内 dsh-runtime.tgz 为 alpha.2 后据实改正。"
   },
   "runtimeMigration": {
     "verifiedAt": "2026-09-11T22:30:00+08:00",
@@ -21,7 +23,8 @@
     "migrationTarget": "0.1.5-rc.2",
     "resolutionMode": "time-based",
     "candidateEvidence": "候选构建器实测：0.1.5-rc.1 与 0.1.5-rc.2 各装配 240 包，官方家族 231/231 全对齐、0 混用，均通过候选校验。",
-    "note": "官方运行时按发布时间解析，避免官方发版包的 ^同元组预发布 传递依赖被最高版语义拆成混用家族；0.1.5-rc.2 为迁移目标，0.1.5-rc.1 保留以支撑回滚与降级。"
+    "note": "官方运行时按发布时间解析，避免官方发版包的 ^同元组预发布 传递依赖被最高版语义拆成混用家族；0.1.5-rc.2 为迁移目标，0.1.5-rc.1 保留以支撑回滚与降级。",
+    "supersededNote": "本块是 2026-09-11 迁移当时的快照，'受信目标'与'迁移目标'此后已三次前移：0.1.6-alpha.1（2026-09-16）、0.1.6-alpha.2（2026-09-18，上游 v1.0.64）。运行时受信清单的当前事实源是 src/harness-update.ts 的 BUILTIN_TRUSTED_HARNESS_RELEASES；活动槽的当前事实源是 Data/Runtime/Harness/current.json（2026-09-18 起为 0.1.6-alpha.2-cf1f0a33455401b5）。resolutionMode=time-based 仍然有效且不变。"
   },
   "policy": {
     "implementationTarget": "bundled",

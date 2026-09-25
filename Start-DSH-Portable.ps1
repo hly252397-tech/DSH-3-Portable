@@ -145,6 +145,119 @@ function Get-OptionalProperty {
   return $property.Value
 }
 
+function Get-DesktopVersionSortKey {
+  param([string]$Version)
+  $core = ([string]$Version).Trim()
+  if ($core.StartsWith('v') -or $core.StartsWith('V')) { $core = $core.Substring(1) }
+  $plus = $core.IndexOf('+')
+  if ($plus -ge 0) { $core = $core.Substring(0, $plus) }
+  if ($core -match '^(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?') {
+    $portable = if ($Matches[4]) { [int]$Matches[4] } else { 0 }
+    return ('{0:D6}.{1:D6}.{2:D6}.{3:D6}' -f [int]$Matches[1], [int]$Matches[2], [int]$Matches[3], $portable)
+  }
+  return $core
+}
+
+function New-SlotReferenceFromManifest {
+  param([string]$Directory, [string]$RelativePath)
+  $manifestPath = Join-Path $Directory 'slot-manifest.json'
+  if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) { return $null }
+  try {
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+    if ($manifest.schema -ne 1) { return $null }
+    $version = [string]$manifest.version
+    if ([string]::IsNullOrWhiteSpace($version)) { return $null }
+    return [pscustomobject]@{
+      relativePath = $RelativePath
+      version = $version
+      sha256 = (Get-Sha256Hex -Path $manifestPath)
+    }
+  } catch {
+    return $null
+  }
+}
+
+function Resolve-BestAvailableDesktopApplication {
+  # 回收顺序：pointer.current → pointer.previous → 扫描 slots/ 取最高版。
+  # 仅当全部失败时才由调用方回退 legacy App（App 内 dsh-runtime 可能落后多代）。
+  param($Pointer)
+  $currentReference = Get-OptionalProperty -Value $Pointer -Name 'current'
+  if ($currentReference) {
+    $executable = Resolve-SlotApplication $currentReference
+    if ($executable) {
+      return [pscustomobject]@{ Executable = $executable; Reference = $currentReference; Source = 'pointer-current' }
+    }
+    Write-LauncherLog "pointer.current 未通过完整性校验：$([string]$currentReference.relativePath)"
+  }
+  $previousReference = Get-OptionalProperty -Value $Pointer -Name 'previous'
+  if ($previousReference) {
+    $executable = Resolve-SlotApplication $previousReference
+    if ($executable) {
+      Write-LauncherLog "启用 pointer.previous 作为当前桌面槽：$([string]$previousReference.relativePath)"
+      return [pscustomobject]@{ Executable = $executable; Reference = $previousReference; Source = 'pointer-previous' }
+    }
+    Write-LauncherLog "pointer.previous 未通过完整性校验：$([string]$previousReference.relativePath)"
+  }
+  $slotsRoot = Join-Path $desktopUpdateRoot 'slots'
+  if (-not (Test-Path -LiteralPath $slotsRoot -PathType Container)) { return $null }
+  $rootPrefix = $portableRoot.TrimEnd('\') + '\'
+  $best = $null
+  foreach ($directory in @(Get-ChildItem -LiteralPath $slotsRoot -Directory -ErrorAction SilentlyContinue)) {
+    $fullPath = [System.IO.Path]::GetFullPath($directory.FullName)
+    if (-not $fullPath.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)) { continue }
+    $relativePath = $fullPath.Substring($rootPrefix.Length).Replace('\', '/')
+    $reference = New-SlotReferenceFromManifest -Directory $fullPath -RelativePath $relativePath
+    if ($null -eq $reference) { continue }
+    $executable = Resolve-SlotApplication $reference
+    if ($null -eq $executable) { continue }
+    $sortKey = Get-DesktopVersionSortKey -Version ([string]$reference.version)
+    $isBetter = $false
+    if ($null -eq $best) {
+      $isBetter = $true
+    } elseif ($sortKey -gt $best.SortKey) {
+      $isBetter = $true
+    } elseif ($sortKey -eq $best.SortKey -and $directory.Name -gt $best.Name) {
+      $isBetter = $true
+    }
+    if ($isBetter) {
+      $best = [pscustomobject]@{
+        Executable = $executable
+        Reference = $reference
+        Source = 'slot-scan'
+        SortKey = $sortKey
+        Name = $directory.Name
+      }
+    }
+  }
+  if ($best) {
+    Write-LauncherLog "从 slots 扫描恢复桌面槽：$($best.Reference.relativePath)（$($best.Reference.version)）"
+    return [pscustomobject]@{ Executable = $best.Executable; Reference = $best.Reference; Source = 'slot-scan' }
+  }
+  return $null
+}
+
+function Save-RecoveredDesktopPointer {
+  param($Reference, $Pointer, [string]$Source)
+  $recovered = [ordered]@{
+    schema = 1
+    current = $Reference
+    updatedAt = (Get-Date).ToUniversalTime().ToString('o')
+  }
+  $previousReference = Get-OptionalProperty -Value $Pointer -Name 'previous'
+  $currentReference = Get-OptionalProperty -Value $Pointer -Name 'current'
+  if ($previousReference -and [string]$previousReference.relativePath -ne [string]$Reference.relativePath) {
+    $recovered.previous = $previousReference
+  } elseif ($currentReference -and [string]$currentReference.relativePath -ne [string]$Reference.relativePath) {
+    $recovered.previous = $currentReference
+  }
+  $pendingReference = Get-OptionalProperty -Value $Pointer -Name 'pending'
+  if ($pendingReference) { $recovered.pending = $pendingReference }
+  Save-JsonAtomic -Value $recovered -Path $pointerPath
+  Set-UpdateState -Phase 'none' -Overall 100 -Stage 100 -Detail ("已恢复桌面槽指针（{0}）。" -f $Source) -Pointer $recovered
+  Write-LauncherLog "已持久化恢复后的桌面槽指针：$([string]$Reference.relativePath)（来源 $Source）"
+  return $recovered
+}
+
 function Set-UpdateState {
   param([string]$Phase, [int]$Overall, [int]$Stage, [string]$Detail, $Pointer)
   $currentReference = Get-OptionalProperty -Value $Pointer -Name 'current'
@@ -290,8 +403,14 @@ if ($WaitForProcessId -gt 0) {
 $pointer = Get-DesktopPointer
 $pendingReference = Get-OptionalProperty -Value $pointer -Name 'pending'
 $legacyApplication = Join-Path $portablePaths.App 'DSH Codex Desktop.exe'
-$currentApplication = if ($pointer) { Resolve-SlotApplication $pointer.current } else { $null }
+$launchSelection = Resolve-BestAvailableDesktopApplication -Pointer $pointer
+$currentApplication = if ($launchSelection) { $launchSelection.Executable } else { $null }
+if ($launchSelection -and $launchSelection.Source -ne 'pointer-current') {
+  $pointer = Save-RecoveredDesktopPointer -Reference $launchSelection.Reference -Pointer $pointer -Source $launchSelection.Source
+  $pendingReference = Get-OptionalProperty -Value $pointer -Name 'pending'
+}
 if (-not $currentApplication -and (Test-Path -LiteralPath $legacyApplication -PathType Leaf)) {
+  Write-LauncherLog '无可用不可变桌面槽，回退 legacy App（其中 dsh-runtime 可能落后于清单版本）。'
   $currentApplication = $legacyApplication
 }
 
@@ -375,7 +494,7 @@ if ($pendingReference) {
 }
 
 if (-not $currentApplication) {
-  throw '未找到完整桌面程序槽。请从发布包恢复 App，用户数据仍完整保留在 Data。'
+  throw '未找到完整桌面程序槽（pointer/slots/App 均不可用）。请从发布包恢复 App 或有效 slots，用户数据仍完整保留在 Data。'
 }
 
 Clear-DesktopActivationEnvironment
