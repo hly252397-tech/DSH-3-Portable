@@ -338,7 +338,7 @@ window.__ModuleLoader__.load({
       // 失效边界：.dsh-billing-modal 是手写稳定类（升级不变）；.VWh0dG_tabPanel 仍是构建
       // 哈希类，插件升级后该条可能失配（面板本体接管仍有效，页签入场或回归，重取类名即可）。
       'html[data-dsh-motion="ios"] .dsh-billing-modal{animation:none!important}',
-      'html[data-dsh-motion="ios"] .VWh0dG_tabPanel{animation:none!important}'
+      'html[data-dsh-motion="ios"] [data-testid^="billing-tab-panel-"],html[data-dsh-motion="ios"] .VWh0dG_tabPanel{animation:none!important}'
     ].join('');
 
     const LIFT = 'dsh-tweaks-lifted';
