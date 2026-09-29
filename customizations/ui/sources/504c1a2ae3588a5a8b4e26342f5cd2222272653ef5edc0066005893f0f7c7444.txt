@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DSH Codex Desktop</title>
+  <!-- 外壳只有顶栏。浏览器 chrome 唯一实现是 browser-panel.html（完整版浏览器）。
+       历史副本 #browser 已于 2026-09-23 整段删除（用户令「直接移除」），防止构建后复活。 -->
+  <script>document.documentElement.dataset.platform=window.dshShell.platform;const __theme=new URLSearchParams(location.search).get('theme');document.documentElement.dataset.colorScheme=__theme?__theme:(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')</script>
+  <link rel="stylesheet" href="theme.css">
+  <script src="theme.js"></script>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,"Segoe UI","Microsoft YaHei UI",sans-serif;background:var(--chrome-bg);color:var(--chrome-text)}
+    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}
+    .bar{position:relative;-webkit-app-region:drag;height:44px;display:flex;align-items:center;padding:0 146px 0 17px;background:var(--chrome-surface);user-select:none}
+    .bar::after{content:"";position:absolute;top:100%;left:0;right:0;height:0;border-top:1px solid var(--chrome-border);pointer-events:none}
+    html[data-platform="darwin"] .bar{padding-left:78px;padding-right:12px}
+    button{-webkit-app-region:no-drag;font:inherit;color:inherit;border:0;background:transparent}
+    .bar-left,.bar-right{display:flex;align-items:center;min-width:0}.bar-left{justify-content:flex-start;gap:2px}.bar-right{justify-content:flex-end;gap:2px;margin-left:auto}
+    .nav{width:30px;height:30px;border-radius:var(--chrome-radius-sm);display:grid;place-items:center;opacity:.78;transition:background .12s,opacity .12s,color .12s,transform .12s}
+    .nav:hover:not(:disabled){background:var(--chrome-surface-3);opacity:1}.nav:active:not(:disabled){background:var(--active-bg,var(--chrome-surface-3));transform:scale(.94)}.nav:disabled{opacity:.34}
+    @keyframes nav-press-pulse{0%{background:var(--active-bg,var(--chrome-surface-3))}100%{background:transparent}}
+    .bar .nav.press{animation:nav-press-pulse .26s ease-out}
+    .nav.restart.spinning,#update-btn[data-busy="true"]{opacity:.5;cursor:progress}
+    .nav[aria-pressed="true"]{background:var(--tint,var(--chrome-surface-2));opacity:1}
+    .nav:focus-visible,.menu:focus-visible,.command-center:focus-visible,.workspace-label:focus-visible{outline:none;box-shadow:inset 0 0 0 1px var(--focus-ring,var(--chrome-text-muted))}
+    .nav img{width:14px;height:14px;filter:invert(91%) sepia(5%) saturate(80%) hue-rotate(80deg)}
+    .divider{flex:none;width:1px;height:18px;background:var(--chrome-border-strong)}
+    .bar-left>.divider{margin-left:6px}
+    .bar-right>.divider{margin:0 6px}
+    .workspace-label{display:none}
+    .workspace-label:hover{background:var(--chrome-surface-3);color:var(--chrome-text)}
+    .command-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;width:320px;height:28px;padding:0 11px;border:1px solid var(--chrome-border);border-radius:999px;background:var(--chrome-surface-2);font-size:12.5px;color:var(--chrome-text-muted)}
+    .command-center:hover{background:var(--chrome-surface-3);color:var(--chrome-text);border-color:var(--chrome-border-strong)}
+    .command-center img{width:13px;height:13px;filter:invert(91%) sepia(5%) saturate(80%) hue-rotate(80deg);opacity:.74}
+    .command-center span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .status{max-width:180px;margin-right:5px;font-size:11px;color:var(--chrome-text-faint);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+    .menu{height:30px;padding:0 9px;border-radius:var(--chrome-radius-sm);font-size:13px;color:var(--chrome-text-muted)}
+    .menu:hover{background:var(--chrome-surface-3);color:var(--chrome-text)}.menu:active{background:var(--active-bg,var(--chrome-surface-3))}.menu[aria-expanded="true"]{background:var(--chrome-surface-2);color:var(--chrome-text)}
+    :root[data-color-scheme="light"]{color-scheme:light;background:var(--chrome-bg);color:var(--chrome-text)}
+    :root[data-color-scheme="light"] .nav img,:root[data-color-scheme="light"] .command-center img{filter:brightness(0);opacity:.68}
+    #menus{display:flex;align-items:center;margin-left:10px}
+    @media(max-width:720px){.bar{padding-right:144px}.menu{padding:0 7px}}
+    .bar-right [data-action="find"]{display:none}
+    @media(max-width:1000px){.command-center{display:none}.bar-right [data-action="find"]{display:grid}}
+    @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+    .nav.restart.confirming{background:#d85b5b20;box-shadow:inset 0 0 0 1px #d85b5b80;opacity:1}
+    .nav.restart.confirming:hover{background:#d85b5b2e}
+    .nav.restart.confirming img{filter:brightness(0) saturate(100%) invert(52%) sepia(54%) saturate(1935%) hue-rotate(322deg) brightness(91%) contrast(88%)}
+    .nav.restart.spinning{opacity:.6;pointer-events:none}
+    .nav.restart.spinning img{animation:none}
+    :root[data-color-scheme="light"] .nav.restart.confirming{background:#b4231812;box-shadow:inset 0 0 0 1px #b423185c}
+    :root[data-color-scheme="light"] .nav.restart.confirming:hover{background:#b423181f}
+    .nav.update-indicator{position:relative;--update-progress:0}
+    .nav.update-indicator::before{content:"";position:absolute;inset:2px;border-radius:50%;background:conic-gradient(var(--accent,#6ea8ff) calc(var(--update-progress)*1turn),transparent 0);opacity:0;transition:opacity .15s}
+    .nav.update-indicator::after{content:"";position:absolute;right:2px;top:2px;width:7px;height:7px;border:2px solid var(--chrome-surface);border-radius:50%;background:var(--accent,#6ea8ff);opacity:0;transform:scale(.7);transition:opacity .15s,transform .15s}
+    .nav.update-indicator[data-phase="available"]::after,.nav.update-indicator[data-phase="ready"]::after{opacity:1;transform:scale(1)}
+    .nav.update-indicator[data-busy="true"]::before{opacity:1}
+    .nav.update-indicator[data-phase="error"]::after,.nav.update-indicator[data-phase="rolled-back"]::after{opacity:1;transform:scale(1);background:#d85b5b}
+    .nav.update-indicator[data-phase="completed"]::after{opacity:1;transform:scale(1);background:#4db87a}
+    .nav.update-indicator>img{position:relative;z-index:1}
+  </style>
+</head>
+<body>
+  <header class="bar" aria-label="DSH Codex Desktop">
+    <div class="bar-left">
+      <button id="back" class="nav" data-action="back" title="返回" aria-label="返回"><img src="shell-icons/arrow-left.svg" alt=""></button>
+      <button id="forward" class="nav" data-action="forward" title="前进" aria-label="前进"><img src="shell-icons/arrow-right.svg" alt=""></button>
+      <span class="divider" aria-hidden="true"></span>
+      <nav id="menus" aria-label="应用菜单"></nav>
+      <button id="workspace-label" class="workspace-label" data-action="home" title="DSH 工作台">DSH</button>
+    </div>
+    <button id="command-center" class="command-center" data-action="find" title="全局搜索" aria-label="全局搜索"><img src="shell-icons/magnifying-glass.svg" alt=""><span>搜索任务、工作区与知识</span></button>
+    <div class="bar-right">
+      <span id="status" class="status" role="status"></span>
+      <button id="restart-btn" class="nav restart" title="重启应用" aria-label="重启应用" aria-pressed="false"><img src="shell-icons/power.svg" alt=""></button>
+      <span class="divider" aria-hidden="true"></span>
+      <button class="nav optional" data-action="find" title="全局搜索" aria-label="全局搜索"><img src="shell-icons/magnifying-glass.svg" alt=""></button>
+      <button class="nav optional" data-action="settings" title="DSH 设置" aria-label="DSH 设置"><img src="shell-icons/sliders.svg" alt=""></button>
+      <button id="update-btn" class="nav update-indicator" data-action="check-updates" data-phase="idle" data-busy="false" title="检查更新" aria-label="检查更新"><img src="shell-icons/update.svg" alt=""></button>
+    </div>
+  </header>
+  <script>
+    const api=window.dshShell;let bootstrap;let state;let openMenu;let restartConfirming=false;let restartExecuting=false;let restartConfirmTimer=null;
+    const menuHost=document.getElementById('menus');const status=document.getElementById('status');
+    function shellZh(){return bootstrap?.locale?.startsWith('zh')??navigator.language.toLowerCase().startsWith('zh')}
+    function renderStatus(){const zh=shellZh();status.textContent=restartExecuting?(zh?'正在重启…':'Restarting…'):restartConfirming?(zh?'再次点击重启·Esc 取消':'Click restart again · Esc to cancel'):state?.reloading?(zh?'正在重新加载…':'Reloading…'):(state?.zoomPercent&&state.zoomPercent!==100?state.zoomPercent+'%':'')}
+    function applyState(next){state=next;document.getElementById('back').disabled=!next.canBack;document.getElementById('forward').disabled=!next.canForward;renderStatus()}
+    function applyBootstrap(value){bootstrap=value;document.documentElement.lang=value.locale;document.documentElement.dataset.colorScheme=value.colorScheme;document.documentElement.style.colorScheme=value.colorScheme;const zh=value.locale.startsWith('zh');const back=document.getElementById('back');const forward=document.getElementById('forward');const updateBtn=document.getElementById('update-btn');const restartBtn=document.getElementById('restart-btn');const commandCenter=document.getElementById('command-center');back.title=back.ariaLabel=zh?'返回':'Back';forward.title=forward.ariaLabel=zh?'前进':'Forward';updateBtn.title=updateBtn.ariaLabel=zh?'检查更新':'Check for updates';restartBtn.title=restartBtn.ariaLabel=zh?'重启应用':'Restart App';commandCenter.title=commandCenter.ariaLabel=zh?'全局搜索':'Global search';commandCenter.querySelector('span').textContent=zh?'搜索任务、工作区与知识':'Search tasks, workspaces and knowledge';document.getElementById('workspace-label').textContent=zh?'DSH 工作台':'DSH Workbench';menuHost.setAttribute('aria-label',zh?'应用菜单':'Application menu');menuHost.replaceChildren();for(const menu of value.menus){const button=document.createElement('button');button.className='menu';button.textContent=menu.label;button.setAttribute('aria-haspopup','menu');button.setAttribute('aria-expanded','false');button.addEventListener('click',()=>showMenu(button,menu.id));menuHost.append(button)}applyState(state??value.state)}
+    function renderDesktopUpdate(value){
+      if(!value||!value.status)return;const button=document.getElementById('update-btn'),update=value.status,phase=String(update.kind||'idle');
+      const busy=['checking','downloading','verifying','building','deploying','validating'].includes(phase);const overall=Math.max(0,Math.min(100,Number(update.overallProgress)||0));
+      button.dataset.phase=phase;button.dataset.busy=String(busy);button.style.setProperty('--update-progress',String(overall/100));button.disabled=busy||value.packaged===false;
+      const zh=shellZh();const labels={idle:zh?'检查更新':'Check for updates',checking:zh?'正在检查更新':'Checking for updates',none:zh?'当前已是最新版本':'Up to date',available:zh?'发现新版本，点击查看':'Update available; click to review',downloading:zh?'正在下载':'Downloading',verifying:zh?'正在验证':'Verifying',building:zh?'正在构建候选':'Building candidate',ready:zh?'候选已就绪，点击部署':'Candidate ready; click to deploy',deploying:zh?'正在部署':'Deploying',validating:zh?'正在启动验证':'Validating startup',completed:zh?'更新已完成':'Update completed',['rolled-back']:zh?'更新失败，已自动回滚':'Update failed and rolled back',error:zh?'更新失败，点击查看':'Update failed; click to review'};
+      const detail=typeof update.detail==='string'&&update.detail?update.detail:labels[phase]||labels.idle;const title=busy?detail+' · '+Math.round(overall)+'%':detail;button.title=button.ariaLabel=title;
+    }
+    function clearOpenMenu(button=openMenu){if(!button)return;button.setAttribute('aria-expanded','false');if(openMenu===button)openMenu=undefined}
+    async function showMenu(button,menu){clearOpenMenu();button.setAttribute('aria-expanded','true');openMenu=button;const rect=button.getBoundingClientRect();try{await api.popupMenu({menu,x:Math.round(rect.left),y:Math.round(rect.bottom)})}finally{clearOpenMenu(button)}}
+    document.addEventListener('pointerdown',event=>{if(openMenu&&event.target!==openMenu)clearOpenMenu()},true);window.addEventListener('blur',()=>clearOpenMenu());
+    document.querySelectorAll('[data-action]').forEach(button=>button.addEventListener('click',()=>api.action(button.dataset.action)));
+    document.querySelector('.bar').addEventListener('pointerdown',event=>{const button=event.target.closest('.bar .nav');if(!button||button.disabled)return;button.classList.remove('press');void button.offsetWidth;button.classList.add('press')});
+    document.querySelector('.bar').addEventListener('animationend',event=>{if(event.animationName==='nav-press-pulse'&&event.target.classList)event.target.classList.remove('press')});
+    const restartBtn=document.getElementById('restart-btn');
+    function cancelRestartConfirm(){if(!restartConfirming)return;restartConfirming=false;clearTimeout(restartConfirmTimer);restartBtn.classList.remove('confirming');restartBtn.setAttribute('aria-pressed','false');restartBtn.title=restartBtn.ariaLabel=shellZh()?'重启应用':'Restart App';renderStatus()}
+    restartBtn.addEventListener('click',async()=>{
+      if(!restartConfirming){
+        restartConfirming=true;restartBtn.classList.add('confirming');restartBtn.setAttribute('aria-pressed','true');renderStatus();
+        restartBtn.title=restartBtn.ariaLabel=shellZh()?'再次点击确认重启（Esc 取消）':'Click again to confirm restart (Esc to cancel)';
+        restartConfirmTimer=setTimeout(cancelRestartConfirm,5000);
+      }else{
+        clearTimeout(restartConfirmTimer);restartConfirming=false;restartExecuting=true;
+        restartBtn.classList.remove('confirming');restartBtn.classList.add('spinning');restartBtn.setAttribute('aria-pressed','false');renderStatus();
+        restartBtn.title=restartBtn.ariaLabel=shellZh()?'正在重启…':'Restarting…';restartBtn.disabled=true;
+        await api.action('app-restart');
+      }
+    });
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')cancelRestartConfirm()});
+    api.getBootstrap().then(value=>{document.documentElement.dataset.platform=value.platform;applyBootstrap(value)});api.onBootstrap(applyBootstrap);
+    api.getDesktopUpdateState().then(renderDesktopUpdate);api.onDesktopUpdateState(renderDesktopUpdate);
+    api.onState(applyState);
+  </script>
+</body>
+</html>

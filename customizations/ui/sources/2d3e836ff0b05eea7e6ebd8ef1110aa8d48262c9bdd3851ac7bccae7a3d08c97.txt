@@ -1,0 +1,108 @@
+/** Sidebar browser surface — iframe + address bar (native WebContentsView deleted 2026-09-23).
+ *  本地/可内嵌地址用 iframe；外链打开系统浏览器。不再依赖 dshDesktopShell.browserPanel。 */
+export function createNativeBrowserView(react, t) {
+  function isEmbeddable(url) {
+    if (!url) return false;
+    try {
+      const u = new URL(url, location.href);
+      if (u.protocol === 'http:' || u.protocol === 'https:') {
+        const h = u.hostname;
+        return h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h === '::1' || (h.startsWith('127.') && /^\d+\.\d+\.\d+\.\d+$/.test(h));
+      }
+      return false;
+    } catch { return false; }
+  }
+  function normalizeUrl(input) {
+    const s = String(input || '').trim();
+    if (!s) return '';
+    if (/^https?:\/\//i.test(s)) return s;
+    if (/^\/\//.test(s)) return 'https:' + s;
+    if (/^[\w-]+(\.[\w-]+)+/.test(s) || /^localhost(:\d+)?/.test(s) || /^127\.\d+\.\d+\.\d+(:\d+)?/.test(s)) return 'http://' + s;
+    return s;
+  }
+  return function BrowserView({ visible, tab, ctx, scope }) {
+    const tabUrl = typeof tab.path === 'string' && tab.path !== '' ? tab.path : (tab.meta?.url || '');
+    const [currentUrl, setCurrentUrl] = react.useState(tabUrl);
+    const [inputValue, setInputValue] = react.useState(tabUrl);
+    const [frameKey, setFrameKey] = react.useState(0);
+    react.useEffect(() => {
+      if (tabUrl && tabUrl !== currentUrl) {
+        setCurrentUrl(tabUrl);
+        setInputValue(tabUrl);
+        setFrameKey(k => k + 1);
+      }
+    }, [tabUrl, tab.meta?.nativeBrowserNavigationId]);
+    const embeddable = isEmbeddable(currentUrl);
+    // 外链：打开系统浏览器（effect 必须无条件调用）
+    react.useEffect(() => {
+      if (!visible || !currentUrl || embeddable) return;
+      try { window.dshDesktopShell?.browserPanel?.hide?.(); } catch {}
+      try { window.open(currentUrl, '_blank', 'noopener'); } catch {}
+    }, [visible, currentUrl, embeddable]);
+    const go = () => {
+      const next = normalizeUrl(inputValue);
+      if (!next) return;
+      setCurrentUrl(next);
+      setInputValue(next);
+      setFrameKey(k => k + 1);
+    };
+    if (!visible) return null;
+    const bar = react.createElement('div', {
+      key: 'bar',
+      style: { display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', borderBottom: '1px solid var(--dsw-alias-border-l2, #e5e5e5)', background: 'var(--dsw-alias-bg-layer-1, #fafafa)', flex: '0 0 auto' },
+    },
+      react.createElement('button', {
+        type: 'button', title: '后退', 'aria-label': '后退',
+        onClick: () => { try { window.history.back(); } catch {} },
+        style: { width: 28, height: 28, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', fontSize: 14 },
+      }, '←'),
+      react.createElement('button', {
+        type: 'button', title: '前进', 'aria-label': '前进',
+        onClick: () => { try { window.history.forward(); } catch {} },
+        style: { width: 28, height: 28, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', fontSize: 14 },
+      }, '→'),
+      react.createElement('button', {
+        type: 'button', title: '刷新', 'aria-label': '刷新',
+        onClick: () => setFrameKey(k => k + 1),
+        style: { width: 28, height: 28, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', fontSize: 14 },
+      }, '↻'),
+      react.createElement('input', {
+        key: 'addr', type: 'text', value: inputValue, placeholder: '输入网址，Enter 打开',
+        'aria-label': '地址栏',
+        onChange: (e) => setInputValue(e.target.value),
+        onKeyDown: (e) => { if (e.key === 'Enter') go(); },
+        style: { flex: 1, minWidth: 0, height: 28, padding: '0 10px', borderRadius: 6, border: '1px solid var(--dsw-alias-border-l2, #ddd)', background: '#fff', color: 'inherit', fontSize: 12, outline: 'none' },
+      }),
+      react.createElement('button', {
+        type: 'button', title: '打开', 'aria-label': '打开',
+        onClick: go,
+        style: { width: 28, height: 28, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', fontSize: 14 },
+      }, '→'),
+    );
+    let body;
+    if (!currentUrl) {
+      body = react.createElement('div', {
+        key: 'body',
+        style: { flex: 1, minHeight: 0, display: 'grid', placeItems: 'center', background: 'var(--dsw-alias-bg-base,#fff)', color: 'var(--dsw-alias-label-secondary,#666)', padding: 24, textAlign: 'center' },
+      }, react.createElement('p', { role: 'status' }, '在上方地址栏输入网址，按 Enter 打开'));
+    } else if (!embeddable) {
+      body = react.createElement('div', {
+        key: 'body',
+        style: { flex: 1, minHeight: 0, display: 'grid', placeItems: 'center', background: 'var(--dsw-alias-bg-base,#fff)', color: 'var(--dsw-alias-label-secondary,#666)', padding: 24, textAlign: 'center' },
+      }, react.createElement('p', { role: 'status' }, '外链已在系统浏览器打开：' + currentUrl));
+    } else {
+      body = react.createElement('iframe', {
+        key: 'frame-' + frameKey,
+        src: currentUrl,
+        title: tab.title || currentUrl,
+        style: { width: '100%', flex: 1, minHeight: 0, border: '0', background: '#fff' },
+        sandbox: 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox',
+        referrerPolicy: 'no-referrer',
+      });
+    }
+    return react.createElement('div', {
+      'data-native-browser-card': '',
+      style: { width: '100%', height: '100%', minHeight: 0, flex: '1 1 auto', display: 'flex', flexDirection: 'column', background: 'var(--dsw-alias-bg-base,#fff)' },
+    }, bar, body);
+  };
+}

@@ -1,15 +1,25 @@
 {
   "schema": 1,
-  "recordedAt": "2026-09-29T08:15:13.014Z",
-  "note": "docs/01-当前工作/20260929-0.2代际家园v5与11插件豁免修复.md",
+  "recordedAt": "2026-09-27T15:16:29.232Z",
+  "note": "docs/01-当前工作/20260927-桌面设置纳入DSH设置.md",
   "evidence": [
     {
-      "path": "customizations/ui/evidence/gen-v5-020rc1-20260929.json",
-      "sha256": "0bc0066f91625f2205103f318bcb5c9a543bbe6cfbcb5350c42074a5267d719a",
-      "snapshot": "customizations/ui/evidence/0bc0066f91625f2205103f318bcb5c9a543bbe6cfbcb5350c42074a5267d719a.json"
+      "path": "customizations/audit-fixes/20260927/settings-entry/baseline-review.json",
+      "sha256": "cbfb7aecc7e367685d57a407bfb5f088e65b7285e0337782f67846db4f140b57",
+      "snapshot": "customizations/ui/evidence/cbfb7aecc7e367685d57a407bfb5f088e65b7285e0337782f67846db4f140b57.json"
+    },
+    {
+      "path": "customizations/audit-fixes/20260927/settings-entry/profile-validation/results.json",
+      "sha256": "9040155c8a9d015f5b69344e9805adba7192ccb1e7bd49981fb7d33dae6f3453",
+      "snapshot": "customizations/ui/evidence/9040155c8a9d015f5b69344e9805adba7192ccb1e7bd49981fb7d33dae6f3453.json"
+    },
+    {
+      "path": "customizations/audit-fixes/20260927/settings-entry/update-indicator/results.json",
+      "sha256": "e5b2338f6867cf29e236635d78c6819a35ddb4698234091149a3d11bd0707532",
+      "snapshot": "customizations/ui/evidence/e5b2338f6867cf29e236635d78c6819a35ddb4698234091149a3d11bd0707532.json"
     }
   ],
-  "history": "customizations/ui/history/2026-09-29T08-15-13-013Z.json",
+  "history": "customizations/ui/history/2026-09-27T15-16-29-231Z.json",
   "files": [
     {
       "path": "assets/theme.css",
@@ -68,8 +78,8 @@
     },
     {
       "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/lib/client.js",
-      "sha256": "6e9194d7bb403f0a97553ac185724aad2c7b55d6181a90e0eea57d3b13737939",
-      "snapshot": "customizations/ui/sources/6e9194d7bb403f0a97553ac185724aad2c7b55d6181a90e0eea57d3b13737939.txt"
+      "sha256": "be8cef67ed5ef6dd76cedd262dea0ff094eadcba35c2a40e9d256bfa9cc8fede",
+      "snapshot": "customizations/ui/sources/be8cef67ed5ef6dd76cedd262dea0ff094eadcba35c2a40e9d256bfa9cc8fede.txt"
     },
     {
       "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/portable/browser-view.js",
@@ -98,8 +108,8 @@
     },
     {
       "path": "Data/DSH/profiles/web/node_modules/@michengai/dsh-automation/lib/client.js",
-      "sha256": "83c6727488fe9075f9fcc42a7ac882cf128ef240c2385f4acbba4f032696f508",
-      "snapshot": "customizations/ui/sources/83c6727488fe9075f9fcc42a7ac882cf128ef240c2385f4acbba4f032696f508.txt"
+      "sha256": "e0e1d95fb83fec9474410558502bd7ad734af421514ee57a589d1cca41afaec6",
+      "snapshot": "customizations/ui/sources/e0e1d95fb83fec9474410558502bd7ad734af421514ee57a589d1cca41afaec6.txt"
     },
     {
       "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/SideCardSection.tsx",
@@ -117,17 +127,17 @@
       "snapshot": "customizations/ui/sources/45e0d73c93b07de5ed48aaed95c8e2ae6ab03db267e56cbb158635fc99929aae.txt"
     },
     {
-      "path": "Data/DSH-generations/v5-020rc1/home/profiles/web/local/dsh-better-sidebar/lib/client.js",
-      "sha256": "6e9194d7bb403f0a97553ac185724aad2c7b55d6181a90e0eea57d3b13737939",
-      "snapshot": "customizations/ui/sources/6e9194d7bb403f0a97553ac185724aad2c7b55d6181a90e0eea57d3b13737939.txt"
+      "path": "Data/DSH-generations/v4-rc2b/home/profiles/web/local/dsh-better-sidebar/lib/client.js",
+      "sha256": "be8cef67ed5ef6dd76cedd262dea0ff094eadcba35c2a40e9d256bfa9cc8fede",
+      "snapshot": "customizations/ui/sources/be8cef67ed5ef6dd76cedd262dea0ff094eadcba35c2a40e9d256bfa9cc8fede.txt"
     },
     {
-      "path": "Data/DSH-generations/v5-020rc1/home/profiles/web/local/dsh-better-sidebar/src/client/SideChatView.tsx",
+      "path": "Data/DSH-generations/v4-rc2b/home/profiles/web/local/dsh-better-sidebar/src/client/SideChatView.tsx",
       "sha256": "b456935ed5adacf9ec795b25fc09ae09f83842f2b06c10dca911c53585ce0550",
       "snapshot": "customizations/ui/sources/b456935ed5adacf9ec795b25fc09ae09f83842f2b06c10dca911c53585ce0550.txt"
     },
     {
-      "path": "Data/DSH-generations/v5-020rc1/home/profiles/web/local/dsh-custom-spaces/lib/client.js",
+      "path": "Data/DSH-generations/v4-rc2b/home/profiles/web/local/dsh-custom-spaces/lib/client.js",
       "sha256": "45e0d73c93b07de5ed48aaed95c8e2ae6ab03db267e56cbb158635fc99929aae",
       "snapshot": "customizations/ui/sources/45e0d73c93b07de5ed48aaed95c8e2ae6ab03db267e56cbb158635fc99929aae.txt"
     }

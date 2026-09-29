@@ -1,0 +1,169 @@
+/** Native desktop browser surface. Shared tabs/history belong to the desktop process. */
+export function createNativeBrowserView(react, t) {
+  return function BrowserView({ visible, tab, ctx, scope }) {
+    const host = react.useRef(null);
+    const owner = react.useRef(null);
+    if (owner.current === null) owner.current = `sidebar-browser-${crypto.randomUUID()}`;
+    const lastPath = react.useRef(undefined);
+    const lastNavigation = react.useRef(undefined);
+    const [error, setError] = react.useState(null);
+    const [tooSmall, setTooSmall] = react.useState(false);
+    const [attempt, setAttempt] = react.useState(0);
+    react.useLayoutEffect(() => {
+      const bridge = window.dshDesktopShell?.browserPanel;
+      // 不可见时也要收原生层：WebContentsView 永远在 HTML 之上，残留会盖住文件预览/编辑器。
+      if (!visible) {
+        if (bridge?.version === 1) void bridge.hide(owner.current).catch(() => {});
+        return;
+      }
+      if (bridge?.version !== 1) {
+        setError(t('nativeBrowserUnavailable'));
+        return;
+      }
+      const lease = owner.current;
+      let disposed = false;
+      let frame;
+      let boundsKey = '';
+      let lastBoundsReportAt = Number.NEGATIVE_INFINITY;
+      let lastClaimCheckAt = Number.NEGATIVE_INFINITY;
+      let claimCheckPending = false;
+      let occluded;
+      let occlusionRevision = 0;
+      let lastTooSmall;
+      let overlays = [];
+      const reportError = cause => { if (!disposed) setError(String(cause?.message || cause)); };
+      const inspectOverlays = () => {
+        overlays = [...document.querySelectorAll('[role="dialog"],[role="menu"],[role="listbox"],[data-radix-popper-content-wrapper]')]
+          .filter(element => !element.contains(host.current));
+      };
+      const observer = new MutationObserver(inspectOverlays);
+      observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'style', 'hidden', 'data-state'] });
+      inspectOverlays();
+      const removeSnapshots = () => {
+        if (host.current) host.current.querySelectorAll('.browser-panel-snapshot,.browser-page-snapshot').forEach(el => el.remove());
+      };
+      const report = () => {
+        if (disposed || !host.current) return;
+        const rect = host.current.getBoundingClientRect();
+        const zoom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dsh-app-zoom')) || 1;
+        const insufficientSpace = Math.round(rect.width * zoom) < 280 || Math.round(rect.height * zoom) < 240;
+        if (insufficientSpace !== lastTooSmall) { lastTooSmall = insufficientSpace; setTooSmall(insufficientSpace); }
+        const blocked = insufficientSpace || overlays.some(element => {
+          if (!element.isConnected || element.getClientRects().length === 0 || getComputedStyle(element).visibility === 'hidden') return false;
+          const overlay = element.getBoundingClientRect();
+          return overlay.left < rect.right && overlay.right > rect.left && overlay.top < rect.bottom && overlay.bottom > rect.top;
+        });
+        const bounds = { owner: lease, x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+        const nextKey = JSON.stringify(bounds);
+        const now = performance.now();
+        // The desktop treats bounds reports as a four-second lease, even when geometry stays fixed.
+        if ((nextKey !== boundsKey || now - lastBoundsReportAt >= 1000) && rect.width > 0 && rect.height > 0) {
+          boundsKey = nextKey;
+          lastBoundsReportAt = now;
+          bridge.reportBounds(bounds);
+        }
+        // A delayed hide/card-hidden signal can revoke the owner just after a tab switch.
+        // The card remains mounted, so no React effect reruns; reconcile its lease while visible.
+        if (!blocked && typeof bridge.tabs === 'function' && !claimCheckPending && now - lastClaimCheckAt >= 1000) {
+          lastClaimCheckAt = now;
+          claimCheckPending = true;
+          void bridge.tabs().then(state => {
+            if (disposed || state?.owner === lease) return;
+            return bridge.show({ owner: lease }).then(() => {
+              if (disposed) return;
+              // The desktop discarded bounds with the old owner. Force the next frame to resend them.
+              boundsKey = '';
+              occluded = undefined;
+            });
+          }).catch(reportError).finally(() => { claimCheckPending = false; });
+        }
+        if (blocked !== occluded) {
+          occluded = blocked;
+          const revision = ++occlusionRevision;
+          if (blocked && typeof bridge.prepareOcclusion === 'function') {
+            // 快照交接（I007 协议）：先捕获快照 → 铺到 DOM → 等绘制完成 → 再隐藏原生层。
+            // 顺序不能反：如果先隐藏原生层再铺快照，用户会看到一帧白屏。
+            void (async () => {
+              try {
+                const snapshot = await bridge.prepareOcclusion();
+                if (disposed || revision !== occlusionRevision || !host.current) return;
+                let chromeImg = null;
+                let pageImg = null;
+                host.current.style.position = 'relative';
+                if (snapshot?.chromeDataUrl) {
+                  chromeImg = document.createElement('img');
+                  chromeImg.className = 'browser-panel-snapshot';
+                  chromeImg.src = snapshot.chromeDataUrl;
+                  chromeImg.style.cssText = 'position:absolute;top:0;left:0;width:100%;pointer-events:none;z-index:2147483647;filter:none;opacity:1;max-width:none;max-height:none;object-fit:fill';
+                  host.current.appendChild(chromeImg);
+                  await chromeImg.decode().catch(() => {});
+                }
+                if (snapshot?.pageDataUrl && snapshot.pageHeight > 0) {
+                  pageImg = document.createElement('img');
+                  pageImg.className = 'browser-page-snapshot';
+                  pageImg.src = snapshot.pageDataUrl;
+                  const totalH = (snapshot.pageTop || 0) + snapshot.pageHeight;
+                  const topPct = totalH > 0 ? ((snapshot.pageTop || 0) / totalH * 100) : 0;
+                  const hPct = totalH > 0 ? (snapshot.pageHeight / totalH * 100) : 100;
+                  pageImg.style.cssText = `position:absolute;top:${topPct}%;left:0;width:100%;height:${hPct}%;pointer-events:none;z-index:2147483647;filter:none;opacity:1;max-width:none;max-height:none;object-fit:fill`;
+                  host.current.appendChild(pageImg);
+                  await pageImg.decode().catch(() => {});
+                }
+                // 等 2 个渲染帧确保快照已真正绘制到屏幕
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+                if (disposed || revision !== occlusionRevision) {
+                  chromeImg?.remove();
+                  pageImg?.remove();
+                  return;
+                }
+                await bridge.setOccluded(true, lease);
+              } catch (e) {
+                // 快照失败时不隐藏原生层——宁可菜单被盖住，也不要白屏
+                console.warn('[browser-snapshot] prepareOcclusion failed:', e);
+              }
+            })();
+          } else if (blocked) {
+            // 旧路径：bridge 没有 prepareOcclusion（测试环境/旧外壳），同步隐藏
+            void bridge.setOccluded(true, lease).catch(reportError);
+          } else {
+            // 恢复：先显示原生层 → 等一帧 → 再移除快照
+            void (async () => {
+              try {
+                await bridge.setOccluded(false, lease);
+                await new Promise(r => requestAnimationFrame(r));
+                removeSnapshots();
+              } catch (e) { reportError(e); }
+            })();
+          }
+        }
+        frame = requestAnimationFrame(report);
+      };
+      setError(null);
+      const path = typeof tab.path === 'string' && (tab.path !== lastPath.current || tab.meta?.nativeBrowserNavigationId !== lastNavigation.current) ? tab.path : undefined;
+      void bridge.show({ owner: lease, ...(path ? { url: path } : {}) }).then(() => {
+        if (disposed) return;
+        lastPath.current = tab.path;
+        lastNavigation.current = tab.meta?.nativeBrowserNavigationId;
+        report();
+      }).catch(reportError);
+      const unsubscribe = bridge.onCloseRequested(() => {
+        if (!disposed) ctx.get('betterSidebar')?.closeTab(tab.id, scope);
+      });
+      return () => {
+        disposed = true;
+        occlusionRevision++;
+        cancelAnimationFrame(frame);
+        observer.disconnect();
+        unsubscribe();
+        try { if (host.current?.querySelectorAll) host.current.querySelectorAll('.browser-panel-snapshot,.browser-page-snapshot').forEach(el => el.remove()); } catch {}
+        void bridge.hide(lease).catch(() => {});
+      };
+    }, [visible, tab.id, tab.path, tab.meta?.nativeBrowserNavigationId, attempt]);
+    return react.createElement('div', {
+      ref: host, 'data-native-browser-card': '',
+      style: { width: '100%', height: '100%', minHeight: 0, flex: '1 1 auto', background: 'var(--dsw-alias-bg-base,#fff)' },
+    }, tooSmall ? react.createElement('p', { role: 'status', style: { padding: 16 } }, t('nativeBrowserTooSmall')) : error === null ? null : react.createElement('div', { role: 'alert', style: { padding: 16 } },
+      react.createElement('p', null, error),
+      react.createElement('button', { type: 'button', onClick: () => setAttempt(value => value + 1) }, t('nativeBrowserRetry'))));
+  };
+}

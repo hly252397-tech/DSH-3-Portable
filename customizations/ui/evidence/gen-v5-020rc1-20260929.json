@@ -1,0 +1,154 @@
+{
+  "status": "pass",
+  "task": "0.2 内核切 v5 代际家园：11 插件精确豁免 + awareness/manual 装载 + 更新双通道回 manual",
+  "method": "代际脚本 dry-run/实跑收据 + 三轮真实 bin.js boot 探针（--port 0 就绪计时）+ v4↔v5 保护文件 sha256 比对 + profile 链接/manifest 校验",
+  "results": [
+    {
+      "name": "identical.client.js",
+      "expected": "6e9194d7bb403f0a97553ac185724aad2c7b55d6181a90e0eea57d3b13737939",
+      "actual": "6e9194d7bb403f0a97553ac185724aad2c7b55d6181a90e0eea57d3b13737939",
+      "pass": true,
+      "note": "v4↔v5 sha256 一致（local/dsh-better-sidebar/lib/client.js）"
+    },
+    {
+      "name": "identical.SideChatView.tsx",
+      "expected": "4d34a43cb6a0f82a4325278820b6a96972ce52e0849996bd3326460a1caf4c99",
+      "actual": "4d34a43cb6a0f82a4325278820b6a96972ce52e0849996bd3326460a1caf4c99",
+      "pass": true,
+      "note": "v4↔v5 sha256 一致（local/dsh-better-sidebar/src/client/SideChatView.tsx）"
+    },
+    {
+      "name": "identical.client.js",
+      "expected": "45e0d73c93b07de5ed48aaed95c8e2ae6ab03db267e56cbb158635fc99929aae",
+      "actual": "45e0d73c93b07de5ed48aaed95c8e2ae6ab03db267e56cbb158635fc99929aae",
+      "pass": true,
+      "note": "v4↔v5 sha256 一致（local/dsh-custom-spaces/lib/client.js）"
+    },
+    {
+      "name": "link.dsh-better-sidebar",
+      "expected": true,
+      "actual": true,
+      "pass": true,
+      "note": "deps=link:local\\dsh-better-sidebar"
+    },
+    {
+      "name": "realpath.dsh-better-sidebar",
+      "expected": "G:\\DSH-3-Portable\\Data\\DSH-generations\\v5-020rc1\\home\\profiles\\web\\local\\dsh-better-sidebar",
+      "actual": "G:\\DSH-3-Portable\\Data\\DSH-generations\\v5-020rc1\\home\\profiles\\web\\local\\dsh-better-sidebar",
+      "pass": true,
+      "note": "node_modules 链接指向 local"
+    },
+    {
+      "name": "link.dsh-sidebar-spaces",
+      "expected": true,
+      "actual": true,
+      "pass": true,
+      "note": "deps=link:local\\dsh-sidebar-spaces"
+    },
+    {
+      "name": "realpath.dsh-sidebar-spaces",
+      "expected": "G:\\DSH-3-Portable\\Data\\DSH-generations\\v5-020rc1\\home\\profiles\\web\\local\\dsh-sidebar-spaces",
+      "actual": "G:\\DSH-3-Portable\\Data\\DSH-generations\\v5-020rc1\\home\\profiles\\web\\local\\dsh-sidebar-spaces",
+      "pass": true,
+      "note": "node_modules 链接指向 local"
+    },
+    {
+      "name": "link.dsh-restart-button",
+      "expected": true,
+      "actual": true,
+      "pass": true,
+      "note": "deps=link:local\\dsh-restart-button"
+    },
+    {
+      "name": "realpath.dsh-restart-button",
+      "expected": "G:\\DSH-3-Portable\\Data\\DSH-generations\\v5-020rc1\\home\\profiles\\web\\local\\dsh-restart-button",
+      "actual": "G:\\DSH-3-Portable\\Data\\DSH-generations\\v5-020rc1\\home\\profiles\\web\\local\\dsh-restart-button",
+      "pass": true,
+      "note": "node_modules 链接指向 local"
+    },
+    {
+      "name": "link.dsh-custom-spaces",
+      "expected": true,
+      "actual": true,
+      "pass": true,
+      "note": "deps=link:local\\dsh-custom-spaces"
+    },
+    {
+      "name": "realpath.dsh-custom-spaces",
+      "expected": "G:\\DSH-3-Portable\\Data\\DSH-generations\\v5-020rc1\\home\\profiles\\web\\local\\dsh-custom-spaces",
+      "actual": "G:\\DSH-3-Portable\\Data\\DSH-generations\\v5-020rc1\\home\\profiles\\web\\local\\dsh-custom-spaces",
+      "pass": true,
+      "note": "node_modules 链接指向 local"
+    },
+    {
+      "name": "link.dsh-black-hole",
+      "expected": true,
+      "actual": true,
+      "pass": true,
+      "note": "deps=link:local\\dsh-black-hole"
+    },
+    {
+      "name": "realpath.dsh-black-hole",
+      "expected": "G:\\DSH-3-Portable\\Data\\DSH-generations\\v5-020rc1\\home\\profiles\\web\\local\\dsh-black-hole",
+      "actual": "G:\\DSH-3-Portable\\Data\\DSH-generations\\v5-020rc1\\home\\profiles\\web\\local\\dsh-black-hole",
+      "pass": true,
+      "note": "node_modules 链接指向 local"
+    },
+    {
+      "name": "bundle.codex-ui",
+      "expected": true,
+      "actual": true,
+      "pass": true,
+      "note": "codex 导航在列"
+    },
+    {
+      "name": "installed.dsh-system-awareness",
+      "expected": true,
+      "actual": true,
+      "pass": true,
+      "note": "本事务新装"
+    },
+    {
+      "name": "installed.dsh-manual",
+      "expected": true,
+      "actual": true,
+      "pass": true,
+      "note": "本事务新装"
+    },
+    {
+      "name": "exemptions.count",
+      "expected": 11,
+      "actual": 11,
+      "pass": true,
+      "note": "0.2 精确豁免条数"
+    },
+    {
+      "name": "exemptions.runtime",
+      "expected": true,
+      "actual": true,
+      "pass": true,
+      "note": "全部命名 0.2.0-rc.1"
+    },
+    {
+      "name": "boot.baseline",
+      "expected": true,
+      "actual": true,
+      "pass": true,
+      "note": "就绪 5.2s（Data/Temp/probe-baseline.log）"
+    },
+    {
+      "name": "boot.all11",
+      "expected": true,
+      "actual": true,
+      "pass": true,
+      "note": "就绪 10.9s（Data/Temp/probe-all11.log）"
+    },
+    {
+      "name": "boot.final",
+      "expected": true,
+      "actual": true,
+      "pass": true,
+      "note": "就绪 12.1s（Data/Temp/probe-final.log）"
+    }
+  ]
+}

@@ -32,6 +32,23 @@ window.__ModuleLoader__.load({
     const module = { exports: {} };
 
     const CSS = [
+      // Project rows align with the folder icon; running rows keep their spinner seat.
+      '.dcu-root:not(.dcu-compact) .dcu-wb-project-body>.dcu-wb-session:not(:has(.dcu-wb-running)),.dcu-root:not(.dcu-compact) .dcu-wb-project-body>.dcu-wb-nochat{padding-left:8px}',
+      '.dcu-root:not(.dcu-compact) .dcu-wb-project-body>.dcu-wb-session-more{padding-left:0}',
+      // Header actions now include subagents: the old 76px mode-only grid is too narrow.
+      'body header:has([data-dcu-inline-tabs]) .wSkVaW_headerActions{height:auto!important;min-height:28px;min-width:0;flex-wrap:wrap;row-gap:4px;align-items:center}',
+      'body header:has([data-dcu-inline-tabs]) .wSkVaW_headerActions>*,body header:has([data-dcu-inline-tabs]) .ZKlsPq_trigger{flex-shrink:0;white-space:nowrap}',
+      '@container dss-conversation (max-width:760px){',
+      'body header:has([data-dcu-inline-tabs]){height:auto!important;flex-shrink:0;grid-template-columns:minmax(0,max-content) minmax(0,1fr) auto!important}',
+      'body header:has([data-dcu-inline-tabs]) .wSkVaW_headerActions{max-width:100%}',
+      '}',
+      '@container dss-conversation (max-width:520px){',
+      'body header:has([data-dcu-inline-tabs]){grid-template-columns:minmax(0,1fr) auto!important}',
+      'body header:has([data-dcu-inline-tabs]) .wSkVaW_crumbs{grid-column:1!important}',
+      'body header:has([data-dcu-inline-tabs]) .wSkVaW_headerUtilities{grid-column:2!important}',
+      'body header:has([data-dcu-inline-tabs]) .wSkVaW_headerActions{grid-row:2!important;grid-column:1 / -1!important}',
+      'body header:has([data-dcu-inline-tabs]) [data-dcu-inline-tabs]{grid-row:3!important;grid-column:1 / -1!important}',
+      '}',
       // I023/53: the settings portal is outside .dcu-root; supply its light sidebar palette too.
       'body[data-color-scheme="light"]:not([data-ds-dark-theme]) .dcu-settings-page{',
       '--dcu-sidebar-background:#ffffff;--dcu-sidebar-hover:#f4f4f5;--dcu-sidebar-border:#e4e4e7;',
@@ -270,6 +287,10 @@ window.__ModuleLoader__.load({
       // seat 容器承载「整体贴右」：内部计价与模型并排（nowrap），所以**不会再互相断行**。
       '.dsh-tweaks-seat{display:flex!important;align-items:center!important;gap:8px!important;',
       'margin-left:auto!important;flex:0 0 auto!important;flex-wrap:nowrap!important}',
+      // Billing may mount after the model; visual order must not depend on arrival order.
+      '.dsh-tweaks-seat>.dsh-tweaks-model{order:2!important}',
+      '.dsh-tweaks-seat>[data-testid="billing-live-cost-chip"]{order:1!important;',
+      'background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}',
       '.dsh-tweaks-lifted .VWh0dG_triggerPrimary,.dsh-tweaks-lifted .VWh0dG_triggerMetric,.dsh-tweaks-lifted .VWh0dG_triggerYen,',
       '.dsh-tweaks-lifted .VWh0dG_feeInline,.dsh-tweaks-lifted .VWh0dG_triggerLabel{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;',
       'font-size:14px!important;font-weight:600!important;line-height:20px!important;color:inherit!important;',
@@ -297,7 +318,27 @@ window.__ModuleLoader__.load({
       'box-shadow:0 6px 18px rgba(0,0,0,.12);padding:4px 8px;font-size:12px;line-height:16px;',
       'font-family:Inter,ui-sans-serif,system-ui,"Microsoft YaHei",sans-serif;white-space:nowrap;transition:opacity .12s}',
       '.tw-rail-tip.on{opacity:1}',
-      'body[data-color-scheme="dark"] .tw-rail-tip{background:#1f1f22;color:#f4f4f5;border-color:rgba(255,255,255,.12)}'
+      'body[data-color-scheme="dark"] .tw-rail-tip{background:#1f1f22;color:#f4f4f5;border-color:rgba(255,255,255,.12)}',
+      // ===== iOS 风格动效层（2026-09-29 用户要求「iOS 27 的效果」）=====
+      // 可撤销：html 无 data-dsh-motion="ios" 或系统「减少动态」时整层退出（JS 侧同步控制）。
+      // 曲线 0.32,0.72,0,1 = Apple sheet 标准减速曲线；spring 带 15% 过冲。
+      ':root{--dsh-ease-ios:cubic-bezier(.32,.72,0,1);--dsh-ease-ios-spring:cubic-bezier(.22,1.15,.36,1);--dsh-t-view:.42s;--dsh-t-el:.26s;--dsh-t-hover:.16s}',
+      'html[data-dsh-motion="ios"] .dsh-ios-view{animation:dsh-ios-view-in var(--dsh-t-view) var(--dsh-ease-ios) both}',
+      '@keyframes dsh-ios-view-in{from{opacity:0;transform:translateY(12px) scale(.986)}to{opacity:1;transform:none}}',
+      'html[data-dsh-motion="ios"] .dsh-ios-pop{animation:dsh-ios-pop-in var(--dsh-t-el) var(--dsh-ease-ios-spring) both}',
+      '@keyframes dsh-ios-pop-in{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:none}}',
+      'html[data-dsh-motion="ios"] .dcu-root .dcu-nav button,html[data-dsh-motion="ios"] .dcu-root [role="treeitem"],html[data-dsh-motion="ios"] .dcu-settings-nav button{transition:background-color var(--dsh-t-hover) var(--dsh-ease-ios),color var(--dsh-t-hover) var(--dsh-ease-ios),border-color var(--dsh-t-hover) var(--dsh-ease-ios)}',
+      'html[data-dsh-motion="ios"] .dcu-root [role="treeitem"][aria-selected="true"]{animation:dsh-ios-select var(--dsh-t-el) var(--dsh-ease-ios-spring)}',
+      '@keyframes dsh-ios-select{from{transform:scale(.975)}to{transform:none}}',
+      // —— 计费用量面板接管 v2（2026-09-29 用户复测「还是一样的」后修正）——
+      // v1 压错了地方：VWh0dG_dashboardIn 是**关键帧名**不是类名，真正的 animation 载体是
+      // 面板本体 .VWh0dG_dashboardModal（== 稳定手写类 .dsh-billing-modal，插件 JSX 实证
+      // className=d(I.dashboardModal,'dsh-billing-modal')）与页签 .VWh0dG_tabPanel。
+      // 接管=压掉这两段自带入场，由 pop 观察器对 .dsh-billing-modal 播唯一一次统一弹簧。
+      // 失效边界：.dsh-billing-modal 是手写稳定类（升级不变）；.VWh0dG_tabPanel 仍是构建
+      // 哈希类，插件升级后该条可能失配（面板本体接管仍有效，页签入场或回归，重取类名即可）。
+      'html[data-dsh-motion="ios"] .dsh-billing-modal{animation:none!important}',
+      'html[data-dsh-motion="ios"] .VWh0dG_tabPanel{animation:none!important}'
     ].join('');
 
     const LIFT = 'dsh-tweaks-lifted';
@@ -316,22 +357,25 @@ window.__ModuleLoader__.load({
     const findDock = () => document.querySelector('.dbh-dock');
 
     /** 模型选择座位（真实类名，来自官方 model-selection 包）。 */
-    const findModelSeat = () => document.querySelector('._7KE1Ra_root');
+    const composerScope = (dock) => dock.closest('.wSkVaW_composerStack') || document;
+    const findModelSeat = (dock) => composerScope(dock).querySelector('._7KE1Ra_root');
 
-    /** 「平价消耗胶囊」：usage-billing 注入 conversation.input.right（在 .uV2eYG_trailing 里），
-     *  实测锚点＝内层 span 的 `aria-label="本轮 ¥x · 会话 ¥y"`（比猜文案稳），退回文案兜底；
-     *  再上溯到输入行的直接子节点作为搬运单位。 */
-    function findCostChip() {
-      const trailing = document.querySelector('.uV2eYG_trailing');
-      if (!trailing) return null;
-      const hit = trailing.querySelector('[aria-label^="本轮 "]')
-        || [...trailing.querySelectorAll('*')].find(
+    /** rc.2 的 standardControls 同时包含计价、模型和其他工具，不能整组搬走。
+     *  只搬计价自己的节点，保留模型的原 slot 和所属会话。 */
+    function findCostChip(dock) {
+      const scope = composerScope(dock);
+      const current = scope.querySelector('[data-testid="billing-live-cost-chip"]');
+      if (current) return current;
+      const slot = scope.querySelector('[data-slot="conversation.input.right"]');
+      if (!slot) return null;
+      const hit = slot.querySelector('[aria-label^="本轮 "]')
+        || [...slot.querySelectorAll('*')].find(
           (el) => el.children.length === 0 && /^(平价|峰时|¥)/.test((el.textContent || '').trim())
         );
       if (!hit) return null;
       let node = hit;
-      while (node.parentElement && node.parentElement !== trailing) node = node.parentElement;
-      return node.parentElement === trailing ? node : null;
+      while (node.parentElement && node.parentElement !== slot) node = node.parentElement;
+      return node.parentElement === slot ? node : null;
     }
 
     /** 解析出真正有盒子的元素：槽位外层可能是 display:contents（rect 全 0），往下找内层。 */
@@ -347,6 +391,17 @@ window.__ModuleLoader__.load({
     }
 
     const saved = new Map();
+    let rejectedPlacement = null;
+
+    // A failed move must settle: restoring its DOM fires the same observer.
+    // Retry only when the target, model content, or available layout changes.
+    function placementKey(dock, model) {
+      const r = dock.getBoundingClientRect();
+      const chip = findCostChip(dock);
+      return [window.innerWidth, window.innerHeight, Math.round(r.width), Math.round(r.height),
+        (model.textContent || '').trim(), Math.round(model.getBoundingClientRect().width),
+        chip ? (chip.textContent || '').trim() : '', chip ? Math.round(chip.getBoundingClientRect().width) : 0].join('|');
+    }
 
     // 2026-09-16 结构修正：计价与模型放进**内层 seat 容器**，`margin-left:auto` 挂在这个容器上。
     // 之前直接给计价挂 auto 外边距 → Chromium 断行时把 auto 当成已占用，模型永远放不下、被挤到第二行。
@@ -443,8 +498,14 @@ window.__ModuleLoader__.load({
       // （data-dbh-dock-placement，两个写者互抢）；这次只是把我们自己的座位塞进**插件已经摆好的那一行**，
       // 摆放属性仍由插件独占，本插件不写、不碰。
       const inHero = dock.closest('.wSkVaW_composerHero') !== null;
-      const modelRaw = findModelSeat();
+      const modelRaw = findModelSeat(dock);
       if (!modelRaw) { revert(dock, []); state('nomodel'); return; }
+      if (rejectedPlacement && rejectedPlacement.dock === dock && rejectedPlacement.model === modelRaw
+        && rejectedPlacement.key === placementKey(dock, modelRaw)) {
+        state('reverted');
+        return;
+      }
+      rejectedPlacement = null;
       const dr0 = dock.getBoundingClientRect();
       const stack = dock.parentElement;
       const stackW = stack ? stack.getBoundingClientRect().width : 0;
@@ -466,14 +527,14 @@ window.__ModuleLoader__.load({
         state('nomodel');
         return;
       }
-      const chipRaw = findCostChip();
+      const chipRaw = findCostChip(dock);
       // 空壳计价胶囊（无可见文字）不搬运、直接标空隐藏 —— 否则右侧只留一块空白圆角壳
       if (chipRaw) {
         const text = (chipRaw.textContent || '').replace(/\s+/g, '');
         if (!text) chipRaw.classList.add('dsh-tweaks-empty');
         else chipRaw.classList.remove('dsh-tweaks-empty');
       }
-      const chip = chipRaw && chipRaw !== modelRaw && !dock.contains(chipRaw) && !chipRaw.classList.contains('dsh-tweaks-empty')
+      const chip = chipRaw && chipRaw !== modelRaw && !chipRaw.classList.contains('dsh-tweaks-empty')
         ? boxOf(chipRaw) : null;
       const modelW = Math.round(model.getBoundingClientRect().width) || 90;
       const mh = model.getBoundingClientRect().height || 28;
@@ -524,6 +585,8 @@ window.__ModuleLoader__.load({
       }
       if (bad.length > 0) {
         revert(dock, items);
+        modelRaw.classList.remove('dsh-tweaks-model');
+        rejectedPlacement = { dock, model: modelRaw, key: placementKey(dock, modelRaw) };
         state('reverted');
         return;
       }
@@ -651,11 +714,68 @@ window.__ModuleLoader__.load({
       }
     }
 
-    function apply() {
+    // BEGIN SETTINGS_NAV_DISTINCT_ICONS
+    const SETTINGS_NAV_ICONS = [
+      { id: 'builtins', labels: ['内置插件', 'Built-in plugins'], body: '<path d="M9 3H4v6a3 3 0 1 1 0 6v6h6a3 3 0 1 1 6 0h5v-6a3 3 0 1 0 0-6V3h-6a3 3 0 1 1-6 0Z"/>' },
+      { id: 'spaces', labels: ['自定义空间', 'Custom Spaces', 'Custom spaces'], body: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>' },
+      { id: 'agent-presets', labels: ['Agent 预设', 'Agent presets', 'Agent Presets'], body: '<path d="M9 4H5v17h14V4h-4"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="m8 13 3 3 5-6"/>' },
+      { id: 'desktop', labels: ['桌面设置', 'Desktop settings', 'Desktop Settings'], body: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/>' },
+      { id: 'external-agent', labels: ['外部智能体接入', 'External agents', 'External Agents'], body: '<rect x="2" y="8" width="6" height="8" rx="1.5"/><circle cx="19" cy="4" r="2"/><circle cx="19" cy="20" r="2"/><path d="M8 12h5m-2-2 2 2-2 2m2-2V4h4m-4 8v8h4"/>' },
+    ];
+    function installSettingsNavIcons(ctx) {
+      ctx.effect(() => {
+        const selector = '.dcu-settings-nav .dcu-settings-link';
+        const attribute = 'data-dsh-settings-icon';
+        const style = document.createElement('style');
+        style.setAttribute('data-dsh-settings-icons-style', '');
+        const base = selector + '[' + attribute + ']';
+        style.textContent = base + '>svg{display:none!important}' +
+          base + '::before{content:"";display:block;width:16px;height:16px;flex:0 0 16px;background-color:currentColor;mask-repeat:no-repeat;mask-position:center;mask-size:contain;pointer-events:none}' +
+          SETTINGS_NAV_ICONS.map(icon => {
+            const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + icon.body + '</svg>';
+            return selector + '[' + attribute + '="' + icon.id + '"]::before{mask-image:url("data:image/svg+xml,' + encodeURIComponent(svg) + '")}';
+          }).join('\n');
+        document.head.appendChild(style);
+        let frame = null;
+        const update = () => {
+          frame = null;
+          for (const button of document.querySelectorAll(selector)) {
+            const label = (button.querySelector(':scope > span')?.textContent || button.textContent || '').trim();
+            const icon = SETTINGS_NAV_ICONS.find(entry => entry.labels.includes(label));
+            if (icon) {
+              if (button.getAttribute(attribute) !== icon.id) button.setAttribute(attribute, icon.id);
+            } else if (button.hasAttribute(attribute)) button.removeAttribute(attribute);
+          }
+        };
+        const observer = new MutationObserver(records => {
+          const relevant = records.some(record => {
+            const el = record.target.nodeType === 1 ? record.target : record.target.parentElement;
+            return el?.closest('.dcu-settings-nav') || [...record.addedNodes].some(node =>
+              node.nodeType === 1 && (node.matches('.dcu-settings-nav') || node.querySelector('.dcu-settings-nav')));
+          });
+          if (relevant && frame === null) frame = window.requestAnimationFrame(update);
+        });
+        update();
+        // Attribute writes do not feed this observer or the upstream child-list
+        // icon decorator. Original SVG/React children and event handlers survive.
+        observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+        return () => {
+          observer.disconnect();
+          if (frame !== null) window.cancelAnimationFrame(frame);
+          style.remove();
+          for (const button of document.querySelectorAll(selector + '[' + attribute + ']')) button.removeAttribute(attribute);
+        };
+      }, 'dsh-ui-tweaks: distinct settings icons');
+    }
+    // END SETTINGS_NAV_DISTINCT_ICONS
+
+    function apply(ctx) {
+      installSettingsNavIcons(ctx);
       injectStyle();
       suppressBrandSingleClick();
       installRailTooltips();
       hideConnectionIndicator();
+      installIosMotion();
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', applyAll, { once: true });
       } else {
@@ -663,11 +783,115 @@ window.__ModuleLoader__.load({
       }
       const mo = new MutationObserver(() => { applyAll(); hideConnectionIndicator(); });
       mo.observe(document.documentElement, { childList: true, subtree: true });
-      window.addEventListener('resize', applyAll);
+      window.addEventListener('resize', () => { rejectedPlacement = null; applyAll(); });
       setInterval(applyAll, 4000); // 轻量兜底：React 重渲染后仍能纠正
       setInterval(hideConnectionIndicator, 2000); // 独立兜底：每 2s 再藏一次连接指示器
       watchClientBundle();
       installWidthProbe();
+    }
+
+    // ===== iOS 风格动效（2026-09-29 用户要求「iOS 27 的效果」）=====
+    // 原则：只加 class 触发 CSS，不改布局、不拦事件、不动 React 状态；
+    // 观察器只看「顶层子节点替换」级别的结构变化并去抖，流式消息更新在深层子树不会误触发。
+    // 退出：系统「减少动态」或手动删 html 的 data-dsh-motion 即整层静止（CSS 侧同 key 把关）。
+    function installIosMotion() {
+      if (window.__dshTweaksIosMotion === true) return;
+      window.__dshTweaksIosMotion = true;
+      // 测试沙箱可能没有 matchMedia：缺失时按「未开启减少动态」处理，不抛错
+      const reduced = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+      const syncFlag = () => {
+        if (reduced && reduced.matches) delete document.documentElement.dataset.dshMotion;
+        else document.documentElement.dataset.dshMotion = 'ios';
+      };
+      syncFlag();
+      if (reduced && reduced.addEventListener) reduced.addEventListener('change', syncFlag);
+
+      // 全局节流：所有动效触发路径（点击布防/弹层观察）共用一处 450ms 冷却——
+      // 2026-09-29 用户实证「设置页弹两下」：armed 触发后 lastFlashed 被重置，第二观察器
+      // 对同一目标再放行一次，同一切换连闪两遍。一处节流从根上杜绝叠车。
+      let lastAnimAt = 0;
+      const flash = (el) => {
+        if (!(el instanceof HTMLElement)) return;
+        const now = Date.now();
+        if (now - lastAnimAt < 450) return;
+        lastAnimAt = now;
+        el.classList.remove('dsh-ios-view');
+        void el.offsetWidth; // 强制回流，重启动画
+        el.classList.add('dsh-ios-view');
+        el.addEventListener('animationend', () => el.classList.remove('dsh-ios-view'), { once: true });
+      };
+      // 主内容候选：会话页是官方框架 .pI_x6G_frame；其他视图取「非导航的最大直接子节点」。
+      // （测试沙箱 DOM 能力有限：querySelector/children 一律先探再用，任何异常直接放弃本次候选。）
+      const mainCandidate = (root) => {
+        try {
+          const frame = root && typeof root.querySelector === 'function' ? root.querySelector('.pI_x6G_frame') : null;
+          if (frame) return frame;
+          let best = null;
+          const children = root && root.children ? root.children : [];
+          for (const child of children) {
+            if (!(child instanceof HTMLElement)) continue;
+            if (child.matches('[role="complementary"], nav, .dcu-nav, .dcu-settings-nav')) continue;
+            const r = child.getBoundingClientRect();
+            if (best === null || r.width > best.getBoundingClientRect().width) best = child;
+          }
+          return best;
+        } catch { return null; }
+      };
+      // 触发机制（2026-09-29 连拍实证 + 用户「弹两下」反馈定稿）：React 换页是深层原位补丁且
+      // 提交有快有慢（60ms~550ms），固定延时与顶层观察器都不可靠。终版=「点击布防 → 主区域首个
+      // 结构变更触发」：动画类恰好在内容挂载的同一批变更时加上，容器动画与新内容同步呈现。
+      // 非视图类侧栏点击（收起/搜索）不布防；布防 1.2 秒内无换页即自动失效。
+      let motionArmedUntil = 0;
+      const NAV_CLICK_SEL = '[role="treeitem"], nav[aria-label="主菜单"] button, .dcu-settings-nav button';
+      const onNavClick = (event) => {
+        try {
+          const t = event.target instanceof Element ? event.target : null;
+          if (!t || !t.closest(NAV_CLICK_SEL)) return;
+          motionArmedUntil = Date.now() + 1200;
+        } catch { /* 装饰层不外溢 */ }
+      };
+      document.addEventListener('click', onNavClick, true);
+      try {
+        new MutationObserver((records) => {
+          try {
+            if (motionArmedUntil === 0 || Date.now() > motionArmedUntil) { motionArmedUntil = 0; return; }
+            const scope = document.querySelector('.dcu-settings-page') || document.querySelector('#root');
+            if (!scope) { motionArmedUntil = 0; return; }
+            // 只有主区域的结构变更才消耗布防；侧栏按钮自身重渲染不算
+            const hit = (records || []).some((rec) => {
+              const t = rec && rec.target;
+              if (!(t instanceof Node) || !scope.contains(t)) return false;
+              const parent = t.parentElement;
+              return parent === null || parent.closest('[role="complementary"], nav[aria-label="主菜单"], .dcu-settings-nav') === null;
+            });
+            if (!hit) return;
+            motionArmedUntil = 0;
+            const target = mainCandidate(scope);
+            if (target !== null) flash(target);
+          } catch { /* 装饰层不外溢 */ }
+        }).observe(document.documentElement, { childList: true, subtree: true });
+      } catch { /* 沙箱防御 */ }
+
+      // 弹层（对话框/菜单）新增时弹簧浮现：portal 都挂在 body 直下（沙箱回调参数形态不定，防御遍历；
+      // 同样走 450ms 冷却，避免弹层内容分批挂载时连弹两下）
+      new MutationObserver((records) => {
+        try {
+          for (const record of (records || [])) {
+            for (const node of (record && record.addedNodes) || []) {
+              if (!(node instanceof HTMLElement)) continue;
+              const target = node.matches('[role="dialog"],[role="menu"],.dcu-modal,[data-radix-popper-content-wrapper],.dsh-billing-modal')
+                ? node
+                : (typeof node.querySelector === 'function' ? node.querySelector('[role="dialog"],[role="menu"],.dcu-modal,[data-radix-popper-content-wrapper],.dsh-billing-modal') : null);
+              if (target === null || target.classList.contains('dsh-ios-pop')) continue;
+              const now = Date.now();
+              if (now - lastAnimAt < 450) continue;
+              lastAnimAt = now;
+              target.classList.add('dsh-ios-pop');
+              target.addEventListener('animationend', () => target.classList.remove('dsh-ios-pop'), { once: true });
+            }
+          }
+        } catch { /* 装饰层不外溢 */ }
+      }).observe(document.body, { childList: true });
     }
 
     // ===== 只读宽度探针（2026-09-17 装回，常驻仪器；scripts/verify-adaptive-layout.mjs 的唯一数据源）=====
@@ -705,6 +929,27 @@ window.__ModuleLoader__.load({
             sidebarVar: getComputedStyle(document.documentElement).getPropertyValue('--dsh-sidebar-width'),
             // 2026-09-17 追加（只读）：定位「中缝 40px 白条」到底谁写歪的 —— 右栏内联/计算宽度、
             // 三条 --dss-panel-* 变量、#root 的让位、以及自愈是否装上。
+            headerDiag: (() => {
+              const h = document.querySelector('header:has([data-dcu-inline-tabs])');
+              if (!h) return null;
+              const box = el => {
+                if (!el) return null;
+                const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+                return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height, display: s.display, whiteSpace: s.whiteSpace };
+              };
+              return {
+                visible: document.visibilityState, header: box(h),
+                actions: box(h.querySelector('.wSkVaW_headerActions')),
+                subagent: box(h.querySelector('.ZKlsPq_trigger')),
+                tabs: box(h.querySelector('[data-dcu-inline-tabs]')),
+                scroll: box(document.querySelector('.wSkVaW_scrollBody')),
+                controls: [...h.querySelectorAll('button')].slice(0, 20).map(box),
+              };
+            })(),
+            sidebarAlignDiag: [...document.querySelectorAll('.dcu-root:not(.dcu-compact) .dcu-wb-project-head,.dcu-root:not(.dcu-compact) .dcu-wb-project-body>.dcu-wb-session,.dcu-root:not(.dcu-compact) .dcu-wb-project-body>.dcu-wb-session-more')].slice(0,20).map(el => {
+              const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+              return { kind: el.className, left: r.left, width: r.width, height: r.height, paddingLeft: s.paddingLeft, running: !!el.querySelector('.dcu-wb-running') };
+            }),
             panelDiag: (() => {
               try {
                 const p = document.querySelector('.nArs4W_panel');
@@ -789,7 +1034,9 @@ window.__ModuleLoader__.load({
       setTimeout(sample, 500);
       setTimeout(sample, 2000);
       let timer = null;
-      window.addEventListener('resize', () => { if (timer !== null) clearTimeout(timer); timer = setTimeout(sample, 400); });
+      // Native restore -> layout-context -> sidebar CSS transition can outlast 400ms.
+      // Sample settled geometry without mutating layout or adding an idle polling loop.
+      window.addEventListener('resize', () => { if (timer !== null) clearTimeout(timer); timer = setTimeout(sample, 1200); });
     }
 
     module.exports.apply = apply;

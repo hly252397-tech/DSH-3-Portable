@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "recordedAt": "2026-09-29T08:15:13.014Z",
-  "note": "docs/01-当前工作/20260929-0.2代际家园v5与11插件豁免修复.md",
+  "recordedAt": "2026-09-21T02:09:44.807Z",
+  "note": "docs/01-当前工作/20260920-浏览器快照交接与执行通道.md",
   "evidence": [
     {
-      "path": "customizations/ui/evidence/gen-v5-020rc1-20260929.json",
-      "sha256": "0bc0066f91625f2205103f318bcb5c9a543bbe6cfbcb5350c42074a5267d719a",
-      "snapshot": "customizations/ui/evidence/0bc0066f91625f2205103f318bcb5c9a543bbe6cfbcb5350c42074a5267d719a.json"
+      "path": "artifacts/ui-baseline-evidence-20260920.json",
+      "sha256": "cb6cdf498c912ac88c324c73650c6817613f55671f373e7b6adb110365c6eadc",
+      "snapshot": "customizations/ui/evidence/cb6cdf498c912ac88c324c73650c6817613f55671f373e7b6adb110365c6eadc.json"
     }
   ],
-  "history": "customizations/ui/history/2026-09-29T08-15-13-013Z.json",
+  "history": "customizations/ui/history/2026-09-21T02-09-44-806Z.json",
   "files": [
     {
       "path": "assets/theme.css",
@@ -18,13 +18,13 @@
     },
     {
       "path": "assets/shell.html",
-      "sha256": "a22a22f04dcc60544f6cdd96afd82971028b5c2a897bf18ad23db8d481b6a0fc",
-      "snapshot": "customizations/ui/sources/a22a22f04dcc60544f6cdd96afd82971028b5c2a897bf18ad23db8d481b6a0fc.txt"
+      "sha256": "0c582f3458c231a17b067782c4d0b30fa013373f07c26d45b56fd09a855d4a42",
+      "snapshot": "customizations/ui/sources/0c582f3458c231a17b067782c4d0b30fa013373f07c26d45b56fd09a855d4a42.txt"
     },
     {
       "path": "src/dsh-view-preload.cts",
-      "sha256": "02f6ca2efd39bc950f6ad3a5497d1b8f8c4e0b2684ae2cefca5f740311757a5e",
-      "snapshot": "customizations/ui/sources/02f6ca2efd39bc950f6ad3a5497d1b8f8c4e0b2684ae2cefca5f740311757a5e.txt"
+      "sha256": "963ca9f0cd4e19b6206dcbb3081de816ff1c9fc599438b57b98b73d78b7110ca",
+      "snapshot": "customizations/ui/sources/963ca9f0cd4e19b6206dcbb3081de816ff1c9fc599438b57b98b73d78b7110ca.txt"
     },
     {
       "path": "scripts/build-sidebar-spaces-client.mjs",
@@ -33,28 +33,28 @@
     },
     {
       "path": "scripts/build-native-browser-card.mjs",
-      "sha256": "5ace8b3616b7faf3a60f573161b9133626db4c544c3902c78b3970d68c4fd08c",
-      "snapshot": "customizations/ui/sources/5ace8b3616b7faf3a60f573161b9133626db4c544c3902c78b3970d68c4fd08c.txt"
+      "sha256": "b7b984dcc31e5d3ed6417386fcd3f789f774e21ff1857205e7c50c6ac9f096a9",
+      "snapshot": "customizations/ui/sources/b7b984dcc31e5d3ed6417386fcd3f789f774e21ff1857205e7c50c6ac9f096a9.txt"
     },
     {
       "path": "scripts/build-sidebar-layout-compat.mjs",
-      "sha256": "71f39b21aa4c67682937461734b15c96f8c402d30d2c9780eb7ef893a50d5147",
-      "snapshot": "customizations/ui/sources/71f39b21aa4c67682937461734b15c96f8c402d30d2c9780eb7ef893a50d5147.txt"
+      "sha256": "d3d6649f3353696c03950eb7deb2d0800e2a6167871754ef48a7566d56e2aac2",
+      "snapshot": "customizations/ui/sources/d3d6649f3353696c03950eb7deb2d0800e2a6167871754ef48a7566d56e2aac2.txt"
     },
     {
       "path": "Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.src.js",
-      "sha256": "134f7885e72eeb2b7c77fd184d4eb5bc4cdf774b2fe1b08a430cf40abe83f2e7",
-      "snapshot": "customizations/ui/sources/134f7885e72eeb2b7c77fd184d4eb5bc4cdf774b2fe1b08a430cf40abe83f2e7.txt"
+      "sha256": "e3f35bf21b66f2c700434f6000795250ce59e1a1a537618f649412f1c82b9b99",
+      "snapshot": "customizations/ui/sources/e3f35bf21b66f2c700434f6000795250ce59e1a1a537618f649412f1c82b9b99.txt"
     },
     {
       "path": "Data/DSH/profiles/web/local/dsh-sidebar-spaces/lib/client.js",
-      "sha256": "2001276884952527c28c005ee32b697054f376f526f328428c1c2ff9440e2012",
-      "snapshot": "customizations/ui/sources/2001276884952527c28c005ee32b697054f376f526f328428c1c2ff9440e2012.txt"
+      "sha256": "d483ed1e6bfdcff457f51f432e4b6ebdc961fe3d6589dda451c5a9146573f099",
+      "snapshot": "customizations/ui/sources/d483ed1e6bfdcff457f51f432e4b6ebdc961fe3d6589dda451c5a9146573f099.txt"
     },
     {
       "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/Sidebar.tsx",
-      "sha256": "1c714d99065b2ff9be65491786f6841179cf8e10ac6b04380133cba45eb5095b",
-      "snapshot": "customizations/ui/sources/1c714d99065b2ff9be65491786f6841179cf8e10ac6b04380133cba45eb5095b.txt"
+      "sha256": "93d0174bba518398aefa83bb6854fb9c2638133a62563e927bad29cc59dc19a0",
+      "snapshot": "customizations/ui/sources/93d0174bba518398aefa83bb6854fb9c2638133a62563e927bad29cc59dc19a0.txt"
     },
     {
       "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/service.ts",
@@ -68,13 +68,13 @@
     },
     {
       "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/lib/client.js",
-      "sha256": "6e9194d7bb403f0a97553ac185724aad2c7b55d6181a90e0eea57d3b13737939",
-      "snapshot": "customizations/ui/sources/6e9194d7bb403f0a97553ac185724aad2c7b55d6181a90e0eea57d3b13737939.txt"
+      "sha256": "f4c4553780d55975be6c520a36a3e9b9bdfdc19b48f49f562808b629970bff6b",
+      "snapshot": "customizations/ui/sources/f4c4553780d55975be6c520a36a3e9b9bdfdc19b48f49f562808b629970bff6b.txt"
     },
     {
       "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/portable/browser-view.js",
-      "sha256": "9a6ad70f968add4a957f1096907c37d825395e1a1062e60aa2f2c0236a33a65a",
-      "snapshot": "customizations/ui/sources/9a6ad70f968add4a957f1096907c37d825395e1a1062e60aa2f2c0236a33a65a.txt"
+      "sha256": "86c7dafe18d89fb0eef5575ed82d11ee0c7fa4d8be20ef2ae6aa4f936371934a",
+      "snapshot": "customizations/ui/sources/86c7dafe18d89fb0eef5575ed82d11ee0c7fa4d8be20ef2ae6aa4f936371934a.txt"
     },
     {
       "path": "Data/DSH/profiles/web/local/dsh-restart-button/lib/client.js",
@@ -98,8 +98,8 @@
     },
     {
       "path": "Data/DSH/profiles/web/node_modules/@michengai/dsh-automation/lib/client.js",
-      "sha256": "83c6727488fe9075f9fcc42a7ac882cf128ef240c2385f4acbba4f032696f508",
-      "snapshot": "customizations/ui/sources/83c6727488fe9075f9fcc42a7ac882cf128ef240c2385f4acbba4f032696f508.txt"
+      "sha256": "2fd9a405af13b722c1e14483cf2052194afbebc25dfebd0592887a70ff148e3d",
+      "snapshot": "customizations/ui/sources/2fd9a405af13b722c1e14483cf2052194afbebc25dfebd0592887a70ff148e3d.txt"
     },
     {
       "path": "Data/DSH/profiles/web/local/dsh-better-sidebar/src/client/SideCardSection.tsx",
@@ -113,23 +113,13 @@
     },
     {
       "path": "customizations/custom-spaces/lib/client.js",
-      "sha256": "45e0d73c93b07de5ed48aaed95c8e2ae6ab03db267e56cbb158635fc99929aae",
-      "snapshot": "customizations/ui/sources/45e0d73c93b07de5ed48aaed95c8e2ae6ab03db267e56cbb158635fc99929aae.txt"
+      "sha256": "fe0a0afbb6f0fad33942508830b0b38d0916c26d37dc7358058b01f9af293228",
+      "snapshot": "customizations/ui/sources/fe0a0afbb6f0fad33942508830b0b38d0916c26d37dc7358058b01f9af293228.txt"
     },
     {
-      "path": "Data/DSH-generations/v5-020rc1/home/profiles/web/local/dsh-better-sidebar/lib/client.js",
-      "sha256": "6e9194d7bb403f0a97553ac185724aad2c7b55d6181a90e0eea57d3b13737939",
-      "snapshot": "customizations/ui/sources/6e9194d7bb403f0a97553ac185724aad2c7b55d6181a90e0eea57d3b13737939.txt"
-    },
-    {
-      "path": "Data/DSH-generations/v5-020rc1/home/profiles/web/local/dsh-better-sidebar/src/client/SideChatView.tsx",
-      "sha256": "b456935ed5adacf9ec795b25fc09ae09f83842f2b06c10dca911c53585ce0550",
-      "snapshot": "customizations/ui/sources/b456935ed5adacf9ec795b25fc09ae09f83842f2b06c10dca911c53585ce0550.txt"
-    },
-    {
-      "path": "Data/DSH-generations/v5-020rc1/home/profiles/web/local/dsh-custom-spaces/lib/client.js",
-      "sha256": "45e0d73c93b07de5ed48aaed95c8e2ae6ab03db267e56cbb158635fc99929aae",
-      "snapshot": "customizations/ui/sources/45e0d73c93b07de5ed48aaed95c8e2ae6ab03db267e56cbb158635fc99929aae.txt"
+      "path": "Data/DSH/profiles/web/local/dsh-custom-spaces/lib/client.js",
+      "sha256": "fe0a0afbb6f0fad33942508830b0b38d0916c26d37dc7358058b01f9af293228",
+      "snapshot": "customizations/ui/sources/fe0a0afbb6f0fad33942508830b0b38d0916c26d37dc7358058b01f9af293228.txt"
     }
   ]
 }

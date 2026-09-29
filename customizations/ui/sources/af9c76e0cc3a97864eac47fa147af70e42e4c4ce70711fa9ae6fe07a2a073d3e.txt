@@ -1,0 +1,191 @@
+window.__ModuleLoader__.load({
+	id: "dsh-custom-spaces",
+	factory: (require) => {
+		const module = { exports: {} };
+		const react = require("react");
+		const h = react.createElement;
+		const { useCallback, useState, useSyncExternalStore } = react;
+
+		const NS = "custom-spaces";
+		const SETTINGS_NAMESPACE = "custom-spaces";
+		const MAX_SPACES = 5;
+
+		const zh = {
+			"label": "自定义空间",
+			"settings.nav": "自定义空间",
+			"settings.hint": "最多 5 个空间；每个空间填名称和地址（http/https），取消勾选可隐藏入口。保存后立即生效。",
+			"enabled": "显示",
+			"name": "名称",
+			"url": "地址",
+			"add": "添加空间",
+			"remove": "删除",
+			"empty": "还没有自定义空间，点「添加空间」创建第一个。",
+			"invalidUrl": "地址必须以 http:// 或 https:// 开头",
+			"saved": "已保存",
+			"openFailed": "打开空间失败",
+		};
+		const en = {
+			"label": "Spaces",
+			"settings.nav": "Custom Spaces",
+			"settings.hint": "Up to 5 spaces. Fill in a name and an http/https URL; uncheck to hide an entry. Changes apply immediately.",
+			"enabled": "Show",
+			"name": "Name",
+			"url": "URL",
+			"add": "Add space",
+			"remove": "Remove",
+			"empty": "No custom spaces yet — click \"Add space\" to create one.",
+			"invalidUrl": "URL must start with http:// or https://",
+			"saved": "Saved",
+			"openFailed": "Failed to open space",
+		};
+
+		function isHttpUrl(value) {
+			return /^https?:\/\//i.test(String(value || "").trim());
+		}
+
+		// better-sidebar 属可选依赖：未启用时回退系统浏览器，绝不阻塞加载。
+		let sidecard = null;
+		function captureSidecard(ctx) {
+			try {
+				ctx.inject(["betterSidebar"], (inner) => { sidecard = inner.betterSidebar; });
+			} catch (_) {}
+		}
+		function openSpace(space) {
+			const url = String(space.url || "").trim();
+			if (!isHttpUrl(url)) return false;
+			try {
+				if (sidecard && typeof sidecard.openTab === "function") {
+					sidecard.openTab({ type: "browser", url, title: space.name || url });
+					return true;
+				}
+			} catch (_) {}
+			try { window.open(url, "_blank"); return true; } catch (_) { return false; }
+		}
+
+		function ensureStylesheet() {
+			if (document.querySelector('style[data-plugin="dsh-custom-spaces"]')) return;
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "dsh-custom-spaces";
+			tag.textContent = [
+				".dcs-group{display:flex;flex-direction:column;gap:2px;width:100%;min-width:0;padding:6px 4px 2px;border-top:1px solid var(--dcu-sidebar-border,var(--dcu-border,transparent))}",
+				".dcs-title{padding:2px 10px 4px;font:600 11px/16px var(--dcu-font,inherit);letter-spacing:.4px;color:var(--dcu-sidebar-secondary,var(--dcu-text-secondary,inherit));text-transform:uppercase}",
+				".dcs-item{display:flex;align-items:center;gap:8px;width:100%;min-width:0;padding:7px 10px;border:0;border-radius:8px;background:transparent;color:var(--dcu-sidebar-primary,var(--dcu-text-primary,inherit));font:500 13px/18px var(--dcu-font,inherit);cursor:pointer;text-align:left}",
+				".dcs-item:hover{background:var(--dcu-sidebar-hover,var(--dcu-hover,rgba(128,128,128,.15)))}",
+				".dcs-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--dcu-sidebar-accent,var(--dcu-accent,#5b9dd9))}",
+				".dcs-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+				".dcs-empty{padding:2px 10px 6px;font:400 12px/17px var(--dcu-font,inherit);color:var(--dcu-sidebar-secondary,var(--dcu-text-secondary,inherit))}",
+				".dcs-form{display:flex;flex-direction:column;gap:12px;max-width:560px}",
+				".dcs-hint{font:400 12px/18px var(--dcu-font,inherit);color:var(--dcu-sidebar-secondary,var(--dcu-text-secondary,inherit))}",
+				".dcs-row{display:grid;grid-template-columns:auto 1fr 2fr auto;gap:8px;align-items:center}",
+				".dcs-row input[type=checkbox]{margin:0}",
+				".dcs-row input[type=text]{width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--dcu-sidebar-border,var(--dcu-border,#ccc));border-radius:6px;background:transparent;color:inherit;font:inherit}",
+				".dcs-row-head{font:600 12px/17px var(--dcu-font,inherit);color:var(--dcu-sidebar-secondary,var(--dcu-text-secondary,inherit))}",
+				".dcs-actions{display:flex;gap:8px;align-items:center}",
+				".dcs-btn{padding:6px 12px;border:1px solid var(--dcu-sidebar-border,var(--dcu-border,#ccc));border-radius:6px;background:transparent;color:inherit;font:inherit;cursor:pointer}",
+				".dcs-btn.primary{background:var(--dcu-sidebar-accent,var(--dcu-accent,#5b9dd9));border-color:transparent;color:#fff}",
+				".dcs-err{font:400 12px/17px var(--dcu-font,inherit);color:#e06c6c}",
+				".dcs-ok{font:400 12px/17px var(--dcu-font,inherit);color:#69b779}",
+			].join("\n");
+			document.head.appendChild(tag);
+		}
+
+		function useScopeSnapshot(scope) {
+			const subscribe = useCallback((listener) => scope.subscribe(listener), [scope]);
+			const getSnapshot = useCallback(() => scope.getSnapshot(), [scope]);
+			return useSyncExternalStore(subscribe, getSnapshot);
+		}
+
+		function readSpaces(snapshot) {
+			const spaces = Array.isArray(snapshot.value?.spaces) ? snapshot.value.spaces : [];
+			return spaces.filter((space) => space && String(space.url || "").trim());
+		}
+
+		/** 侧栏底部入口分组（sidebar.footer.action 槽）。 */
+		function SpacesEntry({ scope, t }) {
+			const snapshot = useScopeSnapshot(scope);
+			const spaces = readSpaces(snapshot).filter((space) => space.enabled !== false).slice(0, MAX_SPACES);
+			if (!spaces.length) {
+				return h("div", { className: "dcs-group" },
+					h("div", { className: "dcs-title" }, t("label")),
+					h("div", { className: "dcs-empty" }, t("empty")));
+			}
+			return h("div", { className: "dcs-group" },
+				h("div", { className: "dcs-title" }, t("label")),
+				spaces.map((space, index) => h("button", {
+					type: "button",
+					key: `${index}:${space.url}`,
+					className: "dcs-item",
+					title: space.url,
+					onClick: () => { if (!openSpace(space)) console.warn("[dsh-custom-spaces] " + "open failed:", space.url); },
+				}, h("span", { className: "dcs-dot", "aria-hidden": "true" }), h("span", { className: "dcs-name" }, space.name || space.url))));
+		}
+
+		/** 设置页（settings.section 槽）：5 个空间的可视化编辑。 */
+		function SpacesSettings({ scope, t }) {
+			const snapshot = useScopeSnapshot(scope);
+			const spaces = Array.isArray(snapshot.value?.spaces) ? snapshot.value.spaces : [];
+			const writable = snapshot.status === "ready" && snapshot.writable === true;
+			const [notice, setNotice] = useState(null);
+			function update(next) {
+				const current = scope.getSnapshot();
+				if (current.status !== "ready" || current.writable !== true) return;
+				setNotice(null);
+				void scope.set("spaces", next).then(() => setNotice({ kind: "ok", text: t("saved") })).catch((cause) => setNotice({ kind: "err", text: String(cause && cause.message || cause) }));
+			}
+			function patch(index, field, value) {
+				const next = spaces.map((space, i) => i === index ? { ...space, [field]: value } : space);
+				update(next);
+			}
+			function add() {
+				if (spaces.length >= MAX_SPACES) return;
+				update([...spaces, { name: "", url: "", enabled: true }]);
+			}
+			function remove(index) {
+				update(spaces.filter((_, i) => i !== index));
+			}
+			const badUrl = spaces.some((space) => String(space.url || "").trim() && !isHttpUrl(space.url));
+			return h("div", { className: "dcs-form" },
+				h("div", { className: "dcs-hint" }, t("settings.hint")),
+				spaces.map((space, index) => h("div", { key: index },
+					h("div", { className: "dcs-row-head" }, `#${index + 1}`),
+					h("div", { className: "dcs-row" },
+						h("label", { title: t("enabled") },
+							h("input", { type: "checkbox", disabled: !writable, checked: space.enabled !== false, onChange: (event) => patch(index, "enabled", event.target.checked) })),
+						h("input", { type: "text", disabled: !writable, value: space.name || "", placeholder: t("name"), onChange: (event) => patch(index, "name", event.target.value) }),
+						h("input", { type: "text", disabled: !writable, value: space.url || "", placeholder: t("url"), onChange: (event) => patch(index, "url", event.target.value) }),
+						h("button", { type: "button", disabled: !writable, className: "dcs-btn", onClick: () => remove(index) }, t("remove"))))),
+				spaces.length < MAX_SPACES ? h("div", { className: "dcs-actions" },
+					h("button", { type: "button", disabled: !writable, className: "dcs-btn primary", onClick: add }, t("add"))) : null,
+				badUrl ? h("div", { className: "dcs-err" }, t("invalidUrl")) : null,
+				notice ? h("div", { className: notice.kind === "ok" ? "dcs-ok" : "dcs-err" }, notice.text) : null);
+		}
+
+		const inject = ["locale", "settingsScope", "slots"];
+		function apply(ctx) {
+			ctx.effect(() => ctx.locale.register(NS, { zh, en }), "dsh-custom-spaces: dictionaries");
+			const t = ctx.locale.bind(NS);
+			const scope = ctx.settingsScope.bind({ namespace: SETTINGS_NAMESPACE });
+			ensureStylesheet();
+			captureSidecard(ctx);
+			ctx.slots.inject("sidebar.footer.action", () => ctx.slots.register({
+				name: "sidebar.footer.action",
+				id: "custom-spaces-entry",
+				order: 40,
+				locale: NS,
+				inject: () => ({ scope, t })
+			}, SpacesEntry));
+			ctx.slots.inject("settings.section", () => ctx.slots.register({
+				name: "settings.section",
+				id: "custom-spaces",
+				order: 19,
+				label: () => t("settings.nav"),
+				locale: NS,
+				inject: () => ({ scope, t })
+			}, SpacesSettings));
+		}
+
+		module.exports.apply = apply;
+		module.exports.inject = inject;
+		return module.exports;
+	}
+});
