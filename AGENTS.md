@@ -31,7 +31,7 @@
 ## 官方兼容性双基线
 
 - **实现基线**：以便携版实际内置的 `@deepseek-ai/dsh` 版本、导出和类型声明为准；不得因为官方最新文档出现新 API 就直接在旧运行时中调用。
-- **审查基线**：每个功能开始前运行 `App/resources/node/node.exe scripts/verify-dsh-official-baseline.mjs --online`，核对 `deepseek-ai/deepseek-harness` 官方 HEAD。官方变化时，必须先人工审阅官方 `AGENTS.md`、架构、测试规范和受影响子系统，禁止自动接受后继续开发。
+- **审查基线**：每个功能开始前运行 `Tools/node/node.exe scripts/gate-node-run.mjs scripts/verify-dsh-official-baseline.mjs --online`，核对 `deepseek-ai/deepseek-harness` 官方 HEAD。官方变化时，必须先人工审阅官方 `AGENTS.md`、架构、测试规范和受影响子系统，禁止自动接受后继续开发。
 - 机器可读版本记录和适用规则见 `docs/03-技术架构/DeepSeek-Harness-官方兼容基线.json` 与同名 `.md`。无法联网核对时只能继续诊断，不得宣称“符合官方最新要求”。
 - **上游同步与便携保护基线（2026-09-19）**：吸收桌面上游（MichengAI/dsh-codex-desktop）前必读 [上游同步与便携保护基线.md](docs/03-技术架构/上游同步与便携保护基线.md)——保护文件三档清单、四类差异处理、固定 10 步升级流程与发布门禁；混合文件（`src/main.ts`、`src/plugin-seed.ts`、`src/bundled-plugins.ts`、`package.json`、`cordis.patch.yml`、`assets/**`）**禁止整文件取上游**，必须逐 hunk 人工核对。
 
@@ -68,7 +68,7 @@
 
 **UI / 侧边栏修改与升级必读**：[UI 定制维护契约](docs/03-技术架构/UI定制维护契约.md)。这是用户要求的长期维护入口。每一轮落盘修改都要追加原因、改法、文件/构建路径和本轮验收证据，失败尝试也要记，禁止只在最终答复留一句结论。最新用户决定覆盖旧图；不得恢复已取消的顶部工作区条边框、旧浏览器入口或删掉右侧卡片。
 
-改动前、更新后及交付前运行 `App/resources/node/node.exe scripts/ui-baseline.mjs`。漂移必须调查，合法修改完成实际 UI 验证和记录后才可用 `--record --note ... --evidence ...` 追加新基线，再过全测。禁止直接改哈希/删测试放行。受保护源码快照与历史在 `customizations/ui/`，Data/artifacts 不入库的问题不能再被忽略。该检查是开发/构建门禁，不替代第三方更新后的真实点击和缩放验证。
+改动前、更新后及交付前运行 `Tools/node/node.exe scripts/gate-node-run.mjs scripts/ui-baseline.mjs`（门禁 Node 的版本要求见下节「强制验证」的更正说明）。漂移必须调查，合法修改完成实际 UI 验证和记录后才可用 `--record --note ... --evidence ...` 追加新基线，再过全测。禁止直接改哈希/删测试放行。受保护源码快照与历史在 `customizations/ui/`，Data/artifacts 不入库的问题不能再被忽略。该检查是开发/构建门禁，不替代第三方更新后的真实点击和缩放验证。
 
 所有新增、修改、下线的用户功能，包括仅修改前端、样式或插件客户端的变更，必须执行 [变更与答复质量门禁第 6 节](docs/01-当前工作/便携版3-变更与答复质量门禁.md#6-前后端与-ui-三项对齐强制门禁)。该节是三项对齐规则的唯一事实源，进入功能开发前必须阅读。
 
@@ -88,15 +88,31 @@
 
 ## ✅ 强制验证：改动完成之后
 
+> **2026-09-27 最新升级补充**：版本以当前清单为准；构建工具改用 `Tools/node-v<engines.node>` 与 `Tools/pnpm-v<packageManager版本>`，不覆盖其他会话仍使用的旧工具。下方历史 `Tools/node/node.exe` 命令须加 `scripts/gate-node-run.mjs` 再接目标脚本，或使用清单 SHA256 验证过的版本目录 Node。pnpm 12 的 Node 入口是 `bin/pnpm.mjs`，禁止继续把旧 App 的 `pnpm.cjs` 当成最新工具，也不能把原生 pnpm.exe 交给 Node 解释。现役槽版本与候选源码版本必须分开记录。
+
 1. **类型与测试门禁**（必须全绿才算完成）：
 
    ```sh
-   ./App/resources/node/node.exe node_modules/typescript/bin/tsc
-   ./App/resources/node/node.exe scripts/run-tests.mjs        # 全量测试：每次跑在独立临时目录，跑完自动清理
+   # 门禁解释器一律经 scripts/gate-node-run.mjs 转发 —— 它会 re-exec 到清单哈希命中的那个 Node
+   ./Tools/node/node.exe scripts/gate-node-run.mjs node_modules/typescript/bin/tsc
+   ./Tools/node/node.exe scripts/gate-node-run.mjs scripts/run-tests.mjs   # 全量测试：每次跑在独立临时目录，跑完自动清理
    ```
 
-   注意：使用 `App/resources/node/node.exe`（版本以 `package.json` 的 `bundledNodeVersion` 为准），禁止用系统 Node（版本门禁）。
+   注意：门禁 Node **版本必须等于 `package.json` 的 `config.bundledNodeSha256[平台-架构]`**，禁止用系统 Node（版本门禁）。
+
+   > **⚠ 2026-09-26 更正（登记册 R-170）**：此前本文写的是 `App/resources/node/node.exe`，但工作区那个目录是**一棵 `1.0.43` 旧构建树的快照**——其 `resources/app.asar` 自述 `bundledNodeVersion=v24.20.0`，与自身 node 的旁置 `.sha256` 完全自洽，**却与当前清单/`Tools/node`/`runtime-node`/部署槽（全部 v24.21.0）不一致**。
+   > 后果是**静默的**：门禁在 v24.20.0 上通过，而产品实际跑 v24.21.0 ⇒ 绿灯不覆盖真实发行运行时；且 `scripts/prepare-runtime.ts:167` 的版本守卫在该 Node 上必然抛错。
+   > 需要 pnpm 的命令仍取 `App/resources/node/pnpm-package/bin/pnpm.cjs`（`Tools/node*` 不含 pnpm）。
+   > **脚本内的门禁 Node 请用 `scripts/lib/gate-node.mjs` 导出的 `GATE_NODE`**，它会自动挑选哈希命中清单的那个并告警说明；已接入 `gates.mjs` / `run-tests.mjs` / `lint-ui-discipline.mjs` / `watch-ui.mjs`。
+   > 旁置 `.sha256` 由同一个二进制生成 ⇒ **只能发现损坏，发现不了错版**；`src/runtime.ts` 已增加"应用自身清单"的交叉校验来补这个盲区。
+
+   > **🔴 2026-09-29 二次更正：上一条「改用 `Tools/node/node.exe`」已再次过期**。清单换代到 `v26.10.0` 后实测：`Tools/node/node.exe` 停在 **v24.21.0、哈希 `BA4E6D11…` 不再命中清单**（当时命中的是 `Tools/node-v26.10.0/node.exe` 与现役槽 `resources/node/node.exe`，哈希 `CEA6AC36…A9BC4` = `bundledNodeSha256['win32-x64']`）。
+   > **这正是 R-170 换了版本号重演一遍**：按本文字面裸跑 `tsc` 又变成在错版运行时上取绿灯。**因此本节所有命令一律加 `scripts/gate-node-run.mjs` 转发**（`README.md:149-152` 已是这个写法），或直接用 `Tools/node-v<清单 bundledNodeVersion>/node.exe`。
+   > **不确定当前该用哪个就跑这一句**：`node -e "import('./scripts/lib/gate-node.mjs').then(m=>console.log(m.GATE_NODE))"`。
+   > `GATE_NODE` 候选顺序：`Tools/node-v<版本>` → `Tools/node` → `App/resources/node` → `process.execPath`，取**第一个哈希命中清单**的；全不命中即抛错拒跑，不降级为未校验门禁。`run-tests.mjs` 自身也用它 spawn 测试子进程，所以经运行器跑的测试结果始终有效。
+
    **不要直接裸跑 `node --test dist/test/*.test.js`**：多数测试用 `tmpdir()` 建目录且不自行清理，实证每轮残留约 270 个目录（曾累积到 `Data\Temp` 1.58 GB）。运行器把子进程 `TEMP/TMP/TMPDIR` 收口到本次运行目录、全绿即删、失败时保留路径；需要保留现场排查时先设 `DSH_TEST_KEEP_TMP=1`。单独跑某个文件同样走运行器：`scripts/run-tests.mjs dist/test/foo.test.js`。
+   运行器已加**跨进程互斥**（`Data/Temp` 同级的 `dsh-test-runs/run-tests.lock`）：两个会话同时跑测试会串行等待而不是互相踩临时目录（此前会造成 `EPERM`/`EEXIST` 伪失败）。等待窗口用 `DSH_TEST_LOCK_WAIT_MS` 调，`DSH_TEST_NO_LOCK=1` 可跳过。
 
 2. **重新打包 + A/B 候选部署**（`src/` 改动需要）：
 
@@ -128,6 +144,9 @@
   - ② **真正的耗时是本盘删小文件极慢**。实测同一份 20 个小文件：**G: 盘 1008ms（50.4ms/个）、C: 盘 7ms（0.3ms/个）—— 慢 168 倍**；读 / stat / 列目录全都正常（200 次 stat 仅 14ms），所以**不是盘坏了，是删除被逐文件拦截**。`runtime-plugins` 有 **44116 个文件**（`store` 19224 / `staging` 20799 / `offline-verification` 4093）⇒ 单轮同步清理 **≈37 分钟**，全程 CPU≈0、无任何输出，与"进程卡死"外观完全一致。**它慢，但活着**，别杀进程。
   - ✅ **已根治（2026-09-13，`scripts/prepare-runtime.ts`）**：`removePreparedPath` 现在**先尝试同卷 `rename` 进回收区**（`Data/Temp/prepare-recycle/`，O(1)），再由**脱离本进程树的后台清理器**（`spawn(detached).unref()`，配 `.sweeping` 心跳防止重复启动）真实删除。构建的删除阶段从 37 分钟降到**秒级**。语义不变 —— 函数返回时目标一定不存在；回退路径完整保留：**跨卷 / 被占用 / 显式设 `DSH_PREPARE_NO_RECYCLE=1`** 时仍走原来的 `rm(maxRetries)` + `rmdir /s /q` 兜底。
   - **回收区自清理**：一次构建会依次回收 `runtime-node` / `runtime-plugins` / `runtime-dsh/.store` / `store/v11/projects` 等，后台清理器**循环清空回收区**（连续 3 轮扫空后自动退出），无需人工干预；`Data/Temp/` 本身在 `.gitignore` 内，也不进 `app.asar` / `extraResources`。
+  - **🔴 2026-09-29 清理器卡死根因（两次复现"心跳在跳、两小时零删除"）——两层叠加，均已修复/定位**：
+    ① **双实例竞态**：构建的 `pnpm run pack` 与 `prepare-runtime` 并行启动，两进程同时发现无心跳 → 各 spawn 一个清理器 → 双实例对同一桶**并发 rmSync 互踩**（EBUSY/ENOENT 竞态）→ rm 子进程静默退出（`stdio:'ignore'` 且无 exit 监听）→ sweeper 干等 pending 的 2 小时超时。修复（`RECYCLE_CLEANER` 三处）：启动时**心跳抢占让位**（后到实例自杀）；rm 子进程**非零退出立即重置 pending**；同桶**连续失败 3 次改名 `.failed`** 移出队列。
+    ② **本机第三方安全软件对 PE 文件持句柄锁**（Windows Defender 服务不可查询 0x800106ba ⇒ 有第三方杀软接管）：`node.exe` 等可执行文件 unlink 报 **EPERM**（改名成功但改名后删仍 EPERM=锁跟文件走；杀光所有进程仍 EPERM=非进程占用）。这也重新解释了上面"G 盘 50.4ms/个"的历史实测——**是杀软对 PE/扫描热文件的选择性慢，普通文件实测 ~688 个/秒（1.5ms/个）**，18.8 万文件 5 分钟删完（`Data/Temp/purge-recycle.mjs` 两阶段：删能删的 + EPERM 清单落 `recycle-cleanup-report.json`）。**根治需在杀软面板给 `Data\Temp\` 加信任/排除**（待用户操作）；代码侧 `.failed` 隔离已防锁文件阻塞清理。
   - **判"慢但活着"的三条独立证据**（只在强制关掉回收后才会用到）：`(Get-Process -Id <pid>).CPU` 两次相减 > 0；`Win32_Process` 的 `OtherOperationCount` 每 45 秒涨几十万而字节量 <1MB（元数据密集 = 在推进）；递归文件数**下降 = 正在删（正常）**。
   - **进度指标陷阱**：`runtime-plugins\store\v11\files` 下是 **2 字符前缀目录**，数顶层条目恒等于 256 就"饱和"，必须**递归**数文件。
   - **中断过的构建仍会让产物残缺**：`prepare-runtime` 按 `[runtime-node, runtime-plugins, runtime-dsh, runtime-dsh.tgz]` 先清后建；被中断的构建**只清不建** ⇒ `runtime-node\`、两个 `.tgz` 全缺，只能全量重跑 —— 回收区里的副本是临时的，别指望拿它复用产物。
@@ -145,6 +164,7 @@
 - **官方运行时绝不原地安装**：桥接的 `desktopRuntimeDir` 就是**正在运行的活动槽**。原地 `writeOfficialRuntimeManifest` + pnpm 安装会留下「`package.json` 新版本 + `node_modules` 旧版本」的坏槽（Windows 下正在使用的文件还替换不了，必然半途失败），用户看到「更新成功但版本没变」。正确路径：桥接发 `request-harness-update`（`isRequestHarnessUpdateIpc` 判定，兼容字符串与 `{type}`）→ 外壳 `startHarnessUpdateTask(true)` → A/B 更新器。插件「关于」页读 npm `next` 标签，与外壳发现通道 `[policy.channel, next, latest]` **必须一起改**，否则提示与可切换目标天生不一致
 - **官方 pending 条目是幽灵，绝不能回写**：codex-ui 在安装前写 `profile/.dsh-pending-updates.json`、失败不回滚，而 profile 安装路径明确拒绝官方包——回写会让一次失败点击变成永远无法应用的待更新项，并在之后每次插件更新里被合并带回。`applyPendingProfileUpdates` 只消费社区条目，官方条目一律清掉
 - **影子验证不覆盖社区插件，运行时升级必须带失败退避**：`src/harness-shadow.ts` 造的是一次性 profile（只装 `OFFICIAL_PROFILE_BUNDLES`、`cordis.patch.yml` 为空），因此候选可以「影子验证通过 → 真实 profile 切换崩溃 → 自动回滚」（历史实例 `0.1.5-alpha.1`：`cannot get property webServer without inject`）。启动自修复只挡得住「无法解析的 bundle」，挡不住 `apply()` 里同步抛错的服务依赖插件。`state.json` 的 `deploymentFailures` + `evaluateDeploymentRetryGate` 按版本退避（默认 2 次 / 24 小时，手动检查永远放行）就是为此存在——**不要为了让自动升级更积极而绕过它**；同时新增部署失败点时（`deployHarnessCandidate` 抛错、切换回滚）必须记一次，切换提交成功必须清除该版本记录
+- **便携启动预检必须与官方 bundle 解析同语义（2026-09-28「实验性插件开关拨不动」事故）**：官方 `dsh-plugin-manager` 的 `selectBundle(name, enabled)` **只写 `dsh.profile.bundles`、从不写 `dependencies`**，并用 `bundleManifest(name, profileDir, installAnchor)` 在「**运行时安装锚点 + profile**」两处解析包；而便携侧 `src/profile-bundle-health.ts` 的 `inspectProfileBundle` 曾只看 `<profile>/node_modules/<pkg>` —— 于是只装在运行时安装目录里的官方 bundle（`@deepseek-ai/dsh-experimental-*` 三个实验性开关）被误判「插件 package.json 不存在」→ 启动预检隔离并把包从 bundles 摘除 → 用户看到「拨开开关就重启、重启回来还是关的」（重启是官方 `selectBundle` 的运行时重载语义，属预期；被回滚才是 bug）。**规矩**：便携侧任何「bundle 能不能加载」的判定，都必须用 `[profileDir, ...extraDirs]`（`extraDirs = desktopRuntimeDir`）与官方 `resolveBundleDir` 对齐，参照 `isResolvableProfileBundle`；新增判定点时同步串 `extraDirs`，并加「只在运行时安装目录里」的正向用例 + 「两处都没有」的对照用例。修复记录：`docs/01-当前工作/20260928-实验性插件开关重启后未生效修复.md`
 - **指纹槽的清单损坏没有启动检查能发现，靠 `reconcileOfficialRuntimeManifest` 自愈**：`isOfficialRuntimeLaunchable` 只看入口与 peer 是否存在，`.dsh-runtime-fingerprint` 只覆盖 lock 与家族清单（**根 `package.json` 被有意排除**），而指纹槽在 `seedOfficialRuntime` 里直接早返回——三者叠加的结果是「清单 `0.1.5-rc.2` + `node_modules` `0.1.2-rc.1`」的坏槽永远不会被修，错误版本号一路传到「关于」页与更新器。自愈只在**家族版本单一可读**时把已存在的根清单与 `resolutionMode` 拉回实际版本（不动 lock、不动物化依赖，指纹语义不变）；家族混用时保持原样交给 A/B 门禁；**绝不在指纹槽里凭空造文件**（会打破「槽是不可变制品」约束与其回归测试）
 - **测试禁止读取实机 `Data/` 产物，CI 是全新检出**：`test/` 里凡直接 `readFile`/`import` 实机 profile 插件产物（`Data/DSH/profiles/web/local/*`、`profiles/web/node_modules/*`）、运行时槽或仓库外工作空间文件（如 `工作空间/`）的用例，本机全绿但 CI 直接 ENOENT 整组失败（2026-09-11 首次跑 CI 连挂两轮的根因）。必须 `existsSync` 守卫 + `t.skip('实机产物缺失（CI 全新检出）')`，模块级读取/导入一律改惰性；改完用干净克隆（`git clone . 别处` + `pnpm install --frozen-lockfile` + tsc + node --test）复验 0 fail 才算过
 - **🔴 客户端 bundle 里禁止任何重启/退出动作（2026-09-21 无限重启事故）**：把 `dshDesktopShell.action('app-restart')` 写进 `Data/DSH/profiles/web/local/*/lib/client.js` 后，**该 bundle 每次页面加载都会执行** ⇒ 重启后页面又加载 ⇒ 又重启 ⇒ **自激无限重启**（用户端表现为窗口反复重启、工具调用全部 `outcome unknown`、GUI 端口每次都在变）。**铁律**：客户端 bundle 里禁止出现 `app-restart` / `app-quit` / `dshDesktopShell.action('app-restart'|'app-quit')` —— 这类动作必须由**用户显式操作**触发，走受控通道（既有范例 `local/dsh-restart-button`：仅本机 webServer 可达 + 共享密钥 + 必须显式 POST）。护栏用例：`test/no-self-scheduled-restart.test.ts`（对事故原文能命中、对安全写法不误报）。**排查提示**：出现"无限重启"时先看进程存活时长（正常应持续增长）与最近改动过的客户端 bundle；**第一动作是让那个 bundle 加载不到或去掉触发行**，不要在同一种改法上反复重试。
@@ -157,6 +177,14 @@
 - **基础版本完全跟随上游**：认祖到哪个上游版本，便携版号就是它（现为 1.0.65）；禁止再自建 1.0.5x/1.0.6x 独立计数线
 - 同基座的便携重建/修复用 **`+build.N` 构建元数据后缀**：`1.0.65+build.1`、`1.0.65+build.2`…（认祖新上游时归零重计）。**不要用第 4 段数字**（`1.0.65.1`）——比较器认识它，打包链路不认识：2026-09-19 实测 electron-builder 把 `1.0.65.1` 写成 exe 元数据 `FileVersion=1.0.6-5.1` / `ProductVersion=1.0.6.0`，`validatePackagedApp` 据实拒收（`候选程序版本 1.0.6 与目标 1.0.65.1 不一致`）⇒ 构建白跑一轮、暂存中止。`+build.N` 被 `compareReleaseVersions` 有意忽略（`1.0.65+build.1` ≡ `1.0.65`，不会有假更新提示），且已由 `1.0.64+build.2` 槽实测走通完整发布链路
 - 历史自建线 1.0.54–1.0.66 已退役：已部署实例继续运行，基础版本超过其号后自然恢复更新
+
+## 🔗 内核/插件解耦方针（用户架构决定，2026-09-29）
+
+用户方针：**内核（DSH 官方运行时）与插件各自独立更新，两者之间只允许桥梁式连接，禁止"你中有我、我中有你"**。依据 2026-09-29 的 0.2.0-rc.1 升级实证（成功切换后被插件生态阻挡回滚，见功能清单 45b）：
+
+- **新插件一律走协议桥形态**（第一层，已验证免疫内核升级）：零 `@deepseek-ai/*` import、零 peerDependencies、只经 HTTP/WS/会话注入协议与宿主通信——实证：agent-bridge/agent-mcp/hj-workbench/p3-tiny-watch/restart-button 在 0.2 切换瞬间全部存活，而 13 个 peer 钉版插件全被 boot 校验拒载（`dsh-app-boot` 的 `evaluatePluginCompatibility`：peer 不满足且未豁免即 throw 跳过）。
+- **深度 UI 集成插件（better-sidebar/codex-ui 类）属结构性耦合**，与内核版本同走是产品形态决定的；升级内核时经 `<profileDir>/compatibility.json` **精确豁免**（官方 `dsh plugin allow-version` 通道，语义为自担风险放行）+ **7b 打开方式体检把关**——豁免是桥、体检是闸，缺一不可（0.2 实测：抽样核心 API 符号在 0.2 全部存活，peer 钉版是官方生态保守声明而非必然硬断裂，但 678 文件变更含行为级漂移，必须实测兜底）。
+- 内核升级流程中豁免清单的生成/失效核对应随 7b 一起执行；禁止用改 peer 宽区间代替豁免（npm 包会被升级冲掉，豁免是 profile 数据可长期维护）。
 
 ## 🌐 社区插件生态实证（MichengAI 8 仓库，2026-09-07 源码核对）
 
@@ -189,5 +217,6 @@
 | `docs/03-技术架构/00-桌面启动器架构基线.md` | 桌面启动器架构 |
 | `docs/03-技术架构/DeepSeek-Harness-企业级自动更新方案.md` | 更新机制设计 |
 | `docs/01-当前工作/便携版3-变更与答复质量门禁.md` | 变更质量门禁 |
+| `docs/05-系统认知/11-问题修复测试与关联变更规则.md` | 修复前查阅：根因证据、关联变更判定、回归范围、并发保护与交付记录 |
 | `docs/00-交接入口/07-功能清单.md` | 功能登记与三项对齐证据索引 |
 | `便携版3-使用说明.md` | 用户视角使用说明 |
