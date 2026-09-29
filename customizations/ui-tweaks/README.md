@@ -1,5 +1,11 @@
 # customizations/ui-tweaks —— 界面微调插件（本地可变路径的入库归档）
 
+## 2026-09-27 活动代际与模型右上角
+
+当前可维护源为本目录 `lib/client.js`，活动部署为 `Data/DSH-generations/v4-rc2b/home/profiles/web/local/dsh-ui-tweaks/lib/client.js`；以下旧 `Data/DSH` 双写说明仅作历史，本轮不向冻结家园同步。修改前备份并核对部署文件哈希，客户端令牌可在无草稿时热刷新。
+
+新版 rc.2 中计价/模型共享 `standardControls`。搬运该父容器后抽出模型，会短暂得到零宽度计价“空壳”，触发失败回退缓存，直到 resize 才恢复。现在仅搬 `[data-testid="billing-live-cost-chip"]`（旧版退至 input.right 内部节点），查找限定当前 composer；模型图标固定排在计价右侧，拒绝缓存识别计价异步就绪。防循环和原交互保留。真实旧新对照、两次重载、六会话、欢迎页、最大化/全屏/窄窗、缩放、右卡片和物理点击证据在 `evidence/composer-corner-20260927/`，详情见 [实施记录](../../docs/01-当前工作/20260927-模型计价入口统一右上角.md)。项目全量仍有独立失败，未代记 UI 基线。
+
 > 为什么这里有一份：插件实体在 `Data/DSH/profiles/web/local/dsh-ui-tweaks/`，
 > 而 **`Data/` 被 `.gitignore` 忽略**（第 21 行）。也就是说实体**没有版本历史**。
 > 这份归档是它的**入库副本**，用于追溯、比对和灾难恢复；改东西请改实体，再同步到这里。
@@ -252,3 +258,46 @@ body button[aria-label*="后台任务"]>span,body button[aria-label*="background
 故未取到它的定点实拍；已用「同结构复刻进真实容器 + 真实级联 A/B + 真实元素坐标」代替。
 另：本目录归档副本落后实体（791 行 vs 957 行；实体独有 176 行含本轮修法与采样仪器，归档独有 10 行含
 `:where` 中缝规则）——本轮**只增量补证据与本节**，未整体覆盖归档，避免替其它在途改动背书。
+
+---
+
+## 2026-09-29 · 对照 `emilkowalski/apple-design` 的三条低风险修正
+
+**起因**：用户问「apple-design 模块这是什么」→ 核实为 Emil Kowalski（Vercel / Linear，animations.dev）
+整理的 17 条 Apple 设计原则（主要出自 WWDC 2018 *Designing Fluid Interfaces*、WWDC 2020 *The Details of
+UI Typography*），经 `ui-skills.com` 注册表（`ibelick/ui-skills`）分发。**排除两个同名误认**：空仓库
+`HenryDu8133/dsh-apple-design-theme`、无关的 npm `apple-design`（Vue3 组件库）。
+
+**可用性三档**：手势/拖拽 6 条**结构上不可用**（本层铁律：只加 class 触发 CSS，不改布局、不拦事件、
+不动 React 状态）；~1.5 条部分可用（需改 JS 语义或布局）；**3 条低风险可用**。用户回「你看着来」后，
+按「纯 CSS → CSS+状态 → 动 JS 语义」的风险顺序实施。
+
+| 原则 | 改法 | 位置 |
+|---|---|---|
+| 15 字排 | 分组标题去 `text-transform:uppercase`、字距 `.04em→.01em`、上留白 10→12px | `.dsh-sg-title` |
+| 1 即时反馈 | 镜像项补 `:active`：`scale(.985)` + `transition:transform 100ms ease-out` | `.dsh-sg-item:active` |
+| 14 减弱动效 | **语义变更**：`data-dsh-motion` 三态，降档而非删除 | `installIosMotion()` + `reduced` 档 CSS |
+
+**最易踩的一条（第 14 条）**：原来系统开「减少动态」时 `syncFlag` 会 `delete dataset.dshMotion`，
+整层彻底零反馈、切换像卡住。改为 `dataset.dshMotion = 'reduced'`（降档），总闸语义变成三态：
+
+- `"ios"` —— 全量动效
+- `"reduced"` —— 系统开了「减少动态」⇒ 只剩 `dsh-ios-fade-in` 180ms 纯 opacity 交叉淡化
+- 属性被删（控制台手删）—— 整层静止
+
+且 `reduced` 档**必须重复**计费面板与页签的 `animation:none!important` 接管：原选择器只认 `ios` 档，
+否则面板自带的位移入场会在降档里漏出来。`test/ui-tweaks-motion-guard.test.ts` 已有**反向断言**
+禁止 `delete …dataset.dshMotion` 回来。
+
+**真实实例自验（CDP 读 computed style，非 OCR）**：标题 `text-transform:none` /
+`letter-spacing:0.11px`（=.01em×11px）/ `padding-top:12px`；按住不放分点采样
++4ms `:active` 命中 → +122ms `matrix(0.985,0,0,0.985,0,0)`、宽 254→250.19px → 松手复原；
+`Emulation.setEmulatedMedia prefers-reduced-motion:reduce` 后总闸 `"ios"→"reduced"`、同一元素
+animation 由 `dsh-ios-view-in 0.42s cubic-bezier(.32,.72,0,1)` 变 `dsh-ios-fade-in 0.18s ease-out`；
+降档中打开使用统计面板 `animation:none / 0s`（无双弹回归）；CDP 断开后总闸自动回 `"ios"`
+（`change` 监听双向可用）。门禁 `tsc` 0；全量 781/755/0 fail/26 skip；`ui-baseline` PASS；
+motion-guard 标记 16→20 项；四副本同步并重新上 `attrib +R`，SHA256 一致 `A488EF44…ABEA1C`。
+
+**取证教训两条**：① 镜像盒有 800ms 轮询重排，**采样前先 `elementFromPoint` 命中测试**，别复用上一轮
+记下的坐标（本轮因坐标从 y=70 漂到 y=160 误判 `:active` 失效）；② CDP `Emulation.setEmulatedMedia`
+随连接断开自动复原，「设媒体 + 触发交互 + 读结果」必须放进**同一次**连接。

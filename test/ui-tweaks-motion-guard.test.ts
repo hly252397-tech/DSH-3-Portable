@@ -22,6 +22,12 @@ const DEPLOYED = [
 const REQUIRED_MARKERS: Array<[string, string]> = [
   ['总闸 dataset', "dataset.dshMotion = 'ios'"],
   ['退出开关 prefers-reduced-motion', 'prefers-reduced-motion'],
+  // 2026-09-29 apple-design 第 14 条：减弱动效从「整层静止」改为「降档交叉淡化」，
+  // 语义变了所以两条都要钉——降档档位值、降档关键帧、以及 reduced 档下的计费面板接管。
+  ['减弱动效降档档位（非删除属性）', "dataset.dshMotion = 'reduced'"],
+  ['减弱动效降档关键帧', 'dsh-ios-fade-in'],
+  ['降档档位选择器', 'html[data-dsh-motion="reduced"] .dsh-ios-view'],
+  ['降档下计费面板接管', 'html[data-dsh-motion="reduced"] .dsh-billing-modal{animation:none'],
   ['全局冷却（防双弹）', 'lastAnimAt < 450'],
   ['点击布防触发', 'NAV_CLICK_SEL'],
   ['视图入场动画类', 'dsh-ios-view-in'],
@@ -43,6 +49,14 @@ test('iOS 动效层机制标记完整（源码未被回退/肢解）', () => {
   for (const [name, marker] of REQUIRED_MARKERS) {
     assert.ok(source.includes(marker), `动效层标记缺失：${name}（搜索 "${marker}"）——若为有意下线，须先更新本测试并留 docs 记录`)
   }
+})
+
+test('减弱动效走降档而非删除总闸（防止退回「整层静止」）', () => {
+  const source = readFileSync(SOURCE, 'utf8')
+  assert.ok(
+    !/delete\s+document\.documentElement\.dataset\.dshMotion/.test(source),
+    'syncFlag 又改回 delete dataset.dshMotion 了——那会让系统「减少动态」时整层零反馈、切换像卡住。降档请写 dataset.dshMotion = \'reduced\'',
+  )
 })
 
 test('部署副本与源码字节一致（存在时；CI 全新检出按仓库规则跳过）', (t) => {

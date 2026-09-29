@@ -320,7 +320,8 @@ window.__ModuleLoader__.load({
       '.tw-rail-tip.on{opacity:1}',
       'body[data-color-scheme="dark"] .tw-rail-tip{background:#1f1f22;color:#f4f4f5;border-color:rgba(255,255,255,.12)}',
       // ===== iOS 风格动效层（2026-09-29 用户要求「iOS 27 的效果」）=====
-      // 可撤销：html 无 data-dsh-motion="ios" 或系统「减少动态」时整层退出（JS 侧同步控制）。
+      // 可撤销：html 上无 data-dsh-motion 属性时整层退出（JS 侧同步控制）。属性两档：
+      //   "ios"     = 全量动效；"reduced" = 系统开了「减少动态」时的降档（只剩交叉淡化）。
       // 曲线 0.32,0.72,0,1 = Apple sheet 标准减速曲线；spring 带 15% 过冲。
       ':root{--dsh-ease-ios:cubic-bezier(.32,.72,0,1);--dsh-ease-ios-spring:cubic-bezier(.22,1.15,.36,1);--dsh-t-view:.42s;--dsh-t-el:.26s;--dsh-t-hover:.16s}',
       'html[data-dsh-motion="ios"] .dsh-ios-view{animation:dsh-ios-view-in var(--dsh-t-view) var(--dsh-ease-ios) both}',
@@ -330,6 +331,14 @@ window.__ModuleLoader__.load({
       'html[data-dsh-motion="ios"] .dcu-root .dcu-nav button,html[data-dsh-motion="ios"] .dcu-root [role="treeitem"],html[data-dsh-motion="ios"] .dcu-settings-nav button{transition:background-color var(--dsh-t-hover) var(--dsh-ease-ios),color var(--dsh-t-hover) var(--dsh-ease-ios),border-color var(--dsh-t-hover) var(--dsh-ease-ios)}',
       'html[data-dsh-motion="ios"] .dcu-root [role="treeitem"][aria-selected="true"]{animation:dsh-ios-select var(--dsh-t-el) var(--dsh-ease-ios-spring)}',
       '@keyframes dsh-ios-select{from{transform:scale(.975)}to{transform:none}}',
+      // —— 减弱动效「降档」而非「静默」（2026-09-29 对照 emilkowalski/apple-design 第 14 条改）——
+      // 原行为：系统开「减少动态」时整层 data-dsh-motion 被删掉 ⇒ 所有元素彻底无反馈，切换像卡住。
+      // 第 14 条与 WCAG 的口径一致：reduced ≠ 没有反馈，而是换成不引发前庭反应的等价物——
+      // 位移/缩放/弹性全去掉，只留一记 180ms 的纯 opacity 交叉淡化（纯合成层、最廉价的动画）。
+      // 这档 CSS 复用同一批 dsh-ios-view / dsh-ios-pop 类名，只换关键帧，故不新增任何类名/选择器耦合。
+      'html[data-dsh-motion="reduced"] .dsh-ios-view{animation:dsh-ios-fade-in .18s ease-out both}',
+      'html[data-dsh-motion="reduced"] .dsh-ios-pop{animation:dsh-ios-fade-in .14s ease-out both}',
+      '@keyframes dsh-ios-fade-in{from{opacity:0}to{opacity:1}}',
       // —— 计费用量面板接管 v2（2026-09-29 用户复测「还是一样的」后修正）——
       // v1 压错了地方：VWh0dG_dashboardIn 是**关键帧名**不是类名，真正的 animation 载体是
       // 面板本体 .VWh0dG_dashboardModal（== 稳定手写类 .dsh-billing-modal，插件 JSX 实证
@@ -339,6 +348,9 @@ window.__ModuleLoader__.load({
       // 哈希类，插件升级后该条可能失配（面板本体接管仍有效，页签入场或回归，重取类名即可）。
       'html[data-dsh-motion="ios"] .dsh-billing-modal{animation:none!important}',
       'html[data-dsh-motion="ios"] [data-testid^="billing-tab-panel-"],html[data-dsh-motion="ios"] .VWh0dG_tabPanel{animation:none!important}',
+      // 降档下同样要接管：否则面板/页签自带的位移入场会在 reduced 档里漏出来（上一组选择器只认 ios 档）。
+      'html[data-dsh-motion="reduced"] .dsh-billing-modal{animation:none!important}',
+      'html[data-dsh-motion="reduced"] [data-testid^="billing-tab-panel-"],html[data-dsh-motion="reduced"] .VWh0dG_tabPanel{animation:none!important}',
       // ===== 设置导航分组镜像（2026-09-29 用户要求「给这个分个类，然后排布」）=====
       // 原导航 15+ 项全塞在「集成」一个筐里。做法：原 nav 打 dsh-grouped 标记后隐藏官方的
       // 分组容器（返回应用/搜索框保留），紧随其后渲染分组镜像——按钮 innerHTML 克隆自原件
@@ -348,13 +360,21 @@ window.__ModuleLoader__.load({
       '.dcu-settings-nav.dsh-grouped>.dcu-settings-groups{display:none!important}',
       '.dcu-settings-nav.dsh-grouped>.dcu-settings-group{display:none!important}',
       '.dsh-settings-groups{display:flex;flex-direction:column;gap:2px;padding:2px 0 12px}',
+      // 分组标题：2026-09-29 对照 emilkowalski/apple-design 第 15 条（WWDC 2020 字排）修正——
+      // 原写法 text-transform:uppercase + letter-spacing:.04em 是典型网页风，Apple 侧栏分组标题
+      // 靠「更小 + 更低对比 + 靠留白分层」，不是靠字距撑层级；且 .04em 加在 11px 中文上会显松散。
+      // 改为去 uppercase、字距收到 .01em（仅够中文小字不糊），层级交给颜色与上下留白。
       '.dsh-settings-groups .dsh-sg-title{font-size:11px;font-weight:600;color:var(--dcu-sidebar-tertiary,#71717a);',
-      'text-transform:uppercase;letter-spacing:.04em;padding:10px 10px 4px}',
+      'letter-spacing:.01em;padding:12px 10px 4px}',
       '.dsh-settings-groups .dsh-sg-item{display:flex;align-items:center;gap:8px;width:100%;text-align:left;',
       'border:0;background:transparent;color:var(--dcu-sidebar-primary,#18181b);font-size:13px;',
-      'padding:6px 10px;border-radius:8px;cursor:pointer}',
+      'padding:6px 10px;border-radius:8px;cursor:pointer;transition:background-color .16s cubic-bezier(.32,.72,0,1)}',
       '.dsh-settings-groups .dsh-sg-item:hover{background:var(--dcu-sidebar-hover,#f4f4f5)}',
       '.dsh-settings-groups .dsh-sg-item.dsh-on{background:var(--dcu-sidebar-hover,#f4f4f5);font-weight:600}',
+      // 第 1 条（Response）：反馈必须落在 pointer-down 那一瞬、且 100ms 内收敛；等到 click
+      // 才给反馈在体感上就是「按下去没反应」。只加在自绘镜像上——官方导航自带 animation，
+      // 叠 transform 反而会和 dsh-ios-select 抢合成优先级。
+      '.dsh-settings-groups .dsh-sg-item:active{background:var(--dcu-sidebar-hover,#f4f4f5);transform:scale(.985);transition:transform 100ms ease-out}',
       '.dsh-settings-groups .dsh-sg-item[hidden],.dsh-settings-groups .dsh-sg-group[hidden]{display:none}'
     ].join('');
 
@@ -922,14 +942,18 @@ window.__ModuleLoader__.load({
 
     // 原则：只加 class 触发 CSS，不改布局、不拦事件、不动 React 状态；
     // 观察器只看「顶层子节点替换」级别的结构变化并去抖，流式消息更新在深层子树不会误触发。
-    // 退出：系统「减少动态」或手动删 html 的 data-dsh-motion 即整层静止（CSS 侧同 key 把关）。
+    // 档位：data-dsh-motion="ios" 全量动效；="reduced" 降档（系统开了「减少动态」⇒ 只剩
+    // 180ms 纯 opacity 交叉淡化，位移/缩放/弹性全去，见 apple-design 第 14 条与 WCAG）；
+    // 属性被整个删掉（手动控制台删属性）才＝整层静止。三个状态 CSS 侧同 key 把关。
     function installIosMotion() {
       if (window.__dshTweaksIosMotion === true) return;
       window.__dshTweaksIosMotion = true;
       // 测试沙箱可能没有 matchMedia：缺失时按「未开启减少动态」处理，不抛错
       const reduced = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
       const syncFlag = () => {
-        if (reduced && reduced.matches) delete document.documentElement.dataset.dshMotion;
+        // 降档而不是删属性：删掉会让整层无任何反馈（切换像卡住），降档仍保留
+        // 一记不引发前庭反应的 180ms 交叉淡化。属性只在控制台被手删时才真的消失。
+        if (reduced && reduced.matches) document.documentElement.dataset.dshMotion = 'reduced';
         else document.documentElement.dataset.dshMotion = 'ios';
       };
       syncFlag();
