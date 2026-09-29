@@ -1102,3 +1102,39 @@ shell 的 `#browser` 永不显示（元素保留满足 byId 契约）。连带�
 ② 按下反馈（原则 1）——自绘镜像项补 `:active` 的 `scale(.985)` + `transition:transform 100ms ease-out`。**只加在自绘镜像上**，官方导航自带 animation，叠 transform 会和 `dsh-ios-select` 抢合成优先级。
 ③ 减弱动效（原则 14，**语义变更，最容易踩**）——`data-dsh-motion` 现在是**三态**：`"ios"` 全量 / `"reduced"` 系统开了「减少动态」时的降档（只剩 180ms 纯 opacity 交叉淡化，位移缩放弹性全去）/ 属性被删 = 整层静止。**`syncFlag` 绝不能再用 `delete …dataset.dshMotion`**——那会让整层零反馈、切换像卡住。`reduced` 档必须**同时**包含计费面板与页签的 `animation:none!important` 接管（选择器只写 `ios` 档时，面板自带的位移入场会在降档里漏出来）。motion-guard 已加**反向断言**钉死这条。
 **取证提醒**：镜像盒有 800ms 轮询重排，**采样前必须先 `elementFromPoint` 命中测试**，别用上一轮记下的坐标——本轮就因坐标过期（y=70 → y=160）误判 `:active` 失效。CDP 的 `Emulation.setEmulatedMedia` 会在连接断开时自动复原，所以「设媒体 + 触发交互 + 读结果」必须放在**同一次** CDP 连接里。见 [本轮记录](../01-当前工作/20260929-iOS风格动效层.md)。
+
+## 2026-09-29 补记：设置导航 19 枚图标去重 + 颜色统一（ui-tweaks 第六轮）
+
+用户看设置页导航后指出「图标有一样的而且颜色深浅还不一样」。**根因两条，都在官方侧，本层只能绕不能改**：
+① 官方 `sectionIcon(id)`（`@michengai/dsh-codex-ui`）是十几条正则分支 + 一个 `Box` 兜底，
+`/plugin/` 同时命中「内置插件」「插件配置」，`/connector|mcp/` 同时命中「连接器」「外部智能体接入」，
+`/expert|agency/` 与「Agent 预设」共用 `User`，没被命中的（自定义空间 / DSH 手册 / Codex UI / 宠物 …）
+全掉进同一个 `Box`；② better-sidebar 自己那行用 `::before` + `currentColor` 画图标，其余行用克隆来的
+官方内联 `<svg>`，颜色各随各的 CSS 走。
+
+**改法（纯 CSS，仍在本层铁律内）**：`.dsh-sg-item > svg{display:none}` 隐掉克隆来的官方图标，
+每项按 `data-dsh-nav-key` 配一枚 CSS `mask` 图标（lucide-react，ISC，路径数据由
+`Data/Temp/gen-nav-icons.cjs` 从磁盘上的包提取生成，**不手抄**），统一
+`background:currentColor; opacity:.62`，`padding-left:30px` 让位。激活态只靠底色和字重区分。
+
+**三条改动须知（下次维护必读）**：
+
+1. **`data-dsh-nav-key` 是 `navKey(textContent)` 的结果，`navKey` 会 `replace(/\s+/g,'')` 去掉全部空白。**
+   选择器写 `Agent 预设`（带空格）就**一条都匹配不上**——第一次真实 DOM 验证直接抓到
+   `noIcon: ["Agent预设","DSH手册","CodexUI","IM助理"]`、`distinctIcons: 16`。
+   `test/ui-tweaks-settings-nav-groups.test.ts` 的 `navMembers()` 已改成按 navKey 形态比对，钉死这类错。
+2. **选择器前缀必须带 `.dsh-settings-groups`**，与既有 `.dsh-sg-item` 规则同特异性；只写
+   `.dsh-sg-item` 会被「后层按选择器胜出」把 `padding`/`color` 压回去。
+3. **生成的 data URI 里单引号要编码成 `%27`**，否则包不进单引号 JS 字符串（本层 CSS 是字符串数组）。
+
+**取证教训第三条**：设置页会**自动关闭**，且镜像盒 800ms 重排会让 y 坐标漂移。「读几何」和「截图」
+分两次 CDP 连接做，坐标就废了——第一次跑出「归档会话 ink=0」，实际是拿旧坐标裁新画面。
+**几何与像素必须同帧取**（同一 `seq` 里 `Runtime.evaluate` 紧跟 `Page.captureScreenshot`），
+末项先 `scrollIntoView` 让它进视口。另：`/json` 与 `/json/list` 都要取，DSH 的 WebContentsView
+目标有时只在 `/json` 出现；9444 曾有僵尸监听（OwningProcess 已不存在），改用 9445。
+
+**验收**：19 项 19 个互不相同的像素签名、无空白项，19 项 `rgb(24,24,27)@0.62` 色深一致，
+真实点击「插件市场」→ `activeMirrors:["插件市场"]` / `data-settings-section:"market"`。
+`tsc` 0；本文件测试 11/11；全量 784/758/0 fail/26 skip；`ui-baseline` PASS；四副本同步并上锁，
+SHA256 一致 `23D97308…17E3508`。证据 `customizations/ui-tweaks/evidence/settings-nav-icons-20260929/`。
+详见 [本轮记录](../01-当前工作/20260929-iOS风格动效层.md)。

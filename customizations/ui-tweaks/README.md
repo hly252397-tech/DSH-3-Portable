@@ -301,3 +301,48 @@ motion-guard 标记 16→20 项；四副本同步并重新上 `attrib +R`，SHA2
 **取证教训两条**：① 镜像盒有 800ms 轮询重排，**采样前先 `elementFromPoint` 命中测试**，别复用上一轮
 记下的坐标（本轮因坐标从 y=70 漂到 y=160 误判 `:active` 失效）；② CDP `Emulation.setEmulatedMedia`
 随连接断开自动复原，「设媒体 + 触发交互 + 读结果」必须放进**同一次**连接。
+
+## 2026-09-29 设置导航 19 枚图标去重 + 颜色统一
+
+**起因**：用户看设置页导航后指出「图标有一样的而且颜色深浅还不一样」。19 项入口，两处根因：
+
+1. **图标撞车**——官方 `sectionIcon(id)`（`@michengai/dsh-codex-ui`）是十几条正则分支加一个 `Box` 兜底。
+   `/plugin/` 同时命中「内置插件」和「插件配置」，`/connector|mcp/` 同时命中「连接器」和「外部智能体接入」，
+   `/expert|agency/` 与「Agent 预设」共用 `User`；没被任何正则命中的（自定义空间 / DSH 手册 / Codex UI /
+   宠物 …）全部掉进同一个 `Box`。
+2. **颜色深浅不一**——better-sidebar 自己那行用 `::before` + `currentColor` 画图标，其余行用的是克隆来的
+   官方内联 `<svg>`，颜色各随各的 CSS 走，同一列里肉眼可见深浅不齐。
+
+**改法（纯 CSS，仍在本层铁律内）**：`.dsh-sg-item > svg { display:none }` 隐掉克隆来的官方图标，
+每项按 `data-dsh-nav-key` 配一枚 CSS `mask` 图标（lucide-react，ISC），统一
+`background: currentColor; opacity: .62`；`padding-left: 30px` 给图标让位。激活态只靠底色和字重区分，
+图标不跟着变深。19 枚分配：常规=齿轮 / 模型=CPU / 桌面设置=显示器 / 插件市场=store / 内置插件=拼图 /
+插件配置=推子 / 技能=星芒 / 连接器=链环 / 专家=圆头人 / Agent 预设=机器人 / DSH 手册=翻开的书 /
+自定义空间=左侧面板 / 侧边卡片=右侧面板 / Codex UI=模板 / 宠物=爪印 / 定时任务=时钟 / IM 助理=对话气泡 /
+外部智能体接入=插头 / 归档会话=归档盒。路径数据由 `Data/Temp/gen-nav-icons.cjs` 从磁盘上的
+lucide-react 提取生成，不手抄。
+
+**实测里最贵的一个坑**：`data-dsh-nav-key` 是 `navKey(textContent)` 的结果，而 `navKey` 会
+`replace(/\s+/g,'')` **去掉全部空白**——选择器写 `Agent 预设`（带空格）就一条都匹配不上，界面上是空格。
+第一次真实 DOM 验证直接抓到 `noIcon: ["Agent预设","DSH手册","CodexUI","IM助理"]`、`distinctIcons: 16`。
+修法两条：生成器里补 `navKey()`；`test/ui-tweaks-settings-nav-groups.test.ts` 的 `navMembers()`
+改成按 navKey 形态比对，让这类错以后被测试拦住。另两条坑：选择器前缀必须带
+`.dsh-settings-groups`（与既有 `.dsh-sg-item` 规则同特异性，否则 `padding`/`color` 被
+「后层按选择器胜出」压回去）；生成的 data URI 里单引号要编码成 `%27`，否则包不进单引号 JS 字符串。
+
+**真实实例自验（像素级，非 OCR）**：CDP 同一次连接里读 19 项 `getBoundingClientRect` + `::before`
+computed style + `Page.captureScreenshot` 整视口，再按同帧坐标取每枚 16×16 区域二值化：
+
+- 19 项，19 个**互不相同**的像素签名，无空白项
+- 19 项 `background: currentColor` 全部 `rgb(24, 24, 27) @ 0.62`，最深像素 109–113，肉眼同一深浅
+- 真实鼠标点击「插件市场」→ `activeMirrors: ["插件市场"]`、`data-settings-section: "market"`（没点坏导航）
+
+门禁 `tsc` 0；本文件测试 11/11；全量 784/758/0 fail/26 skip；`ui-baseline` PASS；四副本同步并重新上锁，
+SHA256 一致 `23D97308…17E3508`。证据：`evidence/settings-nav-icons-20260929/`
+（`rects.json` 同帧几何、`icon-pixels.json` 19 组签名与色深、`live-1360x856.png` 整视口截图）。
+
+**取证教训第三条（本轮新踩）**：设置页会**自动关闭**，且镜像盒 800ms 重排会让 y 坐标漂移。
+「读几何」和「截图」分两次 CDP 连接做，坐标就废了——第一次跑出「归档会话 ink=0」，
+实际是拿旧坐标去裁新画面。**几何与像素必须同帧取**（同一个 `seq` 里 `Runtime.evaluate` 紧跟
+`Page.captureScreenshot`），且末项要先 `scrollIntoView` 让它进视口。
+另：`/json` 与 `/json/list` 都要取，DSH 的 WebContentsView 目标有时只在 `/json` 出现。

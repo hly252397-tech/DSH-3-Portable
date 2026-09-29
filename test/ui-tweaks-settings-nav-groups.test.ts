@@ -58,3 +58,60 @@ test('分组表覆盖六大类，未识别项有兜底组', () => {
     assert.ok(SOURCE.includes(`'${title}'`), `分组表缺少「${title}」`)
   }
 })
+
+/**
+ * 导航图标：19 项各一枚、互不相同（2026-09-29 用户实证「图标有一样的而且颜色深浅还不一样」）。
+ *
+ * 官方 sectionIcon() 是「若干条 id 正则 + 一个 Box 兜底」，入口一多必然撞车：
+ * /plugin/ 同时命中「内置插件」和「插件配置」，/connector|mcp/ 同时命中「连接器」和
+ * 「外部智能体接入」，没被命中的全部掉进 Box 兜底。颜色不一是另一个成因——better-sidebar
+ * 那一行用 ::before + currentColor 自绘，其余行是克隆来的官方内联 <svg>，颜色各随各的 CSS。
+ *
+ * 本文件钉住三件事：分组表每一项都有图标规则、图标两两不同、颜色统一走 currentColor。
+ */
+function navMembers(): string[] {
+  const start = SOURCE.indexOf('const SETTINGS_NAV_GROUPS = [')
+  assert.ok(start >= 0, '未找到 SETTINGS_NAV_GROUPS')
+  const end = SOURCE.indexOf('];', start)
+  assert.ok(end > start, 'SETTINGS_NAV_GROUPS 未正常闭合')
+  const literal = SOURCE.slice(SOURCE.indexOf('[', start), end + 1)
+  // eslint-disable-next-line no-new-func
+  const groups = new Function(`return ${literal}`)() as [string, string[]][]
+  // 必须按 navKey 形态（去空白）比对：镜像按钮上的 data-dsh-nav-key 就是 navKey() 的结果。
+  // 2026-09-29 实测踩过——图标选择器用带空格的原名，「Agent 预设」这类入口一条都没匹配上，
+  // 界面上就是四个空格；当时这条断言还没写，所以没拦住。
+  return groups.flatMap(([, members]) => members).map((m) => m.replace(/\s+/g, ''))
+}
+
+function iconRules(): Map<string, string> {
+  const map = new Map<string, string>()
+  const re = /\.dsh-settings-groups \.dsh-sg-item\[data-dsh-nav-key="([^"]+)"\]::before\{mask:url\("([^"]+)"\)/g
+  for (const m of SOURCE.matchAll(re)) map.set(m[1]!, m[2]!)
+  return map
+}
+
+test('分组表每一项都有专属图标规则', () => {
+  const rules = iconRules()
+  const missing = navMembers().filter((name) => !rules.has(name))
+  assert.deepEqual(missing, [], `这些入口没有图标规则，会退回官方内联 <svg>（即回到撞车状态）：${missing.join('、')}`)
+})
+
+test('导航图标两两不同（用户实证「图标有一样的」）', () => {
+  const rules = iconRules()
+  const byUri = new Map<string, string[]>()
+  for (const [name, uri] of rules) {
+    byUri.set(uri, [...(byUri.get(uri) ?? []), name])
+  }
+  const collisions = [...byUri.entries()].filter(([, names]) => names.length > 1)
+  assert.deepEqual(collisions.map(([uri, names]) => `${names.join('=')}(${uri.slice(0, 48)}…)`), [],
+    '以下入口共用同一枚图标，视觉上分不出来')
+})
+
+test('图标颜色统一走 currentColor + 固定不透明度', () => {
+  const base = SOURCE.match(/\.dsh-settings-groups \.dsh-sg-item::before\{[^}]*\}/)
+  assert.ok(base, '未找到图标 ::before 基础规则')
+  assert.match(base[0]!, /background:currentColor/, '图标必须走 currentColor（跟随文字色），不得各写各的颜色')
+  assert.match(base[0]!, /opacity:\.\d+/, '图标必须固定不透明度，否则同一列里深浅不一')
+  assert.match(SOURCE, /\.dsh-settings-groups \.dsh-sg-item>svg\{display:none\}/,
+    '克隆来的官方 <svg> 必须隐掉，否则两枚图标叠在一起')
+})
