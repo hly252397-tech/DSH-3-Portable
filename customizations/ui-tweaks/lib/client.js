@@ -338,7 +338,24 @@ window.__ModuleLoader__.load({
       // 失效边界：.dsh-billing-modal 是手写稳定类（升级不变）；.VWh0dG_tabPanel 仍是构建
       // 哈希类，插件升级后该条可能失配（面板本体接管仍有效，页签入场或回归，重取类名即可）。
       'html[data-dsh-motion="ios"] .dsh-billing-modal{animation:none!important}',
-      'html[data-dsh-motion="ios"] [data-testid^="billing-tab-panel-"],html[data-dsh-motion="ios"] .VWh0dG_tabPanel{animation:none!important}'
+      'html[data-dsh-motion="ios"] [data-testid^="billing-tab-panel-"],html[data-dsh-motion="ios"] .VWh0dG_tabPanel{animation:none!important}',
+      // ===== 设置导航分组镜像（2026-09-29 用户要求「给这个分个类，然后排布」）=====
+      // 原导航 15+ 项全塞在「集成」一个筐里。做法：原 nav 打 dsh-grouped 标记后隐藏官方的
+      // 分组容器（返回应用/搜索框保留），紧随其后渲染分组镜像——按钮 innerHTML 克隆自原件
+      // （图标免费带过来），点击转发给原按钮。不移动 React 节点，可随时撤标记还原。
+      // 实测结构（0.2.0-rc.1 + codex-ui）：nav > button.dcu-settings-back + label.dcu-settings-search
+      //   + div.dcu-settings-groups > section.dcu-settings-group > h2 + button.dcu-settings-link
+      '.dcu-settings-nav.dsh-grouped>.dcu-settings-groups{display:none!important}',
+      '.dcu-settings-nav.dsh-grouped>.dcu-settings-group{display:none!important}',
+      '.dsh-settings-groups{display:flex;flex-direction:column;gap:2px;padding:2px 0 12px}',
+      '.dsh-settings-groups .dsh-sg-title{font-size:11px;font-weight:600;color:var(--dcu-sidebar-tertiary,#71717a);',
+      'text-transform:uppercase;letter-spacing:.04em;padding:10px 10px 4px}',
+      '.dsh-settings-groups .dsh-sg-item{display:flex;align-items:center;gap:8px;width:100%;text-align:left;',
+      'border:0;background:transparent;color:var(--dcu-sidebar-primary,#18181b);font-size:13px;',
+      'padding:6px 10px;border-radius:8px;cursor:pointer}',
+      '.dsh-settings-groups .dsh-sg-item:hover{background:var(--dcu-sidebar-hover,#f4f4f5)}',
+      '.dsh-settings-groups .dsh-sg-item.dsh-on{background:var(--dcu-sidebar-hover,#f4f4f5);font-weight:600}',
+      '.dsh-settings-groups .dsh-sg-item[hidden],.dsh-settings-groups .dsh-sg-group[hidden]{display:none}'
     ].join('');
 
     const LIFT = 'dsh-tweaks-lifted';
@@ -776,6 +793,7 @@ window.__ModuleLoader__.load({
       installRailTooltips();
       hideConnectionIndicator();
       installIosMotion();
+      installSettingsNavGroups();
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', applyAll, { once: true });
       } else {
@@ -790,7 +808,118 @@ window.__ModuleLoader__.load({
       installWidthProbe();
     }
 
-    // ===== iOS 风格动效（2026-09-29 用户要求「iOS 27 的效果」）=====
+    // ===== 设置导航分组镜像（2026-09-29 用户要求「给这个分个类，然后排布」）=====
+    // 原导航节点一律不移动（React 安全）：只打标记类隐藏，镜像按钮点击转发给原按钮；
+    // 800ms 轮询同步激活态与搜索过滤可见性；未识别条目进「其他」组，绝不丢入口。
+    const SETTINGS_NAV_GROUPS = [
+      ['基础', ['常规', '模型', '桌面设置']],
+      ['插件与扩展', ['插件市场', '内置插件', '插件配置', '技能', '连接器']],
+      ['智能体', ['专家', 'Agent 预设', 'DSH 手册']],
+      ['界面定制', ['自定义空间', '侧边卡片', 'Codex UI', '宠物']],
+      ['自动化与消息', ['定时任务', 'IM 助理', '外部智能体接入']],
+      ['会话记录', ['归档会话']],
+    ];
+    const navKey = (s) => String(s || '').replace(/\s+/g, '');
+    function installSettingsNavGroups() {
+      if (window.__dshTweaksSettingsGroups === true) return;
+      window.__dshTweaksSettingsGroups = true;
+      const findNav = () => document.querySelector('.dcu-settings-nav, nav[aria-label="设置"]');
+      // 2026-09-29 实测纠错：设置项按钮不是 nav 的直接子节点，而是包在
+      // div.dcu-settings-groups > section.dcu-settings-group 里（官方只分「个人/集成」两组，
+      // 十几项全堆在「集成」）。取 descendant 并排除返回应用，才拿得到全部入口。
+      const sectionButtons = (nav) => [...nav.querySelectorAll('.dcu-settings-groups button, button.dcu-settings-link')]
+        .filter((b) => b.tagName === 'BUTTON' && navKey(b.textContent) !== '返回应用');
+      const findOriginalByKey = (nav, key) =>
+        sectionButtons(nav).find((b) => navKey(b.textContent) === key) || null;
+      const isActive = (b) => b.matches('[aria-current], [data-active], .active, [data-state="active"]');
+      const build = () => {
+        try {
+          const nav = findNav();
+          if (nav === null || nav.querySelector('#dsh-settings-groups') !== null) return;
+          const buttons = sectionButtons(nav);
+          if (buttons.length === 0) return;
+          nav.classList.add('dsh-grouped');
+          const back = [...nav.children].find((c) => c.tagName === 'BUTTON' && navKey(c.textContent) === '返回应用');
+          if (back) back.classList.add('dsh-nav-keep');
+          const box = document.createElement('div');
+          box.className = 'dsh-settings-groups';
+          box.id = 'dsh-settings-groups';
+          const used = new Set();
+          // 点击不闭包持有原节点：React 可能整块重建分组容器，旧引用会变成死按钮。
+          // 改为按 key 在点击瞬间回查当前 DOM 里的原件。
+          const addItem = (original, groupEl) => {
+            const item = document.createElement('button');
+            item.className = 'dsh-sg-item';
+            item.type = 'button';
+            item.dataset.dshNavKey = navKey(original.textContent);
+            item.innerHTML = original.innerHTML;
+            item.addEventListener('click', () => {
+              const live = findNav();
+              const target = live === null ? null : findOriginalByKey(live, item.dataset.dshNavKey);
+              if (target) target.click();
+              sync();
+            });
+            groupEl.appendChild(item);
+          };
+          for (const [title, members] of SETTINGS_NAV_GROUPS) {
+            const groupEl = document.createElement('div');
+            groupEl.className = 'dsh-sg-group';
+            const heading = document.createElement('div');
+            heading.className = 'dsh-sg-title';
+            heading.textContent = title;
+            groupEl.appendChild(heading);
+            for (const member of members) {
+              const hit = buttons.find((b) => navKey(b.textContent) === navKey(member));
+              if (hit) { addItem(hit, groupEl); used.add(hit) }
+            }
+            if (groupEl.children.length > 1) box.appendChild(groupEl);
+          }
+          const rest = buttons.filter((b) => !used.has(b));
+          if (rest.length > 0) {
+            const groupEl = document.createElement('div');
+            groupEl.className = 'dsh-sg-group';
+            const heading = document.createElement('div');
+            heading.className = 'dsh-sg-title';
+            heading.textContent = '其他';
+            groupEl.appendChild(heading);
+            for (const b of rest) addItem(b, groupEl);
+            box.appendChild(groupEl);
+          }
+          // 插在搜索框之后：input 外面还包着一层 label.dcu-settings-search，直接对 input
+          // 用 afterend 会把分组盒塞进 label 内部，必须先抬到 label 这一层。
+          const input = nav.querySelector('input, [role="searchbox"]');
+          const anchor = input === null ? null : (input.closest('label') || input.parentElement || input);
+          if (anchor !== null && anchor.parentElement === nav) anchor.insertAdjacentElement('afterend', box);
+          else nav.appendChild(box);
+        } catch { /* 沙箱防御：找不到结构就整段放弃，原导航原样显示 */ }
+      };
+      const sync = () => {
+        try {
+          const box = document.querySelector('#dsh-settings-groups');
+          if (box === null) { build(); return }
+          let anyVisible = false;
+          const nav = findNav();
+          // 可见性判据 = 原件是否还在 DOM 里。官方搜索过滤是「不渲染」（entries.length>0 才
+          // 建 section，见 codex-ui lib/client.js 设置导航渲染），所以查不到即被过滤掉。
+          // 绝不能用 offsetParent：原件容器正被我们的 CSS 隐藏，那会让全部项恒判不可见。
+          for (const item of box.querySelectorAll('.dsh-sg-item')) {
+            const original = nav === null ? null : findOriginalByKey(nav, navKey(item.textContent));
+            if (original === null) { item.hidden = true; continue }
+            item.hidden = false;
+            anyVisible = true;
+            item.classList.toggle('dsh-on', isActive(original));
+          }
+          // 组内一项都不剩时连标题一起收掉，否则搜索过滤会留下一串空标题
+          for (const group of box.querySelectorAll('.dsh-sg-group')) {
+            group.hidden = [...group.querySelectorAll('.dsh-sg-item')].every((i) => i.hidden);
+          }
+          box.hidden = !anyVisible;
+        } catch { /* 同步失败保持现状 */ }
+      };
+      build();
+      setInterval(() => { if (findNav() !== null) sync() }, 800);
+    }
+
     // 原则：只加 class 触发 CSS，不改布局、不拦事件、不动 React 状态；
     // 观察器只看「顶层子节点替换」级别的结构变化并去抖，流式消息更新在深层子树不会误触发。
     // 退出：系统「减少动态」或手动删 html 的 data-dsh-motion 即整层静止（CSS 侧同 key 把关）。

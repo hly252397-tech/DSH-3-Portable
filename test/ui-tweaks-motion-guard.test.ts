@@ -29,6 +29,13 @@ const REQUIRED_MARKERS: Array<[string, string]> = [
   ['计费面板接管（稳定类）', '.dsh-billing-modal{animation:none'],
   ['页签接管（稳定 testid）', '[data-testid^="billing-tab-panel-"]'],
   ['热重载令牌轮询', '/ui-tweaks/reload-token'],
+  // 设置导航分组镜像（2026-09-29 用户「给这个分个类，然后排布」）
+  ['设置导航分组表', 'SETTINGS_NAV_GROUPS'],
+  ['分组镜像安装入口', 'installSettingsNavGroups'],
+  ['分组镜像容器 id', "box.id = 'dsh-settings-groups'"],
+  ['原官方分组容器接管', '.dcu-settings-nav.dsh-grouped>.dcu-settings-groups{display:none!important}'],
+  ['搜索过滤同步（按 DOM 查原件，禁用 offsetParent）', 'findOriginalByKey'],
+  ['空组标题收起', "group.hidden = [...group.querySelectorAll('.dsh-sg-item')].every"],
 ]
 
 test('iOS 动效层机制标记完整（源码未被回退/肢解）', () => {
