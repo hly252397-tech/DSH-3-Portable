@@ -29,14 +29,14 @@ export function profileQuarantineJournalPath(profileDir: string): string {
   return join(profileDir, '.dsh-recovery', 'quarantined-bundles.json')
 }
 
-export async function activeQuarantinedProfileBundles(profileDir: string): Promise<ReadonlySet<string>> {
+export async function activeQuarantinedProfileBundles(profileDir: string, extraDirs: readonly string[] = []): Promise<ReadonlySet<string>> {
   const journal = await readJournal(profileDir)
   const active = new Set<string>()
   let changed = false
   const checkedAt = new Date().toISOString()
   for (const record of journal.records) {
     if (record.resolvedAt !== undefined) continue
-    const health = inspectProfileBundle(profileDir, record.packageName)
+    const health = inspectProfileBundle(profileDir, record.packageName, extraDirs)
     if (health.fingerprint === record.fingerprint || !health.loadable) {
       active.add(record.packageName)
       continue
@@ -53,9 +53,10 @@ export async function quarantineProfileBundle(
   packageName: string,
   reason: string,
   source: ProfileQuarantineSource,
-  options: { writeAtomic?: typeof writeTextFileAtomic } = {},
+  options: { writeAtomic?: typeof writeTextFileAtomic; extraDirs?: readonly string[] } = {},
 ): Promise<boolean> {
   const writeAtomic = options.writeAtomic ?? writeTextFileAtomic
+  const extraDirs = options.extraDirs ?? []
   const manifestPath = join(profileDir, 'package.json')
   if (!existsSync(manifestPath)) return false
   const original = await readFile(manifestPath, 'utf8')
@@ -86,7 +87,7 @@ export async function quarantineProfileBundle(
     reason: reason.slice(0, 2_000),
     source,
     createdAt: new Date().toISOString(),
-    fingerprint: inspectProfileBundle(profileDir, packageName).fingerprint,
+    fingerprint: inspectProfileBundle(profileDir, packageName, extraDirs).fingerprint,
     ...(manifest.dependencies?.[packageName] === undefined ? {} : { dependencySpec: manifest.dependencies[packageName] }),
     manifestBackup: join('manifest-backups', backupName).replaceAll('\\', '/'),
   }

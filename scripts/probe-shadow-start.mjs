@@ -2,6 +2,8 @@ import { spawn } from 'node:child_process'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { existsSync } from 'node:fs'
+import { GATE_NODE } from './lib/gate-node.mjs'
+import { resolveGatePnpm } from './lib/gate-pnpm.mjs'
 
 const mode = process.argv[2] ?? 'dump'
 const root = resolve(import.meta.dirname, '..')
@@ -22,9 +24,9 @@ await writeFile(join(profile, 'package.json'), `${JSON.stringify({
 await writeFile(join(profile, 'cordis.patch.yml'), '# probe canary\n[]\n', 'utf8')
 await writeFile(join(profile, 'pnpm-workspace.yaml'), 'packages:\n  - .\nautoInstallPeers: false\n', 'utf8')
 
-const nodeExecutable = join(root, 'App', 'resources', 'node', 'node.exe')
+const nodeExecutable = GATE_NODE
 const bootstrap = join(root, 'dist', 'src', 'dsh-bootstrap.mjs')
-const pnpmEntry = join(root, 'App', 'resources', 'node', 'pnpm-package', 'bin', 'pnpm.cjs')
+const pnpmEntry = resolveGatePnpm(root)
 const entry = join(candidate, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
 
 const args = mode === 'dump'

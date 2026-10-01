@@ -5,6 +5,7 @@ import { APPLY_PLUGIN_UPDATES_IPC, OFFICIAL_DSH_VERSION, REQUEST_HARNESS_UPDATE_
 import { desktopBridgeClientBundle } from './desktop-bridge-client-source.js'
 import { finalizeProfileBundlesAfterInstall } from './plugin-seed.js'
 import { terminateProcessTree } from './process-control.js'
+import { normalizePnpmNodeEntry, preparePnpmInvocation } from './plugin-toolchain.js'
 
 export const DESKTOP_BRIDGE_PACKAGE = 'dsh-desktop-bridge'
 
@@ -12,7 +13,7 @@ export interface DesktopPnpmHandle {
   readonly stdout: NodeJS.ReadableStream
   readonly stderr: NodeJS.ReadableStream
   readonly done: Promise<{ readonly exitCode: number | null; readonly signal: NodeJS.Signals | null }>
-  cancel(): void
+  cancel(): void | Promise<void>
 }
 
 export interface DesktopHostOptions {
@@ -192,9 +193,10 @@ export function runBundledPnpm(args: readonly string[], cwd: string, signal?: Ab
   const stderr = new PassThrough()
   const storeDir = process.env.DSH_PNPM_STORE_DIR
   const effectiveArgs = storeDir === undefined || args.some(arg => arg === '--store-dir' || arg.startsWith('--store-dir=')) ? args : [...args, `--store-dir=${storeDir}`]
-  const child: ChildProcess = spawn(process.execPath, [pnpmEntry, ...effectiveArgs], {
+  const invocation = preparePnpmInvocation(effectiveArgs)
+  const child: ChildProcess = spawn(process.execPath, [normalizePnpmNodeEntry(pnpmEntry), ...invocation.args], {
     cwd,
-    env: process.env,
+    env: invocation.env,
     windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
@@ -203,12 +205,10 @@ export function runBundledPnpm(args: readonly string[], cwd: string, signal?: Ab
   const done = new Promise<{ exitCode: number | null; signal: NodeJS.Signals | null }>((resolvePromise) => {
     let settled = false
     let timedOut = false
-    let killDeadline: ReturnType<typeof setTimeout> | undefined
     const finish = (exitCode: number | null, exitSignal: NodeJS.Signals | null): void => {
       if (settled) return
       settled = true
       clearTimeout(timeout)
-      clearTimeout(killDeadline)
       stdout.end()
       stderr.end()
       resolvePromise({ exitCode, signal: exitSignal })
@@ -216,19 +216,21 @@ export function runBundledPnpm(args: readonly string[], cwd: string, signal?: Ab
     const timeout = setTimeout(() => {
       timedOut = true
       stderr.write('pnpm 操作超时，已终止子进程。\n')
-      terminateProcessTree(child)
-      killDeadline = setTimeout(() => finish(124, null), 2_000)
+      void terminateProcessTree(child).then(
+        () => finish(124, null),
+        () => finish(124, null),
+      )
     }, timeoutMs)
     timeout.unref?.()
     child.once('error', () => finish(127, null))
     child.once('exit', (code, exitSignal) => timedOut ? finish(124, null) : finish(code, exitSignal))
-    signal?.addEventListener('abort', () => terminateProcessTree(child), { once: true })
+    signal?.addEventListener('abort', () => { void terminateProcessTree(child) }, { once: true })
   })
   return {
     stdout,
     stderr,
     done,
-    cancel: () => { terminateProcessTree(child) },
+    cancel: () => terminateProcessTree(child),
   }
 }
 
@@ -259,6 +261,8 @@ export const DESKTOP_BRIDGE_FILES = [
   'dsh-process.js',
   'plugin-seed.js',
   'plugin-toolchain.js',
+  // plugin-seed.js 在桥接闭包内，它自上游 v1.0.76 起导入 recovery-mode.js；漏掉会让桥接 ESM 导入失败。
+  'recovery-mode.js',
   'profile-bundle-health.js',
   'profile-quarantine.js',
   'profile-updates.js',

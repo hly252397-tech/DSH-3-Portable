@@ -1,59 +1,183 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { chmodSync, existsSync, readFileSync, statSync } from 'node:fs'
-import { cp, mkdir, readFile, readdir, realpath, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
-import { basename, dirname, join, relative, resolve, sep } from 'node:path'
+import { chmodSync, existsSync, lstatSync, readFileSync, realpathSync, statSync } from 'node:fs'
+import { cp, copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, stat, symlink, unlink, writeFile } from 'node:fs/promises'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { homedir, tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { parse as parseYaml } from 'yaml'
 
 import { ALLOWED_BUILD_PACKAGES, officialRuntimeDependencies, officialRuntimePnpmConfig, pnpmWorkspaceYaml, STORE_PACKAGES } from '../src/bundled-plugins.js'
+import { BUNDLED_LOCKFILE_NAME, applyPendingProfileUpdates, buildFrozenSeedInstallArgs, buildSeedPluginArgs, seedBundledPlugins } from '../src/plugin-seed.js'
 import { DEFAULT_DESKTOP_RELEASE_SOURCE, sanitizeReleaseSource } from '../src/portable-desktop-update.js'
-import { extractTarGz, packDirectoryToTarGz, writeDirectoryContentSha256, writeFileSha256, writePnpmStoreContentSha256 } from '../src/runtime-archive.js'
-import { pnpmStoreOptions } from '../src/plugin-toolchain.js'
-import { seedBundledPlugins } from '../src/plugin-seed.js'
+import { assertPnpmStorePackagesPreserved, cloneTreeForArchive, extractTarGz, materializeHardlinks, packDirectoryToTarGz, writeDirectoryContentSha256, writeFileSha256, writePnpmStoreContentSha256 } from '../src/runtime-archive.js'
+import { copyExtractedTree } from '../src/extract-runtime.js'
+import { pnpmStoreOptions, preparePnpmInvocation, resolvePnpmNodeEntry } from '../src/plugin-toolchain.js'
+import { acquireBuildCacheLock, buildCacheDirectory, checkBuildArtifactCache, commitBuildArtifactCache, runtimeAssemblyArtifacts, runtimeAssemblyInput } from '../src/build-cache.js'
 
 const projectRoot = resolve(import.meta.dirname, '..', '..')
 const nodeRoot = join(projectRoot, 'runtime-node')
 const pluginRoot = join(projectRoot, 'runtime-plugins')
 const officialRuntimeRoot = join(projectRoot, 'runtime-dsh')
-const bundledPnpmVersion = '11.26.0'
+const bundledPnpmVersion = (JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf8')) as { packageManager: string }).packageManager.split('@').at(-1)!
 
-/** 待清理目录的回收区（与目标同卷，位于便携数据区，不会被 electron-builder 打进包）。 */
-const recycleRoot = join(projectRoot, 'Data', 'Temp', 'prepare-recycle')
-const recycleHeartbeat = join(recycleRoot, '.sweeping')
+/** 待清理目录的回收区（与目标同卷，位于便携数据区，不会被 electron-builder 打进包）。
+ *
+ * 可用 `DSH_RECYCLE_ROOT` 覆盖：**测试必须**指向临时目录。
+ * 2026-09-30 实测事故：本文件原先硬编码回收区，`test/prepare-runtime.test.ts` 里那条
+ * 「回收路径必须走改名」用例调用真实 `removePreparedPath` 时，会在实机
+ * `Data\Temp\prepare-recycle\` 里留下真桶、并 spawn 一个**脱离进程树**的真清理器。
+ * 该清理器比测试进程活得久；一旦撞上被杀毒软件持句柄锁的 PE 文件，就进入
+ * 「心跳在跳、桶永远删不掉」的自旋（见 RECYCLE_CLEANER 的 P2 缺陷），
+ * 一直烧 G: 盘 I/O 直到人工介入 —— 测试污染了机器的真实状态。
+ * 覆盖后测试只在自己的 tmpdir 里回收，清理器随 tmpdir 消失而自行退出。
+ *
+ * 惰性求值（函数而非模块级 const）：测试是在**模块已被 import 之后**才设这个环境变量的，
+ * 若在模块加载时求值，测试设了也来不及生效。 */
+function recycleRoot(): string {
+  return process.env.DSH_RECYCLE_ROOT ?? join(projectRoot, 'Data', 'Temp', 'prepare-recycle')
+}
+function recycleHeartbeat(): string {
+  return join(recycleRoot(), '.sweeping')
+}
+
+function within(root: string, path: string): boolean {
+  const tail = relative(resolve(root), resolve(path))
+  return tail === '' || tail !== '..' && !tail.startsWith('..' + sep) && !isAbsolute(tail)
+}
+
+/** Only generated assembly outputs and named, isolated test directories may
+ * be removed. Check physical ancestry before any rename or recursive API. */
+function assertOwnedCleanupPath(target: string, recycle = false): string {
+  const path = resolve(target), temporary = resolve(tmpdir()), portableTemp = join(projectRoot, 'Data', 'Temp')
+  if ([projectRoot, homedir(), temporary, dirname(path)].some(root => relative(resolve(root), path) === '')) throw new Error('拒绝清理根目录、家园或临时根目录。')
+  for (const protectedPath of ['App', 'Data/DSH', 'Data/DSH-generations', 'Data/Home', 'Data/Runtime', 'Data/Updates']) {
+    if (within(join(projectRoot, protectedPath), path)) throw new Error('拒绝清理活动应用、数据家园或运行时槽。')
+  }
+  const generated = [nodeRoot, pluginRoot, officialRuntimeRoot, join(projectRoot, 'runtime-dsh.tgz')].some(root => within(root, path))
+  const firstTemporarySegment = relative(temporary, path).split(sep)[0] ?? ''
+  const temporaryRootIsBounded = within(portableTemp, temporary) || /^(?:_?temp|tmp|run-[a-z0-9]+)$/i.test(basename(temporary))
+  const isolated = temporaryRootIsBounded && within(temporary, path) && /^dsh[-_]/i.test(firstTemporarySegment)
+    && (!within(projectRoot, path) || within(portableTemp, path))
+  const recycleDirectory = recycle && relative(join(portableTemp, 'prepare-recycle'), path) === ''
+  if (recycle ? !isolated && !recycleDirectory : !generated && !isolated) throw new Error('拒绝清理非构建生成目录或隔离测试目录。')
+  const anchor = generated || recycleDirectory ? projectRoot : temporary
+  let existing = path
+  while (!existsSync(existing)) {
+    // lstat also catches a dangling link; existsSync alone would miss it.
+    try { if (lstatSync(existing).isSymbolicLink()) throw new Error('拒绝清理目录链接。') } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
+    const parent = dirname(existing)
+    if (parent === existing) throw new Error('无法确认清理路径边界。')
+    existing = parent
+  }
+  const info = lstatSync(existing)
+  if (info.isSymbolicLink() || !info.isDirectory() && !info.isFile()
+    || relative(resolve(realpathSync(anchor), relative(anchor, existing)), realpathSync(existing)) !== '') {
+    throw new Error('拒绝清理非普通路径或经过目录链接的外部路径。')
+  }
+  return path
+}
+
+export function assertPreparedRemovalTarget(target: string): string {
+  return assertOwnedCleanupPath(target)
+}
+
+/** Recheck the root itself, including every ancestor, after creation and again
+ * before asynchronous workers mutate it. A prior check does not bless a later
+ * junction replacement. Strict realpath equality intentionally rejects aliases. */
+export function assertRecycleRootPhysical(target: string): string {
+  const root = assertOwnedCleanupPath(target, true)
+  const info = lstatSync(root)
+  if (!info.isDirectory() || info.isSymbolicLink() || relative(root, realpathSync(root)) !== '') {
+    throw new Error('回收根或祖先已变为目录链接，停止清理。')
+  }
+  return root
+}
+
+const RECYCLE_ROOT_GUARD = "const assertRoot=()=>{const s=fs.lstatSync(root);if(!s.isDirectory()||s.isSymbolicLink()||path.relative(path.resolve(root),fs.realpathSync(root))!=='')throw Error('unsafe recycle root or ancestor')};"
+const RECYCLE_REMOVE_WORKER = [
+  "const fs=require('fs'),path=require('path');const root=path.resolve(process.argv[1]);",
+  RECYCLE_ROOT_GUARD,
+  "assertRoot();const name=process.argv[2];if(!name||name!==path.basename(name)||name==='.'||name==='..')throw Error('invalid recycle leaf');",
+  "const target=path.join(root,name),s=fs.lstatSync(target);if(s.isSymbolicLink()||(!s.isDirectory()&&!s.isFile())||path.relative(target,fs.realpathSync(target))!=='')throw Error('unsafe recycle target');",
+  'assertRoot();fs.rmSync(target,{recursive:true,force:true,maxRetries:10,retryDelay:200})',
+].join('')
 
 /** 后台清理器：始终只保留一个待删目标，删完再取下一个，每 5 秒刷新心跳，
  * 连续 3 轮扫空后自行退出（约 15 秒）。
- * —— 删除动作**必须交给独立的干净 node 子进程**：清理器本身是 `spawn` 出来的，会继承宿主的
- * `NODE_OPTIONS`（内含安全删除守卫 shim），直接 `fs.rmSync` 会撞守卫 `throw`，异常被吞后
- * 表现为「心跳在跳、桶永远删不掉」。子进程显式清空 `NODE_OPTIONS` / `CODEBUDDY_SAFE_DELETE_*`
- * 后，`fs.rmSync` 实测 **39.1ms/文件**可正常推进。
- * —— 也**不要用 cmd 的 `rmdir /s /q`**：2026-09-13 实测该写法在含 `-` 的普通路径上
- * **260ms 内直接失败、目录原样保留**（`removePreparedPath` 里那条兜底同理，别依赖它）。
- * 每轮只删一个并刷新心跳，避免「一次删 28 分钟、心跳超时被判定为已死」。 */
+ * 清理器和删除子进程完整继承宿主环境；删除保护拒绝时保持保护并隔离失败桶，
+ * 不切换 shell、不清空守卫环境，也不通过外部命令继续删除。
+ * 每轮只删一个并刷新心跳，避免「一次删 28 分钟、心跳超时被判定为已死」。
+ * —— 2026-09-29 卡死修复（两次复现：心跳在跳、两小时零删除）：构建的 pack 与
+ * prepare-runtime 并行启动时会**竞态各 spawn 一个清理器**，双实例对同一桶并发 rmSync
+ * 互踩（EBUSY/ENOENT 竞态）后子进程静默退出（stdio ignore、无 exit 监听），sweeper
+ * 只能干等 pending 的 2 小时超时。三处修复：①启动时心跳抢占让位（后到实例自杀）；
+ * ②rm 子进程退出立即换目标（不再等 2 小时）；③同一桶连续失败 3 次改名为
+ * `<桶>.failed` 移出队列（人工可查、不再阻塞后续桶）。
+ * —— 2026-09-30 **②与③自相矛盾、③从未生效**（P2 真正的根因）：上一版把 ② 写成
+ * `c.on('exit',code=>{if(code!==0)pending=null})`，而 ③ 的计数放在一个 15 秒后的
+ * setTimeout 里、判据是 `if(pending&&…)`。被第三方杀软持句柄锁的 PE 文件（如 node.exe）
+ * 让 rmSync **瞬间**抛错退出 ⇒ exit 回调先把 pending 清空 ⇒ 15 秒后判假 ⇒
+ * failCount 永远归不了 1 ⇒ 桶永远进不了 .failed ⇒ 每 5 秒重新 spawn 一次 rmSync
+ * 去打同一个锁死的文件，**心跳永远新鲜、删除量恒为 0**。
+ * 实测本场构建全程自旋（心跳 10:53→10:57 持续刷新），只能人工 kill。
+ * 现改为：失败计数就在 exit 回调里按桶名累计，成功即清零，②③不再互相拆台。
+ * 拒绝或失败保留诊断，不通过修改保护设置放行。 */
 const RECYCLE_CLEANER = [
   "const fs=require('fs'),path=require('path'),{spawn}=require('child_process');",
-  'const root=process.env.DSH_RECYCLE_ROOT;const beat=process.env.DSH_RECYCLE_HEARTBEAT;',
-  "const RM=\"require('fs').rmSync(process.argv[1],{recursive:true,force:true,maxRetries:10,retryDelay:200})\";",
-  'let pending=null,pendingAt=0,idle=0;',
-  'const tick=()=>{',
+  "if(!process.env.DSH_RECYCLE_ROOT)process.exit(1);const root=path.resolve(process.env.DSH_RECYCLE_ROOT);const beat=path.join(root,'.sweeping');",
+  RECYCLE_ROOT_GUARD,
+  'const requireRoot=()=>{try{assertRoot()}catch{process.exit(1)}};',
+  `const RM=${JSON.stringify(RECYCLE_REMOVE_WORKER)};`,
+  'let pending=null,pendingAt=0,idle=0,failName=\'\',failCount=0,started=false;const skipped=new Set();',
+  'const tick=()=>{requireRoot();',
+  // ① 实例抢占：首个 tick 先抢心跳；若已有活实例则后到者立即让位退出。
+  'if(!started){started=true;',
+  "  try{const prev=fs.readFileSync(beat,'utf8');const pid0=Number(prev.split(':')[0]);",
+  "    if(Number.isInteger(pid0)&&pid0!==process.pid){try{process.kill(pid0,0);process.exit(0)}catch(e){if(e.code==='EPERM')process.exit(0)}}",
+  '  }catch{}',
+  "  requireRoot();try{fs.writeFileSync(beat,process.pid+':'+Date.now())}catch{}",
+  '}',
   'let names=[];try{names=fs.readdirSync(root)}catch{process.exit(0)}',
   'names=names.filter(n=>n!==path.basename(beat));',
-  'if(pending&&(!names.includes(pending)||Date.now()-pendingAt>7200000))pending=null;',
+  // ④ 已隔离的桶必须真正移出队列。2026-09-30 实测：`.failed` 改名只把桶换个名字留在原地，
+  // 而上面这行只过滤心跳文件，于是改完名的桶下一轮又被当成新目标捡起来、再失败三次、
+  // 再追加一层 `.failed` —— 实测叠到第 9 层仍在原地打转。它还按名字排在真桶前面
+  // （同前缀 + 更长的字典序未必，但真桶常被挤到后面），把 7.9 万文件的真桶彻底饿死，
+  // 清理器每 5 秒空转一次 rmSync、心跳永远新鲜、删除量恒为 0。
+  "names=names.filter(n=>!n.includes('.failed')&&!skipped.has(n)&&!fs.existsSync(path.join(root,n+'.failed.json')));",
+  'if(pending&&(!names.includes(pending)||Date.now()-pendingAt>7200000)){pending=null;failName=\'\';failCount=0}',
   'if(pending){idle=0}',
   'else if(names.length>0){',
   'idle=0;pending=names[0];pendingAt=Date.now();',
-  "try{spawn(process.execPath,['-e',RM,path.join(root,pending)],{stdio:'ignore',windowsHide:true,env:{...process.env,NODE_OPTIONS:'',CODEBUDDY_SAFE_DELETE_ENABLED:'0',CODEBUDDY_SAFE_DELETE_SANDBOX:'0'}})}catch{pending=null}",
+  // ② 子进程退出即换目标 —— 无论成功还是失败都不再干等 2 小时。
+  "try{requireRoot();const c=spawn(process.execPath,['-e',RM,root,pending],{stdio:'ignore',windowsHide:true,env:{...process.env}});",
+  "c.on('error',()=>{const b=pending;pending=null;requireRoot();if(b){skipped.add(b);try{fs.writeFileSync(path.join(root,b+'.failed.json'),JSON.stringify({bucket:b,reason:'remove-process-failed'}))}catch{}}});",
+  // ③ 失败计数必须记在**这里**（子进程退出即知），不能放在下面的 setTimeout 里。
+  // 2026-09-30 P2 根因：原实现是 `c.on('exit',code=>{if(code!==0)pending=null})` 加一个
+  // 15 秒后才检查的 setTimeout。被杀毒软件持句柄锁的 PE 文件让 rmSync **立刻**抛错退出，
+  // exit 回调先把 pending 清空，15 秒后 setTimeout 里的 `if(pending&&…)` 判假 —— 计数永远
+  // 归不了 1，桶也就永远进不了 .failed 隔离，于是每 5 秒重新 spawn 一次 rmSync 打同一个
+  // 锁死的文件，心跳一直新鲜、删除量恒为 0（本次会话实测自旋了整场构建）。
+  // 改为按桶名累计：同一个桶连续失败 3 次改名为 `<桶>.failed` 移出队列，
+  // 既保留 ② 的「不等 2 小时」，也让 ③ 真正生效；成功一次即清零。
+  "c.on('exit',code=>{const b=pending;pending=null;requireRoot();if(code===0){failName='';failCount=0;return}if(!b)return;",
+  "if(b===failName){if(++failCount>=3){try{fs.renameSync(path.join(root,b),path.join(root,b+'.failed'))}catch{}skipped.add(b);try{fs.writeFileSync(path.join(root,b+'.failed.json'),JSON.stringify({bucket:b,reason:'remove-rejected-or-failed',at:new Date().toISOString()}))}catch{}failName='';failCount=0}}",
+  "else{failName=b;failCount=1}});",
+  "}catch{if(pending)skipped.add(pending);pending=null}",
   '}',
-  'else if(++idle>=3){try{fs.unlinkSync(beat)}catch{}process.exit(0)}',
-  'try{fs.writeFileSync(beat,process.pid+":"+Date.now())}catch{}',
+  'else if(++idle>=3){requireRoot();try{fs.unlinkSync(beat)}catch{}process.exit(0)}',
+  "requireRoot();try{fs.writeFileSync(beat,process.pid+':'+Date.now())}catch{}",
   'setTimeout(tick,5000)};',
   'tick();',
 ].join('')
 
 function recycleSweepAlive(): boolean {
   try {
-    if (Date.now() - statSync(recycleHeartbeat).mtimeMs > 120_000) return false
-    const pid = Number(readFileSync(recycleHeartbeat, 'utf8').split(':')[0])
+    if (Date.now() - statSync(recycleHeartbeat()).mtimeMs > 120_000) return false
+    const pid = Number(readFileSync(recycleHeartbeat(), 'utf8').split(':')[0])
     if (!Number.isInteger(pid) || pid <= 0) return true
     try {
       process.kill(pid, 0)
@@ -68,19 +192,17 @@ function recycleSweepAlive(): boolean {
 }
 
 function startRecycleSweeper(): void {
+  const root = assertOwnedCleanupPath(recycleRoot(), true)
+  if (!existsSync(root)) return
+  assertRecycleRootPhysical(root)
   if (recycleSweepAlive()) return
   try {
     const child = spawn(process.execPath, ['-e', RECYCLE_CLEANER], {
       detached: true,
       env: {
         ...process.env,
-        // 清理器只用 fs / path / child_process，不需要任何 --require 注入；
-        // 留着宿主守卫反而会让它的删除被拦（见 RECYCLE_CLEANER 注释）。
-        NODE_OPTIONS: '',
-        CODEBUDDY_SAFE_DELETE_ENABLED: '0',
-        CODEBUDDY_SAFE_DELETE_SANDBOX: '0',
-        DSH_RECYCLE_ROOT: recycleRoot,
-        DSH_RECYCLE_HEARTBEAT: recycleHeartbeat,
+        DSH_RECYCLE_ROOT: root,
+        DSH_RECYCLE_HEARTBEAT: recycleHeartbeat(),
       },
       stdio: 'ignore',
       windowsHide: true,
@@ -98,11 +220,16 @@ function startRecycleSweeper(): void {
  * 语义不变：本函数返回时 target 一定不存在。设 DSH_PREPARE_NO_RECYCLE=1 可强制回到旧的同步删除。 */
 async function recyclePreparedPath(target: string): Promise<boolean> {
   if (process.env.DSH_PREPARE_NO_RECYCLE === '1') return false
-  // 只回收项目内路径：项目外（测试临时目录、跨卷目标）保持原有同步删除语义。
-  if (!target.startsWith(projectRoot + sep)) return false
-  const bucket = join(recycleRoot, `${basename(target)}-${Date.now()}`)
+  // 默认只回收项目内路径：项目外的测试临时目录、跨卷目标保持原有同步删除语义。
+  // 但调用方**显式**指定 DSH_RECYCLE_ROOT 时（测试、诊断脚本）由它接管语义 ——
+  // 否则测试把回收区指到 tmpdir(C:) 而目标在 G:，跨卷 rename 必失败、那条用例永远红。
+  if (!process.env.DSH_RECYCLE_ROOT && !target.startsWith(projectRoot + sep)) return false
+  const root = assertOwnedCleanupPath(recycleRoot(), true)
+  const bucket = join(root, `${basename(target)}-${Date.now()}`)
   try {
-    await mkdir(recycleRoot, { recursive: true })
+    await mkdir(root, { recursive: true })
+    assertRecycleRootPhysical(root)
+    assertPreparedRemovalTarget(target)
     await rename(target, bucket)
   } catch {
     return false
@@ -113,16 +240,11 @@ async function recyclePreparedPath(target: string): Promise<boolean> {
 }
 
 export async function removePreparedPath(target: string): Promise<void> {
+  target = assertPreparedRemovalTarget(target)
   if (!existsSync(target)) return
   if (await recyclePreparedPath(target)) return
-  try {
-    await rm(target, { force: true, maxRetries: 10, recursive: true, retryDelay: 200 })
-  } catch (error) {
-    if (process.platform !== 'win32' || !isRetryableRemoveError(error)) throw error
-    spawnSync(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', `rmdir /s /q "${target}"`], { stdio: 'ignore', windowsHide: true })
-    spawnSync(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', `del /f /q "${target}"`], { stdio: 'ignore', windowsHide: true })
-    if (existsSync(target)) throw error
-  }
+  assertPreparedRemovalTarget(target)
+  await rm(target, { force: true, maxRetries: 10, recursive: true, retryDelay: 200 })
 }
 
 /** 把桌面更新源烘焙进打包资源：CI/本地构建用环境变量注入（JSON：owner/repo/artifactBase），
@@ -140,11 +262,6 @@ export async function writeReleaseSourceManifest(distDir: string, env: NodeJS.Pr
   await writeFile(join(distDir, 'release-source.json'), JSON.stringify(source, undefined, 2) + '\n', 'utf8')
 }
 
-function isRetryableRemoveError(error: unknown): boolean {
-  const code = (error as NodeJS.ErrnoException).code
-  return code === 'ENOTEMPTY' || code === 'EBUSY' || code === 'EPERM' || code === 'EACCES'
-}
-
 export function resolveBundledNodeSha256(checksums: unknown, platform = process.platform, architecture = process.arch): string {
   if (typeof checksums !== 'object' || checksums === null || Array.isArray(checksums)) {
     throw new Error('package.json 缺少随包 Node SHA256 配置。')
@@ -155,47 +272,126 @@ export function resolveBundledNodeSha256(checksums: unknown, platform = process.
   return checksum
 }
 
-async function main(): Promise<void> {
-  const projectManifest = JSON.parse(await readFile(join(projectRoot, 'package.json'), 'utf8')) as {
+/** Read-only preflight, shared by real assembly and CI/local --check-node. */
+export async function verifyPrepareRuntimeNode(root = projectRoot, executable = process.execPath, version = process.version): Promise<{ executable: string, version: string, sha256: string }> {
+  const projectManifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as {
     config?: { bundledNodeSha256?: unknown, bundledNodeVersion?: unknown }
   }
   const expectedNodeVersion = projectManifest.config?.bundledNodeVersion
   const expectedNodeSha256 = resolveBundledNodeSha256(projectManifest.config?.bundledNodeSha256)
 
   if (typeof expectedNodeVersion !== 'string') throw new Error('package.json 缺少随包 Node 版本配置。')
-  if (process.version !== expectedNodeVersion) {
-    throw new Error('随包 Node 版本不匹配：需要 ' + expectedNodeVersion + '，实际 ' + process.version + '。')
+  if (version !== expectedNodeVersion) {
+    throw new Error('随包 Node 版本不匹配：需要 ' + expectedNodeVersion + '，实际 ' + version + '。')
   }
+  const sha256 = createHash('sha256').update(await readFile(executable)).digest('hex').toUpperCase()
+  if (sha256 !== expectedNodeSha256) throw new Error('随包 Node SHA256 不匹配：' + sha256 + '。')
+  return { executable, version, sha256 }
+}
+
+async function main(): Promise<void> {
+  // Both checks must finish before writing manifests or recycling any existing build.
+  const verifiedNode = await verifyPrepareRuntimeNode()
+  if (process.argv.includes('--check-node')) {
+    console.log(JSON.stringify({ status: 'passed', ...verifiedNode, assemblyStarted: false }))
+    return
+  }
+  const cacheDir = buildCacheDirectory(projectRoot)
+  const release = await acquireBuildCacheLock(cacheDir, {
+    onWait: () => console.log('[prepare-runtime] 另一进程正在装配，等待其完成。'),
+  })
+  const phases: { name: string; durationMs: number; succeeded: boolean }[] = []
+  const timed = async <T>(name: string, action: () => Promise<T>): Promise<T> => {
+    const started = performance.now()
+    let succeeded = false
+    console.log(`[prepare-runtime] 开始：${name}`)
+    try {
+      const result = await action()
+      succeeded = true
+      return result
+    } finally {
+      const durationMs = Math.round(performance.now() - started)
+      phases.push({ name, durationMs, succeeded })
+      console.log(`[prepare-runtime] ${name}：${durationMs}ms${succeeded ? '' : '（失败）'}`)
+    }
+  }
+  let cacheHit = false
+  let completed = false
+  try {
+    await writeReleaseSourceManifest(join(projectRoot, 'dist'))
+    const input = await timed('输入指纹', () => runtimeAssemblyInput(projectRoot, verifiedNode))
+    const artifacts = runtimeAssemblyArtifacts()
+    const record = join(cacheDir, 'runtime-assembly.json')
+    const cached = process.env.DSH_BUILD_NO_CACHE === '1'
+      ? { hit: false, reason: '显式要求重新装配' }
+      : await timed('制品完整校验', () => checkBuildArtifactCache(projectRoot, record, input, artifacts))
+    console.log(`[prepare-runtime] 缓存${cached.hit ? '命中' : '未命中'}：${cached.reason}`)
+    cacheHit = cached.hit
+    if (cacheHit) { completed = true; return }
+    await timed('运行时与插件装配', () => assembleRuntime(verifiedNode, timed))
+    if (await runtimeAssemblyInput(projectRoot, verifiedNode) !== input) {
+      throw new Error('构建期间装配输入发生变化，禁止提交缓存；请待其他修改完成后重试。')
+    }
+    await timed('提交制品缓存', () => commitBuildArtifactCache(projectRoot, record, input, artifacts))
+    completed = true
+  } finally {
+    try {
+      await writeFile(join(cacheDir, 'runtime-assembly-metrics.json'), JSON.stringify({
+        schema: 1, completedAt: new Date().toISOString(), completed, cacheHit, phases,
+      }, undefined, 2) + '\n', 'utf8')
+    } finally {
+      await release()
+    }
+  }
+}
+
+async function assembleRuntime(
+  verifiedNode: { executable: string; sha256: string },
+  timed: <T>(name: string, action: () => Promise<T>) => Promise<T>,
+): Promise<void> {
   const officialArchive = join(projectRoot, 'runtime-dsh.tgz')
-  await writeReleaseSourceManifest(join(projectRoot, 'dist'))
   for (const target of [nodeRoot, pluginRoot, officialRuntimeRoot, officialArchive]) {
     if (!target.startsWith(projectRoot + sep)) throw new Error(`拒绝清理项目外路径：${target}`)
     await removePreparedPath(target)
   }
 
-  const nodeExecutable = process.execPath
-  const nodeSha256 = createHash('sha256').update(await readFile(nodeExecutable)).digest('hex').toUpperCase()
-  if (nodeSha256 !== expectedNodeSha256) throw new Error('随包 Node SHA256 不匹配：' + nodeSha256 + '。')
+  const nodeExecutable = verifiedNode.executable
+  const nodeSha256 = verifiedNode.sha256
   await mkdir(nodeRoot, { recursive: true })
   const stagedNodeExecutable = join(nodeRoot, process.platform === 'win32' ? 'node.exe' : 'node')
   await cp(nodeExecutable, stagedNodeExecutable)
   await writeFile(`${stagedNodeExecutable}.sha256`, nodeSha256 + '\n', 'utf8')
-  await stagePnpm(nodeRoot)
+  await timed('Node/pnpm 装配', () => stagePnpm(nodeRoot))
   // @ts-ignore .mjs 代理脚本未配声明文件，动态导入仅用于构建期本地加速。
   const { startStagingRegistryProxy } = await import(pathToFileURL(join(projectRoot, 'scripts', 'staging-registry-proxy.mjs')).href)
   const prefetchDir = join(projectRoot, 'Data', 'Temp', 'prefetch')
-  const upstreamRegistry = process.env.DSH_UPSTREAM_REGISTRY || 'https://registry.npmmirror.com/'
+  const upstreamRegistry = process.env.DSH_UPSTREAM_REGISTRY || 'https://registry.npmjs.org/'
   const proxy = await startStagingRegistryProxy({ prefetchDir, upstream: upstreamRegistry, port: 0 })
   try {
-    await stageBundledPlugins(pluginRoot, nodeRoot, undefined, proxy.url)
+    await timed('插件装配与离线验证', () => stageBundledPlugins(pluginRoot, nodeRoot, undefined, proxy.url))
   } finally {
     await proxy.close()
   }
   const officialStore = join(officialRuntimeRoot, '.store')
-  await stageOfficialRuntime(officialRuntimeRoot, nodeRoot, officialStore)
+  await timed('官方运行时安装', () => stageOfficialRuntime(officialRuntimeRoot, nodeRoot, officialStore))
   await removePreparedPath(officialStore)
-  packDirectoryToTarGz(join(pluginRoot, 'store'), join(pluginRoot, 'store.tgz'))
-  packDirectoryToTarGz(officialRuntimeRoot, join(projectRoot, 'runtime-dsh.tgz'))
+  await timed('运行时硬链接落盘', async () => {
+    await materializeHardlinks(join(pluginRoot, 'store'))
+    await materializeHardlinks(officialRuntimeRoot)
+  })
+  const storeDir = join(pluginRoot, 'store')
+  const snapshotDir = join(pluginRoot, 'store-snapshot')
+  const archivePath = join(pluginRoot, 'store.tgz')
+  await timed('插件归档快照', () => cloneTreeForArchive(storeDir, snapshotDir))
+  try {
+    await timed('插件归档与真实解压验证', async () => {
+      packDirectoryToTarGz(snapshotDir, archivePath)
+      await verifyPackagedPluginArchive(pluginRoot, nodeRoot, snapshotDir, archivePath)
+    })
+  } finally {
+    await removePreparedPath(snapshotDir)
+  }
+  await timed('官方运行时归档', async () => { packDirectoryToTarGz(officialRuntimeRoot, join(projectRoot, 'runtime-dsh.tgz')) })
   writeFileSha256(join(pluginRoot, 'store.tgz'))
   writeFileSha256(join(projectRoot, 'runtime-dsh.tgz'))
   writePnpmStoreContentSha256(join(pluginRoot, 'store'), join(pluginRoot, 'store.tgz'))
@@ -251,8 +447,17 @@ export function resolvePnpmPackageRoot(entry = process.env.npm_execpath): string
 }
 
 export async function stagePnpm(destinationRoot: string): Promise<void> {
-  const packageRoot = await materializePnpmPackage(destinationRoot)
+  const packageRoot = await materializePnpmPackage(resolve(destinationRoot))
   const entry = resolvePnpmEntry(packageRoot)
+  // Resolve/download the native payload during packaging, never on the user's first offline launch.
+  const prepared = spawnSync(process.execPath, [entry, '--version'], { encoding: 'utf8', windowsHide: true, timeout: 180000, cwd: packageRoot })
+  if (prepared.status !== 0 || prepared.stdout.trim() !== bundledPnpmVersion) {
+    throw new Error(`随包 pnpm 未就绪：${prepared.error?.message ?? prepared.stderr}`)
+  }
+  const offline = spawnSync(process.execPath, [entry, '--version'], {
+    encoding: 'utf8', windowsHide: true, timeout: 30000, cwd: packageRoot, env: { ...process.env, COREPACK_ENABLE_NETWORK: '0' },
+  })
+  if (offline.status !== 0 || offline.stdout.trim() !== bundledPnpmVersion) throw new Error('随包 pnpm 离线入口验证失败。')
   await writePnpmShims(destinationRoot, relative(packageRoot, entry).replaceAll('\\', '/'))
 }
 
@@ -271,7 +476,7 @@ export async function writePnpmShims(destinationRoot: string, relativeEntry: str
   )
   chmodSync(join(destinationRoot, 'pnpm'), 0o755)
 }
-const DEFAULT_STAGING_REGISTRY = 'https://registry.npmmirror.com/'
+const DEFAULT_STAGING_REGISTRY = 'https://registry.npmjs.org/'
 
 export async function stageBundledPlugins(
   destinationRoot: string,
@@ -292,8 +497,8 @@ export async function stageBundledPlugins(
   await writeFile(join(stagingDir, 'pnpm-workspace.yaml'), pnpmWorkspaceYaml(false), 'utf8')
   // pnpm 11.24 把 --config.fetch-timeout 当成字符串，传给 AbortSignal.timeout 会直接 TypeError。
   // 写 .npmrc 让 pnpm 读到 number 形式的 fetch-timeout，避免大 tarball 在默认 30s 上抖动失败。
-  // 2026-09-09：本机到 npmjs 大文件通道今日抖动到 143KB/s 以下，改走用户全局镜像源 npmmirror；
-  // 同时启动本地预取代理，把已缓存的大 tarball 走 127.0.0.1 直供，避免远程超时中断装配。
+  // Metadata and lockfile must retain the official published tarball URLs.
+  // The metadata proxy no longer redirects tarballs to transient local ports.
   // 供应链接口（frozen-lockfile / 离线补种）需要完整 packuments，在线阶段一次性拉取并镜像。
   // 运行时/验证仍用 registry.npmjs.org，所以装配后把镜像元数据同步一份到 npmjs 路径，保证离线补种能找到。
   await writeFile(join(stagingDir, '.npmrc'), [
@@ -305,7 +510,9 @@ export async function stageBundledPlugins(
   const installArgs = [
     'install',
     '--dir', stagingDir,
-    ...pnpmStoreOptions(storeDir),
+    // 上游 v1.0.76 的随包仓库完整性校验要求 store 自带 cache 子目录；冻结离线安装
+    //（buildFrozenSeedInstallArgs）的默认 cache-dir 同为 <store>/cache，两处必须一致。
+    ...pnpmStoreOptions(storeDir).map(arg => arg.startsWith('--cache-dir=') ? `--cache-dir=${join(storeDir, 'cache')}` : arg),
     '--prod',
     '--config.node-linker=hoisted',
     '--config.auto-install-peers=false',
@@ -313,20 +520,24 @@ export async function stageBundledPlugins(
     `--registry=${stagingRegistry}`,
   ]
   await run(installArgs)
+  await assertPortablePluginLockfile(join(stagingDir, 'pnpm-lock.yaml'))
   for (const plugin of stagedPackages) {
     if (!existsSync(join(stagingDir, 'node_modules', ...plugin.packageName.split('/'), 'package.json'))) {
       throw new Error(`内置插件装配后缺失：${plugin.packageName}`)
     }
   }
-  const lockfile = join(stagingDir, 'pnpm-lock.yaml')
-  if (!existsSync(lockfile)) throw new Error('内置插件装配后缺少确定性锁文件。')
-  await cp(lockfile, join(storeDir, 'dsh-store-lock.yaml'))
+  // 上游 v1.0.76：锁文件以 BUNDLED_LOCKFILE_NAME 发布（首启 applyBundledLockfile 按它冻结安装），
+  // 并补全 metadata-full、校验随包元数据完整性（缺失即阻止出包）。
+  await publishBundledLockfile(stagingDir, storeDir)
+  await pruneStoreForPackaging(storeDir)
+  await completeBundledPluginMetadata(storeDir)
+  await assertBundledPluginMetadataComplete(storeDir)
   // Resolution caches abbreviated packuments; frozen policy validation also
   // requires full packuments. Materialize both during the online build, not startup.
   await discardCachedPolicyVerdict(storeDir)
   await run([...installArgs, '--frozen-lockfile'])
   // 离线验证与运行时补种都按 registry.npmjs.org 查找元数据，把镜像缓存同步成 npmjs 路径。
-  await mirrorPnpmStoreMetadata(storeDir)
+  await mirrorPnpmStoreMetadata(storeDir, stagingRegistry)
   // Exercise the actual first-launch path without the build machine's global cache.
   // A missing registry/supply-chain metadata entry must reject the package here.
   const verificationDir = join(destinationRoot, 'offline-verification')
@@ -358,6 +569,137 @@ export async function verifyPreparedPluginStore(
     const manifest = JSON.parse(await readFile(join(verificationDir, 'node_modules', ...plugin.packageName.split('/'), 'package.json'), 'utf8'))
     if (manifest.version !== plugin.version) throw new Error(`离线补种插件版本错误：${plugin.packageName}`)
   }
+  const installOptions = { storeDir, cacheDir: join(storeDir, 'cache'), offline: true }
+  await assertPortablePluginLockfile(join(verificationDir, 'pnpm-lock.yaml'))
+  // Existing installations contain local customizations, unlike an empty
+  // Profile. Exercise an actual junction through both pnpm installations.
+  const localName = 'dsh-desktop-offline-link-probe'
+  const localDir = join(verificationDir, 'local', localName)
+  await mkdir(localDir, { recursive: true })
+  await writeFile(join(localDir, 'package.json'), JSON.stringify({ name: localName, version: '0.0.0', private: true }))
+  const manifestPath = join(verificationDir, 'package.json')
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+  manifest.dependencies[localName] = `link:local/${localName}`
+  await writeFile(manifestPath, JSON.stringify(manifest, undefined, 2) + '\n')
+  const localLink = join(verificationDir, 'node_modules', localName)
+  await symlink(localDir, localLink, process.platform === 'win32' ? 'junction' : 'dir')
+  // First launch alone missed a production failure. Force a real incremental
+  // add and then a fresh-policy frozen reinstall using the resulting lockfile.
+  await discardCachedPolicyVerdict(storeDir)
+  await run(buildSeedPluginArgs([STORE_PACKAGES[0]!], verificationDir, installOptions))
+  await assertPortablePluginLockfile(join(verificationDir, 'pnpm-lock.yaml'))
+  await discardCachedPolicyVerdict(storeDir)
+  await run(buildFrozenSeedInstallArgs(verificationDir, installOptions))
+  if (await realpath(localLink) !== await realpath(localDir)) throw new Error('离线安装改变了本地定制插件链接。')
+  await applyPendingProfileUpdates({
+    nodeExecutable: join(nodeRoot, process.platform === 'win32' ? 'node.exe' : 'node'),
+    profileDir: verificationDir, pluginStoreDir: storeDir,
+    runner: async () => { throw new Error('已安装的验证 Profile 不应在再次启动时重装。') },
+  })
+}
+
+/** Fail before publication, never rewrite URLs or integrity to waive policy. */
+export async function assertPortablePluginLockfile(path: string): Promise<void> {
+  const lock = parseYaml(await readFile(path, 'utf8')) as { packages?: Record<string, { resolution?: { tarball?: string } }> }
+  for (const [name, entry] of Object.entries(lock.packages ?? {})) {
+    if (entry.resolution?.tarball === undefined) continue
+    const url = new URL(entry.resolution.tarball)
+    if (url.origin !== 'https://registry.npmjs.org' || url.username || url.password || url.search || url.hash) {
+      throw new Error(`内置插件锁文件含不可发布的下载来源：${name}；请使用官方 metadata 重新装配。`)
+    }
+  }
+}
+
+/** 把装配时解析好的锁文件放进仓库，首启按它冻结安装，避免范围再解析到未下载的压缩包。 */
+export async function publishBundledLockfile(stagingDir: string, storeDir: string): Promise<void> {
+  const source = join(stagingDir, 'pnpm-lock.yaml')
+  if (!existsSync(source)) throw new Error('内置插件装配没有生成锁文件。')
+  await copyFile(source, join(storeDir, BUNDLED_LOCKFILE_NAME))
+}
+
+/** 打包前用空 Profile 和随包锁文件离线安装，缺少任何依赖即阻止生成安装包。 */
+export async function verifyBundledPluginStore(destinationRoot: string, nodeRoot: string,
+  run: (args: readonly string[]) => void | Promise<void> = args => runStagedPnpm(nodeRoot, args),
+  storeDir = join(destinationRoot, 'store')): Promise<void> {
+  const profile = await mkdtemp(join(destinationRoot, 'verify-offline-'))
+  const lockSource = join(storeDir, BUNDLED_LOCKFILE_NAME)
+  try {
+    if (!existsSync(lockSource)) throw new Error('随包仓库缺少锁定的依赖树。')
+    await writeFile(join(profile, 'package.json'), JSON.stringify({
+      private: true,
+      dependencies: Object.fromEntries(STORE_PACKAGES.map(plugin => [plugin.packageName, plugin.version])),
+    }, undefined, 2) + '\n', 'utf8')
+    await writeFile(join(profile, 'pnpm-workspace.yaml'), pnpmWorkspaceYaml(false), 'utf8')
+    await copyFile(lockSource, join(profile, 'pnpm-lock.yaml'))
+    // 本地 runStagedPnpm 是异步 spawn（上游为 spawnSync）：必须 await，否则 pnpm 还在安装
+    // 而调用方的 finally 已把临时 Profile 删掉，得到 ENOENT 与"随包 pnpm 执行失败"。
+    await run([
+      'install', `--dir=${profile}`, '--frozen-lockfile',
+      '--store-dir', storeDir, '--cache-dir', join(storeDir, 'cache'), '--offline',
+      '--config.node-linker=hoisted', '--config.auto-install-peers=false', '--config.minimumReleaseAge=0',
+      '--registry=https://registry.npmjs.org/',
+    ])
+    for (const plugin of STORE_PACKAGES) {
+      const manifest = JSON.parse(await readFile(join(profile, 'node_modules', plugin.packageName, 'package.json'), 'utf8'))
+      if (manifest.version !== plugin.version) throw new Error(`随包离线校验版本不匹配：${plugin.packageName}`)
+    }
+  } finally {
+    assertPreparedRemovalTarget(profile)
+    await rm(profile, { recursive: true, force: true })
+  }
+}
+
+/** 用安装时的解压复制检查压缩包，不能只检查还没打包的目录。 */
+export async function verifyPackagedPluginArchive(destinationRoot: string, nodeRoot: string, sourceStore: string, archivePath: string,
+  run?: (args: readonly string[]) => void): Promise<void> {
+  const root = await mkdtemp(join(destinationRoot, 'verify-archive-'))
+  const staging = join(root, 'staging')
+  const copied = join(root, 'store')
+  try {
+    extractTarGz(archivePath, staging)
+    copyExtractedTree(staging, copied)
+    assertPreparedRemovalTarget(staging)
+    await rm(staging, { recursive: true, force: true })
+    assertPnpmStorePackagesPreserved(sourceStore, copied)
+    await verifyBundledPluginStore(root, nodeRoot, run, copied)
+  } finally {
+    assertPreparedRemovalTarget(root)
+    await rm(root, { recursive: true, force: true })
+  }
+}
+
+/** 只保证 metadata-full 路径存在：把缺失的文件从缩写 metadata 拷过去，不改已有文件，也不补 time 等完整字段。App 侧 seed 必须保持 minimumReleaseAge=0。 */
+export async function completeBundledPluginMetadata(storeDir: string): Promise<void> {
+  const metadataRoot = join(storeDir, 'cache', 'v11', 'metadata')
+  if (!existsSync(metadataRoot)) return
+  for (const relative of await listMetadataJsonl(metadataRoot)) {
+    const from = join(metadataRoot, relative)
+    const to = join(storeDir, 'cache', 'v11', 'metadata-full', relative)
+    if (existsSync(to)) continue
+    await mkdir(dirname(to), { recursive: true })
+    await writeFile(to, await readFile(from))
+  }
+}
+
+export async function assertBundledPluginMetadataComplete(storeDir: string): Promise<void> {
+  const metadataRoot = join(storeDir, 'cache', 'v11', 'metadata')
+  if (!existsSync(metadataRoot)) return
+  const missing = (await listMetadataJsonl(metadataRoot))
+    .filter(relative => !existsSync(join(storeDir, 'cache', 'v11', 'metadata-full', relative)))
+  if (missing.length === 0) return
+  const preview = missing.slice(0, 5).join('、')
+  throw new Error(`随包仓库缺少离线升级所需的完整元数据：${preview}${missing.length > 5 ? ` 等 ${missing.length} 项` : ''}`)
+}
+
+async function listMetadataJsonl(root: string, prefix = ''): Promise<string[]> {
+  const entries = await readdir(root, { withFileTypes: true })
+  const files: string[] = []
+  for (const entry of entries) {
+    const relative = prefix === '' ? entry.name : join(prefix, entry.name)
+    if (entry.isDirectory()) files.push(...await listMetadataJsonl(join(root, entry.name), relative))
+    else if (entry.isFile() && entry.name.endsWith('.jsonl')) files.push(relative)
+  }
+  return files
 }
 
 
@@ -431,25 +773,41 @@ export async function pruneStoreForPackaging(storeDir: string): Promise<void> {
   await discardCachedPolicyVerdict(storeDir)
 }
 
-async function discardCachedPolicyVerdict(storeDir: string): Promise<void> {
+export async function discardCachedPolicyVerdict(storeDir: string): Promise<void> {
   // Ship the policy inputs, not a time-limited successful verdict from the build PC.
-  await unlink(join(storeDir, 'lockfile-verified.jsonl')).catch(error => {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-  })
+  for (const base of [storeDir, join(storeDir, 'cache')]) {
+    await unlink(join(base, 'lockfile-verified.jsonl')).catch(error => {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    })
+  }
 }
 
-async function mirrorPnpmStoreMetadata(storeDir: string): Promise<void> {
-  const targetHost = 'registry.npmjs.org'
+/** Our staging proxy exposes a root public registry. Reject path/credential variants
+ * rather than guessing pnpm's private-cache or path hashing conventions. */
+export function pnpmStagingRegistryKey(registry: string): string {
+  const url = new URL(registry)
+  if (!['http:', 'https:'].includes(url.protocol) || url.pathname !== '/'
+    || url.username || url.password || url.search || url.hash
+    || !/^[a-z0-9.-]+$/i.test(url.hostname) || url.hostname.endsWith('.')) {
+    throw new Error('装配源必须是无凭据、无子路径的 HTTP(S) registry。')
+  }
+  return `${url.protocol.slice(0, -1)}%3A+${url.hostname}${url.port ? `+${url.port}` : ''}`
+}
+
+export async function mirrorPnpmStoreMetadata(storeDir: string, stagingRegistry: string): Promise<void> {
+  const sourceKey = pnpmStagingRegistryKey(stagingRegistry)
+  const targetKey = pnpmStagingRegistryKey('https://registry.npmjs.org/')
+  if (sourceKey === targetKey) return
   for (const dir of ['metadata', 'metadata-full']) {
-    const base = join(storeDir, 'v11', dir)
-    if (!existsSync(base)) continue
-    for (const entry of await readdir(base, { withFileTypes: true })) {
-      if (!entry.isDirectory() || entry.name === targetHost) continue
-      const source = join(base, entry.name)
-      const target = join(base, targetHost)
-      await removePreparedPath(target)
-      await cp(source, target, { recursive: true, dereference: false })
-    }
+    const base = join(storeDir, 'cache', 'v11', dir)
+    const source = join(base, sourceKey)
+    if (!existsSync(source)) throw new Error(`装配源缺少 ${dir} 缓存，拒绝构建离线仓库。`)
+    const target = join(base, targetKey)
+    // Frozen validation may already have fetched additional official metadata
+    // (including peers absent from the proxy namespace). Preserve those entries
+    // and prefer existing official bytes; only fill gaps from the explicit proxy.
+    // Never merge unrelated/private registries or rewrite metadata/integrity.
+    await cp(source, target, { recursive: true, dereference: false, force: false })
   }
 }
 
@@ -483,20 +841,14 @@ async function materializePnpmPackage(destinationRoot: string): Promise<string> 
 }
 
 function resolvePnpmEntry(packageRoot: string): string {
-  const manifest = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8')) as { bin?: string | Record<string, string> }
-  const declared = typeof manifest.bin === 'string' ? manifest.bin : manifest.bin?.pnpm
-  const candidates = [declared, 'bin/pnpm.cjs', 'dist/pnpm.cjs', 'bin/pnpm.js'].filter((item): item is string => Boolean(item))
-  for (const candidate of candidates) {
-    const entry = join(packageRoot, candidate)
-    if (existsSync(entry)) return entry
-  }
-  throw new Error(`随包 pnpm 入口不存在：${packageRoot}`)
+  return resolvePnpmNodeEntry(packageRoot)
 }
 
 function runStagedPnpm(nodeRoot: string, args: readonly string[]): Promise<void> {
   const nodeExecutable = join(nodeRoot, process.platform === 'win32' ? 'node.exe' : 'node')
+  const invocation = preparePnpmInvocation(args)
   return new Promise((resolve, reject) => {
-    const child = spawn(nodeExecutable, [resolvePnpmEntry(join(nodeRoot, 'pnpm-package')), ...args], { stdio: 'inherit', windowsHide: true })
+    const child = spawn(nodeExecutable, [resolvePnpmEntry(join(nodeRoot, 'pnpm-package')), ...invocation.args], { env: invocation.env, stdio: 'inherit', windowsHide: true })
     child.on('error', reject)
     child.on('close', code => {
       if (code === 0) resolve()
@@ -516,9 +868,9 @@ function runCurrentNpm(args: readonly string[]): void {
 }
 
 function runCurrentPnpm(args: readonly string[]): { stdout: string } {
-  const pnpmEntry = process.env.npm_execpath
-  if (!pnpmEntry) throw new Error('未找到 pnpm 入口，必须通过 pnpm 执行运行时装配。')
-  const result = spawnSync(process.execPath, [pnpmEntry, ...args], { encoding: 'utf8' })
+  const pnpmEntry = resolvePnpmEntry(resolvePnpmPackageRoot())
+  const invocation = preparePnpmInvocation(args)
+  const result = spawnSync(process.execPath, [pnpmEntry, ...invocation.args], { env: invocation.env, encoding: 'utf8', windowsHide: true })
   if (result.status !== 0) throw new Error(`pnpm ${args[0]} 失败（退出码 ${result.status ?? '未知'}）。`)
   return { stdout: result.stdout ?? '' }
 }

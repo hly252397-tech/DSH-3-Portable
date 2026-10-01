@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { createReadStream, existsSync, readFileSync, type Stats } from 'node:fs'
-import { appendFile, cp, mkdir, open, readFile, readdir, rename, rm, stat, statfs } from 'node:fs/promises'
+import { appendFile, cp, lstat, mkdir, open, readFile, readdir, realpath, rename, rm, stat, statfs } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { spawn } from 'node:child_process'
@@ -80,13 +80,14 @@ export interface PortableDesktopReleaseSource {
 }
 
 export const DEFAULT_DESKTOP_RELEASE_SOURCE: PortableDesktopReleaseSource = {
-  owner: 'MichengAI',
-  repo: 'dsh-codex-desktop',
+  owner: 'hly252397-tech',
+  repo: 'DSH-3-Portable',
   artifactBase: 'dsh-codex-desktop',
 }
 
 export interface PortableDesktopRelease {
   readonly version: string
+  readonly revision?: number
   readonly tag: string
   readonly assetName: string
   readonly assetUrl: string
@@ -115,6 +116,9 @@ export interface PortableDesktopSlotReference {
   readonly relativePath: string
   readonly version: string
   readonly sha256: string
+  /** New local candidates stay ineligible until their transaction is finalized. */
+  readonly producer?: 'local-build-receipt-v1'
+  readonly transactionId?: string
 }
 
 export interface PortableDesktopPointer {
@@ -134,6 +138,7 @@ export interface PortableDesktopUpdaterOptions {
   readonly expandArchive?: (archive: string, destination: string) => Promise<void>
   readonly readProductVersion?: (executable: string) => Promise<string>
   readonly prepareCandidateRuntime?: (appDirectory: string, onProgress: (progress: RuntimeExtractionProgress) => void) => Promise<void>
+  readonly verifyCandidatePreservation?: (appDirectory: string) => Promise<void>
 }
 
 export interface StagedLocalDesktopBuild {
@@ -167,6 +172,9 @@ interface PortableDesktopSlotManifest {
   readonly version: string
   readonly sourceArchiveSha256: string
   readonly files: Readonly<Record<string, string>>
+  readonly producer?: 'local-build-receipt-v1'
+  readonly transactionId?: string
+  readonly completeFileList?: true
 }
 
 interface PortableReleaseContract {
@@ -176,6 +184,7 @@ interface PortableReleaseContract {
   readonly artifact: string
   readonly sha256: string
   readonly capabilities: readonly string[]
+  readonly revision?: number
 }
 
 const REQUIRED_PORTABLE_CAPABILITIES = [
@@ -194,6 +203,7 @@ export class PortableDesktopUpdater {
   private readonly expandArchiveImpl: (archive: string, destination: string) => Promise<void>
   private readonly readProductVersionImpl: (executable: string) => Promise<string>
   private stateValue: PortableDesktopUpdateState
+  private preparation: Promise<PortableDesktopUpdateState> | undefined
 
   constructor(private readonly options: PortableDesktopUpdaterOptions) {
     this.root = resolve(options.portableRoot)
@@ -229,13 +239,13 @@ export class PortableDesktopUpdater {
     return this.stateValue
   }
 
-  async check(): Promise<PortableDesktopUpdateState> {
-    if (this.running) return this.stateValue
+  async check(channel: 'stable' | 'preview' = 'stable'): Promise<PortableDesktopUpdateState> {
+    if (this.running || this.stateValue.phase === 'ready') return this.stateValue
     // 限流降级要在进入 checking 之前快照上一结论，否则 catch 里读到的已经是 checking。
     const beforeCheck = this.stateValue
     await this.transition('checking', 2, 0, '正在核对 GitHub Release、版本和制品摘要。')
     try {
-      const release = await fetchLatestRelease(this.fetchImpl, this.options.currentVersion, this.releaseSource)
+      const release = await fetchLatestRelease(this.fetchImpl, this.options.currentVersion, this.releaseSource, channel)
       const checkedAt = new Date().toISOString()
       if (release === undefined) {
         return await this.transition('none', 100, 100, '当前桌面端已是最新版本。', {
@@ -287,7 +297,63 @@ export class PortableDesktopUpdater {
     }
   }
 
+  /** Clear only unprepared cached release metadata. Never alter a slot/pointer
+   * or interfere with a live check, preparation or pending activation. */
+  async invalidateReleaseForChannelChange(): Promise<boolean> {
+    const mayInvalidate = (): boolean => !this.running && this.preparation === undefined && this.stateValue.phase !== 'ready'
+    if (!mayInvalidate()) return false
+    const pointerPath = portableDesktopPointerPath(this.updateRoot)
+    const pointer = await loadPortableDesktopPointer(pointerPath, this.root)
+    if (pointer?.pending !== undefined || (pointer === undefined && existsSync(pointerPath)) || !mayInvalidate()) return false
+    await this.transition('idle', 0, 0, '发布通道已变更；需要重新核对新通道，旧候选许可已清除。', {
+      targetVersion: undefined,
+      release: undefined,
+      transactionId: undefined,
+      slotRelativePath: undefined,
+      errorCode: undefined,
+    })
+    return true
+  }
+
+  /** A restored ready candidate has no in-process channel authorization. Reset
+   * only its metadata so a fresh check and normal prepare can validate/reuse the
+   * existing archive/slot. An activation pointer is never removed or changed. */
+  async resetPreparedReleaseForRecheck(): Promise<boolean> {
+    const before = this.stateValue
+    if (before.phase !== 'ready' || this.running || this.preparation !== undefined) return false
+    const release = await acquirePortableDesktopOperationLock(this.updateRoot)
+    try {
+      if (this.stateValue !== before || this.running || this.preparation !== undefined) return false
+      const pointerPath = portableDesktopPointerPath(this.updateRoot)
+      const pointer = await loadPortableDesktopPointer(pointerPath, this.root)
+      if (pointer?.pending !== undefined || (pointer === undefined && existsSync(pointerPath))) return false
+      if (this.stateValue !== before || this.running || this.preparation !== undefined) return false
+      release.assertHeld()
+      await this.transition('idle', 0, 0, '候选文件已保留；重新核对当前发布通道后再验证候选。', {
+        targetVersion: undefined,
+        release: undefined,
+        transactionId: undefined,
+        slotRelativePath: undefined,
+        errorCode: undefined,
+      })
+      return true
+    } finally {
+      await release()
+    }
+  }
+
   async prepare(): Promise<PortableDesktopUpdateState> {
+    // Claim synchronously before statfs/download awaits. A double-click or a
+    // background/manual overlap must share one transaction and partial file.
+    if (this.preparation !== undefined) return await this.preparation
+    const preparation = this.prepareCandidate()
+    this.preparation = preparation
+    try { return await preparation } finally {
+      if (this.preparation === preparation) this.preparation = undefined
+    }
+  }
+
+  private async prepareCandidate(): Promise<PortableDesktopUpdateState> {
     if (this.running) return this.stateValue
     const release = this.stateValue.release
     if (this.stateValue.phase !== 'available' || release === undefined) throw new Error('没有可构建的桌面更新候选。')
@@ -323,6 +389,7 @@ export class PortableDesktopUpdater {
       await this.transition('building', 78, 55, '正在检查候选槽文件闭包、运行时归档和版本。', { transactionId })
       const appDirectory = await locatePackagedApp(extracted)
       await validatePackagedApp(appDirectory, release.version, this.readProductVersionImpl)
+      await this.options.verifyCandidatePreservation?.(appDirectory)
       await writeSlotManifest(appDirectory, release.version, release.sha256)
       const slotName = `${release.version}-${release.sha256.slice(0, 16)}`
       const slot = join(this.updateRoot, 'slots', slotName)
@@ -359,6 +426,11 @@ export class PortableDesktopUpdater {
   }
 
   async stageActivation(): Promise<PortableDesktopUpdateState> {
+    const release = await acquirePortableDesktopOperationLock(this.updateRoot)
+    try { return await this.stageActivationLocked(release.assertHeld) } finally { await release() }
+  }
+
+  private async stageActivationLocked(assertLockHeld: () => void): Promise<PortableDesktopUpdateState> {
     const state = this.stateValue
     if (state.phase !== 'ready' || state.release === undefined || state.transactionId === undefined || state.slotRelativePath === undefined) {
       throw new Error('桌面更新候选尚未准备完成。')
@@ -366,8 +438,12 @@ export class PortableDesktopUpdater {
     const slot = resolvePortableReference(this.root, state.slotRelativePath)
     await validatePackagedApp(slot, state.release.version, this.readProductVersionImpl)
     await validateSlotManifest(slot, state.release.version, state.release.sha256)
+    await this.options.verifyCandidatePreservation?.(slot)
     const pointerPath = portableDesktopPointerPath(this.updateRoot)
     const existing = await loadPortableDesktopPointer(pointerPath, this.root)
+    if (existing?.pending !== undefined && existing.pending.transactionId !== state.transactionId) {
+      throw new UpdateError('PENDING_ACTIVATION', '已有其他待激活候选，不能覆盖其事务。')
+    }
     const current = existing?.current ?? {
       relativePath: 'App',
       version: this.options.currentVersion,
@@ -379,6 +455,7 @@ export class PortableDesktopUpdater {
       sha256: await fileSha256(join(slot, 'slot-manifest.json')),
       transactionId: state.transactionId,
     }
+    assertLockHeld()
     await savePortableDesktopPointer(pointerPath, {
       schema: 1,
       current,
@@ -390,12 +467,21 @@ export class PortableDesktopUpdater {
   }
 
   async confirmRunningCandidate(transactionId: string, executableDirectory: string, healthFile: string): Promise<PortableDesktopUpdateState> {
+    const release = await acquirePortableDesktopOperationLock(this.updateRoot)
+    let completed: PortableDesktopUpdateState
+    try { completed = await this.confirmRunningCandidateLocked(transactionId, executableDirectory, healthFile, release.assertHeld) } finally { await release() }
+    await prunePortableDesktopSlots({ portableRoot: this.root }).catch(() => undefined)
+    return completed
+  }
+
+  private async confirmRunningCandidateLocked(transactionId: string, executableDirectory: string, healthFile: string, assertLockHeld: () => void): Promise<PortableDesktopUpdateState> {
     const pointerPath = portableDesktopPointerPath(this.updateRoot)
     const pointer = await loadPortableDesktopPointer(pointerPath, this.root)
     if (pointer?.pending?.transactionId !== transactionId) throw new UpdateError('ACTIVATION_MISMATCH', '桌面更新事务与待部署指针不一致。')
     const expected = resolvePortableReference(this.root, pointer.pending.relativePath)
     if (!sameResolvedPath(executableDirectory, expected)) throw new UpdateError('ACTIVATION_PATH_MISMATCH', '实际启动目录不是待验证候选槽。')
     await validateSlotManifest(expected, pointer.pending.version, undefined, pointer.pending.sha256)
+    await validateLocalBuildFinalization(this.root, pointer.pending)
     await this.transition('validating', 97, 70, '候选桌面已启动，正在提交健康验证。', {
       transactionId,
       targetVersion: pointer.pending.version,
@@ -407,6 +493,7 @@ export class PortableDesktopUpdater {
       ...(sameSlot(pointer.current, pointer.pending) ? {} : { previous: pointer.current }),
       updatedAt: new Date().toISOString(),
     }
+    assertLockHeld()
     await savePortableDesktopPointer(pointerPath, committed)
     const completed = await this.transition('completed', 100, 100, `桌面端 ${pointer.pending.version} 已部署并通过启动验证。`, {
       currentVersion: pointer.pending.version,
@@ -418,8 +505,6 @@ export class PortableDesktopUpdater {
     assertWithin(this.updateRoot, healthFile)
     await mkdir(dirname(healthFile), { recursive: true })
     await writeTextFileAtomic(healthFile, `${JSON.stringify({ transactionId, version: pointer.pending.version, completedAt: new Date().toISOString() })}\n`)
-    // 健康提交之后是唯一安全的回收点之一：指针已定，当前/上一槽受保护。
-    await prunePortableDesktopSlots({ portableRoot: this.root }).catch(() => undefined)
     return completed
   }
 
@@ -483,6 +568,14 @@ export async function stageLocalDesktopBuild(options: {
   version: string
   readProductVersion?: (executable: string) => Promise<string>
   replacePending?: boolean
+  /** 在写 pending 前持久化保护快照；调用方不得在指针提交之后补写。 */
+  customizationSnapshot?: unknown
+  buildReceiptIntent?: {
+    readonly inputFingerprint: string
+    readonly coreFingerprint: string
+    readonly asarSha256: string
+  }
+  verifyCandidatePreservation?: (appDirectory: string) => Promise<void>
   /** 测试缝：复制完成、重读指针之前运行，用于注入复制期间发生的并发提交。 */
   onCopyComplete?: () => Promise<void>
 }): Promise<StagedLocalDesktopBuild> {
@@ -490,40 +583,62 @@ export async function stageLocalDesktopBuild(options: {
   const updateRoot = portableDesktopUpdateRoot(root)
   const source = resolve(options.appDirectory)
   assertWithin(root, updateRoot)
+  const receiptIntent = options.buildReceiptIntent
+  if (receiptIntent !== undefined) {
+    if (options.customizationSnapshot === undefined ||
+        ![receiptIntent.inputFingerprint, receiptIntent.coreFingerprint, receiptIntent.asarSha256].every(value => /^[a-f0-9]{64}$/.test(value))) {
+      throw new UpdateError('BUILD_RECEIPT_INTENT', '本地构建缺少完整定制快照或有效的构建输入凭据。')
+    }
+    if (await physicalFileSha256(join(source, 'resources', 'app.asar')) !== receiptIntent.asarSha256) {
+      throw new UpdateError('BUILD_RECEIPT_ASAR', '本地程序与已验证的构建凭据不一致。')
+    }
+  }
   await validatePackagedApp(source, options.version, options.readProductVersion ?? readWindowsProductVersion)
+  await options.verifyCandidatePreservation?.(source)
   const sourceSha256 = await localAppContentSha256(source)
   const transactionId = randomUUID()
   const transactionRoot = join(updateRoot, 'transactions', transactionId)
   const staging = join(transactionRoot, 'app')
-  const slot = join(updateRoot, 'slots', `${options.version}-local-${sourceSha256.slice(0, 16)}`)
+  // A receipt transaction owns its immutable manifest; never rewrite a reused
+  // slot's producer/transaction identity for another build of the same bytes.
+  const slot = join(updateRoot, 'slots', `${options.version}-local-${sourceSha256.slice(0, 16)}${receiptIntent === undefined ? '' : '-txn-' + transactionId.slice(0, 8)}`)
   assertWithin(updateRoot, staging)
   assertWithin(updateRoot, slot)
   const pointerPath = portableDesktopPointerPath(updateRoot)
   const existing = await loadPortableDesktopPointer(pointerPath, root)
-  if (existing?.pending !== undefined && options.replacePending !== true) {
+  if (existing?.pending !== undefined && (options.replacePending !== true || pendingActivationHasStarted(updateRoot, existing.pending.transactionId))) {
     throw new UpdateError('PENDING_ACTIVATION', '已有桌面候选等待启动验证，不能覆盖待部署事务。')
   }
+  let pendingPublished = false
   try {
     await mkdir(transactionRoot, { recursive: true })
     await cp(source, staging, { recursive: true, force: false, errorOnExist: true })
     if (options.onCopyComplete !== undefined) await options.onCopyComplete()
-    await writeSlotManifest(staging, options.version, sourceSha256)
+    if (await localAppContentSha256(staging) !== sourceSha256) {
+      throw new UpdateError('LOCAL_COPY_DRIFT', '复制后的完整桌面载荷与源制品不一致，未发布候选。')
+    }
+    await writeSlotManifest(staging, options.version, sourceSha256,
+      receiptIntent === undefined ? undefined : { producer: 'local-build-receipt-v1', transactionId })
     await validateSlotManifest(staging, options.version, sourceSha256)
+    const release = await acquirePortableDesktopOperationLock(updateRoot)
+    let result: StagedLocalDesktopBuild
+    try {
     // 复制 `app` 树可能持续数分钟，期间候选可能已启动并在提交点重写指针（current 前进、
     // pending 消失）并触发回收。写指针前必须重读：拿复制前的快照回写会把刚提交的 current
     // 覆盖成旧槽，而回收器只认指针引用——那个「旧 current」就成了未引用槽被删，正在运行的槽
     // 也会一起失去引用。重读同时覆盖复制期间别处新增 pending 的情况。
     const latest = (await loadPortableDesktopPointer(pointerPath, root)) ?? existing
-    if (latest?.pending !== undefined && options.replacePending !== true) {
+    if (latest?.pending !== undefined && (options.replacePending !== true || pendingActivationHasStarted(updateRoot, latest.pending.transactionId))) {
       throw new UpdateError('PENDING_ACTIVATION', '已有桌面候选等待启动验证，不能覆盖待部署事务。')
     }
     await mkdir(dirname(slot), { recursive: true })
     if (existsSync(slot)) {
       await validateSlotManifest(slot, options.version, sourceSha256)
-      await removePhysicalPath(transactionRoot, { recursive: true, force: true })
+      if (await localAppContentSha256(slot, true) !== sourceSha256) {
+        throw new UpdateError('LOCAL_SLOT_DRIFT', '已有本地槽的完整载荷已变化，不能复用。')
+      }
     } else {
       await rename(staging, slot)
-      await removePhysicalPath(transactionRoot, { recursive: true, force: true })
     }
     const current = latest?.current ?? {
       relativePath: 'App',
@@ -535,7 +650,34 @@ export async function stageLocalDesktopBuild(options: {
       version: options.version,
       sha256: await fileSha256(join(slot, 'slot-manifest.json')),
       transactionId,
+      ...(receiptIntent === undefined ? {} : { producer: 'local-build-receipt-v1' as const }),
     }
+    await options.verifyCandidatePreservation?.(slot)
+    if (receiptIntent !== undefined) {
+      if (await physicalFileSha256(join(slot, 'resources', 'app.asar')) !== receiptIntent.asarSha256) {
+        throw new UpdateError('BUILD_RECEIPT_ASAR', '候选复制后的程序与构建凭据不一致，未发布候选。')
+      }
+      await writeTextFileAtomic(join(transactionRoot, 'build-intent.json'), `${JSON.stringify({
+        schema: 1,
+        producer: 'local-build-receipt-v1',
+        transactionId,
+        slotRelativePath: pending.relativePath,
+        version: pending.version,
+        slotManifestSha256: pending.sha256,
+        ...receiptIntent,
+      }, null, 2)}\n`)
+      await writeTextFileAtomic(join(transactionRoot, 'build-prior-pointer.json'), `${JSON.stringify({
+        schema: 1,
+        current,
+        ...(latest?.previous === undefined ? {} : { previous: latest.previous }),
+        ...(latest?.pending === undefined ? {} : { pending: latest.pending }),
+        updatedAt: latest?.updatedAt ?? new Date().toISOString(),
+      }, null, 2)}\n`)
+    }
+    if (options.customizationSnapshot !== undefined) {
+      await writeTextFileAtomic(join(transactionRoot, 'customization-snapshot.json'), `${JSON.stringify(options.customizationSnapshot, null, 2)}\n`)
+    }
+    release.assertHeld()
     await savePortableDesktopPointer(pointerPath, {
       schema: 1,
       current,
@@ -543,6 +685,7 @@ export async function stageLocalDesktopBuild(options: {
       pending,
       updatedAt: new Date().toISOString(),
     })
+    pendingPublished = true
     const state = sanitizePortableDesktopUpdateState({
       schema: 1,
       phase: 'deploying',
@@ -568,11 +711,23 @@ export async function stageLocalDesktopBuild(options: {
       source: 'local-build',
       ...(latest?.pending === undefined ? {} : { replacedTransactionId: latest.pending.transactionId }),
     })}\n`, 'utf8')
+    result = { transactionId, slotRelativePath: pending.relativePath, version: options.version }
+    } finally { await release() }
+    // Clean only the disposable copy after releasing the pointer lock. The
+    // transaction snapshot must remain available for cold-start acceptance.
+    await removePhysicalPath(staging, { recursive: true, force: true }).catch(() => undefined)
+    if (options.customizationSnapshot === undefined && receiptIntent === undefined) await removePhysicalPath(transactionRoot, { recursive: true, force: true }).catch(() => undefined)
     // 本地构建是候选槽的主要来源；暂存完成后立即回收，指针引用之外一律回收（每槽 ≈780MB）。
-    await prunePortableDesktopSlots({ portableRoot: root }).catch(() => undefined)
-    return { transactionId, slotRelativePath: pending.relativePath, version: options.version }
+    // Until receipt finalization, the replaced pending is needed for an exact
+    // withdrawal. Do not garbage-collect it before the finalizer can restore it.
+    if (receiptIntent === undefined) await prunePortableDesktopSlots({ portableRoot: root }).catch(() => undefined)
+    return result
   } catch (error) {
-    await removePhysicalPath(transactionRoot, { recursive: true, force: true }).catch(() => undefined)
+    // Published or receipt-bearing transactions retain the acceptance evidence
+    // and diagnostic copy. A later I/O error must not erase the pending guard.
+    if (!pendingPublished && receiptIntent === undefined) {
+      await removePhysicalPath(transactionRoot, { recursive: true, force: true }).catch(() => undefined)
+    }
     throw error
   }
 }
@@ -594,6 +749,15 @@ export async function prunePortableDesktopSlots(options: {
   keepUnreferencedSlots?: number
   now?: () => Date
 }): Promise<PrunePortableDesktopSlotsResult> {
+  const release = await acquirePortableDesktopOperationLock(portableDesktopUpdateRoot(options.portableRoot))
+  try { return await prunePortableDesktopSlotsLocked(options, release.assertHeld) } finally { await release() }
+}
+
+async function prunePortableDesktopSlotsLocked(options: {
+  portableRoot: string
+  keepUnreferencedSlots?: number
+  now?: () => Date
+}, assertLockHeld: () => void): Promise<PrunePortableDesktopSlotsResult> {
   const root = resolve(options.portableRoot)
   const updateRoot = portableDesktopUpdateRoot(root)
   const keepCount = Math.max(0, options.keepUnreferencedSlots ?? 0)
@@ -605,12 +769,12 @@ export async function prunePortableDesktopSlots(options: {
     protectedSlots.add(resolve(root, reference.relativePath).toLowerCase())
     protectedVersions.add(reference.version)
   }
-  const removedSlots = await pruneDirectoryEntries(join(updateRoot, 'slots'), async path => protectedSlots.has(resolve(path).toLowerCase()), keepCount)
+  const removedSlots = await pruneDirectoryEntries(join(updateRoot, 'slots'), async path => protectedSlots.has(resolve(path).toLowerCase()), keepCount, assertLockHeld)
   const removedDownloads = await pruneDirectoryEntries(join(updateRoot, 'downloads'), async path => {
     if (protectedVersions.has(basename(path))) return true
     // 保留最新一个下载目录作为重复更新的复用缓存。
     return await isNewestEntry(join(updateRoot, 'downloads'), path)
-  }, 0)
+  }, 0, assertLockHeld)
   if (removedSlots.length === 0 && removedDownloads.length === 0) return { removedSlots, removedDownloads }
   await mkdir(updateRoot, { recursive: true })
   const timestamp = (options.now ?? ((): Date => new Date()))().toISOString()
@@ -628,6 +792,7 @@ async function pruneDirectoryEntries(
   directory: string,
   isProtected: (path: string) => Promise<boolean>,
   keepCount: number,
+  assertLockHeld: () => void,
 ): Promise<string[]> {
   type Entry = { name: string; path: string; mtimeMs: number }
   let entries: Entry[]
@@ -647,6 +812,7 @@ async function pruneDirectoryEntries(
   entries.sort((left, right) => right.mtimeMs - left.mtimeMs)
   const removed: string[] = []
   for (const entry of entries.slice(keepCount)) {
+    assertLockHeld()
     await removePhysicalPath(entry.path, { recursive: true, force: true })
     removed.push(entry.name)
   }
@@ -671,6 +837,87 @@ async function isNewestEntry(directory: string, path: string): Promise<boolean> 
 
 export function portableDesktopUpdateRoot(portableRoot: string): string {
   return join(resolve(portableRoot), 'Data', 'Updates', 'Desktop')
+}
+
+/** The launcher/build probe this permanent file with FileShare.None. Do not
+ * unlink it: ownership is the kernel-held handle, not age/a PID document. */
+export function portableDesktopOperationLockPath(updateRoot: string): string {
+  return join(updateRoot, 'operation.lock')
+}
+
+function pendingActivationHasStarted(updateRoot: string, transactionId: string): boolean {
+  const marker = join(updateRoot, 'transactions', transactionId, 'activation-attempt.json')
+  assertWithin(updateRoot, marker)
+  return existsSync(marker)
+}
+
+type DesktopOperationLockRelease = (() => Promise<void>) & { assertHeld(): void }
+
+async function acquirePortableDesktopOperationLock(updateRoot: string): Promise<DesktopOperationLockRelease> {
+  await mkdir(updateRoot, { recursive: true })
+  const path = portableDesktopOperationLockPath(updateRoot)
+  if (process.platform !== 'win32') {
+    // The delivered target is Windows x64. Other platforms fail closed on a
+    // stale lock rather than guessing ownership and stealing a live lock.
+    const fallback = `${path}.exclusive`
+    let handle: Awaited<ReturnType<typeof open>>
+    try { handle = await open(fallback, 'wx') } catch { throw new UpdateError('UPDATE_OPERATION_BUSY', '其他桌面事务正在提交，稍后重试。') }
+    let released = false
+    return Object.assign(async () => { released = true; await handle.close(); await rm(fallback, { force: true }) }, {
+      assertHeld: (): void => { if (released) throw new UpdateError('UPDATE_OPERATION_LOCK', '桌面指针事务锁已释放。') },
+    })
+  }
+  const script = [
+    "$ErrorActionPreference = 'Stop'",
+    '$stream = $null',
+    '$deadline = [DateTime]::UtcNow.AddSeconds(30)',
+    'try {',
+    '  while ($null -eq $stream) {',
+    '    try { $stream = [System.IO.FileStream]::new($env:DSH_DESKTOP_OPERATION_LOCK, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None) }',
+    '    catch [System.IO.IOException] { if ([DateTime]::UtcNow -ge $deadline) { throw }; Start-Sleep -Milliseconds 25 }',
+    '  }',
+    "  [Console]::Out.WriteLine('DSH_DESKTOP_LOCK_READY')",
+    '  [Console]::Out.Flush()',
+    '  [void][Console]::In.ReadLine()',
+    '} finally { if ($null -ne $stream) { $stream.Dispose() } }',
+  ].join('\n')
+  const helper = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+    windowsHide: true, env: { ...process.env, DSH_DESKTOP_OPERATION_LOCK: path }, stdio: ['pipe', 'pipe', 'pipe'],
+  })
+  let stdout = ''
+  helper.stdin.on('error', () => undefined)
+  helper.stderr.on('data', () => undefined) // drain; do not surface local paths
+  await new Promise<void>((resolvePromise, reject) => {
+    let settled = false
+    const finish = (error?: Error): void => {
+      if (settled) return
+      settled = true
+      clearTimeout(timeout)
+      if (error === undefined) resolvePromise()
+      else { helper.kill(); reject(error) }
+    }
+    const timeout = setTimeout(() => finish(new UpdateError('UPDATE_OPERATION_BUSY', '等待桌面指针事务锁超时；当前槽未改变。')), 40_000)
+    helper.stdout.on('data', chunk => {
+      stdout = (stdout + String(chunk)).slice(-1_000)
+      if (stdout.includes('DSH_DESKTOP_LOCK_READY')) finish()
+    })
+    helper.once('error', () => finish(new UpdateError('UPDATE_OPERATION_LOCK', '无法创建桌面指针事务锁。')))
+    helper.once('exit', () => finish(new UpdateError('UPDATE_OPERATION_BUSY', '桌面指针事务锁无法获取；当前槽未改变。')))
+  })
+  let released = false
+  const assertHeld = (): void => {
+    if (released || helper.exitCode !== null || helper.signalCode !== null) throw new UpdateError('UPDATE_OPERATION_LOCK', '桌面指针事务锁助手提前退出。')
+  }
+  return Object.assign(async () => {
+    if (released) return
+    released = true
+    if (helper.exitCode !== null || helper.signalCode !== null) throw new UpdateError('UPDATE_OPERATION_LOCK', '桌面指针事务锁助手提前退出。')
+    await new Promise<void>(resolvePromise => {
+      const timeout = setTimeout(() => { helper.kill(); resolvePromise() }, 5_000)
+      helper.once('close', () => { clearTimeout(timeout); resolvePromise() })
+      helper.stdin.end('\n')
+    })
+  }, { assertHeld })
 }
 
 export function portableDesktopStatePath(updateRoot: string): string {
@@ -773,33 +1020,52 @@ function initialState(currentVersion: string): PortableDesktopUpdateState {
   }
 }
 
-async function fetchLatestRelease(fetchImpl: typeof fetch, currentVersion: string, source: PortableDesktopReleaseSource): Promise<PortableDesktopRelease | undefined> {
-  const response = await fetchImpl(`https://api.github.com/repos/${source.owner}/${source.repo}/releases/latest`, {
+export function desktopReleaseRevision(version: string): number {
+  const matched = /\+build\.(\d+)$/.exec(version)
+  const revision = matched === null ? 0 : Number(matched[1])
+  if (!Number.isSafeInteger(revision)) throw new UpdateError('INVALID_VERSION', '桌面构建修订号超出安全整数范围。')
+  return revision
+}
+
+export function compareDesktopReleaseIdentities(left: string, right: string): number {
+  return compareReleaseVersions(left, right) || desktopReleaseRevision(left) - desktopReleaseRevision(right)
+}
+
+async function fetchLatestRelease(fetchImpl: typeof fetch, currentVersion: string, source: PortableDesktopReleaseSource, channel: 'stable' | 'preview'): Promise<PortableDesktopRelease | undefined> {
+  const response = await fetchImpl(`https://api.github.com/repos/${source.owner}/${source.repo}/releases${channel === 'preview' ? '?per_page=50' : '/latest'}`, {
     headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'DSH-3-Portable-Unified-Updater' },
     signal: AbortSignal.timeout(20_000),
   })
   // 403/429 = GitHub 未认证配额（60 次/小时/IP）或二级限流：可恢复的暂时状态，
   // 与「Release 真的坏了」区分开，调用方据此保持上一结论而不是渲染红色失败。
   if (response.status === 403 || response.status === 429) throw new UpdateError('RELEASE_RATE_LIMITED', `GitHub API 速率限制（HTTP ${response.status}），稍后自动重试。`)
+  if (response.status === 404) return undefined
   if (!response.ok) throw new UpdateError('RELEASE_HTTP', `GitHub Release 返回 HTTP ${response.status}。`)
-  const release = await response.json() as {
+  type ReleaseMetadata = {
     tag_name?: unknown
     body?: unknown
     draft?: unknown
     prerelease?: unknown
     assets?: Array<{ name?: unknown; browser_download_url?: unknown; size?: unknown; digest?: unknown }>
   }
-  if (release.draft === true || release.prerelease === true) throw new UpdateError('UNTRUSTED_RELEASE', '最新发布不是正式稳定 Release。')
+  const payload: unknown = await response.json()
+  const release = channel === 'preview'
+    ? (Array.isArray(payload) ? payload as ReleaseMetadata[] : []).filter(item => item.draft !== true && typeof item.tag_name === 'string' && exactVersion(item.tag_name.replace(/^v/, '')) !== undefined)
+      .sort((a, b) => compareDesktopReleaseIdentities(String(b.tag_name).replace(/^v/, ''), String(a.tag_name).replace(/^v/, '')))[0]
+    : payload as ReleaseMetadata
+  if (release === undefined) return undefined
+  if (release.draft === true || (channel === 'stable' && release.prerelease === true)) throw new UpdateError('UNTRUSTED_RELEASE', '最新发布不满足所选发布通道。')
   const tag = typeof release.tag_name === 'string' ? release.tag_name : ''
   const version = tag.startsWith('v') ? tag.slice(1) : tag
   if (exactVersion(version) === undefined) throw new UpdateError('INVALID_VERSION', 'GitHub Release 版本格式无效。')
+  if (channel === 'stable' && version.split('+')[0]!.includes('-')) throw new UpdateError('UNTRUSTED_RELEASE', '稳定通道拒绝预发布版本，即使 Release 标记遗漏。')
   // A locally built portable edition may have the same (or a newer) product
   // version as the public Release while carrying additional private
   // customizations. In that case no download will occur, so the Release's
   // artifact and portable-contract assets are irrelevant. Decide freshness
   // from the trusted tag before enforcing download-only supply-chain gates;
   // otherwise a harmless manual check paints a false red error state.
-  if (compareReleaseVersions(version, currentVersion) <= 0) return undefined
+  if (compareDesktopReleaseIdentities(version, currentVersion) <= 0) return undefined
   const expectedName = `${source.artifactBase}-${version}-win-x64.zip`
   const asset = release.assets?.find(item => item.name === expectedName)
   if (asset === undefined || typeof asset.browser_download_url !== 'string' || typeof asset.size !== 'number') {
@@ -838,7 +1104,8 @@ async function fetchLatestRelease(fetchImpl: typeof fetch, currentVersion: strin
     throw new UpdateError('CONTRACT_INVALID', '桌面更新兼容契约不是有效 JSON。')
   }
   if (contract.schema !== 1 || contract.edition !== 'dsh-3-portable' || contract.version !== version
-    || contract.artifact !== expectedName || contract.sha256.toLowerCase() !== digest
+    || contract.artifact !== expectedName || typeof contract.sha256 !== 'string' || contract.sha256.toLowerCase() !== digest
+    || (contract.revision !== undefined && contract.revision !== desktopReleaseRevision(version))
     || !Array.isArray(contract.capabilities)
     || REQUIRED_PORTABLE_CAPABILITIES.some(capability => !contract.capabilities.includes(capability))) {
     throw new UpdateError('INCOMPATIBLE_RELEASE', `桌面端 ${version} 不满足 DSH 便携版 3 的兼容能力门禁。`, version)
@@ -846,6 +1113,7 @@ async function fetchLatestRelease(fetchImpl: typeof fetch, currentVersion: strin
   return {
     version,
     tag,
+    revision: desktopReleaseRevision(version),
     assetName: expectedName,
     assetUrl: url.toString(),
     assetSize: asset.size,
@@ -856,7 +1124,7 @@ async function fetchLatestRelease(fetchImpl: typeof fetch, currentVersion: strin
 
 function trustedReleaseAssetUrl(value: string, source: PortableDesktopReleaseSource): URL {
   const url = new URL(value)
-  if (url.protocol !== 'https:' || url.hostname !== 'github.com' || !url.pathname.includes(`/${source.owner}/${source.repo}/releases/download/`)) {
+  if (url.protocol !== 'https:' || url.hostname !== 'github.com' || url.username !== '' || url.password !== '' || !url.pathname.startsWith(`/${source.owner}/${source.repo}/releases/download/`)) {
     throw new UpdateError('ASSET_SOURCE', '桌面更新资产来源不在允许列表。')
   }
   return url
@@ -944,11 +1212,12 @@ async function validatePackagedApp(directory: string, expectedVersion: string, r
 }
 
 /** Local candidates include extraResources: an HTML/CSS-only fix must never reuse an older UI slot. */
-async function localAppContentSha256(directory: string): Promise<string> {
+async function localAppContentSha256(directory: string, excludeSlotManifest = false): Promise<string> {
   const digest = createHash('sha256')
   const visit = async (current: string): Promise<void> => {
     const entries = (await readdir(current, { withFileTypes: true })).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
     for (const entry of entries) {
+      if (excludeSlotManifest && current === directory && entry.name === 'slot-manifest.json') continue
       const path = join(current, entry.name)
       assertWithin(directory, path)
       if (entry.isSymbolicLink()) throw new UpdateError('LOCAL_BUILD_LINK', '本地候选含符号链接，无法建立稳定内容摘要。')
@@ -961,14 +1230,30 @@ async function localAppContentSha256(directory: string): Promise<string> {
   return digest.digest('hex')
 }
 
-async function writeSlotManifest(directory: string, version: string, sourceSha256: string): Promise<void> {
+async function writeSlotManifest(directory: string, version: string, sourceSha256: string,
+  receipt?: { producer: 'local-build-receipt-v1'; transactionId: string }): Promise<void> {
   const files: Record<string, string> = {}
-  for (const name of REQUIRED_APP_FILES) files[name] = await fileSha256(join(directory, ...name.split('/')))
+  if (receipt === undefined) {
+    for (const name of REQUIRED_APP_FILES) files[name] = await fileSha256(join(directory, ...name.split('/')))
+  } else {
+    const visit = async (current: string): Promise<void> => {
+      for (const entry of (await readdir(current, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
+        const path = join(current, entry.name)
+        assertWithin(directory, path)
+        if (entry.isSymbolicLink()) throw new UpdateError('LOCAL_BUILD_LINK', '候选载荷不能包含链接。')
+        if (entry.isDirectory()) await visit(path)
+        else if (await physicalFileIsRegular(path)) files[portableRelative(directory, path)] = await fileSha256(path)
+        else throw new UpdateError('LOCAL_BUILD_FILE', '候选载荷不能包含特殊文件。')
+      }
+    }
+    await visit(directory)
+  }
   const manifest: PortableDesktopSlotManifest = {
     schema: 1,
     version,
     sourceArchiveSha256: sourceSha256,
     files,
+    ...(receipt === undefined ? {} : { ...receipt, completeFileList: true as const }),
   }
   await writeTextFileAtomic(join(directory, 'slot-manifest.json'), `${JSON.stringify(manifest, undefined, 2)}\n`)
 }
@@ -995,6 +1280,81 @@ async function validateSlotManifest(directory: string, expectedVersion: string, 
     const expected = manifest.files[name]
     if (typeof expected !== 'string' || !/^[a-f0-9]{64}$/i.test(expected)) throw new UpdateError('SLOT_MANIFEST_INVALID', `候选槽清单缺少 ${name} 摘要。`)
     if (await fileSha256(join(directory, ...name.split('/'))) !== expected.toLowerCase()) throw new UpdateError('SLOT_FILE_HASH', `候选槽文件摘要不匹配：${name}`)
+  }
+  if (manifest.producer !== undefined) {
+    if (manifest.producer !== 'local-build-receipt-v1' || uuid(manifest.transactionId) === undefined || manifest.completeFileList !== true) {
+      throw new UpdateError('SLOT_BUILD_RECEIPT', '本地槽缺少完整构建事务标记。')
+    }
+    const declared = Object.keys(manifest.files).sort()
+    const actual: string[] = []
+    const visit = async (current: string): Promise<void> => {
+      for (const entry of await readdir(current, { withFileTypes: true })) {
+        if (current === directory && entry.name === 'slot-manifest.json') continue
+        const path = join(current, entry.name)
+        if (entry.isSymbolicLink()) throw new UpdateError('SLOT_BUILD_LINK', '本地槽包含未授权链接。')
+        if (entry.isDirectory()) await visit(path)
+        else if (await physicalFileIsRegular(path)) actual.push(portableRelative(directory, path))
+        else throw new UpdateError('SLOT_BUILD_FILE', '本地槽包含非普通文件。')
+      }
+    }
+    await visit(directory)
+    if (JSON.stringify(actual.sort()) !== JSON.stringify(declared)) throw new UpdateError('SLOT_FILE_SET', '本地槽完整文件集合与构建凭据不一致。')
+    for (const name of declared) {
+      if (safeRelative(name) !== name || !/^[a-f0-9]{64}$/i.test(manifest.files[name] ?? '')) throw new UpdateError('SLOT_FILE_PATH', '本地槽文件路径或摘要无效。')
+      const path = resolve(directory, ...name.split('/'))
+      assertWithin(directory, path)
+      if (await fileSha256(path) !== manifest.files[name]!.toLowerCase()) throw new UpdateError('SLOT_FILE_HASH', `候选完整载荷摘要不匹配：${name}`)
+    }
+  }
+}
+
+/** Defence in depth: calling commit directly must not bypass launcher admission. */
+async function validateLocalBuildFinalization(root: string, pending: PortableDesktopSlotReference & { transactionId: string }): Promise<void> {
+  const slot = resolvePortableReference(root, pending.relativePath)
+  const manifest = JSON.parse(await readFile(join(slot, 'slot-manifest.json'), 'utf8')) as PortableDesktopSlotManifest
+  if (pending.producer === undefined && manifest.producer === undefined) return
+  if (pending.producer !== 'local-build-receipt-v1' || manifest.producer !== pending.producer || manifest.transactionId !== pending.transactionId) {
+    throw new UpdateError('BUILD_NOT_FINALIZED', '本地候选的构建事务标记不一致。')
+  }
+  const transaction = join(portableDesktopUpdateRoot(root), 'transactions', pending.transactionId)
+  const readProof = async (name: string): Promise<Record<string, unknown>> => {
+    const path = join(transaction, name)
+    const information = await lstat(path)
+    if (!information.isFile() || information.isSymbolicLink() || information.nlink !== 1 || information.size > 4 * 1024 * 1024) {
+      throw new UpdateError('BUILD_NOT_FINALIZED', '构建凭据不是有界的普通文件。')
+    }
+    const value: unknown = JSON.parse(await readFile(path, 'utf8'))
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new UpdateError('BUILD_NOT_FINALIZED', '构建凭据格式无效。')
+    return value as Record<string, unknown>
+  }
+  try {
+    if (!sameResolvedPath(await realpath(transaction), transaction)) throw new Error('构建凭据目录包含重定向链接。')
+    const intent = await readProof('build-intent.json')
+    const finalized = await readProof('build-finalized.json')
+    const receipt = await readProof('build-receipt.json')
+    const identity = {
+      schema: 1,
+      producer: pending.producer,
+      transactionId: pending.transactionId,
+      slotRelativePath: pending.relativePath,
+      version: pending.version,
+      slotManifestSha256: pending.sha256,
+    }
+    if (Object.entries(identity).some(([name, expected]) => intent[name] !== expected || finalized[name] !== expected)) {
+      throw new Error('候选构建身份不匹配。')
+    }
+    for (const name of ['inputFingerprint', 'coreFingerprint', 'asarSha256']) {
+      if (typeof intent[name] !== 'string' || !/^[a-f0-9]{64}$/.test(intent[name]) || finalized[name] !== intent[name]) throw new Error('构建输入摘要不匹配。')
+    }
+    const inputs = receipt.inputs as { fingerprint?: unknown; coreFingerprint?: unknown } | undefined
+    const asar = receipt.asar as { sha256?: unknown } | undefined
+    if (receipt.schema !== 1 || receipt.kind !== 'dsh-desktop-build' || receipt.status !== 'validated' ||
+        inputs?.fingerprint !== intent.inputFingerprint || inputs?.coreFingerprint !== intent.coreFingerprint || asar?.sha256 !== intent.asarSha256 ||
+        finalized.receiptSha256 !== await physicalFileSha256(join(transaction, 'build-receipt.json')) ||
+        intent.asarSha256 !== await physicalFileSha256(join(slot, 'resources', 'app.asar'))) throw new Error('最终构建凭据或程序摘要不匹配。')
+    if (!await physicalFileIsRegular(join(transaction, 'customization-snapshot.json'))) throw new Error('缺少原始定制快照。')
+  } catch (error) {
+    throw new UpdateError('BUILD_NOT_FINALIZED', `本地候选尚未完成构建校验：${error instanceof Error ? error.message : '凭据无效'}`)
   }
 }
 
@@ -1081,7 +1441,7 @@ function sanitizeRelease(value: unknown, source: PortableDesktopReleaseSource = 
   try {
     if (typeof item.assetUrl === 'string') {
       const url = new URL(item.assetUrl)
-      if (url.protocol === 'https:' && url.hostname === 'github.com' && url.pathname.includes(`/${source.owner}/${source.repo}/releases/download/`)) assetUrl = url.toString()
+      if (url.protocol === 'https:' && url.hostname === 'github.com' && url.username === '' && url.password === '' && url.pathname.startsWith(`/${source.owner}/${source.repo}/releases/download/`)) assetUrl = url.toString()
     }
   } catch {
     // 非法 URL 不进入持久状态。
@@ -1093,6 +1453,7 @@ function sanitizeRelease(value: unknown, source: PortableDesktopReleaseSource = 
     version,
     tag,
     assetName,
+    ...(item.revision === undefined ? {} : { revision: desktopReleaseRevision(version) }),
     assetUrl,
     assetSize: item.assetSize,
     sha256: item.sha256.toLowerCase(),
@@ -1105,6 +1466,7 @@ function validSlot(value: unknown, portableRoot: string): value is PortableDeskt
   const item = value as Partial<PortableDesktopSlotReference>
   const relativePath = safeRelative(item.relativePath)
   if (relativePath === undefined || exactVersion(item.version) === undefined || typeof item.sha256 !== 'string' || !/^[a-f0-9]{64}$/i.test(item.sha256)) return false
+  if (item.producer !== undefined && (item.producer !== 'local-build-receipt-v1' || uuid(item.transactionId) === undefined)) return false
   try {
     resolvePortableReference(portableRoot, relativePath)
     return true
@@ -1150,7 +1512,9 @@ function safeRelative(value: unknown): string | undefined {
 }
 
 function exactVersion(value: unknown): string | undefined {
-  return typeof value === 'string' && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(value) ? value : undefined
+  if (typeof value !== 'string' || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(value)) return undefined
+  const revision = /\+build\.(\d+)$/.exec(value)
+  return revision !== null && !Number.isSafeInteger(Number(revision[1])) ? undefined : value
 }
 
 function uuid(value: unknown): string | undefined {

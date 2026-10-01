@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -142,26 +142,33 @@ export function extractPackagedRuntimesInChild(options: RuntimeExtractionProcess
     let pending = ''
     let settled = false
     let terminationError: Error | undefined
-    let killDeadline: ReturnType<typeof setTimeout> | undefined
+    let terminationPromise: Promise<void> | undefined
     let timeout: ReturnType<typeof setTimeout> | undefined
 
     const finish = (error?: Error): void => {
       if (settled) return
       settled = true
       clearTimeout(timeout)
-      clearTimeout(killDeadline)
       options.signal?.removeEventListener('abort', abort)
       if (error === undefined) resolvePromise()
       else reject(error)
     }
+    const finishAfterTermination = (error: Error): void => {
+      if (terminationPromise === undefined) {
+        finish(error)
+        return
+      }
+      // finish/resolve 是「初始化进程已结束」的交付点；终止流程也必须在它之前完成。
+      void terminationPromise.then(
+        () => finish(error),
+        () => finish(error),
+      )
+    }
     const terminate = (error: Error): void => {
       if (settled || terminationError !== undefined) return
       terminationError = error
-      terminateProcessTree(child, { processGroup: process.platform !== 'win32' })
-      killDeadline = setTimeout(() => {
-        terminateProcessTree(child, { processGroup: process.platform !== 'win32' })
-        finish(error)
-      }, 2_000)
+      terminationPromise = terminateProcessTree(child, { processGroup: process.platform !== 'win32' })
+      finishAfterTermination(error)
     }
     const abort = (): void => terminate(new Error('随包运行时初始化已取消。'))
     const consumeLine = (line: string): void => {
@@ -186,10 +193,10 @@ export function extractPackagedRuntimesInChild(options: RuntimeExtractionProcess
     })
     child.stderr.setEncoding('utf8')
     child.stderr.on('data', (chunk: string) => { output = (output + chunk).slice(-8_000) })
-    child.once('error', error => finish(new Error(`无法启动随包运行时初始化进程：${error.message}`)))
+    child.once('error', error => finishAfterTermination(new Error(`无法启动随包运行时初始化进程：${error.message}`)))
     child.once('close', code => {
       if (pending !== '') consumeLine(pending)
-      if (terminationError !== undefined) finish(terminationError)
+      if (terminationError !== undefined) finishAfterTermination(terminationError)
       else if (code === 0) finish()
       else finish(new Error(output.replace(/\s+/g, ' ').trim() || `随包运行时初始化失败，退出码：${code ?? 'unknown'}`))
     })
@@ -225,7 +232,7 @@ async function extractOnce(
     if (isExtractionCurrent(archivePath, destDir, readyPath)) return false
     if (process.platform === 'win32') {
       mkdirSync(destDir, { recursive: true })
-      copyRuntimeFiles(stagingDir, destDir, onProgress)
+      copyExtractedTree(stagingDir, destDir, onProgress)
     } else {
       rmSync(destDir, { recursive: true, force: true })
       renameSync(stagingDir, destDir)
@@ -238,16 +245,18 @@ async function extractOnce(
 }
 
 /** 逐文件复制替代整目录 cpSync：数万文件时既能上报真实进度，也避免每个文件都重复走
- *  通用目录复制检查。本盘实测单文件操作成本高，这一阶段正是首启最长的等待。 */
-function copyRuntimeFiles(source: string, destination: string, onProgress?: (progress: StartupProgress) => void): void {
+ *  通用目录复制检查。本盘实测单文件操作成本高，这一阶段正是首启最长的等待。
+ *  目录联接/符号链接按 statSync 跟随后展开成实体内容落盘，不留指向外部的链接。 */
+export function copyExtractedTree(source: string, destination: string, onProgress?: (progress: StartupProgress) => void): void {
   onProgress?.({ phase: 'scan' })
   const files: { path: string; regular: boolean }[] = []
   const collect = (directory: string): void => {
     mkdirSync(join(destination, directory), { recursive: true })
     for (const entry of readdirSync(join(source, directory), { withFileTypes: true })) {
       const relativePath = join(directory, entry.name)
-      if (entry.isDirectory()) collect(relativePath)
-      else files.push({ path: relativePath, regular: entry.isFile() })
+      const sourcePath = join(source, relativePath)
+      if (statSync(sourcePath).isDirectory()) collect(relativePath)
+      else files.push({ path: relativePath, regular: statSync(sourcePath).isFile() })
     }
   }
   collect('')

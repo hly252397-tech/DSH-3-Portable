@@ -2,7 +2,7 @@
 // 运行时 boot 探针：与真实应用同构（dsh-bootstrap + bin.js web --port 0 --no-open），指向指定代际。
 // 用于内核/家园/豁免变更后的无头验证：就绪判定 = 输出出现监听行；超时未就绪 = 复现卡死（退出码 2）。
 // 用法：
-//   Tools/node/node.exe scripts/probe-runtime-boot.mjs [--root <便携根>] [--generation <代号>] [--timeout-ms <毫秒>]
+//   Tools/node/node.exe scripts/gate-node-run.mjs scripts/probe-runtime-boot.mjs [--root <便携根>] [--generation <代号>] [--timeout-ms <毫秒>]
 // 默认代际 = 活动绑定；无绑定时报错退出（探针只针对代际家园，legacy 布局请手工指 --generation 之外的场景）。
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'

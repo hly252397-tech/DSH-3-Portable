@@ -4,6 +4,7 @@ import { writeFile as writeTextFile } from 'node:fs/promises'
 import { createHash, randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
+import { embeddedDesktopSettingsDocument, mayUseEmbeddedDesktopSettings, parseDesktopSettingsRequest } from './embedded-desktop-settings.js'
 import { basename, dirname, join, parse, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -17,23 +18,29 @@ import { sweepOrphanDshProcesses } from './orphan-sweep.js'
 import { quitDesktopApp, shouldHideInsteadOfClose } from './app-lifecycle.js'
 import type { DshServer, StartDshOptions } from './dsh-process.js'
 import { isExternalHttpUrl, isExternalOpenUrl, isSameOrigin } from './navigation.js'
-import { applyPendingProfileUpdates, resolvePnpmStoreDir, seedBundledPlugins, resolveWebProfileDir } from './plugin-seed.js'
+import { applyPendingProfileUpdates, isOfficialRuntimeLaunchable, resolvePnpmStoreDir, seedBundledPlugins, resolveWebProfileDir } from './plugin-seed.js'
+import { preserveMcpRefreshPatch } from './mcp-scope-refresh.js'
 import { parseUnresolvedBundleError, startWithProfileSelfRepair } from './profile-repair.js'
 import { quarantineProfileBundle } from './profile-quarantine.js'
-import { resolveBundledPluginStore, resolvePluginBinDir } from './plugin-toolchain.js'
+import { normalizePnpmNodeEntry, resolveBundledPluginStore, resolvePluginBinDir, resolvePnpmNodeEntry } from './plugin-toolchain.js'
 import { resolveDshBootstrap, resolveDshRuntime, resolveNodeExecutable } from './runtime.js'
 import { extractPackagedRuntimesInChild, packagedRuntimesNeedExtraction, preparePackagedRuntimeCacheInChild, resolvePackagedRuntimeCache, type RuntimeExtractionProgress } from './extract-runtime.js'
 import { advanceStartupProgress, formatStartupProgress, STARTUP_PROGRESS, type StartupProgress } from './startup-progress.js'
 import { resolvePrebuiltOfficialRuntime } from './runtime-prebuilt.js'
 import { activateRuntimeSlot, commitRuntimeSlot, readRuntimeSlotPointer, recoverInterruptedRuntimeSwitch, resolveActiveRuntimeDir, rollbackRuntimeSlot, runtimeSlotVersion } from './runtime-slots.js'
 import { buildHarnessRuntimeCandidate, type HarnessRuntimeCandidate } from './harness-runtime-candidate.js'
+import { fetchHarnessPrebuiltRelease } from './harness-release-catalog.js'
+import { prepareHarnessPrebuiltCandidate } from './harness-prebuilt-update.js'
+import { prepareHarnessHome } from './harness-home-preparation.js'
+import { ComponentUpdateSafety, harnessActivationSafety } from './component-update-safety.js'
+import { assertCustomizationPreserved, captureCustomizationState, checkPreservationManifest, readPreservationManifest, type CustomizationSnapshot, type PreservationManifest } from './customization-preservation.js'
 import { validateHarnessShadowStart } from './harness-shadow.js'
 import { DEFAULT_HARNESS_UPDATE_POLICY, acquireHarnessUpdateLock, appendHarnessUpdateEvent, checkHarnessUpdate, clearDeploymentFailure, evaluateDeploymentRetryGate, harnessUpdatePolicyPath, harnessUpdateRoot, harnessUpdateStatePath, loadHarnessUpdatePolicy, loadHarnessUpdateState, recordDeploymentFailure, saveHarnessUpdatePolicy, saveHarnessUpdateState, type HarnessReleaseCandidate, type HarnessUpdatePolicy, type HarnessUpdateState } from './harness-update.js'
 import { applyInitialWindowState } from './window-state.js'
 import { WindowNavigationCoordinator } from './window-navigation.js'
 import { escapeRoute } from './escape-routing.js'
 import { installDesktopBridge, resolveDesktopBridgeDir } from './desktop-host.js'
-import { isChineseLocale, localizedShellActions, localizedShellMenus, normalizeShellLocale, shellActionForShortcut, SHELL_ACTIONS, type ShellActionId, type ShellMenuId } from './shell-actions.js'
+import { isChineseLocale, localizedShellActions, localizedShellMenus, normalizeShellLocale, shellActionForShortcut, SHELL_ACTION_IDS, type ShellActionId, type ShellMenuId } from './shell-actions.js'
 import { SHELL_BAR_HEIGHT, SHELL_IPC, type BrowserDownloadState, type BrowserPageSnapshot, type BrowserPanelBounds, type BrowserPanelSnapshot, type BrowserShellState, type BrowserTabState, type DshNavigationState, type DshShellActionId, type ShellBootstrap, type ShellMenuPopupRequest, type ShellState } from './shell-contract.js'
 import { mayAccessDesktopUpdates, mayAccessNotificationPreferences, mayAccessThemePreferences, mayCloseDesktopSettings, mayGetShellBootstrap, mayInvokeBrowserIpc, mayInvokeFeaturePanelsCopy, mayInvokeShellAction, mayManageBrowserPanel, mayPopupShellMenu, mayReportDshLocale, mayReportDshNotification, mayReportDshState, mayReportDshTheme, mayReportDshSettingsVisibility, type ShellRendererKind } from './shell-ipc-policy.js'
 import { FEATURE_PANEL_CATEGORIES, FEATURE_PANELS } from './feature-panels.js'
@@ -47,12 +54,13 @@ import { DEFAULT_DESKTOP_THEME_PREFERENCES, DESKTOP_THEME_PALETTES, loadDesktopT
 import { DSH_MARKET_STATUS_PATH, isDshMarketOperationBusy, waitForDshMarketBatchToSettle } from './dshmarket-batch.js'
 import { DEFAULT_NOTIFICATION_PREFERENCES, buildWindowsReplyToastXml, loadNotificationPreferences, parseDesktopNotificationBridgeEvent, parseWindowsNotificationReplyActivation, saveNotificationPreferences, shouldShowDesktopNotification, windowsNotificationReplyArguments, type DesktopNotificationEvent, type DesktopNotificationPreferences } from './desktop-notifications.js'
 import { watchProfileActivation } from './profile-watch.js'
-import { repairMisplacedSessionLogs } from './session-path-repair.js'
-import { DEFAULT_UPDATE_PREFERENCES, STARTUP_UPDATE_CHECK_DELAY_MS, buildDesktopTrayItems, desktopUpdatePrompt, loadUpdatePreferences, preserveDesktopUpdateFailure, publicDesktopUpdateError, saveUpdatePreferences, shouldCheckForUpdatesOnStartup, shouldDownloadUpdateAutomatically, type DesktopUpdateAction, type DesktopUpdatePreferences, type DesktopUpdateSnapshot, type DesktopUpdateStatus } from './desktop-updater.js'
+import { parseForwardedInput } from './shell-input.js'
+import { repairMisplacedSessionLogs, runSessionPathRepairAtStartup } from './session-path-repair.js'
+import { DEFAULT_UPDATE_PREFERENCES, DesktopUpdateChannelGate, STARTUP_UPDATE_CHECK_DELAY_MS, buildDesktopTrayItems, desktopReleaseChannel, desktopUpdateCheckInterval, desktopUpdatePrompt, loadUpdatePreferences, preserveDesktopUpdateFailure, publicDesktopUpdateError, sanitizeUpdatePreferences, saveUpdatePreferences, shouldCheckForUpdatesOnStartup, shouldDownloadUpdateAutomatically, shouldStageUpdateOnExit, type DesktopUpdateAction, type DesktopUpdateChannelTicket, type DesktopUpdatePreferences, type DesktopUpdateSnapshot, type DesktopUpdateStatus } from './desktop-updater.js'
 import { PortableDesktopUpdater, resolvePortableReleaseSource, PORTABLE_RELEASE_SOURCE_OVERRIDE_PATH, type PortableDesktopUpdateState } from './portable-desktop-update.js'
-import { applyPortableEnvironment, ensurePortableDirectories, resolvePortablePaths } from './portable-paths.js'
+import { applyPortableEnvironment, ensurePortableDirectories, resolveActivePortablePaths } from './portable-paths.js'
 
-const portablePaths = resolvePortablePaths(process.env.DSH_PORTABLE_ROOT)
+const portablePaths = resolveActivePortablePaths(process.env.DSH_PORTABLE_ROOT)
 if (portablePaths !== undefined) {
   ensurePortableDirectories(portablePaths)
   applyPortableEnvironment(portablePaths)
@@ -81,6 +89,7 @@ let server: DshServer | undefined
 let tray: Tray | undefined
 let isQuitting = false
 let isRecycling = false
+const componentUpdateSafety = new ComponentUpdateSafety()
 let runtimeExtractionAbortController: AbortController | undefined
 let runtimeExtractionTask: Promise<void> | undefined
 let desktopActivationHeartbeatTimer: NodeJS.Timeout | undefined
@@ -92,6 +101,9 @@ let profileActivationRecycleTask: Promise<void> | undefined
 let profileActivationRecycleGeneration = 0
 let updateStatus: DesktopUpdateStatus = { kind: 'idle' }
 let updatePreferences: DesktopUpdatePreferences = DEFAULT_UPDATE_PREFERENCES
+const desktopUpdateChannelGate = new DesktopUpdateChannelGate()
+let desktopUpdatePreferencesSaving = false
+let desktopCandidateMutationPending = false
 let lastUpdateCheckAt: string | undefined
 let startupUpdateTimer: NodeJS.Timeout | undefined
 let harnessUpdateTimer: NodeJS.Timeout | undefined
@@ -120,7 +132,9 @@ let activeDshWorkCount = 0
 let activeDshWorkChangedAt = Date.now()
 let mainWindowContentSuppressed = false
 let mainWindowLayoutDeferred = false
-const shellActionIds = new Set<string>(SHELL_ACTIONS.map(action => action.id))
+// 白名单必须来自 SHELL_ACTION_IDS 而不是菜单表：菜单去重会把条目移出菜单，
+// 但顶栏按钮 / 设置窗口 / 关于窗口仍按 id 直接分发（2026-09-29 顶栏「设置」静默失灵真因）。
+const shellActionIds = SHELL_ACTION_IDS
 
 interface HarnessUpdaterContext {
   readonly appPath: string
@@ -128,6 +142,7 @@ interface HarnessUpdaterContext {
   readonly isPackaged: boolean
   readonly legacyRuntimeDir: string
   readonly nodeExecutable: string
+  readonly nodeVersion: string
   readonly pathPrefix?: string
   readonly pnpmEntry: string
   readonly profileDir: string
@@ -600,24 +615,62 @@ function closeBrowserTab(id: string): void {
   scheduleBrowserWorkspaceSave()
 }
 
+/** DSH 设置页的真实可见性判据。
+ *
+ *  0.2 内核起，设置页是**整页**（`dcu-settings-nav` + `dcu-settings-main`），不再是
+ *  `role="dialog"` 弹层，也不再有客户端通过 `dsh-shell:dsh-settings-visibility` 上报
+ *  （该通道在 codex-ui 1.1.x + 0.2 下无发送方，`dshSettingsDialogVisible` 恒为 false，
+ *  顶栏「设置」因此既开不了也关不掉 —— 2026-09-29 实机取证）。
+ *  实测判据：设置页关闭时 `dcu-settings-back` **不在 DOM 里**（count=0），打开时 count=1
+ *  且可见 —— 比 `offsetParent` 更硬，不受隐藏容器影响。 */
+const DSH_SETTINGS_BACK_SELECTOR = '.dcu-settings-back, [class*="settings-back"]'
+const DSH_SETTINGS_TRIGGER_SELECTOR = '.dcu-settings-trigger'
+
+/** 只读判据：设置页当前是否打开。 */
+const DSH_SETTINGS_OPEN_SCRIPT = `document.querySelectorAll(${JSON.stringify(DSH_SETTINGS_BACK_SELECTOR)}).length > 0`
+
+/** 读设置页状态并按需切换：开着就点「返回应用」关掉，没开就点侧栏的设置触发器打开。
+ *  返回 `'closed' | 'opened' | 'unavailable'`，供调用方同步标志位。
+ *  注意是 `opened`（带 d）不是 `open` —— 调用方曾写成 `'open'`，而本脚本从不返回该值，
+ *  标志位在打开后恒为false（2026-09-30 实机复核顶栏开关时发现）。 */
+const TOGGLE_DSH_SETTINGS_PAGE_SCRIPT = `(() => {
+  const back = document.querySelector(${JSON.stringify(DSH_SETTINGS_BACK_SELECTOR)})
+  if (back !== null) { back.click(); return 'closed' }
+  const trigger = document.querySelector(${JSON.stringify(DSH_SETTINGS_TRIGGER_SELECTOR)})
+  if (trigger !== null) { trigger.click(); return 'opened' }
+  return 'unavailable'
+})()`
+
 /** 用户从设置页点链接要看浏览器时，先让 DSH 页面**退出设置页**（点它自己的"返回应用"），
  *  再显示面板 —— 否则设置页与面板并存互相挤（2026-09-15 实机："你这又回到原来的了"）。
- *  选中失败也不阻断：覆盖标记仍在，面板会以"压过让位"的方式显示。 */
+ *  选中失败也不阻断：覆盖标记仍在，面板会以"压过让位"的方式显示。
+ *  无条件调用是安全的：设置页没开时 `dcu-settings-back` 根本不在 DOM 里，脚本空转。 */
 function exitDshSettingsPage(): void {
   const view = dshView
   if (view === undefined || view.webContents.isDestroyed()) return
   void view.webContents.executeJavaScript(`(() => {
-    const back = document.querySelector('.dcu-settings-back, [class*="settings-back"]')
+    const back = document.querySelector(${JSON.stringify(DSH_SETTINGS_BACK_SELECTOR)})
     if (back instanceof HTMLElement) { back.click(); return true }
     return false
-  })()`).catch(() => undefined)
+  })()`).then((exited) => { if (exited === true) dshSettingsDialogVisible = false }).catch(() => undefined)
+}
+
+/** 以 DOM 为准读设置页可见性并回写标志位。
+ *  标志位是壳内自用的真相源：ESC 路由、浏览器面板让位、relayout 都读它，
+ *  而唯一的上报通道已随 0.2 内核消失 —— 不主动校准，它就永久停在 false。 */
+async function isDshSettingsPageOpen(): Promise<boolean> {
+  const view = dshView
+  if (view === undefined || view.webContents.isDestroyed()) return false
+  const open = await view.webContents.executeJavaScript(DSH_SETTINGS_OPEN_SCRIPT).catch(() => false)
+  dshSettingsDialogVisible = open === true
+  return dshSettingsDialogVisible
 }
 
 /** DSH 外链统一路由：http/https 进完整版浏览器（新标签页），mailto:/tel: 走系统默认程序。 */
 function routeDshExternalLink(url: string): void {
   if (isExternalHttpUrl(url, allowedOrigin)) {
     browserPanelRequested = true
-    if (dshSettingsDialogVisible) exitDshSettingsPage()
+    exitDshSettingsPage()
     queueMicrotask(() => { openBrowser(url, true) })
     return
   }
@@ -657,7 +710,7 @@ function createHomepageTabs(): void {
 function openHomepageGroup(): void {
   // 完整版浏览器：首页组在内置浏览器打开（默认 DeepSeek）。
   browserPanelRequested = true
-  if (dshSettingsDialogVisible) exitDshSettingsPage()
+  exitDshSettingsPage()
   browserVisible = true
   const homepages = configuredBrowserHomepages()
   let firstTab = getActiveBrowserTab()
@@ -930,8 +983,18 @@ async function startApplication(): Promise<void> {
       resourcesPath: process.resourcesPath,
     }
     const pathPrefix = resolvePluginBinDir(runtimeOptions)
-    const pnpmEntry = pathPrefix === undefined ? process.env.npm_execpath : join(pathPrefix, 'pnpm-package', 'bin', 'pnpm.cjs')
+    const pnpmEntry = pathPrefix === undefined
+      ? (process.env.npm_execpath ? normalizePnpmNodeEntry(process.env.npm_execpath) : undefined)
+      : resolvePnpmNodeEntry(join(pathPrefix, 'pnpm-package'))
     const profileDir = resolveWebProfileDir()
+    const stagedCustomizations = stagedDesktopCustomization(process.env.DSH_DESKTOP_UPDATE_TRANSACTION)
+    // 已安装便携家园由用户拥有，不在每次启动重放随桌面包的默认插件矩阵。
+    // 普通启动保持健康现役，不因开发工作区在途改动而停掉它。
+    // 严格源码/定制快照检查属于候选准备、激活和健康提交边界。
+    const preserveInstalledProfile = portablePaths !== undefined && existsSync(join(profileDir, 'package.json'))
+    if (stagedCustomizations !== undefined && portablePaths !== undefined) {
+      assertCustomizationPreserved(stagedCustomizations, { portableRoot: portablePaths.root, profileDir, manifest: acceptedPreservationManifest() })
+    }
     const legacyDesktopRuntimeDir = resolveDesktopRuntimeDir(app.getPath('userData'), {
       isPackaged: app.isPackaged,
       execPath: process.execPath,
@@ -982,7 +1045,8 @@ async function startApplication(): Promise<void> {
       desktopText('正在准备插件和工作区…', 'Preparing plugins and workspace…'),
       STARTUP_PROGRESS.workspacePreparation,
     )
-    const desktopRuntimeDir = usingActiveRuntimeSlot ? activeRuntimeDir : packagedOfficialDir ?? activeRuntimeDir
+    const desktopRuntimeDir = usingActiveRuntimeSlot || (preserveInstalledProfile && isOfficialRuntimeLaunchable(activeRuntimeDir))
+      ? activeRuntimeDir : packagedOfficialDir ?? activeRuntimeDir
     const pluginStoreDir = resolveBundledPluginStore({
       ...runtimeOptions,
       ...(extractedStoreDir === undefined ? {} : { extractedStoreDir }),
@@ -999,7 +1063,8 @@ async function startApplication(): Promise<void> {
       ...(pathPrefix === undefined ? {} : { pathPrefix }),
     }
     try {
-      const seeded = await seedBundledPlugins(seedOptions)
+      // 桌面候选只升级桌面；不能借激活把已接受的 Profile/插件矩阵改成随包默认值。
+      const seeded = preserveInstalledProfile ? { seeded: [] } : await seedBundledPlugins(seedOptions)
       if (seeded.seeded.length > 0) console.log(`已补种官方运行时和社区插件：${seeded.seeded.join('、')}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : '内置插件补种失败。'
@@ -1011,7 +1076,10 @@ async function startApplication(): Promise<void> {
       STARTUP_PROGRESS.bundledPluginsReady,
     )
     try {
-      const updated = await applyPendingProfileUpdates(seedOptions)
+      const updated = preserveInstalledProfile ? [] : await applyPendingProfileUpdates(seedOptions)
+      if (preserveInstalledProfile && existsSync(join(profileDir, '.dsh-pending-updates.json'))) {
+        console.warn('已保留现役 Profile；待更新插件尚未独立完成定制/兼容验证，本次启动不自动重装。')
+      }
       if (updated.length > 0) console.log('已在启动前应用插件更新：' + updated.join('、'))
     } catch (error) {
       const message = error instanceof Error ? error.message : '启动前应用插件更新失败。'
@@ -1022,16 +1090,22 @@ async function startApplication(): Promise<void> {
       desktopText('配置已应用，正在检查用户数据…', 'Configuration applied. Checking user data…'),
       STARTUP_PROGRESS.profileUpdatesApplied,
     )
+    preserveMcpRefreshPatch(profileDir)
     installDesktopBridge(profileDir, resolveDesktopBridgeDir(runtimeOptions))
     const sessionRepairRoot = join(app.getPath('userData'), 'session-path-repair', new Date().toISOString().replaceAll(':', '-'))
-    const sessionRepairs = await repairMisplacedSessionLogs(join(resolve(profileDir, '..', '..'), 'sessions'), sessionRepairRoot)
-    if (sessionRepairs.length > 0) {
-      await writeTextFile(
-        join(app.getPath('userData'), 'session-path-repair.log'),
-        `${new Date().toISOString()} 已安全重定位 ${sessionRepairs.length} 个会话；原始日志备份位于 ${sessionRepairRoot}\n`,
-        'utf8',
-      )
-    }
+    await runSessionPathRepairAtStartup(join(resolve(profileDir, '..', '..'), 'sessions'), sessionRepairRoot, async sessionRepairResult => {
+      // 自愈失败只记录、不中断启动（`failures` 非空是正常情况，例如坏会话或目标已存在）。
+      if (sessionRepairResult.repairs.length > 0 || sessionRepairResult.failures.length > 0) {
+        const failureNote = sessionRepairResult.failures.length === 0
+          ? ''
+          : `；${sessionRepairResult.failures.length} 个会话未自愈：${sessionRepairResult.failures.slice(0, 3).join(' / ')}`
+        await writeTextFile(
+          join(app.getPath('userData'), 'session-path-repair.log'),
+          `${new Date().toISOString()} 已安全重定位 ${sessionRepairResult.repairs.length} 个会话；原始日志备份位于 ${sessionRepairRoot}${failureNote}\n`,
+          'utf8',
+        )
+      }
+    })
     await updateStartupMessage(
       desktopText('用户环境已就绪，正在启动 DSH…', 'Your environment is ready. Starting DSH…'),
       STARTUP_PROGRESS.profileReady,
@@ -1054,14 +1128,17 @@ async function startApplication(): Promise<void> {
     }
     lastStartOptions = startOptions
     await updateStartupMessage(desktopText('正在启动 DSH 服务…', 'Starting the DSH service…'), STARTUP_PROGRESS.dshStarting)
-    const started = await startWithProfileSelfRepair({
+    const startCandidate = () => startDsh({
+      ...startOptions,
+      onUnexpectedExit: handleUnexpectedDshExit,
+      onIpcMessage: handleDshIpc,
+    })
+    const started = preserveInstalledProfile
+      ? { result: await startCandidate(), repaired: [] }
+      : await startWithProfileSelfRepair({
       profileDir,
       extraDirs: [desktopRuntimeDir],
-      start: () => startDsh({
-        ...startOptions,
-        onUnexpectedExit: handleUnexpectedDshExit,
-        onIpcMessage: handleDshIpc,
-      }),
+      start: startCandidate,
     })
     server = started.result
     await updateStartupMessage(desktopText('DSH 已就绪，正在打开主界面…', 'DSH is ready. Opening the main window…'), STARTUP_PROGRESS.dshReady)
@@ -1077,6 +1154,8 @@ async function startApplication(): Promise<void> {
     const desktopUpdateTransaction = process.env.DSH_DESKTOP_UPDATE_TRANSACTION
     const desktopUpdateHealthFile = process.env.DSH_DESKTOP_UPDATE_HEALTH_FILE
     if (portableDesktopUpdater !== undefined && desktopUpdateTransaction !== undefined && desktopUpdateHealthFile !== undefined) {
+      if (stagedCustomizations === undefined || portablePaths === undefined) throw new Error('候选缺少已暂存的定制保护快照，拒绝健康提交。')
+      assertCustomizationPreserved(stagedCustomizations, { portableRoot: portablePaths.root, profileDir, manifest: acceptedPreservationManifest() })
       await portableDesktopUpdater.confirmRunningCandidate(desktopUpdateTransaction, dirname(process.execPath), desktopUpdateHealthFile)
       stopDesktopActivationHeartbeat()
     }
@@ -1087,6 +1166,8 @@ async function startApplication(): Promise<void> {
         bootstrapPath: startOptions.bootstrapPath,
         legacyRuntimeDir: legacyDesktopRuntimeDir,
         nodeExecutable,
+        // Electron 自带 Node 不等于执行 Harness 的随包 Node；身份取本应用自己的清单。
+        nodeVersion: String((JSON.parse(readFileSync(join(app.getAppPath(), 'package.json'), 'utf8')) as { config: { bundledNodeVersion: string } }).config.bundledNodeVersion).replace(/^v/, ''),
         ...(pathPrefix === undefined ? {} : { pathPrefix }),
         pnpmEntry,
         profileDir,
@@ -1489,6 +1570,7 @@ async function recycleDshForPluginUpdate(): Promise<void> {
     await current?.stop()
     const updated = await applyPendingProfileUpdates(seedOptions)
     if (updated.length > 0) console.log('已热更新插件：' + updated.join('、'))
+    preserveMcpRefreshPatch(seedOptions.profileDir)
     const started = await startWithProfileSelfRepair({
       profileDir: seedOptions.profileDir,
       extraDirs: seedOptions.desktopRuntimeDir === undefined ? [] : [seedOptions.desktopRuntimeDir],
@@ -1514,7 +1596,9 @@ function handleUnexpectedDshExit(message: string): void {
   server = undefined
   const missing = parseUnresolvedBundleError(message)
   if (missing !== undefined && lastSeedOptions !== undefined) {
-    runMainTask(quarantineProfileBundle(lastSeedOptions.profileDir, missing, message, 'runtime').then((removed) => {
+    runMainTask(quarantineProfileBundle(lastSeedOptions.profileDir, missing, message, 'runtime', {
+      extraDirs: lastSeedOptions.desktopRuntimeDir === undefined ? [] : [lastSeedOptions.desktopRuntimeDir],
+    }).then((removed) => {
       if (removed) runMainTask(recycleDshForPluginUpdate())
     }))
     return
@@ -1694,6 +1778,9 @@ function layoutDshView(window: BrowserWindow): void {
     return
   }
   if (mainWindowLayoutDeferred) {
+    // Keep the native hit-test surface aligned throughout maximize/restore animation.
+    dshView?.setVisible(true)
+    dshView?.setBounds({ x: 0, y: SHELL_BAR_HEIGHT, width: bounds.width, height: Math.max(0, bounds.height - SHELL_BAR_HEIGHT) })
     broadcastShellState()
     return
   }
@@ -1796,6 +1883,10 @@ function installWindowSurfaceGuard(window: BrowserWindow): void {
   })
   window.on('maximize', beginDisplayModeTransition)
   window.on('unmaximize', beginDisplayModeTransition)
+  window.once('closed', () => {
+    transitionGeneration += 1
+    clearRevealTimer()
+  })
 }
 
 function browserWorkspacePanelBounds(viewportWidth: number, viewportHeight: number): BrowserPanelBounds {
@@ -2103,6 +2194,7 @@ function broadcastShellBootstrap(): void {
     if (window !== undefined && !window.isDestroyed()) window.webContents.send(SHELL_IPC.bootstrap, bootstrap)
   }
   browserChromeContents()?.send(SHELL_IPC.bootstrap, shellBootstrap(state))
+  if (dshView !== undefined && !dshView.webContents.isDestroyed()) dshView.webContents.send(SHELL_IPC.bootstrap, bootstrap)
   sendDesktopThemeToDsh()
 }
 
@@ -2181,6 +2273,7 @@ function desktopUpdateSnapshot(): DesktopUpdateSnapshot {
 
 function broadcastDesktopUpdateState(): void {
   const snapshot = desktopUpdateSnapshot()
+  if (dshView !== undefined && !dshView.webContents.isDestroyed()) dshView.webContents.send(SHELL_IPC.desktopUpdateState, snapshot)
   for (const window of [mainWindow, settingsWindow]) {
     if (window !== undefined && !window.isDestroyed()) window.webContents.send(SHELL_IPC.desktopUpdateState, snapshot)
   }
@@ -2218,6 +2311,7 @@ function harnessUpdateSnapshot(): { available: boolean; policy: HarnessUpdatePol
 }
 
 function broadcastHarnessUpdateState(): void {
+  if (dshView !== undefined && !dshView.webContents.isDestroyed()) dshView.webContents.send(SHELL_IPC.harnessUpdateState, harnessUpdateSnapshot())
   if (settingsWindow !== undefined && !settingsWindow.isDestroyed()) {
     settingsWindow.webContents.send(SHELL_IPC.harnessUpdateState, harnessUpdateSnapshot())
   }
@@ -2231,6 +2325,20 @@ function setDesktopUpdateStatus(status: DesktopUpdateStatus, checked = false): v
 }
 
 function installShellIpc(): void {
+  ipcMain.removeAllListeners(SHELL_IPC.forwardInput)
+  ipcMain.on(SHELL_IPC.forwardInput, (event, payload: unknown) => {
+    const window = mainWindow
+    const view = dshView
+    if (!window || window.isDestroyed() || !window.isFocused() || window.isMinimized()
+      || mainWindowContentSuppressed || !view || view.webContents.isDestroyed()) return
+    if (shellRendererKind(event.sender) !== 'main' || event.senderFrame !== event.sender.mainFrame) return
+    const bounds = view.getBounds()
+    const input = parseForwardedInput(payload, bounds.width, bounds.height)
+    if (!input) return
+    // Focus only for explicit input, never from resize/layout (would steal browser/settings focus).
+    if (input.type === 'mouseDown' || input.type === 'keyDown' || input.type === 'char') view.webContents.focus()
+    view.webContents.sendInputEvent(input)
+  })
   ipcMain.removeHandler(SHELL_IPC.browserEmbeddedConfig)
   ipcMain.removeHandler(SHELL_IPC.browserEmbeddedGuestAttached)
   ipcMain.handle(SHELL_IPC.browserEmbeddedConfig, event => {
@@ -2288,49 +2396,97 @@ function installShellIpc(): void {
     if (!mayPopupShellMenu(shellRendererKind(event.sender))) return
     return popupShellMenu(request)
   })
-  ipcMain.handle(SHELL_IPC.getNotificationPreferences, event => {
-    if (!mayAccessNotificationPreferences(shellRendererKind(event.sender))) return
+  // One handler implementation for the standalone fallback and the embedded page.
+  const settingsHandlers = new Map<string, (value: unknown) => unknown>()
+  const registerSettings = (method: keyof typeof SHELL_IPC, permission: (kind: ShellRendererKind) => boolean, handler: (value: unknown) => unknown): void => {
+    settingsHandlers.set(method, handler)
+    ipcMain.handle(SHELL_IPC[method], (event, value: unknown) => {
+      if (event.senderFrame !== event.sender.mainFrame || !permission(shellRendererKind(event.sender))) return
+      return handler(value)
+    })
+  }
+  settingsHandlers.set('getBootstrap', () => {
+    const state = currentShellState()
+    return shellBootstrap({ ...state, browser: { ...state.browser, visible: false } })
+  })
+  const embeddedSenderAllowed = (event: Electron.IpcMainInvokeEvent): boolean => mayUseEmbeddedDesktopSettings(
+    shellRendererKind(event.sender), event.senderFrame === event.sender.mainFrame, event.senderFrame?.url ?? '', allowedOrigin,
+  )
+  ipcMain.removeHandler(SHELL_IPC.embeddedSettingsDocument)
+  ipcMain.handle(SHELL_IPC.embeddedSettingsDocument, event => {
+    if (!embeddedSenderAllowed(event)) throw new Error('Desktop settings sender rejected')
+    return embeddedDesktopSettingsDocument(
+      readFileSync(resolveShellAsset('settings.html'), 'utf8'), readFileSync(resolveShellAsset('theme.css'), 'utf8'),
+      readFileSync(join(dirname(resolveShellAsset('settings.html')), 'theme.js'), 'utf8'),
+      readFileSync(join(dirname(resolveShellAsset('settings.html')), 'shell-icons', 'chevron-down.svg'), 'utf8'),
+    )
+  })
+  ipcMain.removeHandler(SHELL_IPC.embeddedSettingsRequest)
+  ipcMain.handle(SHELL_IPC.embeddedSettingsRequest, (event, value: unknown) => {
+    if (!embeddedSenderAllowed(event)) throw new Error('Desktop settings sender rejected')
+    const request = parseDesktopSettingsRequest(value)
+    const handler = settingsHandlers.get(request.method)
+    if (handler === undefined) throw new Error('Desktop settings method unavailable')
+    return handler(request.value)
+  })
+  registerSettings('getNotificationPreferences', mayAccessNotificationPreferences, () => {
     return notificationPreferences
   })
-  ipcMain.handle(SHELL_IPC.updateNotificationPreferences, async (event, value: unknown) => {
-    if (!mayAccessNotificationPreferences(shellRendererKind(event.sender))) return
+  registerSettings('updateNotificationPreferences', mayAccessNotificationPreferences, async (value: unknown) => {
     notificationPreferences = await saveNotificationPreferences(notificationPreferencesPath(), value)
     return notificationPreferences
   })
-  ipcMain.handle(SHELL_IPC.updateThemePreferences, async (event, value: unknown) => {
-    if (!mayAccessThemePreferences(shellRendererKind(event.sender))) return
+  registerSettings('updateThemePreferences', mayAccessThemePreferences, async (value: unknown) => {
     themePreferences = await saveDesktopThemePreferences(themePreferencesPath(), value)
     broadcastShellBootstrap()
     return themePreferences
   })
-  ipcMain.handle(SHELL_IPC.getUpdatePreferences, event => {
-    if (!mayAccessDesktopUpdates(shellRendererKind(event.sender))) return
+  registerSettings('getUpdatePreferences', mayAccessDesktopUpdates, () => {
     return updatePreferences
   })
-  ipcMain.handle(SHELL_IPC.updateUpdatePreferences, async (event, value: unknown) => {
-    if (!mayAccessDesktopUpdates(shellRendererKind(event.sender))) return
-    updatePreferences = await saveUpdatePreferences(updatePreferencesPath(), value)
-    if (shouldDownloadUpdateAutomatically(updatePreferences) && updateStatus.kind === 'available') {
-      runMainTask(downloadDesktopUpdate('settings'))
+  registerSettings('updateUpdatePreferences', mayAccessDesktopUpdates, async (value: unknown) => {
+    if (desktopUpdatePreferencesSaving) throw new Error('更新偏好正在保存，请稍后重试。')
+    const next = sanitizeUpdatePreferences(typeof value === 'object' && value !== null ? { ...updatePreferences, ...value } : value)
+    const channelChanged = desktopReleaseChannel(next) !== desktopReleaseChannel(updatePreferences)
+    if (channelChanged && desktopCandidateMutationPending) throw new Error('桌面候选正在准备或部署，发布通道未更改；请等待当前事务结束。')
+    desktopUpdatePreferencesSaving = true
+    try {
+      if (channelChanged) {
+        await componentUpdateSafety.run('desktop', async () => {
+          if (portableDesktopUpdater !== undefined && !await portableDesktopUpdater.invalidateReleaseForChannelChange()) {
+            throw new Error('桌面更新正在检查、准备或等待激活，发布通道未更改；请先完成当前事务。')
+          }
+          desktopUpdateChannelGate.invalidate()
+          dismissDesktopUpdateNotification()
+          updatePreferences = await saveUpdatePreferences(updatePreferencesPath(), next)
+        })
+      } else {
+        updatePreferences = await saveUpdatePreferences(updatePreferencesPath(), next)
+      }
+      if (startupUpdateTimer !== undefined) clearTimeout(startupUpdateTimer)
+      startupUpdateTimer = undefined
+      // Saving a policy/channel schedules a fresh check below. Never prepare a
+      // cached `available` release from this handler, even if the new policy is
+      // automatic: a successful check must authorize the next download.
+      return updatePreferences
+    } finally {
+      desktopUpdatePreferencesSaving = false
+      scheduleStartupUpdateCheck(0)
     }
-    return updatePreferences
   })
-  ipcMain.handle(SHELL_IPC.getDesktopUpdateState, event => {
-    if (!mayAccessDesktopUpdates(shellRendererKind(event.sender))) return
+  registerSettings('getDesktopUpdateState', mayAccessDesktopUpdates, () => {
     return desktopUpdateSnapshot()
   })
-  ipcMain.handle(SHELL_IPC.desktopUpdateAction, async (event, value: unknown) => {
-    if (!mayAccessDesktopUpdates(shellRendererKind(event.sender))) return
+  registerSettings('desktopUpdateAction', mayAccessDesktopUpdates, async (value: unknown) => {
     if (value !== 'check' && value !== 'download' && value !== 'install') return
     await handleDesktopUpdateSettingsAction(value)
     return desktopUpdateSnapshot()
   })
-  ipcMain.handle(SHELL_IPC.getHarnessUpdateState, event => {
-    if (!mayAccessDesktopUpdates(shellRendererKind(event.sender))) return
+  registerSettings('getHarnessUpdateState', mayAccessDesktopUpdates, () => {
     return harnessUpdateSnapshot()
   })
-  ipcMain.handle(SHELL_IPC.updateHarnessUpdatePolicy, async (event, value: unknown) => {
-    if (!mayAccessDesktopUpdates(shellRendererKind(event.sender)) || harnessUpdaterContext === undefined) return harnessUpdateSnapshot()
+  registerSettings('updateHarnessUpdatePolicy', mayAccessDesktopUpdates, async (value: unknown) => {
+    if (harnessUpdaterContext === undefined) return harnessUpdateSnapshot()
     harnessUpdatePolicy = await saveHarnessUpdatePolicy(harnessUpdatePolicyPath(harnessUpdaterContext.updateRoot), value)
     if (harnessUpdateTimer !== undefined) clearTimeout(harnessUpdateTimer)
     harnessUpdateTimer = undefined
@@ -2338,8 +2494,8 @@ function installShellIpc(): void {
     broadcastHarnessUpdateState()
     return harnessUpdateSnapshot()
   })
-  ipcMain.handle(SHELL_IPC.harnessUpdateAction, async (event, value: unknown) => {
-    if (!mayAccessDesktopUpdates(shellRendererKind(event.sender)) || value !== 'check' || harnessUpdaterContext === undefined) return harnessUpdateSnapshot()
+  registerSettings('harnessUpdateAction', mayAccessDesktopUpdates, async (value: unknown) => {
+    if (value !== 'check' || harnessUpdaterContext === undefined) return harnessUpdateSnapshot()
     const task = startHarnessUpdateTask(true)
     // 设置页等待本次周期结束再刷新快照；周期内的每次状态变化另有广播。
     if (task !== undefined) await task
@@ -2754,7 +2910,7 @@ function installShellIpc(): void {
     if (browserPanelOwner !== request.owner) browserPanelBounds = undefined
     browserPanelOwner = request.owner
     browserPanelRequested = true // 显式请求显示面板：压过设置页让位
-    if (dshSettingsDialogVisible) exitDshSettingsPage()
+    exitDshSettingsPage()
     browserVisible = true
     browserPanelOccluded = false
     browserMaximized = false
@@ -3055,7 +3211,31 @@ const DISMISS_DSH_SETTINGS_DIALOG_SCRIPT = `(() => {
 function dismissDshSettingsDialog(): void {
   const contents = dshView?.webContents
   if (contents === undefined || contents.isDestroyed()) return
-  void contents.executeJavaScript(DISMISS_DSH_SETTINGS_DIALOG_SCRIPT).catch(() => undefined)
+  void contents.executeJavaScript(DISMISS_DSH_SETTINGS_DIALOG_SCRIPT)
+    .then((dismissed) => {
+      // 0.2 内核的设置页不是 role=dialog，上面必然落空；回落到「返回应用」这一条真实路径。
+      if (dismissed !== true) exitDshSettingsPage()
+    })
+    .catch(() => exitDshSettingsPage())
+}
+
+/** ESC 关设置页的兜底：**以 DOM 为准**判断开合，而不是读 `dshSettingsDialogVisible`。
+ *
+ *  那个模块级标志位在 0.2 内核下不可靠：唯一的自动校准通道
+ *  `dsh-shell:dsh-settings-visibility` 已无发送方（三个 profile 全量静态核实均无引用），
+ *  而进程内另有多条写入路径。2026-09-30 实机证据链：
+ *  ① 顶栏「设置」把标志位置为 true（asar 内已核实含该赋值）；
+ *  ② 同一次会话里 F11 能把窗口切全屏、Ctrl+B 能收起边栏 —— 证明按键确实到达
+ *     `before-input-event` 且通过了 `input.type === 'keyDown'` 守卫；
+ *  ③ 但 ESC 时 DOM 仍收到 keydown（未被 `preventDefault` 吞掉）⇒ `escapeRoute`
+ *     判定 `pass-through` ⇒ 读到的标志位是 false。
+ *  即"标志位说没开、DOM 明明开着"。这里改成直接问 DOM，对任何未知的写入者都免疫。
+ *
+ *  刻意**不** `preventDefault`：ESC 仍照常透传给 DSH 页面，壳只在旁边补一次关闭，
+ *  这样设置页没开时 DSH 自身的 ESC 语义（关浮层、退输入态）完全不受影响。 */
+async function dismissDshSettingsDialogWhenOpen(): Promise<void> {
+  if (!await isDshSettingsPageOpen()) return
+  dismissDshSettingsDialog()
 }
 
 function installShortcutHandler(contents: Electron.WebContents): void {
@@ -3115,9 +3295,15 @@ function installShortcutHandler(contents: Electron.WebContents): void {
       return
     }
     if (route === 'dismiss-dsh-settings') {
-      event.preventDefault()
-      dismissDshSettingsDialog()
+      // 不 preventDefault：ESC 照常透传给 DSH 页面，关闭动作走 DOM 为准的兜底。
+      // 详见 dismissDshSettingsDialogWhenOpen 的注释（标志位在 0.2 内核下不可信）。
+      runMainTask(dismissDshSettingsDialogWhenOpen())
       return
+    }
+    // 兜底分支：标志位说"设置页没开"时 escapeRoute 判 pass-through，但 DOM 可能开着。
+    // 这里对主壳上的 ESC 无条件补一次 DOM 判定 —— 没开就是空转，开了就关掉。
+    if (input.key === 'Escape' && auxiliaryWindow === undefined && contents === mainWindow?.webContents) {
+      runMainTask(dismissDshSettingsDialogWhenOpen())
     }
     const id = shellActionForShortcut(input, process.platform)
     if (id === undefined || !isActionEnabled(id)) return
@@ -3143,7 +3329,18 @@ async function executeShellAction(id: ShellActionId): Promise<void> {
       settingsWindow.close()
       return
     }
-    if (dshSettingsDialogVisible) {
+    if (id === 'settings') {
+      // 「设置」由壳直接驱动 DSH 页面，不走 dsh-action 通道：0.2 内核的客户端已不监听该
+      // 动作的 settings 分支（2026-09-29 实机：toggle-sidebar 仍生效、settings 完全无反应），
+      // 沿用通道只会让顶栏按钮彻底失灵。开关都点 DSH 自己的控件，语义与用户所见一致。
+      const view = dshView
+      if (view === undefined || view.webContents.isDestroyed()) return
+      const outcome = await view.webContents.executeJavaScript(TOGGLE_DSH_SETTINGS_PAGE_SCRIPT).catch(() => 'unavailable')
+      dshSettingsDialogVisible = outcome === 'closed' || outcome === 'opened'
+      relayout()
+      return
+    }
+    if (await isDshSettingsPageOpen()) {
       exitDshSettingsPage()
       return
     }
@@ -3155,7 +3352,7 @@ async function executeShellAction(id: ShellActionId): Promise<void> {
     return
   }
   const contents = dshView?.webContents
-  if (id === 'new-chat' || id === 'open-folder' || id === 'settings' || id === 'toggle-sidebar' || id === 'find' || id === 'previous-chat' || id === 'next-chat' || id === 'back' || id === 'forward') {
+  if (id === 'new-chat' || id === 'open-folder' || id === 'toggle-sidebar' || id === 'find' || id === 'previous-chat' || id === 'next-chat' || id === 'back' || id === 'forward') {
     sendDshAction(id)
     return
   }
@@ -3540,12 +3737,26 @@ async function configureDesktopUpdater(): Promise<void> {
     portableRoot: portablePaths.root,
     currentVersion: app.getVersion(),
     // 机器本地 Data/config 覆盖优先于构建期烘焙的 resources/release-source.json；
-    // 都没有时回落内置默认（上游仓库，缺契约的 Release 会被拦成「已阻止」）。
+    // 都没有时回落自己的便携发布源；官方原版没有保护契约，不是自动更新资产。
     releaseSource: resolvePortableReleaseSource([
       join(portablePaths.root, PORTABLE_RELEASE_SOURCE_OVERRIDE_PATH),
       join(process.resourcesPath, 'release-source.json'),
     ]),
     onState: applyPortableDesktopUpdateState,
+    verifyCandidatePreservation: async appDirectory => {
+      const pendingRuntime = readRuntimeSlotPointer(join(portablePaths.root, 'Data', 'Runtime', 'dsh-runtime'))
+      if (pendingRuntime?.pendingTransactionId !== undefined || isRecycling) throw new Error('DSH 内核或 Profile 事务未结束，桌面候选暂不准备/部署。')
+      const manifest = acceptedPreservationManifest()
+      const result = checkPreservationManifest(JSON.parse(readFileSync(join(appDirectory, 'resources', 'preservation.json'), 'utf8')), manifest)
+      if (!result.ok) throw new Error('候选会丢失已接受定制，已阻止更新：' + result.issues.map(item => item.code + ' ' + (item.path ?? item.pluginName ?? '')).join('; '))
+      const snapshot = captureCustomizationState({ portableRoot: portablePaths.root, profileDir: resolveWebProfileDir(), manifest })
+      const transactionId = portableDesktopUpdater?.state.transactionId
+      if (transactionId !== undefined) {
+        const directory = join(portablePaths.root, 'Data', 'Updates', 'Desktop', 'transactions', transactionId)
+        mkdirSync(directory, { recursive: true })
+        writeTextFileAtomicSync(join(directory, 'customization-snapshot.json'), JSON.stringify(snapshot, null, 2) + '\n')
+      }
+    },
     prepareCandidateRuntime: async (appDirectory, onProgress) => {
       const resourcesDir = join(appDirectory, 'resources')
       const legacyRuntimeDir = resolveDesktopRuntimeDir(app.getPath('userData'), {
@@ -3565,6 +3776,20 @@ async function configureDesktopUpdater(): Promise<void> {
     },
   })
   await portableDesktopUpdater.initialize()
+}
+
+function acceptedPreservationManifest(): PreservationManifest {
+  if (portablePaths !== undefined && existsSync(join(portablePaths.root, 'customizations', 'preservation.json'))) return readPreservationManifest(portablePaths.root)
+  const value: unknown = JSON.parse(readFileSync(join(process.resourcesPath, 'preservation.json'), 'utf8'))
+  const result = checkPreservationManifest(value)
+  if (!result.ok) throw new Error('定制保护清单缺失或无效，拒绝升级。')
+  return value as PreservationManifest
+}
+
+function stagedDesktopCustomization(transactionId: string | undefined): CustomizationSnapshot | undefined {
+  if (transactionId === undefined || portablePaths === undefined) return undefined
+  if (!/^[a-f0-9-]{36}$/i.test(transactionId)) throw new Error('桌面定制保护事务号无效。')
+  return JSON.parse(readFileSync(join(portablePaths.root, 'Data', 'Updates', 'Desktop', 'transactions', transactionId, 'customization-snapshot.json'), 'utf8')) as CustomizationSnapshot
 }
 
 function applyPortableDesktopUpdateState(state: PortableDesktopUpdateState): void {
@@ -3602,14 +3827,17 @@ function applyPortableDesktopUpdateState(state: PortableDesktopUpdateState): voi
   setDesktopUpdateStatus(status)
 }
 
-function scheduleStartupUpdateCheck(): void {
+function scheduleStartupUpdateCheck(delayMs = STARTUP_UPDATE_CHECK_DELAY_MS): void {
   if (startupUpdateTimer !== undefined || !shouldCheckForUpdatesOnStartup(updatePreferences, app.isPackaged)) return
   startupUpdateTimer = setTimeout(() => {
     startupUpdateTimer = undefined
     if (!isQuitting && shouldCheckForUpdatesOnStartup(updatePreferences, app.isPackaged)) {
-      runMainTask(checkDesktopUpdate('background'))
+      runMainTask(checkDesktopUpdate('background').finally(() => {
+        if (!isQuitting) scheduleStartupUpdateCheck(desktopUpdateCheckInterval(updatePreferences))
+      }))
     }
-  }, STARTUP_UPDATE_CHECK_DELAY_MS)
+  }, delayMs)
+  startupUpdateTimer.unref?.()
 }
 
 const HARNESS_INITIAL_CHECK_DELAY_MS = 15_000
@@ -3691,7 +3919,17 @@ async function runHarnessUpdateCycle(context: HarnessUpdaterContext, interactive
       timestamp: new Date().toISOString(),
       currentVersion,
     })
-    const checked = await checkHarnessUpdate({ currentVersion, policy: harnessUpdatePolicy })
+    const checked = await checkHarnessUpdate({
+      currentVersion,
+      policy: harnessUpdatePolicy,
+      includePrerelease: updatePreferences.channel !== 'stable',
+      resolvePrebuiltRelease: async version => await fetchHarnessPrebuiltRelease({
+        version, nodeVersion: context.nodeVersion,
+        source: portableDesktopUpdater === undefined ? undefined : resolvePortableReleaseSource([
+          join(portablePaths!.root, PORTABLE_RELEASE_SOURCE_OVERRIDE_PATH), join(process.resourcesPath, 'release-source.json'),
+        ]),
+      }),
+    })
     if (!checked.updateAvailable || checked.candidate === undefined) {
       await setHarnessUpdateState(context, 'idle', { lastCheckedAt: checked.checkedAt, detail: '当前已是受检通道的最新版本。' })
       await appendHarnessUpdateEvent(context.updateRoot, {
@@ -3767,6 +4005,10 @@ async function runHarnessUpdateCycle(context: HarnessUpdaterContext, interactive
 }
 
 async function deployHarnessCandidate(context: HarnessUpdaterContext, release: HarnessReleaseCandidate, checkedAt: string): Promise<void> {
+  await componentUpdateSafety.run('harness', () => deployHarnessCandidateUnlocked(context, release, checkedAt))
+}
+
+async function deployHarnessCandidateUnlocked(context: HarnessUpdaterContext, release: HarnessReleaseCandidate, checkedAt: string): Promise<void> {
   const lock = await acquireHarnessUpdateLock(context.updateRoot)
   const transactionId = lock.transactionId
   const currentVersion = runtimeSlotVersion(resolveActiveRuntimeDir(context.legacyRuntimeDir)) ?? OFFICIAL_DSH_VERSION
@@ -3782,7 +4024,7 @@ async function deployHarnessCandidate(context: HarnessUpdaterContext, release: H
     })
   }
   try {
-    await setHarnessUpdateState(context, 'building', { transactionId, targetVersion: release.version, lastCheckedAt: checkedAt, detail: '正在独立槽装配候选运行时。' })
+    await setHarnessUpdateState(context, 'building', { transactionId, targetVersion: release.version, lastCheckedAt: checkedAt, detail: '正在下载、校验独立运行环境成品；不会在用户电脑编译或安装依赖。' })
     await event('build', 'start')
     const candidate = await buildCandidateWithRetries(context, release)
     await event('build', 'success', `候选指纹 ${candidate.fingerprint}，官方包 ${candidate.packageCount} 个。`)
@@ -3809,13 +4051,20 @@ async function deployHarnessCandidate(context: HarnessUpdaterContext, release: H
     })
     await event('shadow-start', 'success')
 
+    const activationSafety = harnessActivationSafety()
+    if (!activationSafety.allowed) {
+      await setHarnessUpdateState(context, 'blocked', { transactionId, targetVersion: release.version, detail: activationSafety.reason })
+      await event('activation-safety', 'blocked', `${activationSafety.reason} 候选指纹 ${candidate.fingerprint}。`)
+      return
+    }
+
     await setHarnessUpdateState(context, 'waiting-idle', { transactionId, targetVersion: release.version, detail: `等待连续 ${harnessUpdatePolicy.idleQuietSeconds} 秒无运行或待审批任务。` })
     if (!await waitForHarnessIdle(harnessUpdatePolicy.idleQuietSeconds * 1_000, HARNESS_IDLE_MAX_WAIT_MS)) {
       await setHarnessUpdateState(context, 'blocked', { transactionId, targetVersion: release.version, detail: '用户任务持续繁忙，本轮不切换；候选槽已保留供下次复用。' })
       await event('idle-gate', 'blocked', '空闲等待超过上限，未中断用户任务。')
       return
     }
-    await switchHarnessRuntime(context, candidate, transactionId)
+    await switchHarnessRuntime(context, candidate, transactionId, release)
   } catch (error) {
     const detail = error instanceof Error ? error.message : '候选部署失败。'
     await setHarnessUpdateState(context, 'failed', {
@@ -3835,6 +4084,13 @@ async function buildCandidateWithRetries(context: HarnessUpdaterContext, release
   let lastError: unknown
   for (let attempt = 0; attempt <= harnessUpdatePolicy.maxDownloadRetries; attempt += 1) {
     try {
+      if (release.prebuiltRelease !== undefined) {
+        return await prepareHarnessPrebuiltCandidate({
+          legacyRuntimeDir: context.legacyRuntimeDir, updateRoot: context.updateRoot,
+          release: release.prebuiltRelease, nodeVersion: context.nodeVersion,
+        })
+      }
+      if (context.isPackaged) throw new Error('缺少独立运行环境成品，已阻止用户端本地装配；当前版本不变。')
       return await buildHarnessRuntimeCandidate({
         legacyRuntimeDir: context.legacyRuntimeDir,
         version: release.version,
@@ -3865,23 +4121,24 @@ async function waitForHarnessIdle(quietMs: number, maxWaitMs: number): Promise<b
   return false
 }
 
-async function switchHarnessRuntime(context: HarnessUpdaterContext, candidate: HarnessRuntimeCandidate, transactionId: string): Promise<void> {
+async function switchHarnessRuntime(context: HarnessUpdaterContext, candidate: HarnessRuntimeCandidate, transactionId: string, release: HarnessReleaseCandidate): Promise<void> {
+  const activationSafety = harnessActivationSafety()
+  if (!activationSafety.allowed) throw new Error(activationSafety.reason)
   if (lastStartOptions === undefined || lastSeedOptions === undefined || server === undefined) throw new Error('当前 DSH 服务上下文不完整，不能安全切换。')
   if (activeDshWorkCount > 0 || isRecycling || profileActivationRecyclePending || isDshMarketOperationBusy(await dshMarketOperationStatus())) {
     throw new Error('空闲门禁后检测到新任务，已取消本轮切换。')
   }
   const previousStartOptions = lastStartOptions
   const previousSeedOptions = lastSeedOptions
-  const nextStartOptions: Omit<StartDshOptions, 'onUnexpectedExit' | 'onIpcMessage'> = {
-    ...previousStartOptions,
-    runtime: resolveDshRuntime({ ...context, profileDir: context.profileDir, desktopRuntimeDir: candidate.directory }),
-    startupTimeoutMs: harnessUpdatePolicy.liveStartupTimeoutSeconds * 1_000,
-    environment: {
-      ...previousStartOptions.environment,
-      DSH_RUNTIME_DIR: candidate.directory,
-    },
-  }
+  if (portablePaths === undefined) throw new Error('缺少便携数据根，不能隔离家园升级。')
+  const manifest = acceptedPreservationManifest()
+  const customizationSnapshot = captureCustomizationState({ portableRoot: portablePaths.root, profileDir: previousSeedOptions.profileDir, manifest })
+  const previousHome = process.env.DSH_HOME
+  const previousProfile = process.env.DSH_PROFILE_DIR
+  const previousRuntime = process.env.DSH_DESKTOP_RUNTIME_DIR
+  let preparedHome: Awaited<ReturnType<typeof prepareHarnessHome>> | undefined
   let activated = false
+  let committed = false
   let observing = true
   let observationReject: ((error: Error) => void) | undefined
   const observationFailure = new Promise<never>((_resolve, reject) => { observationReject = reject })
@@ -3890,6 +4147,26 @@ async function switchHarnessRuntime(context: HarnessUpdaterContext, candidate: H
   try {
     await setHarnessUpdateState(context, 'switching', { transactionId, targetVersion: candidate.version, detail: '已通过空闲门禁，正在切换 DSH 子服务。' })
     await showStartupWindow(desktopText('正在安全更新 DSH 运行环境…', 'Safely updating the DSH runtime…'))
+    profileWatcher?.stop()
+    const previousServer = server
+    server = undefined
+    await previousServer.stop()
+    preparedHome = await prepareHarnessHome({
+      portableRoot: portablePaths.root, sourceProfileDir: previousSeedOptions.profileDir,
+      candidate, transactionId, sourceStopped: true, snapshot: customizationSnapshot,
+      profileCompatibility: release.prebuiltRelease?.profileCompatibility,
+    })
+    assertCustomizationPreserved(customizationSnapshot, { portableRoot: portablePaths.root, profileDir: preparedHome.profileDir, manifest })
+    installDesktopBridge(preparedHome.profileDir, resolveDesktopBridgeDir(context))
+    const repaired = await repairMisplacedSessionLogs(join(preparedHome.home, 'sessions'), join(context.updateRoot, 'transactions', transactionId, 'session-path-repair'))
+    if (repaired.failures.length > 0) throw new Error(`候选家园会话路径检查失败：${repaired.failures.join(' / ')}`)
+    await preparedHome.publishBinding()
+    const nextStartOptions: Omit<StartDshOptions, 'onUnexpectedExit' | 'onIpcMessage'> = {
+      ...previousStartOptions,
+      runtime: resolveDshRuntime({ ...context, profileDir: preparedHome.profileDir, desktopRuntimeDir: candidate.directory }),
+      startupTimeoutMs: harnessUpdatePolicy.liveStartupTimeoutSeconds * 1_000,
+      environment: { ...previousStartOptions.environment, DSH_HOME: preparedHome.home, DSH_PROFILE_DIR: preparedHome.profileDir, DSH_RUNTIME_DIR: candidate.directory },
+    }
     activateRuntimeSlot({
       legacyRuntimeDir: context.legacyRuntimeDir,
       candidateDir: candidate.directory,
@@ -3898,9 +4175,6 @@ async function switchHarnessRuntime(context: HarnessUpdaterContext, candidate: H
       transactionId,
     })
     activated = true
-    const previousServer = server
-    server = undefined
-    await previousServer.stop()
     const nextServer = await startDsh({
       ...nextStartOptions,
       onUnexpectedExit: message => {
@@ -3911,10 +4185,14 @@ async function switchHarnessRuntime(context: HarnessUpdaterContext, candidate: H
     })
     server = nextServer
     lastStartOptions = nextStartOptions
-    lastSeedOptions = { ...previousSeedOptions, desktopRuntimeDir: candidate.directory }
+    lastSeedOptions = { ...previousSeedOptions, profileDir: preparedHome.profileDir, desktopRuntimeDir: candidate.directory }
+    process.env.DSH_HOME = preparedHome.home
+    process.env.DSH_PROFILE_DIR = preparedHome.profileDir
+    process.env.DSH_DESKTOP_RUNTIME_DIR = candidate.directory
     await createMainWindow(nextServer.url)
-    isRecycling = false
-    broadcastShellState()
+    assertCustomizationPreserved(customizationSnapshot, { portableRoot: portablePaths.root, profileDir: preparedHome.profileDir, manifest })
+    // 观察期间不开放新任务界面，避免失败回滚时用户已写入新格式会话。
+    await showStartupWindow(desktopText('候选运行环境已启动，正在观察健康状态；完成后自动返回。', 'The candidate runtime started. Observing health before returning to the app.'))
 
     await setHarnessUpdateState(context, 'observing', { transactionId, targetVersion: candidate.version, detail: `候选已上线，观察 ${harnessUpdatePolicy.observationMinutes} 分钟后提交。` })
     await Promise.race([
@@ -3922,7 +4200,11 @@ async function switchHarnessRuntime(context: HarnessUpdaterContext, candidate: H
       waitHarnessObservation(harnessUpdatePolicy.observationMinutes * 60_000),
     ])
     observing = false
+    assertCustomizationPreserved(customizationSnapshot, { portableRoot: portablePaths.root, profileDir: preparedHome.profileDir, manifest })
     commitRuntimeSlot(context.legacyRuntimeDir, transactionId)
+    committed = true
+    harnessUpdaterContext = { ...context, profileDir: preparedHome.profileDir }
+    await createMainWindow(nextServer.url)
     const completedAt = new Date().toISOString()
     await setHarnessUpdateState(context, 'succeeded', {
       transactionId,
@@ -3943,6 +4225,13 @@ async function switchHarnessRuntime(context: HarnessUpdaterContext, candidate: H
   } catch (error) {
     observing = false
     const detail = error instanceof Error ? error.message : '候选在线验证失败。'
+    // 提交是不可逆边界；之后 UI/审计失败不能停掉已提交服务并回滚不存在的 pending。
+    if (committed) {
+      console.error(`DSH 内核已提交，提交后反馈失败，保持现役服务：${detail}`)
+      await setHarnessUpdateState(context, 'succeeded', { transactionId, targetVersion: candidate.version, detail: `内核指针已提交；界面或审计反馈失败，未停止或回滚现役：${detail}` }).catch(() => undefined)
+      await appendHarnessUpdateEvent(context.updateRoot, { transactionId, phase: 'post-commit-feedback', outcome: 'failure', timestamp: new Date().toISOString(), currentVersion: candidate.version, targetVersion: candidate.version, detail }).catch(() => undefined)
+      return
+    }
     // 退出流程不再拉起任何新子进程；未提交指针会在下次启动时自动回滚。
     if (isQuitting) return
     isRecycling = true
@@ -3951,6 +4240,10 @@ async function switchHarnessRuntime(context: HarnessUpdaterContext, candidate: H
     server = undefined
     await failedServer?.stop().catch(() => undefined)
     if (activated) rollbackRuntimeSlot(context.legacyRuntimeDir, transactionId, detail)
+    await preparedHome?.rollbackBinding()
+    if (previousHome === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = previousHome
+    if (previousProfile === undefined) delete process.env.DSH_PROFILE_DIR; else process.env.DSH_PROFILE_DIR = previousProfile
+    if (previousRuntime === undefined) delete process.env.DSH_DESKTOP_RUNTIME_DIR; else process.env.DSH_DESKTOP_RUNTIME_DIR = previousRuntime
     lastStartOptions = previousStartOptions
     lastSeedOptions = previousSeedOptions
     const restored = await startDsh({
@@ -3979,7 +4272,8 @@ async function switchHarnessRuntime(context: HarnessUpdaterContext, candidate: H
   } finally {
     observing = false
     isRecycling = false
-    profileWatcher?.sync()
+    profileWatcher?.stop()
+    if (!isQuitting && lastSeedOptions !== undefined) profileWatcher = watchProfileActivation(lastSeedOptions.profileDir, scheduleProfileActivationRecycle, { onError: handleUnexpectedMainError })
     broadcastShellState()
   }
 }
@@ -4068,7 +4362,7 @@ async function handleTrayUpdateAction(id: string): Promise<void> {
 type DesktopUpdateInteraction = 'interactive' | 'background' | 'settings'
 
 async function checkDesktopUpdate(interaction: DesktopUpdateInteraction = 'interactive'): Promise<void> {
-  if (['checking', 'downloading', 'verifying', 'building', 'deploying', 'validating'].includes(updateStatus.kind)) return
+  if (desktopUpdatePreferencesSaving || desktopCandidateMutationPending || ['checking', 'downloading', 'verifying', 'building', 'deploying', 'validating'].includes(updateStatus.kind)) return
   if (portableDesktopUpdater === undefined) {
     if (interaction === 'interactive') {
       await dialog.showMessageBox({
@@ -4079,8 +4373,27 @@ async function checkDesktopUpdate(interaction: DesktopUpdateInteraction = 'inter
     }
     return
   }
+  if (portableDesktopUpdater.state.phase === 'ready') {
+    // A same-process checked candidate is already usable. A restored ready
+    // candidate instead needs a fresh channel check; retain its files for the
+    // normal prepare path to revalidate/reuse, and never reset pending pointers.
+    if (desktopUpdateChannelGate.candidateTicket(updatePreferences) !== undefined) return
+    desktopCandidateMutationPending = true
+    try {
+      const reset = await componentUpdateSafety.run('desktop', () => portableDesktopUpdater!.resetPreparedReleaseForRecheck())
+      if (!reset) {
+        setDesktopUpdateStatus(preserveDesktopUpdateFailure(updateStatus, '候选已登记激活或状态已变更，不能重置检查；原候选和部署指针保持不变。'))
+        return
+      }
+    } finally {
+      desktopCandidateMutationPending = false
+    }
+    if (desktopUpdatePreferencesSaving) return
+  }
+  const ticket = desktopUpdateChannelGate.beginCheck(updatePreferences)
   try {
-    const checked = await portableDesktopUpdater.check()
+    const checked = await portableDesktopUpdater.check(ticket.channel)
+    if (desktopUpdatePreferencesSaving || !desktopUpdateChannelGate.isCurrent(ticket, updatePreferences)) return
     if (checked.phase === 'error') {
       if (interaction === 'interactive') await dialog.showMessageBox({ type: 'error', title: DESKTOP_APP_NAME, message: checked.detail })
       return
@@ -4096,14 +4409,14 @@ async function checkDesktopUpdate(interaction: DesktopUpdateInteraction = 'inter
       }
       return
     }
-    if (checked.phase !== 'available' || checked.release === undefined) return
+    if (checked.phase !== 'available' || checked.release === undefined || !desktopUpdateChannelGate.acceptCheck(ticket, updatePreferences, checked)) return
     const available: Extract<DesktopUpdateStatus, { kind: 'available' }> = {
       kind: 'available',
       version: checked.release.version,
       ...(checked.release.releaseNotes === undefined ? {} : { releaseNotes: checked.release.releaseNotes }),
     }
     if (interaction === 'background') {
-      if (shouldDownloadUpdateAutomatically(updatePreferences)) await downloadDesktopUpdate('background')
+      if (shouldDownloadUpdateAutomatically(updatePreferences)) await downloadDesktopUpdate('background', ticket)
       else showDesktopUpdateNotification('available', checked.release.version)
       return
     }
@@ -4116,7 +4429,7 @@ async function checkDesktopUpdate(interaction: DesktopUpdateInteraction = 'inter
       defaultId: 0,
       cancelId: 1,
     })
-    if (prompt.response === 0) await downloadDesktopUpdate('interactive')
+    if (prompt.response === 0) await downloadDesktopUpdate('interactive', ticket)
   } catch (error) {
     const message = publicDesktopUpdateError(error, desktopLocale())
     setDesktopUpdateStatus(preserveDesktopUpdateFailure(updateStatus, message), true)
@@ -4130,11 +4443,31 @@ async function checkDesktopUpdate(interaction: DesktopUpdateInteraction = 'inter
   }
 }
 
-async function downloadDesktopUpdate(interaction: DesktopUpdateInteraction = 'interactive'): Promise<void> {
-  if (updateStatus.kind !== 'available' || portableDesktopUpdater === undefined) return
+async function downloadDesktopUpdate(interaction: DesktopUpdateInteraction = 'interactive', checkedTicket?: DesktopUpdateChannelTicket): Promise<void> {
+  if (desktopUpdatePreferencesSaving || desktopCandidateMutationPending || updateStatus.kind !== 'available' || portableDesktopUpdater === undefined) return
+  const ticket = checkedTicket ?? desktopUpdateChannelGate.candidateTicket(updatePreferences)
+  if (ticket === undefined || !desktopUpdateChannelGate.mayUseCandidate(ticket, updatePreferences)) {
+    // Restored/cache-only availability is not a download authorization. Refresh
+    // it and require a new user action rather than downloading an old selection.
+    if (interaction !== 'background') await checkDesktopUpdate('settings')
+    return
+  }
   const version = updateStatus.version
   try {
-    const prepared = await portableDesktopUpdater.prepare()
+    desktopCandidateMutationPending = true
+    let prepared: PortableDesktopUpdateState
+    try {
+      prepared = await componentUpdateSafety.run('desktop', async () => {
+        if (desktopUpdatePreferencesSaving || !desktopUpdateChannelGate.mayUseCandidate(ticket, updatePreferences)) throw new Error('发布通道或检查许可已变更，旧候选下载已阻止；请重新检查。')
+        const updater = portableDesktopUpdater!
+        const result = await updater.prepare()
+        if (!desktopUpdateChannelGate.mayUseCandidate(ticket, updatePreferences)) throw new Error('候选属于旧发布通道，已阻止登记激活；请重新检查。')
+        if (result.phase === 'ready' && interaction === 'background' && !desktopUpdatePreferencesSaving && shouldStageUpdateOnExit(updatePreferences)) await updater.stageActivation()
+        return result
+      })
+    } finally {
+      desktopCandidateMutationPending = false
+    }
     if (prepared.phase === 'error') {
       if (interaction === 'interactive') await dialog.showMessageBox({ type: 'error', title: DESKTOP_APP_NAME, message: prepared.detail })
       return
@@ -4142,6 +4475,7 @@ async function downloadDesktopUpdate(interaction: DesktopUpdateInteraction = 'in
     if (prepared.phase !== 'ready') return
     const ready = { kind: 'ready' as const, version }
     if (interaction === 'background') {
+      // auto-on-exit 已在同一组件变更租约中仅登记 pending，没有退出或重启。
       showDesktopUpdateNotification('ready', version)
       return
     }
@@ -4204,11 +4538,25 @@ function showDesktopUpdateNotification(kind: 'available' | 'ready', version: str
 }
 
 async function installDesktopUpdate(): Promise<void> {
-  if (portableDesktopUpdater === undefined || portablePaths === undefined || updateStatus.kind !== 'ready') return
-  const staged = await portableDesktopUpdater.stageActivation()
-  if (staged.phase === 'error') throw new Error(staged.detail)
-  await spawnPortableLauncherForRestart()
-  await shutdownDesktop(() => { app.exit(0) })
+  if (desktopUpdatePreferencesSaving || desktopCandidateMutationPending || portableDesktopUpdater === undefined || portablePaths === undefined || updateStatus.kind !== 'ready') return
+  const ticket = desktopUpdateChannelGate.candidateTicket(updatePreferences)
+  if (ticket === undefined || !desktopUpdateChannelGate.mayUseCandidate(ticket, updatePreferences)) {
+    await checkDesktopUpdate('settings')
+    return
+  }
+  desktopCandidateMutationPending = true
+  try {
+    await componentUpdateSafety.run('desktop', async () => {
+      if (desktopUpdatePreferencesSaving || !desktopUpdateChannelGate.mayUseCandidate(ticket, updatePreferences)) throw new Error('发布通道许可已变更，旧候选激活已阻止。')
+      if (isRecycling || readRuntimeSlotPointer(join(portablePaths!.root, 'Data', 'Runtime', 'dsh-runtime'))?.pendingTransactionId !== undefined) throw new Error('内核事务未结束，暂不部署桌面候选。')
+      const staged = await portableDesktopUpdater!.stageActivation()
+      if (staged.phase === 'error') throw new Error(staged.detail)
+      await spawnPortableLauncherForRestart()
+      await shutdownDesktop(() => { app.exit(0) })
+    })
+  } finally {
+    desktopCandidateMutationPending = false
+  }
 }
 
 function showMainWindow(): void {

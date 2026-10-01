@@ -8,6 +8,7 @@ import { ensureDesktopBridgePatch } from './desktop-host.js'
 import { inspectProfileBundle } from './profile-bundle-health.js'
 import { quarantineProfileBundle } from './profile-quarantine.js'
 import {
+  assertOfficialProfileBundlesAvailable,
   ensureAutoInstallPeersDisabled,
   finalizeProfileBundlesAfterInstall,
   stripOfficialProfileDependencies,
@@ -45,19 +46,25 @@ export async function removeProfileBundle(profileDir: string, packageName: strin
 }
 
 /** 启动前把已知损坏修掉：官方包串进 profile、空 bundle、坏的 bridge patch。 */
-export async function repairBrokenProfile(profileDir: string, extraDirs: readonly string[] = []): Promise<string[]> {
+export interface RepairBrokenProfileOptions {
+  /** 上游 v1.0.76 语义：false 时跳过 bundle 清单协调，只做其余修复。 */
+  reconcileBundles?: boolean
+}
+
+export async function repairBrokenProfile(profileDir: string, extraDirs: readonly string[] = [], options: RepairBrokenProfileOptions = {}): Promise<string[]> {
   if (!existsSync(join(profileDir, 'package.json'))) return []
   await stripOfficialProfileDependencies(profileDir)
   ensureAutoInstallPeersDisabled(profileDir)
   ensureDesktopBridgePatch(profileDir)
+  if (options.reconcileBundles === false) return []
   const finalized = await finalizeProfileBundlesAfterInstall(profileDir, extraDirs)
   const repaired = [...finalized.removed]
   const manifest = JSON.parse(await readFile(join(profileDir, 'package.json'), 'utf8')) as { dsh?: { profile?: { bundles?: string[] } } }
   for (const packageName of manifest.dsh?.profile?.bundles ?? []) {
     if (!isSelfRepairableBundle(packageName)) continue
-    const health = inspectProfileBundle(profileDir, packageName)
+    const health = inspectProfileBundle(profileDir, packageName, extraDirs)
     if (health.loadable) continue
-    if (await quarantineProfileBundle(profileDir, packageName, health.reason ?? '插件入口预检失败。', 'preflight')) repaired.push(packageName)
+    if (await quarantineProfileBundle(profileDir, packageName, health.reason ?? '插件入口预检失败。', 'preflight', { extraDirs })) repaired.push(packageName)
   }
   return repaired
 }
@@ -70,6 +77,9 @@ export async function startWithProfileSelfRepair<T>(options: {
 }): Promise<{ result: T; repaired: string[] }> {
   const extraDirs = options.extraDirs ?? []
   const repaired = [...await repairBrokenProfile(options.profileDir, extraDirs)]
+  // 上游 v1.0.76：启动前先验证官方 bundle 在运行时依赖树里真实可解析，缺了立刻报安装损坏，
+  // 不等启动超时（官方 bundle 不可自我修复，也不会被隔离）。
+  assertOfficialProfileBundlesAvailable(options.profileDir, extraDirs)
   const maxAttempts = options.maxAttempts ?? 5
   let lastError: unknown
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -84,6 +94,7 @@ export async function startWithProfileSelfRepair<T>(options: {
         missing,
         error instanceof Error ? error.message : String(error),
         'startup',
+        { extraDirs },
       )
       if (!removed) throw error
       repaired.push(missing)

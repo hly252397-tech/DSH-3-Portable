@@ -5,5 +5,20 @@ ignoredBuiltDependencies:
   - electron-winstaller
 minimumReleaseAgeExclude:
   - '@types/node@26.4.0'
+  - '@typescript/typescript-darwin-arm64@7.1.0-dev.20260926.1'
+  - '@typescript/typescript-darwin-x64@7.1.0-dev.20260926.1'
+  - '@typescript/typescript-linux-arm64@7.1.0-dev.20260926.1'
+  - '@typescript/typescript-linux-arm@7.1.0-dev.20260926.1'
+  - '@typescript/typescript-linux-x64@7.1.0-dev.20260926.1'
+  - '@typescript/typescript-win32-arm64@7.1.0-dev.20260926.1'
+  - '@typescript/typescript-win32-x64@7.1.0-dev.20260926.1'
+  - app-builder-lib@27.0.0-alpha.9
+  - builder-util-runtime@10.0.0-alpha.8
+  - builder-util@27.0.0-alpha.9
+  - dmg-builder@27.0.0-alpha.9
+  - electron-builder-squirrel-windows@27.0.0-alpha.9
+  - electron-builder@27.0.0-alpha.9
+  - electron-publish@27.0.0-alpha.9
+  - typescript@7.1.0-dev.20260926.1
 overrides:
   app-builder-lib>@electron/get: 3.1.0

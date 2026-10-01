@@ -3,6 +3,7 @@ import type { LocalizedShellAction, LocalizedShellMenu, LocalizedText, ShellActi
 export const SHELL_BAR_HEIGHT = 44
 
 export const SHELL_IPC = {
+  forwardInput: 'dsh-shell:forward-input',
   action: 'dsh-shell:action',
   getBootstrap: 'dsh-shell:get-bootstrap',
   popupMenu: 'dsh-shell:popup-menu',
@@ -32,6 +33,8 @@ export const SHELL_IPC = {
   harnessUpdateState: 'dsh-shell:harness-update-state',
   settingsSection: 'dsh-shell:settings-section',
   closeDesktopSettings: 'dsh-shell:close-desktop-settings',
+  embeddedSettingsDocument: 'dsh-shell:embedded-settings-document',
+  embeddedSettingsRequest: 'dsh-shell:embedded-settings-request',
   browserToggle: 'dsh-shell:browser-toggle',
   browserNewTab: 'dsh-shell:browser-new-tab',
   browserOpenHomepages: 'dsh-shell:browser-open-homepages',

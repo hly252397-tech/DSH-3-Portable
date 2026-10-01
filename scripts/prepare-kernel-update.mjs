@@ -6,7 +6,7 @@
 //   ③ awareness peer 放宽 + 经正规安装器装入新代际 profile
 // 只做加法、可重入：已有绑定的版本自动跳过；默认只报告，--apply 才落盘。
 // 用法：
-//   Tools/node/node.exe scripts/prepare-kernel-update.mjs [--root <便携根>] [--apply]
+//   Tools/node/node.exe scripts/gate-node-run.mjs scripts/prepare-kernel-update.mjs [--root <便携根>] [--apply]
 // 退出码：0 = 无事可做/成功；3 = 有待办（报告模式）；1 = 执行失败。
 
 import { spawnSync } from 'node:child_process'
@@ -77,7 +77,7 @@ for (const p of pending) log(`  待配套: ${p.version}${p.version === activeVer
 if (activeVersion && !peerCovered) log(`  待配套: awareness peer 未覆盖活动版本 ${activeVersion}（当前: ${peerValue}）`)
 if (!pending.length && peerCovered) {
   log('  无事可做：所有已装内核版本都有家园绑定，awareness peer 覆盖正常。')
-  log('  提醒：更新双通道已锁 manual（用户规则），拉取请在应用内手动点「检查更新」。')
+  log('  提醒：更新策略为 safe-auto（用户 2026-09-30 改判：新版本自动拉取升级），本工具只在配套缺项时需要跑。')
   process.exit(0)
 }
 if (!apply) {
@@ -129,11 +129,22 @@ try {
   }
   if (activeVersion && !peerCovered) widenAwarenessPeer(activeVersion)
 
+  // 收尾复核：升级链路上任何一步（家园复制、豁免迁移、手册安装、以及流程之外偶发的
+  // profile 依赖物化）都可能把社区包的 npm 就地补丁冲回未打补丁的原始包。放在最后统一
+  // verify，是唯一能覆盖"流程之外那次物化"的位置；缺失即非 0 退出，升级不算完成。
+  const patchReport = (await import(new URL('../customizations/codex-ui-patches/apply.mjs', import.meta.url).href)).run(root, false)
+  if (!patchReport.ok) {
+    const broken = patchReport.files.filter((item) => item.status === 'drift' || item.status === 'missing')
+      .map((item) => `${item.status} ${item.file}${item.detail ? '\n' + item.detail : ''}`).join('\n')
+    throw new Error(`升级收尾复核失败：社区包补丁未落到全部家园。\n${broken}`)
+  }
+  log(`[patch] codex-ui 补丁已落到 ${patchReport.files.length} 份家园副本`)
+
   log('\n===== 完成。下一步 =====')
   log('  1) 若新版本尚未在应用内激活：设置页点「检查更新」走完激活。')
   log('  2) 重启 DSH（托盘退出或「重启应用」）。')
-  log(`  3) 可选验证：Tools/node/node.exe scripts/probe-runtime-boot.mjs --generation <代号>（就绪应 <30s）。`)
-  log('  4) 重启后跑一键体检：Tools/node/node.exe scripts/check-open-behavior.mjs。')
+  log('  3) 可选验证：Tools/node/node.exe scripts/gate-node-run.mjs scripts/probe-runtime-boot.mjs --generation <代号>（就绪应 <30s）。')
+  log('  4) 重启后跑一键体检：Tools/node/node.exe scripts/gate-node-run.mjs scripts/check-open-behavior.mjs。')
   process.exit(0)
 } catch (error) {
   log(`[失败] ${error.message}`)

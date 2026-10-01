@@ -16,12 +16,38 @@ interface BundleManifest {
   version?: unknown
 }
 
-export function inspectProfileBundle(profileDir: string, packageName: string): ProfileBundleHealth {
-  const packageRoot = join(profileDir, 'node_modules', ...packageName.split('/'))
-  const manifestPath = join(packageRoot, 'package.json')
-  if (!existsSync(manifestPath)) {
+/**
+ * 解析 bundle 的包根目录。官方 `bundleManifest` 用 `resolveBundleDir('dsh', name, installAnchor, profileDir)`
+ * 在「运行时安装目录 + profile」两处查找；便携预检必须同样看待，否则只装在运行时里的官方实验性
+ * bundle（如 @deepseek-ai/dsh-experimental-*）会被误判缺包而隔离，开关打开后又被回滚。
+ * @param profileDir - profile 包目录。
+ * @param packageName - bundle 包名。
+ * @param extraDirs - 额外解析根（运行时安装目录），按序在 profile 之后尝试。
+ * @returns 命中 package.json 的包根；都没有时为 undefined。
+ */
+function resolveBundlePackageRoot(profileDir: string, packageName: string, extraDirs: readonly string[]): string | undefined {
+  for (const dir of [profileDir, ...extraDirs]) {
+    const packageRoot = join(dir, 'node_modules', ...packageName.split('/'))
+    if (existsSync(join(packageRoot, 'package.json'))) return packageRoot
+  }
+  return undefined
+}
+
+/** 依赖清单也按同一组根目录解析，避免「依赖装在运行时」被算成缺失指纹。 */
+function resolveDependencyManifest(profileDir: string, dependency: string, extraDirs: readonly string[]): string {
+  for (const dir of [profileDir, ...extraDirs]) {
+    const manifestPath = join(dir, 'node_modules', ...dependency.split('/'), 'package.json')
+    if (existsSync(manifestPath)) return manifestPath
+  }
+  return join(profileDir, 'node_modules', ...dependency.split('/'), 'package.json')
+}
+
+export function inspectProfileBundle(profileDir: string, packageName: string, extraDirs: readonly string[] = []): ProfileBundleHealth {
+  const packageRoot = resolveBundlePackageRoot(profileDir, packageName, extraDirs)
+  if (packageRoot === undefined) {
     return { loadable: false, reason: '插件 package.json 不存在。', fingerprint: hashParts(['missing-package']) }
   }
+  const manifestPath = join(packageRoot, 'package.json')
 
   let source: string
   let manifest: BundleManifest
@@ -63,7 +89,7 @@ export function inspectProfileBundle(profileDir: string, packageName: string): P
   }
 
   for (const dependency of Object.keys(manifest.dependencies ?? {}).sort()) {
-    const dependencyManifest = join(profileDir, 'node_modules', ...dependency.split('/'), 'package.json')
+    const dependencyManifest = resolveDependencyManifest(profileDir, dependency, extraDirs)
     fingerprintParts.push(`${dependency}:${fileFingerprint(dependencyManifest)}`)
   }
   return { loadable: true, fingerprint: hashParts(fingerprintParts) }

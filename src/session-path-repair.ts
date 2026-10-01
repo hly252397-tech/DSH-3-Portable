@@ -1,5 +1,6 @@
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { copyFile, mkdir, open, readdir, rename, rm } from 'node:fs/promises'
+import { copyFile, mkdir, open, readFile, readdir, rename, rm } from 'node:fs/promises'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { zstdDecompressSync } from 'node:zlib'
 
@@ -10,10 +11,29 @@ export interface SessionPathRepair {
   readonly sessionId: string
 }
 
+export interface SessionPathRepairResult {
+  readonly repairs: readonly SessionPathRepair[]
+  /** 单个会话自愈失败的清单。调用方**不得**因为非空而中断启动流程。 */
+  readonly failures: readonly string[]
+}
+
 interface SessionHeader {
   readonly type: 'session'
   readonly id: string
   readonly cwd?: string
+}
+
+/** Optional startup maintenance: filesystem traversal and reporting failures must not stop DSH. */
+export async function runSessionPathRepairAtStartup(
+  sessionRoot: string,
+  backupRoot: string,
+  report: (result: SessionPathRepairResult) => Promise<void>,
+): Promise<void> {
+  try {
+    await report(await repairMisplacedSessionLogs(sessionRoot, backupRoot))
+  } catch (error) {
+    console.warn('会话路径自愈未完成，保留原始数据并继续启动。', error)
+  }
 }
 
 /**
@@ -21,11 +41,15 @@ interface SessionHeader {
  * different project directory than the physical log. The log bytes are never
  * rewritten: a backup is published first, then the complete session directory
  * is atomically renamed on the same volume.
+ *
+ * 单会话失败只记入 `failures`，**不抛错、不删备份**：本函数在启动路径上调用，
+ * 一个坏会话不得让整个启动失败；备份是唯一还原依据，必须在失败后仍然存在。
  */
-export async function repairMisplacedSessionLogs(sessionRoot: string, backupRoot: string): Promise<SessionPathRepair[]> {
+export async function repairMisplacedSessionLogs(sessionRoot: string, backupRoot: string): Promise<SessionPathRepairResult> {
   const root = resolve(sessionRoot)
   const repairs: SessionPathRepair[] = []
-  if (!existsSync(root)) return repairs
+  const failures: string[] = []
+  if (!existsSync(root)) return { repairs, failures }
 
   for (const project of await readdir(root, { withFileTypes: true })) {
     if (!project.isDirectory()) continue
@@ -33,34 +57,51 @@ export async function repairMisplacedSessionLogs(sessionRoot: string, backupRoot
     for (const session of await readdir(projectPath, { withFileTypes: true })) {
       if (!session.isDirectory()) continue
       const sessionPath = join(projectPath, session.name)
-      const logName = await findSessionLog(sessionPath)
-      if (logName === undefined) continue
-      const logPath = join(sessionPath, logName)
-      const header = await readSessionHeader(logPath)
-      const expectedDirectory = join(root, projectKey(header.cwd), encodeSegment(header.id))
-      const expectedLog = join(expectedDirectory, logName)
-      if (samePath(logPath, expectedLog)) continue
-      assertWithin(root, expectedDirectory)
-      if (existsSync(expectedDirectory)) {
-        throw new Error(`会话路径自愈已安全停止：目标会话 ${header.id} 已存在。`)
-      }
-
-      const relativeLog = relative(root, logPath)
-      const backup = join(resolve(backupRoot), relativeLog)
-      assertWithin(resolve(backupRoot), backup)
-      await mkdir(dirname(backup), { recursive: true })
-      await copyFile(logPath, backup, 0x1) // COPYFILE_EXCL：已有备份时禁止覆盖。
-      await mkdir(dirname(expectedDirectory), { recursive: true })
+      // 单个会话失败只记账并继续：启动路径不能再因为一个坏会话整体抛错。
       try {
+        const logName = await findSessionLog(sessionPath)
+        if (logName === undefined) continue
+        const logPath = join(sessionPath, logName)
+        const header = await readSessionHeader(logPath)
+        const expectedDirectory = join(root, projectKey(header.cwd), encodeSegment(header.id))
+        const expectedLog = join(expectedDirectory, logName)
+        if (samePath(logPath, expectedLog)) continue
+        assertWithin(root, expectedDirectory)
+        if (existsSync(expectedDirectory)) {
+          failures.push(`${session.name}：目标会话 ${header.id} 已存在，未移动。`)
+          continue
+        }
+
+        const relativeLog = relative(root, logPath)
+        const backup = join(resolve(backupRoot), relativeLog)
+        assertWithin(resolve(backupRoot), backup)
+        await mkdir(dirname(backup), { recursive: true })
+        // 备份幂等：已有备份且内容一致 ⇒ 视为已完成（崩溃后重跑不再 EEXIST）；
+        // 内容不一致 ⇒ 明确报错，绝不静默覆盖。
+        const backupMissing = !existsSync(backup)
+        if (backupMissing) {
+          await copyFile(logPath, backup, 0x1)
+        } else {
+          const [existingDigest, currentDigest] = await Promise.all([sha256File(backup), sha256File(logPath)])
+          if (existingDigest !== currentDigest) {
+            failures.push(`${session.name}：备份 ${backup} 已存在且内容不一致，已停止该会话的自愈。`)
+            continue
+          }
+        }
+        await mkdir(dirname(expectedDirectory), { recursive: true })
         await rename(sessionPath, expectedDirectory)
+        repairs.push({ from: sessionPath, to: expectedDirectory, backup, sessionId: header.id })
       } catch (error) {
-        await rm(backup, { force: true }).catch(() => undefined)
-        throw error
+        // 失败**不删备份**：备份是唯一还原依据。只记账。
+        failures.push(`${session.name}：${error instanceof Error ? error.message : String(error)}`)
       }
-      repairs.push({ from: sessionPath, to: expectedDirectory, backup, sessionId: header.id })
     }
   }
-  return repairs
+  return { repairs, failures }
+}
+
+async function sha256File(path: string): Promise<string> {
+  return createHash('sha256').update(await readFile(path)).digest('hex')
 }
 
 async function findSessionLog(sessionPath: string): Promise<string | undefined> {

@@ -1,10 +1,14 @@
 import { spawn } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
-import { link, lstat, mkdir, mkdtemp, readFile, readdir, rm, rmdir, unlink, writeFile } from 'node:fs/promises'
+import { constants, existsSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs'
+import { copyFile, link, lstat, mkdir, mkdtemp, readFile, readdir, rm, rmdir, unlink, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
+import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
-import { dirname, join, relative, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 
 import { writeTextFileAtomic, writeTextFileAtomicSync } from './atomic-file.js'
+import { restrictProfileBundlesForRecovery } from './recovery-mode.js'
 import {
   ALLOWED_BUILD_PACKAGES,
   BUNDLED_PLUGINS,
@@ -13,7 +17,9 @@ import {
   OFFICIAL_LAUNCH_PEERS,
   OFFICIAL_PROFILE_BUNDLES,
   OFFICIAL_RUNTIME,
+  OFFICIAL_RUNTIME_MINIMUM_RELEASE_AGE_EXCLUDE,
   OFFICIAL_RUNTIME_RESOLUTION_MODE,
+  OFFICIAL_RUNTIME_RESOLUTION_POLICY,
   officialRuntimeDependencies,
   officialRuntimePnpmConfig,
   pnpmWorkspaceYaml,
@@ -21,7 +27,7 @@ import {
   isDeepSeekOfficialPackage,
   type BundledPlugin,
 } from './bundled-plugins.js'
-import { pnpmStoreOptions, prependPath } from './plugin-toolchain.js'
+import { normalizePnpmNodeEntry, pnpmStoreOptions, preparePnpmInvocation, prependPath, resolvePnpmNodeEntry } from './plugin-toolchain.js'
 import { terminateProcessTree } from './process-control.js'
 import { mergeProfileUpdates, officialRuntimeUpdateVersion, parsePendingUpdates, partitionPackageUpdates, resolvePendingUpdatesPath, type ProfilePackageUpdate } from './profile-updates.js'
 import { copyPrebuiltOfficialRuntime } from './runtime-prebuilt.js'
@@ -48,6 +54,7 @@ interface SeedPlanInput {
 
 interface SeedPnpmOptions {
   storeDir?: string
+  cacheDir?: string
   offline?: boolean
   autoInstallPeers?: boolean
 }
@@ -233,12 +240,30 @@ export function buildSeedRemoveArgs(packageNames: readonly string[], targetDir: 
   ]
 }
 
+export const BUNDLED_LOCKFILE_NAME = 'bundled-lock.yaml'
+
+export function buildFrozenSeedInstallArgs(targetDir: string, options: SeedPnpmOptions = {}): string[] {
+  return [
+    'install',
+    `--dir=${targetDir}`,
+    '--frozen-lockfile',
+    ...(options.storeDir === undefined ? [] : [`--store-dir=${options.storeDir}`]),
+    ...(options.offline === true && options.storeDir !== undefined ? [`--cache-dir=${options.cacheDir ?? join(options.storeDir, 'cache')}`] : []),
+    ...(options.offline === true ? ['--offline'] : []),
+    '--config.node-linker=hoisted',
+    '--config.auto-install-peers=false',
+    '--config.minimumReleaseAge=0',
+    '--registry=https://registry.npmjs.org/',
+  ]
+}
+
 export function buildSeedPluginArgs(packages: readonly BundledPlugin[], targetDir: string, options: SeedPnpmOptions = {}): string[] {
   return [
     'add',
     ...packages.map((plugin) => `${plugin.packageName}@${plugin.version}`),
     `--dir=${targetDir}`,
     ...pnpmStoreOptions(options.storeDir),
+    ...(options.cacheDir === undefined ? [] : [`--cache-dir=${options.cacheDir}`]),
     ...(options.offline === true || isOfflineSeedRequested() ? ['--offline'] : []),
     '--config.node-linker=hoisted',
     '--config.auto-install-peers=' + (options.autoInstallPeers === true ? 'true' : 'false'),
@@ -393,7 +418,7 @@ export function reconcileOfficialRuntimeManifest(runtimeDir: string): boolean {
   // 只改已存在的清单：指纹槽里凭空造文件会打破「槽是不可变制品」的既有约束。
   if (!existsSync(join(runtimeDir, 'package.json'))) return false
   // 家族解析模式是另一处「已存在的目录永远补不上」的地雷，一并幂等确保。
-  ensureRuntimeResolutionMode(runtimeDir)
+  ensureOfficialRuntimeResolutionPolicy(runtimeDir)
   if (officialRuntimeHasVersionLock(runtimeDir, installed)
     && readDeclaredOfficialRuntimeVersion(runtimeDir) === installed) {
     return false
@@ -455,21 +480,42 @@ export function officialRuntimeInstallArgs(runtimeDir: string, storeDir?: string
   ]
 }
 
-/** 官方运行时工作区必须声明 resolutionMode，否则官方家族的同元组预发布会被最高版语义
- * 拆成混用（根包 rc.1 + 传递包 rc.2），候选槽会在家族对齐门禁处被判失败。
- * 已存在的文件只补/改这一行，不动用户或其他流程写入的内容。 */
-export function ensureRuntimeResolutionMode(runtimeDir: string): void {
+/** 官方运行时工作区必须同时声明两件事，缺一都会让候选装配直接失败：
+ * ① `resolutionMode` —— 否则官方家族的同元组预发布会被最高版语义拆成混用
+ *    （根包 rc.1 + 传递包 rc.2），候选槽会在家族对齐门禁处被判失败；
+ * ② `minimumReleaseAgeExclude` —— 按发布时间解析会撞上 pnpm 成熟期门槛，
+ *    同版本内比 cutoff 晚发布的那个包让整次安装以 ERR_PNPM_NO_MATURE_MATCHING_VERSION 收场。
+ *
+ * 已存在的文件走「有则改写、无则追加」的幂等路径，只动这两处、不碰用户或其他流程写入的内容。
+ * 这条不能省：AGENTS.md 记过「只在文件缺失时写入」的旧代码永远补不上既有目录，
+ * 而现役槽与全部历史槽的 pnpm-workspace.yaml 都是在加这条规则之前生成的。 */
+export function ensureOfficialRuntimeResolutionPolicy(runtimeDir: string): void {
   const workspacePath = join(runtimeDir, 'pnpm-workspace.yaml')
-  const desired = `resolutionMode: ${OFFICIAL_RUNTIME_RESOLUTION_MODE}`
+  const policy = OFFICIAL_RUNTIME_RESOLUTION_POLICY
   if (!existsSync(workspacePath)) {
-    writeFileSync(workspacePath, pnpmWorkspaceYaml(true, { resolutionMode: OFFICIAL_RUNTIME_RESOLUTION_MODE }), 'utf8')
+    writeFileSync(workspacePath, pnpmWorkspaceYaml(true, policy), 'utf8')
     return
   }
-  const current = readFileSync(workspacePath, 'utf8')
-  const next = /^resolutionMode:\s*/m.test(current)
-    ? current.replace(/^resolutionMode:[^\r\n]*$/m, desired)
-    : `${current.trimEnd()}\n${desired}\n`
-  if (next !== current) writeFileSync(workspacePath, next, 'utf8')
+  let current = readFileSync(workspacePath, 'utf8')
+  const desiredMode = `resolutionMode: ${policy.resolutionMode}`
+  current = /^resolutionMode:\s*/m.test(current)
+    ? current.replace(/^resolutionMode:[^\r\n]*$/m, desiredMode)
+    : `${current.trimEnd()}\n${desiredMode}\n`
+
+  const desiredExclude = [
+    'minimumReleaseAgeExclude:',
+    ...policy.minimumReleaseAgeExclude.map(value => '  - ' + JSON.stringify(value)),
+  ].join('\n')
+  if (/^minimumReleaseAgeExclude\s*:/m.test(current)) {
+    current = current.replace(
+      /^minimumReleaseAgeExclude:[^\r\n]*(?:\r?\n^[ \t]+-[^\r\n]*)*/m,
+      desiredExclude,
+    )
+  } else {
+    current = `${current.trimEnd()}\n${desiredExclude}\n`
+  }
+  // 内容相同就不落盘：候选槽是不可变制品，没必要每次启动都改一次 mtime。
+  if (current !== readFileSync(workspacePath, 'utf8')) writeFileSync(workspacePath, current, 'utf8')
 }
 
 export async function applyOfficialRuntimeVersion(options: SeedOptions, version: string): Promise<string> {
@@ -477,7 +523,7 @@ export async function applyOfficialRuntimeVersion(options: SeedOptions, version:
   if (runtimeDir === undefined) throw new Error('未配置官方运行时目录，无法在线升级官方包。')
   await mkdir(runtimeDir, { recursive: true })
   writeOfficialRuntimeManifest(runtimeDir, version)
-  ensureRuntimeResolutionMode(runtimeDir)
+  ensureOfficialRuntimeResolutionPolicy(runtimeDir)
   ensureAutoInstallPeersEnabled(runtimeDir)
   const runner = options.runner ?? ((pluginArgs) => runPnpm(options, pluginArgs))
   // 官方运行时**不绑随包插件仓**（2026-09-16 实测取证：随包 store 的 metadata 里
@@ -513,16 +559,36 @@ export async function applyPendingProfileUpdates(options: SeedOptions): Promise<
   }
   const { community } = partitionPackageUpdates(pending)
   const declared = await readDeclaredPackageVersions(options.profileDir)
+  const local = new Map(declared.filter(item => /^(?:link|file|portal):/i.test(item.version.trim())).map(item => [item.packageName, item.version]))
   const installed = await readInstalledPackageVersions(options.profileDir, [...new Set([
     ...declared.map((item) => item.packageName),
     ...community.map((item) => item.packageName),
   ])])
+  // Local declarations are identities/paths, not registry semver versions. A
+  // correctly directed junction is installed; a missing/wrong link still needs repair.
+  for (const item of installed) {
+    const spec = local.get(item.packageName)
+    if (spec === undefined || !/^(?:link|portal):/i.test(spec)) continue
+    const target = resolve(options.profileDir, spec.slice(spec.indexOf(':') + 1))
+    const installedDir = join(options.profileDir, 'node_modules', ...item.packageName.split('/'))
+    try {
+      // win32 大小写：junction 目标串拼写与磁盘规范拼写可能不同（同一路径两种大小写），
+      // 按平台语义比较，否则同源插件会被误判为非链接安装、走多余的修复路径。
+      const installedReal = realpathSync(installedDir)
+      const targetReal = realpathSync(target)
+      const sameDir = process.platform === 'win32' ? installedReal.toLowerCase() === targetReal.toLowerCase() : installedReal === targetReal
+      if (sameDir
+        && JSON.parse(readFileSync(join(target, 'package.json'), 'utf8')).name === item.packageName) item.version = spec
+    } catch (error) {
+      if (!['ENOENT', 'ENOTDIR'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error
+    }
+  }
   // 旧客户端留下的待更新清单可能指向比磁盘上更旧的版本。直接合并会把已经装好的插件降级
   // （并连带把它的依赖一起降级），所以以「待更新目标」与「实际安装版本」中的较高者为准。
   // 刻意不用随包清单当版本地板：本仓库的随包插件矩阵滞后于实际部署矩阵（便携版运行时走
   // 自研 A/B 通道），拿它当基准会反过来覆盖用户与市场的显式升级选择。
   const installedVersions = new Map(installed.map((item) => [item.packageName, item.version]))
-  const compatiblePending = community.map((plugin) => {
+  const compatiblePending = community.filter(plugin => !local.has(plugin.packageName)).map((plugin) => {
     const current = installedVersions.get(plugin.packageName)
     return current !== undefined && compareReleaseVersions(plugin.version, current) < 0
       ? { ...plugin, version: current }
@@ -534,7 +600,10 @@ export async function applyPendingProfileUpdates(options: SeedOptions): Promise<
   if (updates.length > 0) {
     const storeDir = resolvePnpmStoreDir(options.profileDir, options.pluginStoreDir)
     if (hasUnresolvedStore(options.profileDir, storeDir)) console.warn(storelessSeedWarning(options.profileDir))
-    await runner(buildSeedPluginArgs(updates, options.profileDir, storeDir === undefined ? {} : { storeDir }))
+    // pnpm12's cache belongs beside the versioned store, under cache/. Match
+    // prepareBundledPluginStore so a second install sees the same policy inputs.
+    const cacheDir = storeDir === undefined ? undefined : join(basename(storeDir) === 'v11' ? dirname(storeDir) : storeDir, 'cache')
+    await runner(buildSeedPluginArgs(updates, options.profileDir, storeDir === undefined ? {} : { storeDir, cacheDir: cacheDir! }))
     applied.push(...updates.map((item) => item.packageName))
   }
   const officialVersion = officialRuntimeUpdateVersion(pending)
@@ -698,6 +767,13 @@ export function needsIgnoredBuildRepair(modulesState: string): boolean {
     && ALLOWED_BUILD_PACKAGES.some((name) => entry.startsWith(`${name}@`)))
 }
 
+function combinePluginSeedErrors(previous: unknown, current: unknown): Error {
+  const last = current instanceof Error ? current : new Error(String(current))
+  if (previous === undefined || previous === null) return last
+  const first = previous instanceof Error ? previous.message : String(previous)
+  return new Error(`${first}\n在线重试仍失败：${last.message}`)
+}
+
 /** 让被历史拦下的随包构建真正跑一遍：沿用 profile 已记录的仓库重装同版本包。
  *  与上游实现的有意差异：失败只告警不抛出。进入这条分支说明 profile 本身已可启动，
  *  一次机会性的构建恢复不该把它变成启动失败。 */
@@ -730,6 +806,24 @@ async function repairIgnoredBundledBuilds(
   }
 }
 
+async function applyBundledLockfile(options: SeedOptions, packages: readonly BundledPlugin[]): Promise<boolean> {
+  const source = join(options.pluginStoreDir, BUNDLED_LOCKFILE_NAME)
+  const destination = join(options.profileDir, 'pnpm-lock.yaml')
+  if (existsSync(destination) || !existsSync(source)) return false
+  const catalog = communitySeedCatalog(options.catalog ?? BUNDLED_PLUGINS)
+  if (packages.length !== catalog.length) return false
+  const wanted = new Map(catalog.map(plugin => [plugin.packageName, plugin.version]))
+  if (packages.some(plugin => wanted.get(plugin.packageName) !== plugin.version)) return false
+  const manifestPath = join(options.profileDir, 'package.json')
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as { dependencies?: Record<string, string> }
+  const dependencies = { ...(manifest.dependencies ?? {}) }
+  for (const plugin of packages) dependencies[plugin.packageName] = plugin.version
+  manifest.dependencies = dependencies
+  await writeTextFileAtomic(manifestPath, `${JSON.stringify(manifest, undefined, 2)}\n`)
+  await copyFile(source, destination)
+  return true
+}
+
 async function seedCommunityPlugins(options: SeedOptions): Promise<SeedResult> {
   await ensureProfileScaffold(options.profileDir)
   const { declared, installed } = await readProfilePluginNames(options.profileDir)
@@ -751,62 +845,60 @@ async function seedCommunityPlugins(options: SeedOptions): Promise<SeedResult> {
     await repairIgnoredBundledBuilds(options, community, runner)
     return { seeded: [], skipped: plan.reason }
   }
-  const storeDir = resolvePnpmStoreDir(options.profileDir, existsSync(options.pluginStoreDir) ? options.pluginStoreDir : undefined)
-  const useStore = storeDir !== undefined
-  const storeOptions = useStore ? { storeDir, offline: true } : {}
-  if (plan.packages.length > 0 && hasUnresolvedStore(options.profileDir, storeDir)) {
-    console.warn(storelessSeedWarning(options.profileDir))
+  // 在线兜底只沿用 Profile 明确记录的仓库；没有记录时不指定 --store-dir。
+  const originalStore = resolvePnpmStoreDir(options.profileDir)
+  const onlineOptions = originalStore === undefined ? {} : { storeDir: originalStore }
+  let storeOptions: SeedPnpmOptions
+  let previousError: unknown
+  try {
+    storeOptions = existsSync(options.pluginStoreDir)
+      ? await prepareBundledPluginStore(options.profileDir, options.pluginStoreDir, options.onProgress)
+      : onlineOptions
+  } catch (error) {
+    console.warn('随包依赖准备失败，使用原仓库在线更新。', error)
+    storeOptions = onlineOptions
+    previousError = error
   }
   if (plan.packages.length > 0) {
-    if (useStore) await seedPackagedPluginLockfile(options.profileDir, storeDir)
-    const args = buildSeedPluginArgs(plan.packages, options.profileDir, storeOptions)
+    const frozen = storeOptions.offline === true && await applyBundledLockfile(options, plan.packages)
+    const args = frozen
+      ? buildFrozenSeedInstallArgs(options.profileDir, storeOptions)
+      : buildSeedPluginArgs(plan.packages, options.profileDir, storeOptions)
     try {
       await runner(args)
+      previousError = undefined
     } catch (error) {
-      // 重试只放宽「离线」：保留已知仓库，避免改用环境默认仓库触发 UNEXPECTED_STORE。
-      if (useStore && !isOfflineSeedRequested()) await runner(buildSeedPluginArgs(plan.packages, options.profileDir, { storeDir }))
-      else throw error
+      if (frozen) await rm(join(options.profileDir, 'pnpm-lock.yaml'), { force: true })
+      if (storeOptions.offline !== true) throw combinePluginSeedErrors(previousError, error)
+      console.warn('随包插件离线安装失败，尝试在线安装。', error)
+      previousError = error
+      storeOptions = onlineOptions
+      try {
+        await runner(buildSeedPluginArgs(plan.packages, options.profileDir, onlineOptions))
+        previousError = undefined
+      } catch (onlineError) {
+        throw combinePluginSeedErrors(previousError, onlineError)
+      }
     }
   }
   if (plan.action === 'replace-suite') {
     try {
       await runner(buildSeedRemoveArgs([SUITE_PACKAGE], options.profileDir, storeOptions))
+      previousError = undefined
     } catch (error) {
-      if (useStore && !isOfflineSeedRequested()) await runner(buildSeedRemoveArgs([SUITE_PACKAGE], options.profileDir, { storeDir }))
-      else throw error
+      if (storeOptions.offline !== true) throw combinePluginSeedErrors(previousError, error)
+      console.warn('离线拆分旧套件失败，尝试在线安装。', error)
+      previousError = error
+      try {
+        await runner(buildSeedRemoveArgs([SUITE_PACKAGE], options.profileDir, onlineOptions))
+        previousError = undefined
+      } catch (onlineError) {
+        throw combinePluginSeedErrors(previousError, onlineError)
+      }
     }
   }
-  await reconcileProfileBundles(options.profileDir)
+  await reconcileProfileBundles(options.profileDir, undefined, options.desktopRuntimeDir === undefined ? [] : [options.desktopRuntimeDir])
   return { seeded: plan.packages.map((plugin) => plugin.packageName) }
-}
-
-/** Use the build's resolution only for pristine profiles; never replace user locks. */
-export async function seedPackagedPluginLockfile(profileDir: string, storeDir: string): Promise<boolean> {
-  const target = join(profileDir, 'pnpm-lock.yaml')
-  if (existsSync(target) || existsSync(join(profileDir, 'node_modules'))) return false
-  const manifest = JSON.parse(await readFile(join(profileDir, 'package.json'), 'utf8'))
-  if (['dependencies', 'devDependencies', 'optionalDependencies'].some(key => Object.keys(manifest[key] ?? {}).length > 0)) return false
-  const source = join(storeDir, 'dsh-store-lock.yaml')
-  let metadata
-  try { metadata = await lstat(source) } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false // legacy package
-    throw error
-  }
-  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size > 8 * 1024 * 1024) throw new Error('内置插件锁文件不合法。')
-  const staging = await mkdtemp(join(profileDir, '.seed-lock-'))
-  const temporary = join(staging, 'pnpm-lock.yaml')
-  try {
-    await writeFile(temporary, await readFile(source), { flag: 'wx' })
-    // Atomic exclusive publication: a concurrent/user-created lock always wins.
-    try { await link(temporary, target) } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'EEXIST') return false
-      throw error
-    }
-    return true
-  } finally {
-    await unlink(temporary).catch(error => { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error })
-    await rmdir(staging)
-  }
 }
 
 export async function ensureProfileScaffold(profileDir: string): Promise<void> {
@@ -838,16 +930,16 @@ async function ensureRuntimeScaffold(runtimeDir: string): Promise<void> {
   if (!existsSync(join(runtimeDir, 'pnpm-workspace.yaml'))) {
     await writeFile(
       join(runtimeDir, 'pnpm-workspace.yaml'),
-      pnpmWorkspaceYaml(true, { resolutionMode: OFFICIAL_RUNTIME_RESOLUTION_MODE }),
+      pnpmWorkspaceYaml(true, OFFICIAL_RUNTIME_RESOLUTION_POLICY),
       'utf8',
     )
   } else {
-    ensureRuntimeResolutionMode(runtimeDir)
+    ensureOfficialRuntimeResolutionPolicy(runtimeDir)
   }
   ensurePnpm11BuildPolicy(runtimeDir)
 }
 
-export async function reconcileProfileBundles(profileDir: string, packageNames?: readonly string[]): Promise<string[]> {
+export async function reconcileProfileBundles(profileDir: string, packageNames?: readonly string[], extraDirs: readonly string[] = []): Promise<string[]> {
   const manifestPath = join(profileDir, 'package.json')
   if (!existsSync(manifestPath)) return []
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as {
@@ -857,7 +949,7 @@ export async function reconcileProfileBundles(profileDir: string, packageNames?:
   // 官方 bundle 一律保留（由运行时解析），桌面只负责社区插件与套件遗留项。
   const bundles = [...(manifest.dsh?.profile?.bundles ?? [...OFFICIAL_PROFILE_BUNDLES])].filter((name) => name !== SUITE_PACKAGE)
   const marketDisabled = readMarketDisabledPackages(profileDir)
-  const quarantined = await activeQuarantinedProfileBundles(profileDir)
+  const quarantined = await activeQuarantinedProfileBundles(profileDir, extraDirs)
   let changed = false
   const allowed = packageNames === undefined ? undefined : new Set(packageNames)
   for (const packageName of Object.keys(manifest.dependencies ?? {})) {
@@ -902,6 +994,9 @@ export async function pruneMissingProfileBundles(profileDir: string, extraDirs: 
     || (dependencies.has(packageName) && isResolvableProfileBundle(profileDir, packageName, extraDirs)))
   const removed = current.filter((packageName) => !next.includes(packageName))
   if (removed.length === 0) return []
+  const nextDependencies = { ...(manifest.dependencies ?? {}) }
+  for (const packageName of removed) delete nextDependencies[packageName]
+  manifest.dependencies = nextDependencies
   manifest.dsh = { ...manifest.dsh, profile: { ...manifest.dsh?.profile, bundles: next } }
   await writeTextFileAtomic(manifestPath, `${JSON.stringify(manifest, undefined, 2)}\n`)
   return removed
@@ -910,20 +1005,270 @@ export async function pruneMissingProfileBundles(profileDir: string, extraDirs: 
 /** 先认磁盘上的包，再改 bundle 列表：缺包的先摘掉，装上的再补进清单。 */
 export async function finalizeProfileBundlesAfterInstall(profileDir: string, extraDirs: readonly string[] = [], packageNames?: readonly string[]): Promise<{ removed: string[]; bundles: string[] }> {
   const removed = await pruneMissingProfileBundles(profileDir, extraDirs)
-  const bundles = await reconcileProfileBundles(profileDir, packageNames)
-  return { removed, bundles }
+  const bundles = await reconcileProfileBundles(profileDir, packageNames, extraDirs)
+  if (!await restrictProfileBundlesForRecovery(profileDir)) return { removed, bundles }
+  const manifest = JSON.parse(await readFile(join(profileDir, 'package.json'), 'utf8')) as {
+    dsh?: { profile?: { bundles?: string[] } }
+  }
+  return { removed, bundles: manifest.dsh?.profile?.bundles ?? [] }
+}
+
+/** 将随包内容寻址仓库合入原 store，避免改 store-dir 破坏已有 pnpm 安装。 */
+export async function prepareBundledPluginStore(profileDir: string, bundledStore: string, onProgress?: (progress: StartupProgress) => void, env: NodeJS.ProcessEnv = process.env): Promise<SeedPnpmOptions> {
+  for (const part of ['v11', 'cache', 'v11/files', 'v11/index.db']) {
+    const path = join(bundledStore, part)
+    if (!existsSync(path) || (part.endsWith('.db') ? !statSync(path).isFile() : !statSync(path).isDirectory())) {
+      throw new Error(`随包插件资源不完整：缺少 ${part}，请重新安装完整桌面安装包。`)
+    }
+  }
+  const existing = resolvePnpmStoreDir(profileDir)
+  const storeDir = existing ?? bundledStore
+  if (existing !== undefined) {
+    if (/^v\d+$/.test(basename(existing)) && basename(existing) !== 'v11') {
+      throw new Error('已有 pnpm 仓库格式与随包 v11 不兼容，已停止离线升级。')
+    }
+    const destination = basename(existing) === 'v11' ? existing : join(existing, 'v11')
+    const source = join(bundledStore, 'v11')
+    if (resolve(source) !== resolve(destination)) {
+      // v11 的 SQLite 索引必须合并，不能覆盖原索引或复制 projects 中的临时链接。
+      const sourceDb = new DatabaseSync(join(source, 'index.db'), { readOnly: true })
+      try {
+        assertStoreSchema(sourceDb)
+        const targetPath = join(destination, 'index.db')
+        if (existsSync(targetPath)) {
+          const checkDb = new DatabaseSync(targetPath, { readOnly: true })
+          try { assertStoreSchema(checkDb) } finally { checkDb.close() }
+        }
+        onProgress?.({ phase: 'scan' })
+        const total = onProgress === undefined ? 0 : await countStoreFiles(join(source, 'files'))
+        await mkdir(destination, { recursive: true })
+        const targetDb = new DatabaseSync(join(destination, 'index.db'))
+        try {
+          targetDb.exec('PRAGMA busy_timeout = 1000; BEGIN IMMEDIATE')
+          try {
+            targetDb.exec('CREATE TABLE IF NOT EXISTS package_index (key TEXT PRIMARY KEY, data BLOB NOT NULL) WITHOUT ROWID')
+            assertStoreSchema(targetDb)
+            const counts = { completed: 0, total, lastReport: 0 }
+            onProgress?.({ phase: 'sync', completed: 0, total })
+            await importMissingStoreFiles(join(source, 'files'), join(destination, 'files'), counts, onProgress)
+            onProgress?.({ phase: 'index' })
+            const insert = targetDb.prepare('INSERT OR IGNORE INTO package_index (key, data) VALUES (?, ?)')
+            for (const row of sourceDb.prepare('SELECT key, data FROM package_index').iterate()) {
+              insert.run(row.key!, row.data!)
+            }
+            targetDb.exec('COMMIT')
+          } catch (error) {
+            targetDb.exec('ROLLBACK')
+            throw error
+          }
+        } finally {
+          targetDb.close()
+        }
+      } finally {
+        sourceDb.close()
+      }
+    }
+  }
+  const bundledCache = join(bundledStore, 'cache')
+  const cacheDir = existing === undefined ? bundledCache
+    : join(basename(existing) === 'v11' ? dirname(existing) : existing, 'cache')
+  if (resolve(cacheDir) !== resolve(bundledCache)) await mergeBundledMetadata(bundledCache, cacheDir)
+  // 旧 Profile 的 lockfile 会引用随包仓库里没有的包（例如老版官方运行时的 cosmokit）。
+  // 离线安装要按元数据校验锁文件，这些包的元数据只存在于本机旧安装留下的 pnpm 缓存里。
+  if (existing !== undefined) await mergeLegacyPnpmCacheMetadata(cacheDir, env)
+  return { storeDir, cacheDir, offline: true }
+}
+
+/** 本机可能留有旧元数据缓存的 pnpm 缓存目录，按 pnpm 的默认位置推断。 */
+export function legacyPnpmCacheDirs(env: NodeJS.ProcessEnv): string[] {
+  const candidates = [
+    env.XDG_CACHE_HOME === undefined || env.XDG_CACHE_HOME === '' ? undefined : join(env.XDG_CACHE_HOME, 'pnpm'),
+    env.LOCALAPPDATA === undefined || env.LOCALAPPDATA === '' ? undefined : join(env.LOCALAPPDATA, 'pnpm-cache'),
+    env.HOME === undefined || env.HOME === '' ? undefined : join(env.HOME, '.cache', 'pnpm'),
+    env.USERPROFILE === undefined || env.USERPROFILE === '' ? undefined : join(env.USERPROFILE, '.cache', 'pnpm'),
+  ]
+  const seen = new Set<string>()
+  return candidates.filter((candidate): candidate is string => {
+    if (candidate === undefined) return false
+    const key = resolve(candidate)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+/** 把旧缓存的缩写元数据并进离线仓库缓存，并补出校验只认的 metadata-full 同名文件。 */
+export async function mergeLegacyPnpmCacheMetadata(cacheDir: string, env: NodeJS.ProcessEnv = process.env): Promise<number> {
+  const metadataRoot = join(cacheDir, 'v11', 'metadata')
+  const fullRoot = join(cacheDir, 'v11', 'metadata-full')
+  let merged = 0
+  for (const cacheRoot of legacyPnpmCacheDirs(env)) {
+    const source = join(cacheRoot, 'v11', 'metadata')
+    // 更新已有文件会覆盖随包元数据，只补仓库里没有的包。
+    if (!existsSync(source) || resolve(source) === resolve(metadataRoot)) continue
+    try {
+      merged += await mergeMissingMetadataTree(source, metadataRoot)
+      merged += await mergeMissingMetadataTree(source, fullRoot)
+    } catch (error) {
+      console.warn('并入本机旧 pnpm 元数据缓存失败，离线校验可能仍缺部分包元数据。', error)
+    }
+  }
+  return merged
+}
+
+async function mergeMissingMetadataTree(source: string, destination: string): Promise<number> {
+  let copied = 0
+  await mkdir(destination, { recursive: true })
+  for (const entry of await readdir(source, { withFileTypes: true })) {
+    const from = join(source, entry.name), to = join(destination, entry.name)
+    if (entry.isDirectory()) {
+      copied += await mergeMissingMetadataTree(from, to)
+      continue
+    }
+    if (!entry.isFile() || existsSync(to)) continue
+    await writeTextFileAtomic(to, await readFile(from, 'utf8'))
+    copied += 1
+  }
+  return copied
+}
+
+/** 更新随包包的元数据，保留旧仓库独有包；否则移出内置的插件会令离线锁文件校验失败。 */
+async function mergeBundledMetadata(source: string, destination: string): Promise<void> {
+  await mkdir(destination, { recursive: true })
+  for (const entry of await readdir(source, { withFileTypes: true })) {
+    const from = join(source, entry.name), to = join(destination, entry.name)
+    if (entry.isDirectory()) await mergeBundledMetadata(from, to)
+    else if (entry.isFile()) await writeTextFileAtomic(to, await readFile(from, 'utf8'))
+    else throw new Error('随包元数据缓存存在非普通文件。')
+  }
+}
+
+function assertStoreSchema(db: DatabaseSync): void {
+  const columns = db.prepare('PRAGMA table_info(package_index)').all()
+  if (columns.length !== 2 || columns[0]?.name !== 'key' || columns[0]?.type !== 'TEXT'
+    || columns[0]?.pk !== 1 || columns[1]?.name !== 'data' || columns[1]?.type !== 'BLOB'
+    || columns[1]?.notnull !== 1) throw new Error('pnpm 仓库索引结构不兼容，已停止离线导入。')
+}
+
+/** 完整复制到临时文件后原子创建目标硬链接；已有内容不覆盖，中断不暴露半个包文件。 */
+async function countStoreFiles(source: string): Promise<number> {
+  let count = 0
+  for (const entry of await readdir(source, { withFileTypes: true })) {
+    count += entry.isDirectory() ? await countStoreFiles(join(source, entry.name)) : 1
+  }
+  return count
+}
+
+async function importMissingStoreFiles(source: string, destination: string,
+  counts: { completed: number; total: number; lastReport: number }, onProgress?: (progress: StartupProgress) => void): Promise<void> {
+  const advance = (): void => {
+    counts.completed++
+    if (Date.now() - counts.lastReport >= 100 || counts.completed === counts.total) {
+      onProgress?.({ phase: 'sync', completed: counts.completed, total: counts.total })
+      counts.lastReport = Date.now()
+    }
+  }
+  await mkdir(destination, { recursive: true })
+  for (const entry of await readdir(source, { withFileTypes: true })) {
+    const from = join(source, entry.name), to = join(destination, entry.name)
+    if (entry.isDirectory()) {
+      await importMissingStoreFiles(from, to, counts, onProgress)
+      continue
+    }
+    if (!entry.isFile()) throw new Error('随包依赖仓库存在非普通文件。')
+    try {
+      if (!(await lstat(to)).isFile()) throw new Error('已有依赖路径不是普通文件。')
+      advance()
+      continue
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
+    const temporary = join(destination, `.dsh-import-${randomUUID()}`)
+    try {
+      await copyFile(from, temporary, constants.COPYFILE_EXCL)
+      try { await link(temporary, to) } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+      }
+    } finally {
+      await rm(temporary, { force: true })
+    }
+    advance()
+  }
 }
 
 export function isResolvableProfileBundle(profileDir: string, packageName: string, extraDirs: readonly string[] = []): boolean {
   if ((OFFICIAL_PROFILE_BUNDLES as readonly string[]).includes(packageName)) return true
-  return [profileDir, ...extraDirs].some((dir) => existsSync(join(dir, 'node_modules', ...packageName.split('/'), 'package.json')))
+  return [profileDir, ...extraDirs].some((dir) => hasBundleManifest(dir, packageName))
+}
+
+/** 官方 bundle 位于 @deepseek-ai/dsh 的依赖树中，须按运行时的实际解析规则验证。 */
+export function assertOfficialProfileBundlesAvailable(profileDir: string, runtimeDirs: readonly string[]): void {
+  if (runtimeDirs.length === 0) return
+  let bundles: string[]
+  try {
+    const manifest = JSON.parse(readFileSync(join(profileDir, 'package.json'), 'utf8')) as { dsh?: { profile?: { bundles?: unknown } } }
+    bundles = Array.isArray(manifest.dsh?.profile?.bundles)
+      ? manifest.dsh.profile.bundles.filter((value): value is string => typeof value === 'string')
+      : []
+  } catch {
+    return
+  }
+  const missing = bundles
+    .filter((bundle): bundle is typeof OFFICIAL_PROFILE_BUNDLES[number] => (OFFICIAL_PROFILE_BUNDLES as readonly string[]).includes(bundle))
+    .filter(bundle => !runtimeDirs.some(runtimeDir => hasOfficialRuntimeBundle(runtimeDir, bundle)))
+  if (missing.length > 0) throw new Error(`官方运行时安装不完整：缺少内置 bundle ${missing.join('、')}。请重新启动应用以修复官方运行时。`)
+}
+
+function hasOfficialRuntimeBundle(runtimeDir: string, packageName: string): boolean {
+  const dshManifestPath = join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')
+  if (!existsSync(dshManifestPath)) return false
+  try {
+    const resolvedManifestPath = createRequire(dshManifestPath).resolve(`${packageName}/package.json`)
+    const packageDir = dirname(resolvedManifestPath)
+    const manifest = JSON.parse(readFileSync(resolvedManifestPath, 'utf8')) as { name?: unknown, dsh?: { bundle?: { patch?: unknown } } }
+    const patch = manifest.dsh?.bundle?.patch
+    const files = bundlePatchFiles(patch)
+    return manifest.name === packageName && files.length > 0 && files.every(file => isPackageFile(packageDir, file))
+  } catch {
+    return false
+  }
 }
 
 function hasBundleManifest(profileDir: string, packageName: string): boolean {
-  const manifestPath = join(profileDir, 'node_modules', ...packageName.split('/'), 'package.json')
+  const packageDir = join(profileDir, 'node_modules', ...packageName.split('/'))
+  const manifestPath = join(packageDir, 'package.json')
   if (!existsSync(manifestPath)) return false
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { dsh?: { bundle?: { patch?: string } } }
-  return typeof manifest.dsh?.bundle?.patch === 'string'
+  try {
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+      name?: unknown
+      dsh?: { bundle?: { patch?: unknown } }
+    }
+    const patch = manifest.dsh?.bundle?.patch
+    const files = bundlePatchFiles(patch)
+    return manifest.name === packageName && files.length > 0 && files.every(file => isPackageFile(packageDir, file))
+  } catch {
+    return false
+  }
+}
+
+/** 0.1.7 起官方 bundle 的 patch 可以是单个文件，也可以是文件列表。 */
+function bundlePatchFiles(patch: unknown): string[] {
+  const values = typeof patch === 'string' ? [patch] : Array.isArray(patch) ? patch : []
+  const files = values.filter((value): value is string => typeof value === 'string' && value.trim() !== '')
+  return files.length === values.length && files.length > 0 ? files : []
+}
+
+/** bundle patch 只能读取插件目录内的普通文件，避免半安装与路径逃逸进入 DSH 加载图。 */
+function isPackageFile(packageDir: string, candidate: string): boolean {
+  try {
+    const packageRoot = realpathSync(packageDir)
+    const target = realpathSync(resolve(packageDir, candidate))
+    const pathFromRoot = relative(packageRoot, target)
+    if (pathFromRoot === '' || pathFromRoot === '..' || pathFromRoot.startsWith('..' + sep) || isAbsolute(pathFromRoot)) return false
+    return statSync(target).isFile()
+  } catch {
+    return false
+  }
 }
 
 async function readProfilePluginNames(profileDir: string): Promise<{ declared: string[]; installed: string[] }> {
@@ -957,13 +1302,16 @@ async function readInstalledPackages(profileDir: string, names: readonly string[
 }
 
 function runPnpm(options: SeedOptions, args: readonly string[]): Promise<void> {
-  const pnpmEntry = options.pnpmEntry ?? (options.pathPrefix === undefined ? undefined : join(options.pathPrefix, 'pnpm-package', 'bin', 'pnpm.cjs'))
+  const pnpmEntry = options.pnpmEntry !== undefined
+    ? normalizePnpmNodeEntry(options.pnpmEntry)
+    : (options.pathPrefix === undefined ? undefined : resolvePnpmNodeEntry(join(options.pathPrefix, 'pnpm-package')))
   if (pnpmEntry === undefined) throw new Error('未找到随包 pnpm，无法补种官方运行时和社区插件。')
+  const invocation = preparePnpmInvocation(args)
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(options.nodeExecutable, [pnpmEntry, ...args], {
+    const child = spawn(options.nodeExecutable, [pnpmEntry, ...invocation.args], {
       cwd: dirname(pnpmEntry),
       env: {
-        ...process.env,
+        ...invocation.env,
         CI: 'true',
         DSH_HOME: resolve(options.profileDir, '..', '..'),
         ...(options.pathPrefix === undefined ? {} : { PATH: prependPath(process.env.PATH, options.pathPrefix) }),
@@ -974,19 +1322,21 @@ function runPnpm(options: SeedOptions, args: readonly string[]): Promise<void> {
     let output = ''
     let settled = false
     let timeoutError: Error | undefined
-    let killDeadline: ReturnType<typeof setTimeout> | undefined
     const finish = (error?: Error): void => {
       if (settled) return
       settled = true
       clearTimeout(timeout)
-      clearTimeout(killDeadline)
       if (error === undefined) resolvePromise()
       else reject(error)
     }
     const timeout = setTimeout(() => {
       timeoutError = new Error('pnpm 操作超时，已终止子进程。')
-      terminateProcessTree(child)
-      killDeadline = setTimeout(() => finish(timeoutError), 2_000)
+      // finish() 表示本次 pnpm 操作已经结束；必须等进程树真正退出后再交付，
+      // 否则调用方可能马上复用目录、端口或安装锁。
+      void terminateProcessTree(child).then(
+        () => finish(timeoutError),
+        () => finish(timeoutError),
+      )
     }, options.timeoutMs ?? 300_000)
     timeout.unref?.()
     // pnpm 的进度行只出现在 stdout；stderr 仍并进输出摘要用于失败诊断。

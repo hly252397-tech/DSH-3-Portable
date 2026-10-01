@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron') as typeof import('electron')
 
 const IPC = {
+  forwardInput: 'dsh-shell:forward-input',
   action: 'dsh-shell:action',
   getBootstrap: 'dsh-shell:get-bootstrap',
   popupMenu: 'dsh-shell:popup-menu',
@@ -180,4 +181,5 @@ contextBridge.exposeInMainWorld('dshShell', {
     return () => ipcRenderer.removeListener(IPC.settingsSection, wrapped)
   },
   popupMenu: (request: unknown) => ipcRenderer.invoke(IPC.popupMenu, request),
+  forwardInput: (payload: unknown) => ipcRenderer.send(IPC.forwardInput, payload),
 })

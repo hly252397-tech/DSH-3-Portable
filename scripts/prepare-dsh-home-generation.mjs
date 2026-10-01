@@ -185,6 +185,18 @@ async function main() {
     if (stats.skipped.length > 0) {
       console.warn(`家园复制跳过 ${stats.skipped.length} 条链接，记录于 receipt 供复查。`)
     }
+    // 社区包补丁必须在写绑定开关之前落到新家园：绑定一旦落盘就是"生效开关"，而 codex-ui 的
+    // 「插件配置」分区补丁属 npm 就地补丁，会被下一次 profile 依赖物化覆盖成未打补丁的原始包
+    // （2026-09-28 修过、2026-09-30 建 auto-020-rc2 时原样复发，副本 nlink=2 硬链到 pnpm store）。
+    // 这里失败即走下方 catch：撤绑定 + 隔离整个代际目录，绝不留下补丁缺失的生效家园。
+    const codexUiPatches = await import(new URL('../customizations/codex-ui-patches/apply.mjs', import.meta.url).href)
+    const patchReport = codexUiPatches.run(root, false)
+    if (!patchReport.ok) {
+      const broken = patchReport.files.filter((item) => item.status === 'drift' || item.status === 'missing')
+        .map((item) => `${item.status} ${item.file}${item.detail ? '\n' + item.detail : ''}`).join('\n')
+      throw new Error(`codex-ui 社区包补丁未能落到全部家园，拒绝写出绑定开关。\n${broken}`)
+    }
+    console.warn(`已对 ${patchReport.files.length} 份家园副本应用/校验 codex-ui 补丁。`)
     mkdirSync(homesDir, { recursive: true })
     const binding = { schema: 1, runtimeVersion, generation: args.generation }
     const temporaryBinding = `${bindingPath}.tmp-${process.pid}`
@@ -223,6 +235,7 @@ async function main() {
       runtimeFiles: runtimeStats.files,
       runtimeBytes: runtimeStats.bytes,
       relinks: { official: stats.official, internal: stats.internal, skipped: stats.skipped },
+      communityPatches: { codexUi: { copies: patchReport.files.length, allApplied: patchReport.ok } },
       startedAt: new Date().toISOString(),
     }
     writeFileSync(join(generationRoot, 'receipt.json'), JSON.stringify(receipt, null, 2), 'utf8')

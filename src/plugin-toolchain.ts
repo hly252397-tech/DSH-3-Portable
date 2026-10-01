@@ -1,11 +1,65 @@
-import { existsSync } from 'node:fs'
-import { basename, dirname, join } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { basename, dirname, join, resolve } from 'node:path'
+
+/** pnpm 12's manifest bin is native; DSH's Node-based bridge must use its JS wrapper. */
+export function resolvePnpmNodeEntry(packageRoot: string, exists: (path: string) => boolean = existsSync): string {
+  for (const entry of ['bin/pnpm.mjs', 'bin/pnpm.cjs', 'dist/pnpm.cjs', 'bin/pnpm.js']) {
+    const candidate = join(packageRoot, entry)
+    if (exists(candidate)) return candidate
+  }
+  throw new Error(`随包 pnpm 的 Node 入口不存在：${packageRoot}`)
+}
+
+/** npm_execpath from pnpm 12 points to a native binary even when invoked through its JS wrapper. */
+export function normalizePnpmNodeEntry(entry: string): string {
+  if (/\.(?:mjs|cjs|js)$/i.test(entry)) return entry
+  let directory = dirname(resolve(entry))
+  for (let depth = 0; depth < 8; depth += 1) {
+    const manifest = join(directory, 'package.json')
+    if (existsSync(manifest)) {
+      const { name } = JSON.parse(readFileSync(manifest, 'utf8')) as { name?: string }
+      if (name === 'pnpm' || name === '@pnpm/exe') return resolvePnpmNodeEntry(directory)
+    }
+    const parent = dirname(directory)
+    if (parent === directory) break
+    directory = parent
+  }
+  throw new Error(`无法将 pnpm 原生入口解析为 Node 入口：${entry}`)
+}
 
 /** pnpm records a versioned store in .modules.yaml, but cache-dir takes its root. */
 export function pnpmStoreOptions(storeDir?: string): string[] {
   if (storeDir === undefined) return []
   const cacheDir = /^v\d+$/.test(basename(storeDir)) ? dirname(storeDir) : storeDir
   return [`--store-dir=${storeDir}`, `--cache-dir=${cacheDir}`]
+}
+
+/** pnpm 12 rejects --cache-dir, and --config.cacheDir is silently ignored.
+ * Keep internal argument builders stable; translate at every process boundary.
+ * The official PNPM_CONFIG_CACHE_DIR variable is verified with `pnpm cache path`. */
+export function preparePnpmInvocation(args: readonly string[], env: NodeJS.ProcessEnv = process.env): { args: string[]; env: NodeJS.ProcessEnv } {
+  const effective: string[] = []
+  let cacheDir: string | undefined
+  let minimumReleaseAge: string | undefined
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]!
+    if (arg === '--cache-dir') {
+      const value = args[++i]
+      if (!value || value.startsWith('--')) throw new Error('Missing pnpm cache directory')
+      cacheDir = value
+    } else if (arg.startsWith('--cache-dir=')) {
+      cacheDir = arg.slice('--cache-dir='.length)
+      if (!cacheDir) throw new Error('Missing pnpm cache directory')
+    } else if (arg.startsWith('--config.minimumReleaseAge=')) {
+      minimumReleaseAge = arg.slice('--config.minimumReleaseAge='.length)
+      if (!/^\d+$/.test(minimumReleaseAge)) throw new Error('Invalid pnpm minimum release age')
+    } else effective.push(arg)
+  }
+  return { args: effective, env: {
+    ...env,
+    ...(cacheDir === undefined ? {} : { PNPM_CONFIG_CACHE_DIR: cacheDir, npm_config_cache_dir: cacheDir }),
+    ...(minimumReleaseAge === undefined ? {} : { PNPM_CONFIG_MINIMUM_RELEASE_AGE: minimumReleaseAge, npm_config_minimum_release_age: minimumReleaseAge }),
+  } }
 }
 
 interface PathLookup {

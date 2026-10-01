@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path'
 
 import { writeTextFileAtomic } from './atomic-file.js'
 import { compareReleaseVersions } from './bundled-plugins.js'
+import type { HarnessPrebuiltRelease } from './harness-release-catalog.js'
 
 export type HarnessUpdateMode = 'manual' | 'notify' | 'safe-auto' | 'maintenance-auto'
 
@@ -39,6 +40,7 @@ export interface HarnessReleaseCandidate {
   readonly githubCommit: string
   readonly automaticEligible: boolean
   readonly automaticBlockReason?: string
+  readonly prebuiltRelease?: HarnessPrebuiltRelease
 }
 
 export interface HarnessUpdateCheckResult {
@@ -155,6 +157,47 @@ export const BUILTIN_TRUSTED_HARNESS_RELEASES: readonly TrustedHarnessRelease[] 
   version: '0.1.6-alpha.2',
   npmIntegrity: 'sha512-PHR/3ZHpJNWXlDQ3U9weFb7calWbSMJd2GD3z2iPJ8zAKL7ipuzyPy5xGbaXf2OA8hc0SAGJeoUW7nfatCNOYw==',
   githubCommit: 'ddefc45fbc7f8e46dd73185e68295696d1297887',
+}, {
+  // 2026-09-25：0.1.7-rc.2 受信（上游 v1.0.76 随包运行时）。凭据：npm integrity（registry 实取
+  // dist.integrity）+ 官方标签 dsh-v0.1.7-rc.2 commit 477b4f42（官方裸仓库实读）。
+  // 隔离安装（RuntimeCandidate → 家园 v4-rc2）已过依赖核对与读取侧绑定闭环校验。
+  version: '0.1.7-rc.2',
+  npmIntegrity: 'sha512-SQFhriLvza8GnFApnC5/32AgpcyKxrWnYXhvwDOLJdgWpkCX2EexyR9c8kCkMITJXnFLEN3Qb2CEh0W36vkLyw==',
+  githubCommit: '477b4f420553e8a52c2fbccc464d7561b239c443',
+}, {
+  // 2026-09-28：0.2.0-rc.1 受信（用户当时决定"拉一次更新试试"并锁 manual；
+  // 2026-09-30 用户改判为自动拉取升级，该锁定已撤销）。
+  // 凭据：npm registry 实取 dist.integrity + 官方标签 dsh-v0.2.0-rc.1 commit（GitHub API 实取，
+  // 与官方仓库 HEAD 一致——发布提交 4878cdab "release(dsh): 0.2.0-rc.1 (#5387)"）。
+  // 人工审阅 21638c56...4878cdab 全部 106 提交：变更主体为 Windows 沙箱 ACL 诊断、WebKit/Safari
+  // 会话 JSON 兼容、Office/PDF 文本选择、Windows 标题栏间距、会话日志上传偏好、0.2 预览版公告
+  // （升级后首启会弹一次需确认）；无聊天视图文件打开器改道、无 fileLink/openPath 相关提交、
+  // 无破坏性插件 API 变更迹象。⚠️ 残余风险（如实记录）：社区插件（better-sidebar/codex-ui 1.1.18
+  // 等）对 0.2 家族的 peer 适配未逐一实测，影子验证不覆盖社区插件——靠 A/B 自动回滚兜底
+  // （先例：0.1.5-alpha.1 真实 Profile 切换即崩被回滚）。切换后必跑 scripts/check-open-behavior.mjs
+  // 体检（升级流程 7b 关卡）。
+  version: '0.2.0-rc.1',
+  npmIntegrity: 'sha512-F6hKNVoGgBDIzSiyRaIlobq4UD6cwxUjh+nwXqcDmufDh87TE1izsYzs8L5cZNpF2JmPnFM1mXRNnRJ0cs43ng==',
+  githubCommit: '4878cdabd87d4041bdaff61d04c966883b9fd07a',
+}, {
+  // 2026-09-29：0.2.0-rc.2 受信（用户 2026-09-29 指示"都拉取更新吧"；上游桌面壳同日发 v1.0.77，
+  // 其随包运行时目标即 rc.2）。2026-09-30 用户改判：更新策略一律自动拉取升级
+  // （policy.json mode=safe-auto，6 小时检查），本条目不再是只为一次手动升级解锁的例外。
+  // 凭据：npm registry 实取 dist.integrity（sha512-EAJ3gPNc…）+ 官方标签 dsh-v0.2.0-rc.2 的 commit
+  // 639ed015（GitHub API 实取 refs/tags/dsh-v0.2.0-rc.2），且该 commit 即官方仓库当前 HEAD
+  // （发布提交 c1b47e41 "release(dsh): 0.2.0-rc.2"）。
+  // 人工审阅 4878cdab…639ed015 共 187 提交 / 300 文件：主体为 apps/web 交互打磨（模型选择器模糊
+  // 搜索、会话时长/主题/快捷键）、apps/desktop 托管 CLI 命令管理、Windows ACL 单次修复、cordis
+  // Client inspect 查询限时，以及 perf(client) 长会话渲染与鲸鱼动画降载。**破坏性核查**：
+  // packages/api 与 packages/client 无任何 `export` 删除；packages/boot/* 与 packages/bundle/*
+  // 仅版本号 0.2.0-rc.1→rc.2 的 package.json 提升；官方未发布 rc.2 的 upgrade-guide（现有
+  // docs/upgrade-guide 只覆盖 0.1.7-rc.2 回填），即官方未申报对外可感知的破坏性变更。
+  // ⚠️ 残余风险（如实记录）：社区插件 peer 精确钉在 0.2.0-rc.1，rc.2 不满足——依赖
+  // compatibility.json 的 v5 代际 + 逐插件精确豁免放行（内核升级配套工具 Prepare-DSH-Kernel-Update.cmd
+  // 负责迁移），而非改 peer 宽区间。切换后必跑 7b 体检 scripts/check-open-behavior.mjs。
+  version: '0.2.0-rc.2',
+  npmIntegrity: 'sha512-EAJ3gPNcVt/uv8X19PMm9NkVhWgT7xXNMk0UKCVm+IQ5rpSQOcsMUa0HWlnYYVybKMsccjcRB21vVVsaXQ6IdA==',
+  githubCommit: '639ed015397290b3745d163aafe02ffee4aa3f84',
 }]
 
 // 2026-09-09 曾短暂受信 0.1.5-alpha.1（npm integrity sha512-AUjywjrPnhXcAdAjRNgyQa1QCnplFTNYZ+XpR9uCZdbg2FiCb06pHyoDUB2Wxuddzid9D7pVwEiU1OTl4Oshsg==，
@@ -351,6 +394,8 @@ export async function checkHarnessUpdate(options: {
   now?: string
   policy?: HarnessUpdatePolicy
   trusted?: readonly TrustedHarnessRelease[]
+  resolvePrebuiltRelease?: (version: string) => Promise<HarnessPrebuiltRelease | undefined>
+  includePrerelease?: boolean
 }): Promise<HarnessUpdateCheckResult> {
   const fetchImpl = options.fetch ?? fetch
   const policy = options.policy ?? DEFAULT_HARNESS_UPDATE_POLICY
@@ -371,8 +416,14 @@ export async function checkHarnessUpdate(options: {
   // alpha 候选未受信时回退稳定线，避免预览版生态未适配时整体卡死在旧运行时。
   const discovered = [...new Set([distTags[policy.channel], distTags.next, distTags.latest])]
     .filter((tag): tag is string => typeof tag === 'string' && isExactVersion(tag))
+    .filter(tag => options.includePrerelease !== false || !tag.split('+')[0]!.includes('-'))
     .sort((a, b) => compareReleaseVersions(b, a))
-  if (discovered.length === 0) throw new Error('npm dist-tags 没有返回合法的精确版本。')
+  if (discovered.length === 0) {
+    if (options.includePrerelease === false && Object.values(distTags).some(tag => typeof tag === 'string' && isExactVersion(tag))) {
+      return { checkedAt, currentVersion: options.currentVersion, updateAvailable: false }
+    }
+    throw new Error('npm dist-tags 没有返回合法的精确版本。')
+  }
   let notifyOnly: {
     version: string
     npmIntegrity: string
@@ -413,8 +464,13 @@ export async function checkHarnessUpdate(options: {
       continue
     }
 
-    const trusted = (options.trusted ?? BUILTIN_TRUSTED_HARNESS_RELEASES).find(item => item.version === target)
+    // 可独立发布的成品契约取代“每发一个内核必须再编译桌面”。旧静态清单仅供旧 API/开发路径。
+    const prebuilt = await options.resolvePrebuiltRelease?.(target)
+    const trusted = options.resolvePrebuiltRelease === undefined
+      ? (options.trusted ?? BUILTIN_TRUSTED_HARNESS_RELEASES).find(item => item.version === target)
+      : prebuilt === undefined ? undefined : { version: prebuilt.version, npmIntegrity: prebuilt.npmIntegrity, githubCommit: prebuilt.officialCommit }
     const automaticEligible = trusted !== undefined
+      && trusted.version === target
       && trusted.npmIntegrity === dist.integrity
       && trusted.githubCommit.toLowerCase() === githubCommit.toLowerCase()
     if (automaticEligible && trusted !== undefined) {
@@ -430,6 +486,7 @@ export async function checkHarnessUpdate(options: {
           githubTag,
           githubCommit: githubCommit.toLowerCase(),
           automaticEligible: true,
+          ...(prebuilt === undefined ? {} : { prebuiltRelease: prebuilt }),
         },
       }
     }
@@ -442,7 +499,7 @@ export async function checkHarnessUpdate(options: {
         githubTag,
         githubCommit: githubCommit.toLowerCase(),
         automaticBlockReason: trusted === undefined
-          ? '候选版本尚未进入桌面端受信发布清单。'
+          ? options.resolvePrebuiltRelease === undefined ? '候选版本尚未进入桌面端受信发布清单。' : '官方已有新版本，但尚无通过定制兼容审核的独立运行环境制品；当前版本保持不变。'
           : '候选版本的 commit 或 npm integrity 与受信清单不一致。',
       }
     }

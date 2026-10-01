@@ -9,6 +9,10 @@ on:
       - 'v*'
   workflow_dispatch:
 
+concurrency:
+  group: desktop-package-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: write
 
@@ -48,15 +52,29 @@ jobs:
       - name: 检出桌面启动器
         uses: actions/checkout@v7
 
-      - name: 配置 Node 24
+      - name: 配置清单 Node
         uses: actions/setup-node@v7
         with:
-          node-version: 24.20.0
+          node-version-file: package.json
 
       - name: 配置 pnpm
         uses: pnpm/action-setup@v6
         with:
-          version: 11.24.0
+          cache: true
+          cache_dependency_path: pnpm-lock.yaml
+
+      - name: 恢复已校验的运行时制品缓存
+        uses: actions/cache@v6
+        with:
+          path: |
+            Data/Development/build-cache
+            runtime-node
+            runtime-plugins/store.tgz*
+            runtime-dsh.tgz*
+          key: runtime-${{ matrix.platform }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'src/plugin-seed.ts', 'src/bundled-plugins.ts', 'src/build-cache.ts', 'scripts/prepare-runtime.ts') }}
+          # Restored content is only a hint. The runtime input closure and every
+          # output hash are checked before reuse, including desktop-only bumps.
+          restore-keys: runtime-${{ matrix.platform }}-
 
       - name: 安装 Linux 冒烟依赖
         if: startsWith(matrix.platform, 'linux-')
@@ -131,7 +149,11 @@ jobs:
           }
           pnpm install --frozen-lockfile
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          pnpm test
+          pnpm run build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm run test:built
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm run preserve:check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           $buildArguments = @('${{ matrix.buildArguments }}' -split '\s+' | Where-Object { $_ })
@@ -144,7 +166,7 @@ jobs:
             $env:CSC_IDENTITY_AUTO_DISCOVERY = 'false'
           }
 
-          pnpm run prepare-runtime
+          pnpm run prepare-runtime:built
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           pnpm exec electron-builder --publish never @buildArguments
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -205,17 +227,19 @@ jobs:
 
   release:
     name: 发布 GitHub Release
-    if: startsWith(github.ref, 'refs/tags/v')
+    # 其他平台失败不再压住已经单独冒烟通过的 Windows 便携制品。
+    # Windows ZIP 缺失仍硬失败，绝不将失败包发布为成功。
+    if: always() && startsWith(github.ref, 'refs/tags/v') && needs.package.result != 'cancelled'
     needs: package
     runs-on: windows-latest
     steps:
       - name: 检出发布元数据
         uses: actions/checkout@v7
 
-      - name: 配置 Node 24
+      - name: 配置清单 Node
         uses: actions/setup-node@v7
         with:
-          node-version: 24.20.0
+          node-version-file: package.json
 
       - name: 下载各平台制品
         uses: actions/download-artifact@v8
@@ -232,6 +256,8 @@ jobs:
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           $OutputEncoding = [System.Text.Encoding]::UTF8
           $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          $manifestVersion = (Get-Content -LiteralPath package.json -Raw | ConvertFrom-Json).version
+          if ($version -ne $manifestVersion) { throw '发布标签与清单版本不一致，拒绝发布旧构建。' }
           $windowsZip = Join-Path 'release' ("dsh-codex-desktop-{0}-win-x64.zip" -f $version)
           if (-not (Test-Path -LiteralPath $windowsZip -PathType Leaf)) { throw "未找到 Windows x64 ZIP：$windowsZip" }
           $contract = Join-Path 'release' ("dsh-portable-contract-{0}-win-x64.json" -f $version)
@@ -242,11 +268,11 @@ jobs:
           node scripts/extract-release-notes.mjs $env:GITHUB_REF_NAME release-notes.md
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+          $releaseFlags = @()
+          if ($version -match '^\d+\.\d+\.\d+-') { $releaseFlags += '--prerelease' }
           gh release view $env:GITHUB_REF_NAME *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release edit $env:GITHUB_REF_NAME --title $env:GITHUB_REF_NAME --notes-file release-notes.md
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            gh release upload $env:GITHUB_REF_NAME @($files.FullName) --clobber
+            throw '同名 Release 已存在，拒绝覆盖不可变制品；请递增 +build.N 再发版。'
           } else {
-            gh release create $env:GITHUB_REF_NAME @($files.FullName) --title $env:GITHUB_REF_NAME --notes-file release-notes.md
+            gh release create $env:GITHUB_REF_NAME @($files.FullName) --title $env:GITHUB_REF_NAME --notes-file release-notes.md @releaseFlags
           }

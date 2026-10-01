@@ -1,0 +1,68 @@
+name: 独立 Harness 运行时发布
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 官方 Harness 精确版本（允许预发布）
+        required: true
+        type: string
+      reviewed_compatibility_path:
+        description: 已审阅且已提交的兼容 JSON 路径（空授权文件使用 {}）
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: harness-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+      - uses: pnpm/action-setup@v6
+      - name: 构建发布工具并验证获取链
+        shell: pwsh
+        run: |
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm run build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/gate-node-run.mjs scripts/run-tests.mjs dist/test/harness-release-catalog.test.js dist/test/harness-prebuilt-update.test.js dist/test/harness-runtime-candidate.test.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: 制作独立内核包与契约
+        shell: pwsh
+        env:
+          HARNESS_VERSION: ${{ inputs.version }}
+          HARNESS_REVIEW_PATH: ${{ inputs.reviewed_compatibility_path }}
+        run: |
+          $pnpmVersion = ((Get-Content package.json -Raw | ConvertFrom-Json).packageManager -split '@')[-1]
+          npm install --prefix .harness-release-tools "pnpm@$pnpmVersion" --ignore-scripts --no-package-lock --registry=https://registry.npmjs.org/
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git ls-files --error-unmatch -- $env:HARNESS_REVIEW_PATH
+          if ($LASTEXITCODE -ne 0) { throw '兼容审阅文件必须已提交到本次检出。' }
+          node scripts/gate-node-run.mjs scripts/create-harness-release-contract.mjs $env:HARNESS_VERSION --build release-harness --reviewed-compatibility $env:HARNESS_REVIEW_PATH --pnpm-entry .harness-release-tools/node_modules/pnpm/bin/pnpm.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: 发布独立内核版本
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HARNESS_VERSION: ${{ inputs.version }}
+        run: |
+          if ($env:HARNESS_VERSION -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$') { throw '非法内核版本。' }
+          $tag = "harness-v$env:HARNESS_VERSION"
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) { throw '该内核版本已经发布，禁止覆盖不可变制品。' }
+          $artifact = "release-harness/dsh-harness-$env:HARNESS_VERSION-win-x64.tgz"
+          $contract = "release-harness/dsh-harness-contract-$env:HARNESS_VERSION-win-x64.json"
+          $extra = @()
+          if ($env:HARNESS_VERSION -match '-') { $extra += '--prerelease' }
+          gh release create $tag $artifact $contract --title "Harness $env:HARNESS_VERSION" --notes '独立 Harness 成品；插件兼容授权见随包契约。' --latest=false @extra
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

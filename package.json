@@ -1,27 +1,27 @@
 {
   "name": "deepseek-harness-desktop",
-  "version": "1.0.66",
+  "version": "1.0.78+build.1",
   "description": "DeepSeek Harness native desktop launcher",
   "author": "MichengAI",
   "desktopName": "DSH Codex Desktop",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
-  "packageManager": "pnpm@11.26.0",
+  "packageManager": "pnpm@12.7.0",
   "engines": {
-    "node": "24.21.0",
-    "pnpm": "11.26.0"
+    "node": "26.10.0",
+    "pnpm": "12.7.0"
   },
   "config": {
-    "bundledNodeVersion": "v24.21.0",
+    "bundledNodeVersion": "v26.10.0",
     "bundledNodeSha256": {
-      "win32-x64": "BA4E6D110E8C1592A1ECD390F6B05F3DA124B13871A5BE62B341A07A853C6C32",
-      "darwin-arm64": "E4B5A3AF0E05C75DE2EAE013904145F40FE7FC2A6E6F17510128BF45CCA4E79B",
-      "darwin-x64": "7ABCF39BD37AB251015337FF75304D7555F0D8E88C6E0FBF04BCE8CE34636F49",
-      "linux-arm64": "0F8949D1028F6D61506B2D5BC57E7E6FE893D7B1997509B7847294FC9C616584",
-      "linux-x64": "7FDE7B8AFA198DA66257F42EE2001D874C7355631E6D1579A5FB5EF1F246DF4C"
+      "win32-x64": "CEA6AC365F9BB9586DAFD2084D996E092E7D3E7D07AB52D1F76BF53D1FCA9BC4",
+      "darwin-arm64": "56D28B39A8048F0CD1AF7AD7E09F6CBE1C04439B6DFEB6C8D9090C082AF60861",
+      "darwin-x64": "083775C8C778A1AB7AEE1C9971BA2DAC29032B5F60DA9DB9A2B8E9D050544C31",
+      "linux-arm64": "71B004F18A82F3EA8F26109798564A12E5E4C7989A4C35B93851830B5815DD03",
+      "linux-x64": "AB9C8EECF9F82D6693CDC3ACCCED17034065C8D96213B0AA76A7E803D20AE1DA"
     },
-    "bundledDshVersion": "0.1.6-alpha.2"
+    "bundledDshVersion": "0.2.0-rc.2"
   },
   "main": "dist/src/main.js",
   "scripts": {
@@ -30,19 +30,24 @@
     "build": "tsc",
     "check": "tsc --noEmit",
     "test": "pnpm run build && node scripts/run-tests.mjs",
+    "test:built": "node scripts/run-tests.mjs",
+    "preserve:check": "node dist/scripts/check-customization-preservation.js --source-only",
     "start": "pnpm run build && electron .",
     "prepare-runtime": "pnpm run build && node dist/scripts/prepare-runtime.js",
-    "pack": "pnpm run prepare-runtime && electron-builder --dir --publish never",
-    "dist": "pnpm run prepare-runtime && electron-builder --publish never",
+    "prepare-runtime:built": "pnpm exec node dist/scripts/prepare-runtime.js",
+    "pack": "pnpm run build && pnpm run preserve:check && pnpm run prepare-runtime:built && electron-builder --dir --publish never",
+    "dist": "pnpm run build && pnpm run preserve:check && pnpm run prepare-runtime:built && electron-builder --publish never",
     "smoke:mac": "pnpm run build && node dist/scripts/smoke-macos-package.mjs",
     "smoke:linux": "pnpm run build && node dist/scripts/smoke-linux-package.mjs"
   },
   "devDependencies": {
     "@electron/notarize": "3.1.1",
-    "@types/node": "26.5.1",
-    "electron": "44.3.0",
-    "electron-builder": "26.16.1",
-    "typescript": "7.0.2"
+    "@types/node": "26.6.3",
+    "electron": "45.0.0-alpha.12",
+    "electron-builder": "27.0.0-alpha.9",
+    "semver": "7.8.5",
+    "typescript": "7.1.0-dev.20260926.1",
+    "yaml": "3.0.0-2"
   },
   "build": {
     "appId": "ai.micheng.deepseekHarnessDesktop",
@@ -66,6 +71,10 @@
       "browser-library.cjs"
     ],
     "extraResources": [
+      {
+        "from": "customizations/preservation.json",
+        "to": "preservation.json"
+      },
       {
         "from": "dist/release-source.json",
         "to": "release-source.json"
@@ -211,6 +220,7 @@
           "dsh-process.js",
           "plugin-seed.js",
           "plugin-toolchain.js",
+          "recovery-mode.js",
           "profile-bundle-health.js",
           "profile-quarantine.js",
           "profile-updates.js",
@@ -249,7 +259,6 @@
       "category": "Development",
       "executableName": "dsh-codex-desktop",
       "maintainer": "MichengAI <coolyujiyu@qq.com>",
-      "syncDesktopName": true,
       "target": [
         "AppImage",
         "deb"

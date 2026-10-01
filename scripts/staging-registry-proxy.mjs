@@ -53,7 +53,7 @@ function cleanHeaders(upstreamHeaders) {
 /** @param {ProxyOptions} options @returns {Promise<ProxyHandle>} */
 export async function startStagingRegistryProxy(options = {}) {
   const prefetchDir = options.prefetchDir || join(process.cwd(), 'Data', 'Temp', 'prefetch')
-  const upstream = options.upstream || process.env.DSH_UPSTREAM_REGISTRY || 'https://registry.npmmirror.com/'
+  const upstream = options.upstream || process.env.DSH_UPSTREAM_REGISTRY || 'https://registry.npmjs.org/'
   const host = options.host || process.env.DSH_PROXY_HOST || '127.0.0.1'
   const port = options.port ?? Number(process.env.DSH_PROXY_PORT || 0)
   const upstreamBase = upstream.replace(/\/$/, '')
@@ -117,11 +117,13 @@ export async function startStagingRegistryProxy(options = {}) {
       const contentType = upstreamRes.headers.get('content-type') || ''
       if (contentType.includes('application/json')) {
         const body = await upstreamRes.text()
-        const rewritten = body.replaceAll(`${upstreamBase}/`, `${server.url}/`)
+        // Registry metadata is a policy input, not a transport routing table.
+        // Rewriting dist.tarball poisons the next install's lockfile verification.
+        // Keep upstream URLs/signatures/integrity unchanged even for prefetched files.
         const headers = cleanHeaders(upstreamRes.headers)
-        headers['content-length'] = String(Buffer.byteLength(rewritten))
+        headers['content-length'] = String(Buffer.byteLength(body))
         res.writeHead(upstreamRes.status, headers)
-        res.end(rewritten)
+        res.end(body)
         log(upstreamRes.status, ' json')
         return
       }

@@ -3,6 +3,11 @@ const { contextBridge, ipcRenderer } = require('electron') as typeof import('ele
 const IPC = {
   dshAction: 'dsh-shell:dsh-action',
   action: 'dsh-shell:action',
+  embeddedSettingsDocument: 'dsh-shell:embedded-settings-document',
+  embeddedSettingsRequest: 'dsh-shell:embedded-settings-request',
+  bootstrap: 'dsh-shell:bootstrap',
+  desktopUpdateState: 'dsh-shell:desktop-update-state',
+  harnessUpdateState: 'dsh-shell:harness-update-state',
   dshLocale: 'dsh-shell:dsh-locale',
   dshTheme: 'dsh-shell:dsh-theme',
   desktopTheme: 'dsh-shell:desktop-theme',
@@ -305,6 +310,18 @@ window.addEventListener('DOMContentLoaded', () => {
 })
 
 contextBridge.exposeInMainWorld('dshDesktopShell', {
+  desktopSettings: {
+    document: () => ipcRenderer.invoke(IPC.embeddedSettingsDocument),
+    request: (value: unknown) => ipcRenderer.invoke(IPC.embeddedSettingsRequest, value),
+    onEvent: (listener: (value: { event: string; value: unknown }) => void) => {
+      const subscriptions = (['bootstrap', 'desktopUpdateState', 'harnessUpdateState'] as const).map(event => {
+        const wrapped = (_event: Electron.IpcRendererEvent, value: unknown): void => listener({ event, value })
+        ipcRenderer.on(IPC[event], wrapped)
+        return () => ipcRenderer.removeListener(IPC[event], wrapped)
+      })
+      return () => subscriptions.forEach(stop => stop())
+    },
+  },
   onAction: (listener: (id: string) => void) => {
     const wrapped = (_event: Electron.IpcRendererEvent, id: string) => listener(id)
     clientBridgeRegistrations += 1

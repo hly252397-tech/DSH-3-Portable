@@ -23,11 +23,62 @@ export type DesktopUpdateStatus =
   | ({ kind: 'rolled-back'; version?: string; message: string } & DesktopUpdateProgress)
   | ({ kind: 'error'; message: string } & DesktopUpdateProgress)
 
-export type DesktopUpdatePolicy = 'notify' | 'auto-download' | 'manual'
+export type DesktopUpdatePolicy = 'notify' | 'auto-download' | 'auto-on-exit' | 'manual'
 export type DesktopUpdateAction = 'check' | 'download' | 'install'
 
 export interface DesktopUpdatePreferences {
   readonly policy: DesktopUpdatePolicy
+  readonly channel?: 'stable' | 'preview'
+  readonly checkIntervalHours?: number
+}
+
+export interface DesktopUpdateChannelTicket {
+  readonly channel: 'stable' | 'preview'
+  readonly revision: number
+}
+
+export function desktopReleaseChannel(preferences: DesktopUpdatePreferences): 'stable' | 'preview' {
+  return preferences.channel ?? 'preview'
+}
+
+/**
+ * A cached release is usable only after a successful check in this process and
+ * this exact channel generation. Switching away and back must not revive an old
+ * check or an in-flight download's permission to stage an activation.
+ */
+export class DesktopUpdateChannelGate {
+  private revision = 0
+  private checked: DesktopUpdateChannelTicket | undefined
+
+  invalidate(): void {
+    this.revision += 1
+    this.checked = undefined
+  }
+
+  beginCheck(preferences: DesktopUpdatePreferences): DesktopUpdateChannelTicket {
+    this.invalidate()
+    return { channel: desktopReleaseChannel(preferences), revision: this.revision }
+  }
+
+  isCurrent(ticket: DesktopUpdateChannelTicket, preferences: DesktopUpdatePreferences): boolean {
+    return ticket.revision === this.revision && ticket.channel === desktopReleaseChannel(preferences)
+  }
+
+  acceptCheck(ticket: DesktopUpdateChannelTicket, preferences: DesktopUpdatePreferences, result: { phase: string; errorCode?: string }): boolean {
+    // Rate-limited checks may return the previous cached `available` result.
+    // That is display information, never a new channel authorization.
+    if (result.phase !== 'available' || result.errorCode !== undefined || !this.isCurrent(ticket, preferences)) return false
+    this.checked = ticket
+    return true
+  }
+
+  candidateTicket(preferences: DesktopUpdatePreferences): DesktopUpdateChannelTicket | undefined {
+    return this.checked !== undefined && this.isCurrent(this.checked, preferences) ? this.checked : undefined
+  }
+
+  mayUseCandidate(ticket: DesktopUpdateChannelTicket, preferences: DesktopUpdatePreferences): boolean {
+    return this.checked === ticket && this.isCurrent(ticket, preferences)
+  }
 }
 
 export interface DesktopUpdateSnapshot {
@@ -65,7 +116,12 @@ export function preserveDesktopUpdateFailure(status: DesktopUpdateStatus, messag
 export function sanitizeUpdatePreferences(value: unknown): DesktopUpdatePreferences {
   if (typeof value !== 'object' || value === null) return DEFAULT_UPDATE_PREFERENCES
   const policy = (value as Partial<DesktopUpdatePreferences>).policy
-  return { policy: policy === 'notify' || policy === 'auto-download' || policy === 'manual' ? policy : DEFAULT_UPDATE_PREFERENCES.policy }
+  const candidate = value as Partial<DesktopUpdatePreferences>
+  return {
+    policy: policy === 'notify' || policy === 'auto-download' || policy === 'auto-on-exit' || policy === 'manual' ? policy : DEFAULT_UPDATE_PREFERENCES.policy,
+    ...(candidate.channel === undefined ? {} : { channel: candidate.channel === 'preview' ? 'preview' as const : 'stable' as const }),
+    ...(candidate.checkIntervalHours === undefined ? {} : { checkIntervalHours: typeof candidate.checkIntervalHours === 'number' && Number.isFinite(candidate.checkIntervalHours) ? Math.max(1, Math.min(168, candidate.checkIntervalHours)) : 6 }),
+  }
 }
 
 export function shouldCheckForUpdatesOnStartup(preferences: DesktopUpdatePreferences, packaged: boolean): boolean {
@@ -73,7 +129,15 @@ export function shouldCheckForUpdatesOnStartup(preferences: DesktopUpdatePrefere
 }
 
 export function shouldDownloadUpdateAutomatically(preferences: DesktopUpdatePreferences): boolean {
-  return preferences.policy === 'auto-download'
+  return preferences.policy === 'auto-download' || preferences.policy === 'auto-on-exit'
+}
+
+export function desktopUpdateCheckInterval(preferences: DesktopUpdatePreferences): number {
+  return (preferences.checkIntervalHours ?? 6) * 60 * 60_000
+}
+
+export function shouldStageUpdateOnExit(preferences: DesktopUpdatePreferences): boolean {
+  return preferences.policy === 'auto-on-exit'
 }
 
 export async function loadUpdatePreferences(path: string): Promise<DesktopUpdatePreferences> {

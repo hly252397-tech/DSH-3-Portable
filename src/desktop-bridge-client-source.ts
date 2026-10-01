@@ -13,16 +13,24 @@ interface SessionList {
     origin?: string
     pendingInteraction?: 'approval' | 'plan-review' | 'question'
     running: boolean
+    retainedBy?: { mainView?: number }
   }>
   current?: string
 }
 
 interface ClientContext {
+  slots?: {
+    inject(name: string, callback: () => unknown): void
+    register(options: Record<string, unknown>, component: (props: { close?: () => void }) => unknown): unknown
+  }
   effect(callback: () => void | (() => void), label?: string): void
   layout: { toggleSidebar(): void }
+  uiWorkspace?: { openSession(id: string): void }
   locale: {
     getSnapshot(): { active: string }
     subscribe(listener: () => void): () => void
+    register?(name: string, dictionaries: Record<string, Record<string, string>>): () => void
+    bind?(name: string): (key: string) => string
   }
   sessions: {
     binding(id: string): {
@@ -49,6 +57,11 @@ interface ClientContext {
 }
 
 interface DesktopShellBridge {
+  desktopSettings?: {
+    document(): Promise<string>
+    request(value: { method: string; value?: unknown }): Promise<unknown>
+    onEvent(listener: (value: { event: string; value: unknown }) => void): () => void
+  }
   onAction(listener: (id: string) => void): () => void
   onOpenSession(listener: (id: string) => void): () => void
   onNotificationReply(listener: (value: { sessionId: string; text: string }) => void): () => void
@@ -66,7 +79,105 @@ interface DesktopShellBridge {
 }
 
 export function desktopBridgeClientFactory(moduleRequire: (id: string) => unknown): { apply(ctx: ClientContext): void; inject: string[] } {
-    const inject = ['sessions', 'workspaces', 'layout', 'locale']
+    const inject = ['sessions', 'workspaces', 'layout', 'locale', 'uiWorkspace', 'slots']
+
+    const registerDesktopSettings = (ctx: ClientContext, bridge: DesktopShellBridge): void => {
+      const api = bridge.desktopSettings
+      if (api === undefined || ctx.slots === undefined || ctx.locale.register === undefined || ctx.locale.bind === undefined) return
+      const ns = 'desktop-embedded-settings'
+      ctx.effect(() => ctx.locale.register!(ns, {
+        zh: { notifications: '通知', updates: '更新', appearance: '外观', loading: '正在加载桌面设置…', error: '桌面设置加载失败：', retry: '重试' },
+        en: { notifications: 'Notifications', updates: 'Updates', appearance: 'Appearance', loading: 'Loading desktop settings…', error: 'Could not load desktop settings: ', retry: 'Retry' },
+      }), 'desktop settings dictionary')
+      const t = ctx.locale.bind(ns)
+      const React = moduleRequire('react') as {
+        createElement(type: string, props: Record<string, unknown>, ...children: unknown[]): unknown
+        useState<T>(value: T): [T, (value: T) => void]
+        useRef<T>(value: T): { current: T }
+        useEffect(effect: () => (() => void), dependencies: unknown[]): void
+      }
+      const allowed = new Set(['getBootstrap', 'getNotificationPreferences', 'updateNotificationPreferences', 'updateThemePreferences',
+        'getUpdatePreferences', 'updateUpdatePreferences', 'getDesktopUpdateState', 'desktopUpdateAction',
+        'getHarnessUpdateState', 'updateHarnessUpdatePolicy', 'harnessUpdateAction', 'close'])
+      function DesktopSettings(props: { close?: () => void, section: 'notifications' | 'updates' | 'appearance', compact?: boolean }): unknown {
+        const close = props.close
+        const section = props.section
+        const compact = props.compact === true
+        const frame = React.useRef<HTMLIFrameElement | null>(null)
+        const closeRef = React.useRef(close)
+        closeRef.current = close
+        const [html, setHtml] = React.useState('')
+        const [error, setError] = React.useState('')
+        const [attempt, setAttempt] = React.useState(0)
+        React.useEffect(() => {
+          let disposed = false
+          const channel = 'dsh-desktop-settings-v1'
+          const post = (value: Record<string, unknown>): void => {
+            if (!disposed) frame.current?.contentWindow?.postMessage({ channel, ...value }, '*')
+          }
+          const receive = (event: MessageEvent): void => {
+            if (disposed || frame.current?.contentWindow == null || event.source !== frame.current.contentWindow || event.origin !== 'null') return
+            const data = event.data as { channel?: unknown; id?: unknown; method?: unknown; value?: unknown } | null
+            if (data === null || typeof data !== 'object' || data.channel !== channel || !Number.isSafeInteger(data.id) || typeof data.method !== 'string') return
+            const id = data.id
+            if (!allowed.has(data.method)) { post({ id, error: 'Unknown desktop settings method' }); return }
+            if (data.method === 'close') { post({ id, value: null }); closeRef.current?.(); return }
+            void api!.request({ method: data.method, value: data.value }).then(
+              value => post({ id, value }), reason => post({ id, error: String(reason) }),
+            )
+          }
+          window.addEventListener('message', receive)
+          const stop = api!.onEvent(value => post(value))
+          setError(''); setHtml('')
+          void api!.document().then(value => {
+            if (!disposed) setHtml(value.replace(/<html\b/i, `<html data-dsh-section="${section}"`))
+          }, reason => { if (!disposed) setError(String(reason)) })
+          // 分区即页签（2026-09-30 用户拆分决定）：iframe 加载是异步链（document() → srcDoc →
+          // 内联脚本起监听），选中事件带重试投递；settings.html 侧监听幂等（setPage + data-dsh-section）。
+          let tries = 0
+          let timer: ReturnType<typeof setTimeout> | undefined
+          const selectSection = (): void => {
+            post({ event: 'settingsSection', value: section })
+            tries += 1
+            if (tries < 26 && !disposed) timer = setTimeout(selectSection, 160)
+          }
+          selectSection()
+          return () => { disposed = true; if (timer !== undefined) clearTimeout(timer); stop(); window.removeEventListener('message', receive) }
+        }, [attempt, section])
+        if (error) return React.createElement('div', { role: 'alert' }, t('error') + error,
+          React.createElement('button', { type: 'button', onClick: () => setAttempt(attempt + 1) }, t('retry')))
+        if (!html) return React.createElement('div', { role: 'status' }, t('loading'))
+        return React.createElement('iframe', {
+          ref: frame, title: t(section), srcDoc: html, sandbox: 'allow-scripts',
+          'data-dsh-desktop-settings': 'true',
+          onLoad: () => frame.current?.contentWindow?.postMessage({ channel: 'dsh-desktop-settings-v1', event: 'settingsSection', value: section }, '*'),
+          style: compact
+            ? { display: 'block', width: '100%', height: 440, minHeight: 320, border: 0, borderRadius: 8, marginTop: 12 }
+            : { display: 'block', width: '100%', height: 'calc(100dvh - 180px)', minHeight: 320, border: 0, borderRadius: 8 },
+        })
+      }
+      // 2026-09-30 用户拍板：桌面设置不再是单块整页分区。通知/更新注册为独立 settings.section
+      // （各自只显示自己的页签，settings.html 按 data-dsh-section 藏内部页签栏）；
+      // 外观以独立增量行紧随官方 appearance；同 ID 同 priority 会冲突，不能抢占原控件。
+      ctx.slots.inject('settings.section', () => {
+        const sections = [
+          { id: 'desktop-notifications', order: 90, key: 'notifications' as const },
+          { id: 'desktop-updates', order: 91, key: 'updates' as const },
+        ]
+        const disposers = sections.map(entry => ctx.slots!.register(
+          { name: 'settings.section', id: entry.id, order: entry.order, locale: ns, label: () => t(entry.key) },
+          (props: { close?: () => void }) => DesktopSettings({ close: props.close, section: entry.key }),
+        ))
+        return () => { for (const dispose of disposers) if (typeof dispose === 'function') dispose() }
+      })
+      ctx.slots.inject('settings.general.item', () => ctx.slots!.register(
+        { name: 'settings.general.item', id: 'desktop-appearance', order: 10.5 },
+        () => React.createElement('div', {
+          'data-dsh-desktop-appearance-panel': 'true',
+          style: { gridColumn: '1 / -1', minWidth: 0 },
+        }, DesktopSettings({ section: 'appearance', compact: true })),
+      ))
+    }
 
     const visibleSessionRows = (): HTMLElement[] => [...document.querySelectorAll<HTMLElement>('.dcu-wb-session[role="treeitem"][aria-selected]')]
       .filter(element => element.offsetParent !== null)
@@ -89,8 +200,11 @@ export function desktopBridgeClientFactory(moduleRequire: (id: string) => unknow
     const apply = (ctx: ClientContext): void => {
       const bridge = (window as Window & { dshDesktopShell?: DesktopShellBridge }).dshDesktopShell
       if (bridge === undefined) return
+      registerDesktopSettings(ctx, bridge)
       let history: string[] = []
       let historyIndex = -1
+      let navigating = false
+      let disposed = false
       let notificationBaseline: Map<string, { pendingInteraction?: string; running: boolean }> | undefined
       let selectedForDismiss: string | undefined
       const unreadCompletions = new Set<string>()
@@ -103,6 +217,15 @@ export function desktopBridgeClientFactory(moduleRequire: (id: string) => unknow
       }
 
       const snapshot = (): SessionList => ctx.sessions.list.getSnapshot()
+      // rc.2 owns navigation in uiWorkspace, not in the Session Controller.
+      // Retain/release can briefly publish two mainView rows during a switch;
+      // observe the settled list in a microtask rather than inventing a visit.
+      const currentSession = (state: SessionList): string | undefined => state.current
+        ?? Object.keys(state.byId).find(id => (state.byId[id]?.retainedBy?.mainView ?? 0) > 0)
+      const openSession = (id: string): void => {
+        if (ctx.uiWorkspace !== undefined) ctx.uiWorkspace.openSession(id)
+        else ctx.sessions.open(id)
+      }
       // 子代理（origin === 'subagent'）不属于用户可见任务，不计入任务栏角标（上游 v1.0.50）。
       const isBadgeSession = (row: SessionList['byId'][string] | undefined): boolean => row !== undefined && row.origin !== 'subagent'
       const reportBadge = (): void => {
@@ -143,8 +266,13 @@ export function desktopBridgeClientFactory(moduleRequire: (id: string) => unknow
         })
       }
       const trackCurrent = (): void => {
+        if (disposed || navigating) return
         const nextSnapshot = snapshot()
-        const current = nextSnapshot.current
+        const current = currentSession(nextSnapshot)
+        const previousHistory = history
+        const previousIndex = historyIndex
+        history = history.filter(id => nextSnapshot.byId[id] !== undefined)
+        historyIndex = previousHistory.slice(0, previousIndex + 1).filter(id => nextSnapshot.byId[id] !== undefined).length - 1
         const isInitialSnapshot = notificationBaseline === undefined
         if (current !== undefined && history[historyIndex] !== current) {
           history = history.slice(0, historyIndex + 1)
@@ -204,11 +332,16 @@ export function desktopBridgeClientFactory(moduleRequire: (id: string) => unknow
         queueMicrotask(report)
       }
       const openHistory = (offset: number): void => {
+        trackCurrent()
         const next = historyIndex + offset
         const id = history[next]
         if (id === undefined) return
+        const previousIndex = historyIndex
         historyIndex = next
-        ctx.sessions.open(id)
+        navigating = true
+        try { openSession(id) }
+        catch (error) { historyIndex = previousIndex; console.error('会话导航失败。', error) }
+        finally { navigating = false }
         queueMicrotask(report)
       }
       const openAdjacent = (offset: number): void => {
@@ -261,18 +394,24 @@ export function desktopBridgeClientFactory(moduleRequire: (id: string) => unknow
 
       ctx.effect(() => {
         const stopAction = bridge.onAction(onAction)
-        const stopOpenSession = bridge.onOpenSession(id => { markSessionRead(id); ctx.sessions.open(id) })
+        const stopOpenSession = bridge.onOpenSession(id => { markSessionRead(id); openSession(id) })
         const stopNotificationReply = bridge.onNotificationReply(value => {
           void sendNotificationReply(value).catch(error => {
             console.error('通知回复发送失败。', error)
             bridge.reportNotification({ type: 'reply-error', sessionId: value.sessionId })
           })
         })
-        const stopList = ctx.sessions.list.subscribe(trackCurrent)
+        let queued = false
+        const stopList = ctx.sessions.list.subscribe(() => {
+          if (ctx.uiWorkspace === undefined) { trackCurrent(); return }
+          if (queued) return
+          queued = true
+          queueMicrotask(() => { queued = false; trackCurrent() })
+        })
         const reportLocale = (): void => { bridge.reportLocale(ctx.locale.getSnapshot().active) }
         const stopLocale = ctx.locale.subscribe(reportLocale)
         const onWindowFocus = (): void => {
-          const current = snapshot().current
+          const current = currentSession(snapshot())
           if (current !== undefined) markSessionRead(current)
         }
         window.addEventListener('focus', onWindowFocus)
@@ -288,7 +427,7 @@ export function desktopBridgeClientFactory(moduleRequire: (id: string) => unknow
         document.addEventListener('dblclick', onLogoDoubleClick, true)
         trackCurrent()
         reportLocale()
-        return () => { stopAction(); stopOpenSession(); stopNotificationReply(); stopList(); stopLocale(); window.removeEventListener('focus', onWindowFocus); observer.disconnect(); document.removeEventListener('dblclick', onLogoDoubleClick, true) }
+        return () => { disposed = true; stopAction(); stopOpenSession(); stopNotificationReply(); stopList(); stopLocale(); window.removeEventListener('focus', onWindowFocus); observer.disconnect(); document.removeEventListener('dblclick', onLogoDoubleClick, true) }
       }, 'desktop-shell bridge')
     }
 

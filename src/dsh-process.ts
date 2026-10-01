@@ -143,6 +143,7 @@ function stopChild(child: ChildProcess): Promise<void> {
 
   return new Promise(resolve => {
     let settled = false
+    let terminationPromise: Promise<void> | undefined
     const finish = (): void => {
       if (settled) return
       settled = true
@@ -150,15 +151,26 @@ function stopChild(child: ChildProcess): Promise<void> {
       clearTimeout(deadlineTimer)
       resolve()
     }
-    const deadlineTimer = setTimeout(finish, shutdownTimeoutMs + forcedShutdownDeadlineMs)
+    const finishAfterTermination = (): void => {
+      if (terminationPromise === undefined) {
+        finish()
+        return
+      }
+      void terminationPromise.then(finish, finish)
+    }
+    const requestTermination = (): void => {
+      terminationPromise ??= terminateProcessTree(child)
+      finishAfterTermination()
+    }
+    const deadlineTimer = setTimeout(finishAfterTermination, shutdownTimeoutMs + forcedShutdownDeadlineMs)
     const forceTimer = setTimeout(() => {
-      if (child.exitCode === null && child.signalCode === null) terminateProcessTree(child)
+      if (child.exitCode === null && child.signalCode === null) requestTermination()
     }, shutdownTimeoutMs)
 
-    child.once('exit', finish)
+    child.once('exit', finishAfterTermination)
     if (child.connected && child.send !== undefined) {
       child.send('shutdown', error => {
-        if (error !== null) terminateProcessTree(child)
+        if (error !== null) requestTermination()
       })
       return
     }
