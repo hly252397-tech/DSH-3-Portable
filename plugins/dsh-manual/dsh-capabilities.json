@@ -1,0 +1,7 @@
+{
+  "title": "DSH 可编辑手册",
+  "summary": "搜索项目使用资料、查看来源与修订、编写可恢复的经验草稿。自动资料与自写笔记分离。",
+  "kind": ["knowledge", "documentation"],
+  "whenToUse": ["不知道模块怎么使用", "需要跨模块操作步骤或排障方法", "需要沉淀经过验证的经验并注明依据"],
+  "tools": [{ "name": "dsh_manual", "whenToUse": ["先 search/read 获取相关章节", "edit 必须带 expectedRevision，笔记默认待验证草稿", "工具能否调用以当前 dsh_capabilities 及 wire schemas 为准"] }]
+}

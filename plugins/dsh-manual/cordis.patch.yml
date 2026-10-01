@@ -1,0 +1,6 @@
+- insert:
+    - id: dsh-manual
+      name: dsh-manual
+      config:
+        sourceRoot: auto
+        manualDirectory: manual

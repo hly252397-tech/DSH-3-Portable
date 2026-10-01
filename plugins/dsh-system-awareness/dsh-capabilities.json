@@ -1,0 +1,8 @@
+{
+  "id": "dsh-system-awareness",
+  "title": "DSH 系统认知",
+  "kind": ["module", "tool"],
+  "summary": "说明当前 DSH 环境，查询当前 Agent 可见的模块、工具和调用方法。",
+  "whenToUse": ["需要了解当前 DSH 功能", "不确定该用哪个工具", "模块或工具刚更新"],
+  "tools": [{ "name": "dsh_capabilities", "whenToUse": ["查询当前可用功能及准确参数，按关键词寻找工具"] }]
+}

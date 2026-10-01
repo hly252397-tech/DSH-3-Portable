@@ -1,0 +1,12 @@
+{
+  "name": "dsh-manual",
+  "version": "0.1.0",
+  "description": "DSH 可编辑使用手册：限定来源同步、按需检索、草稿笔记与可恢复修订。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": { ".": "./lib/index.js", "./client": "./lib/client.js", "./package.json": "./package.json" },
+  "dependencies": { "schemastery": "^3.18.0" },
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" }, "client": { "platform": "web" } },
+  "files": ["lib", "cordis.patch.yml", "dsh-capabilities.json", "README.md"],
+  "license": "MIT"
+}
