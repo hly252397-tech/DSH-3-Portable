@@ -2,9 +2,16 @@
 
 [简体中文](CHANGELOG.zh-CN.md)
 
-The five most recent published versions are listed below.
+Portable source absorption and historical releases are recorded below; a source entry does not mean deployment acceptance.
 
-> **Versioning policy (2026-09-14):** the portable version now follows upstream exactly — base version equals the rebaselined upstream release (currently 1.0.66); portable-only rebuilds on the same base append a 4th component (1.0.65.1, 1.0.65.2, …). The earlier self-counted line 1.0.54–1.0.66 is retired; already-deployed 1.0.66-local installs keep running and pick up updates once the base exceeds 1.0.66.
+> **Versioning policy (2026-09-14; corrected 2026-10-01):** the portable base version follows the absorbed upstream release (now 1.0.78). Portable builds on that base use `+build.N` metadata (`1.0.78+build.1`, `1.0.78+build.2`, …), not a fourth numeric component. The earlier self-counted line 1.0.54–1.0.66 is retired; historical entries below are preserved.
+
+## 1.0.78+build.1 (local portable source absorption) — 2026-10-01
+
+- Reviewed the published upstream [v1.0.78 commit](https://github.com/MichengAI/dsh-codex-desktop/commit/cdb1fd84ff6fc2366f565abeee4c4875732bcfe2), one commit / eight files after v1.0.77, and updated the local desktop source identity. This release delta contains version/catalog/documentation changes, not a new desktop feature; no unreleased main changes are included.
+- The bundled DSH runtime, scope, timeout, invariants and launch dependencies were already aligned to 0.2.0-rc.2 in the portable source. Their declarations and existing tests are retained; this absorption does not upgrade the active runtime in place.
+- Intentionally did not absorb the twelve upstream community-plugin version bumps or the README pet-version change. The independently governed, user-accepted plugin catalog stays unchanged, including Codex UI 1.1.18, Codex Pet 0.1.10 and MCP Connector 0.2.59; local customization links are preserved.
+- Kept the approved prerelease build tools and portable A/B, receipt and customization-preservation mechanisms. Added a desktop-base/runtime consistency regression. Full build, cold-start and end-to-end preservation/independent-update acceptance remain pending for this source version; this entry does not claim activation, publication or overall completion.
 
 ## 1.0.66 (portable absorption) — 2026-09-21
 

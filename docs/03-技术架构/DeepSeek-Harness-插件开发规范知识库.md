@@ -3,7 +3,7 @@
 > 来源：官方文档站 https://deepseek-harness.github.io/deepseek-harness/
 > （guide/quickstart、develop/basic/*、develop/framework/*、develop/practice/*、develop/cordis-tutorial/06-07、reference/）
 > 用途：**所有智能体与本仓库开发者**在增加功能、修复缺陷、定制插件前的强制审查依据。
-> 实现适用版本：@deepseek-ai/dsh 0.1.2-rc.1（本便携版内置运行时）。官方最新审查版本为 0.1.5-alpha.1，提交与版本差异见同目录 `DeepSeek-Harness-官方兼容基线.md`；不得把最新文档中的 API 未经验证地用于旧运行时。
+> 实现适用版本：以**活动运行时槽为准**（`Data/Runtime/Harness/current.json`；2026-09-26 读数为 `@deepseek-ai/dsh 0.1.7-rc.2`）。本行不再写死版本号以免漂移；提交与版本差异见同目录 `DeepSeek-Harness-官方兼容基线.md`；不得把最新文档中的 API 未经验证地用于当前运行时。
 
 ---
 
@@ -22,7 +22,7 @@
 
 ### 0.1 官方当前版本追加门禁
 
-以下规则来自当前官方 `AGENTS.md`、`packages/AGENTS.md`、架构与测试规范；即使内置运行时已到 `0.1.6-alpha.2`，新功能审查也必须覆盖：
+以下规则来自当前官方 `AGENTS.md`、`packages/AGENTS.md`、架构与测试规范；无论内置运行时当前是哪个版本（**2026-09-26 现读：`0.1.7-rc.2`**，以 `Data/Runtime/Harness/current.json` 为准），新功能审查都必须覆盖：
 
 1. 函数插件只使用命名导出的 `name` / `inject` / `Config` / `apply`，不得同时混入 default export；服务插件才默认导出 Service 类。
 2. 可选服务在使用点通过 `ctx.get(name)` 查询；只有声明为必需注入的服务才能通过 `ctx.<name>` 访问。
@@ -540,7 +540,7 @@ llm-pi-ai:
 
 ## 2026-09-24 补充：系统认知与手册接口边界
 
-人工审阅官方 `46a7f68b0922371ce7144b668b90e377d8e799f4`（CLI 0.1.7-rc.1），实现保持已安装 0.1.6-alpha.2。`systemPrompt.section/context` 均需走官方会话记录链；工具目录按调用 Agent 的 scope 查询。能力目录与 wire tools 分开：PTC 的 `run_code` 不可被描述成可直接调用所有底层工具。`complete:true` 的系统节具有排他性，需用动态上下文补充环境事实并验证实际日志。模型/人可编辑手册是独立数据，不把仓库指令或自动生成资料提升为权限规则；来源、修订、冲突和恢复必须显式。产品插件需真实 Loader 与 keyless 会话记录验收，不能仅用注册 mock 证明生效。
+人工审阅官方 `46a7f68b0922371ce7144b668b90e377d8e799f4`（CLI 0.1.7-rc.1），实现以**当时活动槽**为准（该次审阅时为 `0.1.6-alpha.2`；**2026-09-26 现读为 `0.1.7-rc.2`**——本句保留当时的审阅语境，不改写）。`systemPrompt.section/context` 均需走官方会话记录链；工具目录按调用 Agent 的 scope 查询。能力目录与 wire tools 分开：PTC 的 `run_code` 不可被描述成可直接调用所有底层工具。`complete:true` 的系统节具有排他性，需用动态上下文补充环境事实并验证实际日志。模型/人可编辑手册是独立数据，不把仓库指令或自动生成资料提升为权限规则；来源、修订、冲突和恢复必须显式。产品插件需真实 Loader 与 keyless 会话记录验收，不能仅用注册 mock 证明生效。
 
 ## 附：官方文档索引
 

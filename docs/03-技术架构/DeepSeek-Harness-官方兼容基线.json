@@ -1,20 +1,23 @@
 {
   "schemaVersion": 1,
-  "verifiedAt": "2026-09-24T22:00:00+08:00",
+  "verifiedAt": "2026-09-29T23:58:00+08:00",
   "official": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
     "branch": "master",
-    "commit": "46a7f68b0922371ce7144b668b90e377d8e799f4",
-    "dshVersion": "0.1.7-rc.1",
+    "commit": "639ed015397290b3745d163aafe02ffee4aa3f84",
+    "dshVersion": "0.2.0-rc.2",
     "documentation": "https://deepseek-harness.github.io/deepseek-harness/",
     "stability": "developer-preview",
-    "note": "2026-09-24 人工审阅 AGENTS、architecture、testing、defensive-patterns、system-prompt 与 tools 后推进官方审查基线；CLI manifest 实读 0.1.7-rc.1。实现仍以活动和随包 0.1.6-alpha.2 声明为准，本次不升级运行时。详见同名 MD 的 2026-09-24 审阅与 I035。"
+    "note": "2026-09-28 人工审阅 21638c5→4878cdab（106 提交/678 文件，官方标签 dsh-v0.2.0-rc.1 发布提交）。变更主体：Windows 沙箱 ACL 诊断修复、WebKit/Safari 会话 JSON 兼容、Office/PDF 文本选择双主题、Windows 标题栏间距修复、会话日志上传偏好、设置性能优化、0.2 预览版公告（首启需确认）。无聊天视图文件打开器改道、无 fileLink/openPath/ToolRow 相关提交、无破坏性插件 API 变更迹象。本次审阅为 0.2.0-rc.1 受信（src/harness-update.ts BUILTIN 清单）的前置；活动运行时升级走 A/B 槽 + 7b 打开方式体检，随包回退运行时仍为 0.1.7-rc.2 不变。",
+    "note20260929": "2026-09-29 人工审阅 4878cdab→639ed015（187 提交 / API 返回 300 文件，GitHub compare 单次上限 300，实际改动量可能更大，故本条只作「无交集」判定不作逐文件等价性判定）。变更主体：user-questions 计时等待与迟到回复、schedule 提醒改按定时用户消息投递、plan review 跨侧栏座位、插件安装拦截路由、CI 测试预算与 Windows ACL 沙箱、Electron 预置与 Intel 签名授权、官方新增 apps/desktop（自带 dsh CLI 安装/管理与 macOS 式 application menu）。**与本仓库 src/shell-actions.ts 的文件/编辑/视图/帮助菜单无交集**：官方 application-menu 期望快照是 macOS app 菜单（隐藏/隐藏其他/显示全部/退出），与便携外壳的菜单栏不是同一套结构；官方新加的「检查更新…」/「管理 dsh 命令…」落在 app 菜单，不构成对本轮菜单去重的推翻。dshVersion 仍为 0.2.0-rc.1，未变。",
+    "note20260929rc2": "2026-09-29 补记：官方随后把该同一 commit 639ed015 打为发布标签 `dsh-v0.2.0-rc.2`（refs/tags/dsh-v0.2.0-rc.2 → 639ed015，GitHub API 实取），发布提交 c1b47e41 \"release(dsh): 0.2.0-rc.2\"；npm `@deepseek-ai/dsh` 的 latest 与 next 均已指向 0.2.0-rc.2（dist.integrity sha512-EAJ3gPNcVt/uv8X19PMm9NkVhWgT7xXNMk0UKCVm+IQ5rpSQOcsMUa0HWlnYYVybKMsccjcRB21vVVsaXQ6IdA==）。故 official.dshVersion 由 0.2.0-rc.1 修正为 0.2.0-rc.2，上条 note20260929 的「rc.1 未变」是发布标签打出之前的观察，不是最终状态。破坏性核查补强：packages/api 与 packages/client 无任何 export 删除；packages/boot/*、packages/bundle/* 仅版本号提升；官方未发布 rc.2 的 upgrade-guide（docs/upgrade-guide 仅覆盖 0.1.7-rc.2 回填），即官方未申报对外可感知的破坏性变更。社区插件 peer 精确钉在 0.2.0-rc.1，rc.2 不满足，靠 compatibility.json 的 v5 代际 + 逐插件精确豁免放行，不改 peer 宽区间。"
   },
   "bundled": {
-    "dshVersion": "0.1.6-alpha.2",
+    "dshVersion": "0.2.0-rc.2",
     "desktopManifest": "package.json",
     "runtimeManifest": "Data/Runtime/dsh-runtime/node_modules/@deepseek-ai/dsh/package.json",
-    "note": "2026-09-19 对齐：随包回退运行时自上游 v1.0.64 吸收起即为 0.1.6-alpha.2（prepare-runtime 按 OFFICIAL_DSH_VERSION 烘焙），此前本字段与 package.json 的 config.bundledDshVersion 仍写 0.1.6-alpha.1，属声明滞后，门禁 verify-dsh-official-baseline.mjs 实测槽内 dsh-runtime.tgz 为 alpha.2 后据实改正。"
+    "note": "2026-09-25 随上游 v1.0.76 吸收升级：OFFICIAL_DSH_VERSION 与 package.json 的 config.bundledDshVersion 同步烘焙 0.1.7-rc.2；隔离安装的 RuntimeCandidate 已按该版本 pnpm 装全并过依赖核对。旧运行时（0.1.6-alpha.2）经独立家园绑定继续读原 Data/DSH，混用被 fail-closed 阻断。",
+    "note20260929": "2026-09-29 随上游桌面壳 v1.0.77 与内核 rc.2 同步前移到 0.2.0-rc.2（上游 v1.0.77 自身只把该值提到 0.2.0-rc.1；本仓库直接对齐 rc.2，因为本轮就是用户指示的『都拉取更新』，且 rc.2 已进 src/harness-update.ts 的受信清单）。此前本仓库两处常量长期滞留在 0.1.7-rc.2，而活动槽早已是 0.2.0-rc.1——该漂移由本轮修正。活动槽的实际版本事实源是 Data/Runtime/Harness/current.json，不是本块。"
   },
   "runtimeMigration": {
     "verifiedAt": "2026-09-11T22:30:00+08:00",

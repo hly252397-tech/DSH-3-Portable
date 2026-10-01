@@ -1,5 +1,13 @@
 # UI 定制维护契约（所有智能体必读）
 
+## 2026-10-01 最新要求：全界面核查，禁止模块风格分裂
+
+用户最新决定：所有DSH自有界面必须核查，而不是只让当前修改的一页“看起来统一”。范围包括桌面壳/启动、全部设置、欢迎/会话/轨迹/上下文、主/右/底侧栏、插件主页面、二级页、菜单、弹窗及自有内嵌文档。字体family、同角色字阶、文字/表面/边框/状态语义色、控件/焦点/圆角/间距和实际主列响应式均须有来源与实测证据。品牌、代码、终端、嵌入外站内部样式是明确语义/所有权例外，不作全局一刀切覆盖。
+
+后续改变共享主题/通用控件时，必须反查全覆盖目录并复验消费者；新增界面/弹窗/二级页应先登记来源、角色和入口，不能只更新首页截图。检查须区分已通过、失败、未验证、明确不适用；未安装、需凭据、不可达或隔离禁后台导致缺状态不能计入通过。合法例外注明范围和理由，不把存量差异批量列为豁免来变绿。
+
+本轮实际清单与护栏/新截图仍在核查，**规则写入不是全产品已通过或未来更新不会改变的证明**。阶段与失败均见 [全界面核查记录](../01-当前工作/20261001-全界面一致性核查与防分裂.md)。不改现役、不重登记旧baseline/保护hash；地震、设置及其他候选保持原交付边界。
+
 2026-09-28 设置导航图标去重：内置插件用拼图、自定义空间用四格、Agent预设用清单、桌面设置用显示器、外部智能体接入用互联节点。保留原按钮/文本/路由；ui-tweaks 的可撤销精确装饰，不改npm包。现役页面显示及五入口点击通过；12组隔离宽窄/缩放/主题通过，最终745 pass/0 fail/26 skip，UI基线PASS。“插件配置点击后消失”在恢复旧制品时也复现，仍单列待修，不视为本轮已修。部署、备份、失败尝试及完整GCC/GIR见 [本轮记录](../01-当前工作/20260928-设置导航图标去重.md)。
 
 2026-09-28 Agent MCP 设置重启续验：用户确认后只重启一次，现役“外部智能体接入”唯一入口、真实窗口截图、默认隐藏凭据及页面自检通过；MCP六工具、重启令牌保持、匿名401均确认。此条覆盖下方该功能“尚未重启”的阶段状态；不替此前其他设置页/全局点击缩放未决项背书，也不声称ZCode已接入。证据与操作边界见 [本轮记录](../01-当前工作/20260928-Agent-MCP接入设置.md)。
@@ -1107,7 +1115,7 @@ shell 的 `#browser` 永不显示（元素保留满足 byId 契约）。连带�
 
 用户看设置页导航后指出「图标有一样的而且颜色深浅还不一样」。**根因两条，都在官方侧，本层只能绕不能改**：
 ① 官方 `sectionIcon(id)`（`@michengai/dsh-codex-ui`）是十几条正则分支 + 一个 `Box` 兜底，
-`/plugin/` 同时命中「内置插件」「插件配置」，`/connector|mcp/` 同时命中「连接器」「外部智能体接入」，
+`/plugin/` 同时命中「内置插件」「插件配置」，`/connector|mcp/` 同时命中「连接器」「多智能体交互管理」，
 `/expert|agency/` 与「Agent 预设」共用 `User`，没被命中的（自定义空间 / DSH 手册 / Codex UI / 宠物 …）
 全掉进同一个 `Box`；② better-sidebar 自己那行用 `::before` + `currentColor` 画图标，其余行用克隆来的
 官方内联 `<svg>`，颜色各随各的 CSS 走。
@@ -1138,3 +1146,295 @@ shell 的 `#browser` 永不显示（元素保留满足 byId 契约）。连带�
 `tsc` 0；本文件测试 11/11；全量 784/758/0 fail/26 skip；`ui-baseline` PASS；四副本同步并上锁，
 SHA256 一致 `23D97308…17E3508`。证据 `customizations/ui-tweaks/evidence/settings-nav-icons-20260929/`。
 详见 [本轮记录](../01-当前工作/20260929-iOS风格动效层.md)。
+
+---
+
+## 2026-09-29 顶栏四菜单条目去重
+
+**原因**：用户看顶栏菜单后指出「文件、编辑、视图、帮助选项里的内容有一些与设置里面的功能有重复，把无关的都移除」。
+
+**改法**：只动 `src/shell-actions.ts` 的 `SHELL_ACTIONS` 注册表，**不动** `ShellActionId` 联合类型、**不动** `main.ts` 的 `executeShellAction` 分发、**不动** `assets/shell.html`（顶栏四个菜单按钮是 `bootstrap.menus` 循环渲染的，数量不变）。下线条目 6 条：
+
+| 原位置 | 条目 | 重复对象 / 下线理由 | 存活入口 |
+|---|---|---|---|
+| 编辑 | 桌面端设置 | 设置页内已有 `desktop-settings` 板块 | 设置窗口「桌面设置」板块（`desktop-bridge-client-source.ts:142` 注册于 `settings.section`） |
+| 编辑 | DSH 设置 | 顶栏右侧设置按钮就是同一个 `settings` 动作 | 顶栏 `#settings-btn`（`assets/shell.html:81`） |
+| 帮助 | 新功能 | 与关于窗口按钮同一动作 | 关于窗口「查看新功能」（`assets/about.html:52`） |
+| 帮助 | 反馈 | 与关于窗口按钮同一动作 | 关于窗口「问题反馈」（`assets/about.html:64`） |
+| 帮助 | 检查更新… | 设置窗口已有更新页 | 设置窗口「更新」页（`settings.html` 的 `updatesNav`）+ 托盘右键菜单 |
+| 帮助 | 重新加载 | 顶栏重启按钮与托盘菜单同类；且它回收整个 DSH 运行时，本不属于"帮助" | 顶栏「重启应用」+ 托盘右键菜单（`desktop-updater.ts:150`） |
+
+规模 30→26（文件 5 / 编辑 7 / 视图 13 / 帮助 2）。
+
+**关键判据（下次改菜单前先记住）**：`SHELL_ACTIONS` 只决定"菜单里出现什么"。`ShellActionId` 与 `executeShellAction`（`src/main.ts:3200`）是**分发层**，设置窗口 / 关于窗口 / 顶栏按钮发起的同名动作**不查这张表**。所以从菜单下线条目 ≠ 删除能力，**但前提是该功能确有可验证的存活入口**——上表右列就是本轮逐条核过的凭据，`tsc` 0 则是"动作 id 与分发分支仍完好"的编译期证明。
+
+**两个必须一起看的坑**：
+1. `popupShellMenu`（`src/main.ts:3068`）在 `action.group` 变化时压一条分隔线。删条目会让分组号变得不连续 ⇒ 菜单底部渲染出悬空分隔线。本轮已把帮助菜单重排为 `show-shortcuts: 0` / `about: 1`，并加护栏断言「各菜单分组号自 0 连续、且非递减」。
+2. `accelerator` + `globalShortcut: true` 会注册**全局快捷键**。「重新加载」下线的连带效果是 `Cmd/Ctrl+R` 不再触发 DSH 运行时全量回收——这是修复而非副作用，但要知道它随条目一起走。
+
+**保留「功能板块」是一次判断反转**：`test/feature-panels.test.ts:42` 明写"任何实例（含打包态）都必须含功能板块"、称其为"用户日常功能索引"，与本轮"只去重、不砍能力"口径冲突，故回退保留（它不与设置重复，删它是砍能力不是去重）。**遗留矛盾**：`src/feature-panels.ts:1` 头部注释仍写"开发态可见的源码索引面板"，与测试和实际行为不符，待用户拍板统一口径。
+
+**取证手段（新踩的坑，值得记）**：顶栏菜单是 Electron `Menu.popup` 弹出的**原生 Win32 菜单**（类名 `#32768`），**不在 renderer DOM 里**，CDP 读不到。三条路依次实测：
+- 截图 + OCR → **作废**。vision-bridge 已被证实会编造整段不存在的 UI 文案，不可作证据。
+- UIA / MSAA 桥（`AutomationElement.FromHandle` + `TreeScope.Descendants`）→ **作废**。能枚举到 `#32768` 窗口，但对菜单窗返回 **0 个后代**。
+- ✅ **纯 Win32 可行**：对菜单窗发 `MN_GETHMENU`(0x01E1) 取回真实 `HMENU`，再用 `GetMenuItemCount` / `GetMenuStringW(MF_BYPOSITION)` 逐项读出**用户实际看到的那串文本**，`GetMenuState` 顺带给出分隔线（`MF_SEPARATOR`）与禁用态。已封装为 `scripts/read-native-menu.ps1`（菜单不存续时抛错退出码 1，绝不输出猜测内容）。**先在 charmap 上实测通过**（读到 `还原(&R)`…`关闭(&C) Alt+F4`，分隔线识别为 `---`）再用于产品自验——取证手段本身要先在已知答案的场景验证一遍。
+- 弹出动作要用**真实鼠标点击**（`SetCursorPos` + `mouse_event`）。`SetForegroundWindow` 被 Windows 前台锁定挡掉，后台脚本改不了前台窗口；鼠标输入不受此限。
+
+**构建路径**：改动只落 `src/shell-actions.ts`（进 `app.asar`），**必须走全量构建** `Build-DSH-Portable.ps1`，界面快通道（`Build-UI-Only.cmd`）带不了。按止损纪律 #7，构建与激活串行：先等 `Data/Temp/prepare-recycle/` 排空再激活候选。
+
+**本轮验收证据**：见 [记录](../01-当前工作/20260929-顶栏菜单去重.md) 与 [门禁/自验结果](../00-交接入口/07-功能清单.md) 文末同日条目。
+
+**教训：分项对了不等于合计对了**（2026-09-30 更正）。本轮文档把规模写成「30 → 26」，实际是 **33 → 27**——逐菜单 {5, 9→7, 13, 6→2} 全对，只有合计是手算错的。之所以没人发现：护栏只断言逐菜单分项，**合计仅存在于散文里，没有任何机制保证它与分项一致**。已做两件事：① 记录与功能清单同步更正为 33 → 27；② `test/shell-actions.test.ts` 增加 `assert.equal(SHELL_ACTIONS.length, 27)`，把合计也钉进断言。**推广规则：凡是能从分项加出来的总数，要么进断言，要么别写进文档。**
+
+**同批吸收上游 v1.0.77 的差异台账**：官方那条「Windows zip 版不能原地安装 → 改为下载 zip」**刻意不吸收**——其前提是 electron-updater + NSIS 卸载器（判据是 `execDir` 里有没有 `Uninstall ... .exe`），而便携版的桌面更新走 `portableDesktopUpdater.prepare()` 的 A/B 候选槽，全程不需要卸载器，这正是现役槽能自更新的原因；照搬会让便携版自更新恒为"请手动下载 zip"，把一条已跑通的自动通道关掉。理由与判据见 [上游同步与便携保护基线.md](上游同步与便携保护基线.md) §9.1——**下次看到这条上游改动不要当漏合并补回去**。
+
+---
+
+## 2026-09-30 顶栏「设置」与 ESC 双双失效 —— ui-tweaks 把 slot 宿主一起藏了
+
+**原因**：用户报「点顶栏设置没反应、设置页也打不开」。真因不在外壳，也不在 codex-ui，而在 `customizations/ui-tweaks/lib/client.js` 的 `hideConnectionIndicator()`：它本意只藏「连接状态指示器」，做法却是**遍历 `.dcu-settings-seat` 的每一个直接子元素**逐个写 `display:none !important`，只排除了 `STYLE` / `BUTTON` / `data-dcu-settings-page` / `data-dsh-pet-overlay`。而 codex-ui 1.1.18 把设置触发按钮与设置页本体装在**同一个 `data-slot="sidebar.settings"` 宿主元素**里，该宿主正好是 seat 的直接子元素、又带 `data-slot` ⇒ 每次 `apply()`、每次 MutationObserver、每 2 秒兜底轮询都会把它藏掉一次。
+
+于是形成一条自洽的故障链：**触发按钮是 slot 宿主的后代，宿主被藏 ⇒ 按钮 `offsetParent` 为 null ⇒ 外壳 `TOGGLE_DSH_SETTINGS_PAGE_SCRIPT` 注入的 `.click()` 落在不可见元素上 ⇒ 设置页开不出来**；而 ESC 关闭失效是同一个因的另一面——不是 ESC 监听坏了，是压根没有能打开的设置页可关，表现为「ESC 也没反应」。
+
+**改法**：一行守卫，`.dcu-settings-seat` 的子元素循环里跳过 slot 宿主：
+
+```js
+// 跳过 slot 宿主（data-slot）：里面装着设置触发按钮与设置页本体，藏它等于删掉整个设置功能。
+if (child.hasAttribute('data-slot')) continue;
+```
+
+**判据（下次同类问题先想这条）**：批量隐藏类逻辑（"把这一类都藏起来"）必须逐条问「这个子节点里装着别的功能吗」。凡是**充当容器/宿主**的元素（`data-slot`、`role=dialog`、任何带子树的 wrapper）都不能进批量隐藏名单——隐藏容器 ≠ 隐藏内容，而是**连内容一起删**。本轮的具体形态是：seat 的直接子元素里混着「纯装饰」（连接指示器，该藏）和「功能宿主」（slot，别藏）两种，而原代码只按"tagName 是不是 BUTTON"这种弱特征区分。
+
+**构建路径**：改动只落插件客户端 bundle（`local/dsh-ui-tweaks/lib/client.js`），**不碰 `src/`**，因此无需 40 分钟全量构建。`local/*` 是指向仓库目录的 Junction，**重启 DSH 即生效**。本轮把同一份代码同步到五处并逐份 MD5 校验（`customizations/ui-tweaks/`、v5-020rc1、v4-rc2b、`Data/DSH/profiles/web`、新代际 `auto-020-rc2`），全部 `96ab1522a835`，随后统一加回 `ReadOnly` 锁。改前每处留 `.bak-20260930-settingsseat`。
+
+**回归测试**：`test/ui-tweaks-settings-seat.test.ts` —— 用最小假 DOM 造一个 `.dcu-settings-seat`，塞入 `connection-indicator`（应被藏）、`slot-host` / `settings-page` / `pet-overlay` / `style` / `trigger-button`（一个都不许被藏）。**关键是反向对照**：只证明新代码通过等于没证明，`Data/Temp/verify-guard-backwards.mjs` 分别加载旧 `.bak` 与新文件，输出
+
+```
+旧代码隐藏了: slot-host, connection-indicator
+新代码隐藏了: connection-indicator
+```
+
+旧=复现故障、新=不复现，护栏才算立住。
+
+**本轮验收证据**：内核 `0.2.0-rc.2-56890dc6ec954b11` 真实运行实例上，**真实鼠标**（`SetForegroundWindow` + `SetCursorPos` + `mouse_event`，非合成事件）连点三次并补一次真实 `keybd_event(VK_ESCAPE)`：
+
+| 动作 | 结果 |
+|---|---|
+| 顶栏设置按钮（第 1 次） | `.dcu-settings-page` 打开：display:grid / visibility:visible / opacity:1 / 1360×856 |
+| 顶栏设置按钮（第 2 次） | 关闭 |
+| 顶栏设置按钮（第 3 次） | 重新打开 |
+| 真实 ESC | 关闭 |
+
+同轮 `scripts/check-open-behavior.mjs` 在 rc.2 + `auto-020-rc2` 代际上 **6/6 PASS**，证据 JSON：[settings-seat-020rc2-20260930.json](../customizations/ui/evidence/settings-seat-020rc2-20260930.json)，已 `--record` 进 UI baseline（含新代际三条保护路径，sha256 与 v5 逐字节一致）。门禁：`tsc` 0、`scripts/ui-baseline.mjs` PASS、全量 `scripts/run-tests.mjs` **784 pass / 0 fail / 26 skip**。
+
+**失败尝试（一并记，避免下次重犯）**：
+1. **真实点击坐标**：一开始把 shell 页内视口坐标 `(1199,22)` 当屏幕坐标用，点了没反应，一度误判成代码问题。正确做法是 `screenX = windowLeft + pageX`，本例窗口左上 `(1177,29)` ⇒ 屏幕 `(2376,51)`。外壳按钮**不能**用合成 `.click()` 验证（那恰好是本故障的表象路径），必须真实指针。
+2. **取证手段**：自写 `.dbs-*` 类名探针报"better-sidebar 不存在"，与官方 7b 体检矛盾；结论以官方 `check-open-behavior.mjs` 为准，自写探针的类名/时序都不可靠。
+3. **内核配套的豁免迁移不完整**：`scripts/prepare-kernel-update.mjs` 只迁移既有 11 条 `compatibility.json`，不会发现新内核下所有被 peer 门禁挡住的插件。漏了 better-sidebar / codex-ui 等 5 条 ⇒ 首次 7b 体检 4 项 FAIL（better-sidebar client 存活、文件卡片拦截器活性、文件开进侧栏、https 外链拦截器）。正解顺序：`scripts/audit-plugin-api-deps.mjs <新版本>` 先证明 import 符号全部存活 ⇒ 再补精确豁免 ⇒ 重启 ⇒ 复跑 7b 转全绿。**"peer 声明不满足"不等于"API 断裂"**，前者只是官方生态的保守声明。
+
+---
+
+## 2026-09-30（第二条）隐藏左下角侧栏设置入口，只留顶栏齿轮
+
+**原因（用户决定，覆盖智能体此前误判）**：用户拍板「左下角的设置不要，只要顶栏的设置」。此前智能体曾以"顶栏齿轮代点侧栏触发钮、藏侧栏会断链"为由保留双入口——该技术顾虑不成立（见下），按用户决定执行。此决定为长期约束：**不得以任何理由恢复侧栏设置入口的可见性**。
+
+**改法**：`customizations/ui-tweaks/lib/client.js` CSS 数组新增一条：
+
+```css
+body .dcu-settings-seat{display:none!important}
+```
+
+**为什么"藏而不死"是安全的（源码级证据，写在这里防止下次被"会断链"的顾虑再次翻案）**：
+1. 顶栏齿轮（`src/main.ts` 的 `TOGGLE_DSH_SETTINGS_PAGE_SCRIPT`）对 `.dcu-settings-trigger` 做 `querySelector + .click()`——对 `display:none` 元素照常工作（display 只影响渲染与命中测试，不影响事件派发；React 根节点委托照常触发）。
+2. codex-ui 侧栏搜索跳设置 `openSettingsSection(root,label)` 同样只 `querySelector + dispatchEvent(CustomEvent)`，**无任何几何测量**（实测源码）。
+3. codex-ui 设置页 ESC 处理器挂在 `document.addEventListener("keydown", onKeyDown, true)`——**不在座位/按钮上**，display:none 不影响。
+4. 设置页本体 `.dcu-settings-page` 是 **portal 到 body 的直接子元素**，不在座位子树内，不受牵连。
+5. 同页脚用量卡（plan-quota，`sidebar.footer.action` 槽 → `.dcu-footer-actions`）与座位是**兄弟节点**，实测不受牵连。
+
+**构建路径**：插件 junction 即时生效，无需全量构建。五处副本（源 + `Data/DSH/profiles/web` + 三个代际）MD5 `bf89f3f6eff85a3c8e1337912bbfdc18` 一致，各旁置 `.bak-20260930-hideseat`，已全部复锁 ReadOnly。
+
+**回归护栏**：`test/ui-tweaks-settings-seat.test.ts` 扩为 4 用例——①原"藏指示器不伤座位"护栏不变；②新"藏座位规则必须在场"；③禁止任何规则隐藏设置页本体与用量卡；④禁止 JS 删座位/触发钮节点（只能 CSS 藏）。
+
+**本轮验收（重启后真实实例 9462/58963）**：
+
+| 检查 | 结果 |
+|---|---|
+| `.dcu-settings-seat` | display:none、矩形 [0,0,0,0]（视觉消失） |
+| `.dcu-settings-trigger` | 仍在 DOM、HTMLButtonElement（代点链路存活） |
+| 顶栏齿轮受信点击 → 开 | open:true / opacity:1 / 2560×1348 |
+| 顶栏齿轮受信点击 → 关 | open:false / 页面卸载 |
+| 受信 ESC（直发 DSH 视图）→ 关 | open:false |
+| 用量卡 | display:flex、可见、「今日消耗金额¥0.39」 |
+| 像素证据 | `Data/Temp/evidence-seat-hidden-20260930.png` + 左下角裁剪：无「设置」钮 |
+| 门禁 | tsc 0；全量 786/0/26；ui-baseline PASS（基线护外壳 UI 资产，插件 client.js 不在其列，无漂移） |
+
+证据 JSON：[hide-sidebar-settings-entry-20260930.json](../customizations/ui/evidence/hide-sidebar-settings-entry-20260930.json)。
+
+**失败尝试**：① OS 级 ESC（`keybd_event`）验证未关闭——按键落在前台的外壳层，CDP 点击不转移 OS 焦点；经源码核实 ESC 处理器在 document 级后，改用受信 CDP `Input.dispatchKeyEvent` 直发 DSH 视图 PASS，判定为测试装置焦点伪象而非产品回归。② `scripts/capture-app-window.ps1` 抓到 0×0 空图（新实例句柄解析失败），改用 CDP `Page.captureScreenshot` 取证。
+
+---
+
+## 2026-09-30（第三条）「桌面设置」拆为三个同类入口，外观进「常规」页
+
+**原因（用户两次拍板）**：①不要「桌面设置」整页入口，通知/更新/外观移到左侧同类栏目；②外观移到常规选项内。**红线：不得影响 DSH 内核更新与桌面壳更新。**
+
+**改法（零 src 改动，更新链路零接触）**：
+1. **ui-tweaks 导航合成项**：镜像组去「桌面设置」；基础组加「通知」「更新」（`SETTINGS_NAV_DESKTOP_TABS`）。点击=点官方「桌面设置」原按钮（仍注册仅不镜像）→ 经 **shim 预留通道** `dsh-desktop-settings-v1` 的 `settingsSection` 事件切 iframe 页签（iframe 内 `api.onSettingsSection` 本就订阅；src 侧无既有发射方，零冲突；投递带 26×160ms 重试，setPage 幂等）。
+2. **「桌面外观」行注入常规页**：官方 `settings.general.item` 槽只能按行 id 扩展既有行、加不了新行 ⇒ DOM 注入到官方「外观」行正下方，**类名从相邻行运行时借用**（CSS-module 哈希随构建变，写死必漂），点击复用同一机制开外观页签。1500ms 兜底重注。
+3. **assets/settings.html**：`onSettingsSection` 扩展认得 `appearance`（原只认 `updates`），1 行纯增量。
+
+**为什么不碰 iframe 桥**：iframe 初始化即调 `getDesktopUpdateState`/`getHarnessUpdateState`（Promise.all），任何自带 iframe 的方案都得复制桥接转发=给更新 UI 多开一条失败面；复用官方分区 + 事件切页签让更新 UI 仍只有一条原生管道。
+
+**验收（重启后真实实例 9466/57512，均单次原子求值）**：导航终态（基础=常规/模型/通知/更新；无桌面设置；界面定制复原 4 项）；常规页注入行紧贴官方外观行；三个入口分别打开**通知/更新/外观**页签（截图标题带逐一确认）；更新页「检查更新」按钮与「DeepSeek Harness 运行环境」小节在场；分区开着再点另一入口不关闭；ESC 关闭。门禁：tsc 0、全量 **789/0/26**、ui-baseline PASS（改动文件均不在保护清单）。护栏 `test/ui-tweaks-settings-nav-tabs.test.ts`（含**通道名与 src shim 的跨文件契约**：src 改 channel 名测试即红）。
+
+**部署**：assets 走 `Build-UI-Only.ps1 -Force`。**-Force 绕行门禁 A/B 的证据**：release 树与部署槽逐哈希一致（app.asar 同哈希、desktop-bridge 17 文件零差异），release-bridge 与当前 dist-src 17/17 全同 ⇒ 16:38 的 asar 已含全部未提交 src 改动，无「新界面+旧主进程」混血。候选 `1.0.77-local-15ab7c196e59ea08` 激活成功（state=completed）。插件侧 junction 即时生效。
+
+**失败尝试**：①固定坐标 cdp-click 点合成项失灵（设置页自动关闭+坐标漂移，09-29 已知坑）——验证必须**单次原子求值**（开→点→采样一气呵成）。②像素 diff 首版裁剪区落在内容列右侧空白得出 0% 假结论——**diff 区域必须先取 iframe 实际矩形**。③CDP DOM pierce / Target.getTargets 均读不到沙箱 srcdoc iframe 内部——跨源 iframe 内部状态不可直读，用标题带裁剪+约束式三选一问题取证。④vision 读全尺寸截图仍整段编造，仅约束式抄写题可靠。
+
+证据：[desktop-settings-split-entries-20260930.json](../customizations/ui/evidence/desktop-settings-split-entries-20260930.json) + `Data/Temp/evidence-tab-{notifications,updates,appearance}.png`。
+
+**2026-09-30 同日补记（文案纠偏）**：用户对注入行文案「桌面外观/桌面壳的主题预设与颜色方案/打开主题设置」表示看不懂——「桌面壳」是内部术语，禁止进 UI 文案。已改为「**桌面窗口主题** / 整个桌面窗口的配色与主题风格（区别于上面的界面外观）/ **打开**」，五副本同步复锁，全量 789/0/26 复验。下次重启生效。
+
+**2026-09-30 第四条（过渡兜底）**：三分区外壳尚未全量构建进 asar 前，旧「桌面设置」单块分区仍在注册，而新分组表已无其位置——被「其他」兜底组接走，用户看到左栏底部孤悬「其他/桌面设置」（部署顺序失误，插件先于外壳生效所致）。修复：把「桌面设置」放回基础组作过渡兜底（镜像按名找不到即自动消失，新 asar 上线后无需再改）；护栏断言同步更新。同轮并行会话在同一文件把「外部智能体接入」改名「多智能体交互管理」——两改动行级无冲突，合并同步五副本，保护清单哈希重登记，相关测试全绿。**教训：插件 junction 即时生效、外壳要走 40 分钟构建——凡涉及两侧配套的改动，插件侧必须带"旧世界仍可用"的过渡形态，或等构建一起上。**
+
+## 2026-10-01 接手MCP状态/停止按钮闭环
+
+本轮只改 `customizations/agent-mcp` 的三JS及README，不改其他布局或已接受入口。Stop只对“在线且完整归属已确认的自身实例”开放；外部/离线/非Bridge状态明确禁用，刷新失败撤销旧权限，停止/取消失败不显示成功。源归档与四Profile对应四文件离线同步且属性复原，17份备份保留；没有用修改UI baseline哈希来放行。
+
+真实隔离Profile/Loader+Electron鼠标验收26/26，包含旧版本反例、模拟自身实例实际启停、1360/900与多缩放矩阵、鉴权/凭据/剪贴板拒绝/说明等。主代理已实际查看外部Stop禁用和自有Stop可用截图。失败夹具、首次不完整结果与修正原因均保留于 [接手记录](../01-当前工作/20260930-构建独立更新与定制保护.md)，MCP细节见 [功能记录](../01-当前工作/20260930-多智能体交互管理.md)。已获许可正常退出DSH；尚未启动新版或实测真实Bridge业务，不以隔离通过代替现役验收。
+
+构建后补记：正式全量1068/1042通过/0失败/26跳过，UI baseline与17插件原事务保护快照、peer5/5复核通过；完整候选与精确finalized凭据已独立核对。没有替换现役或跳过真实界面验收；下一步获新许可后启动候选，并重新采样点击、宽/窄窗口和缩放，不使用旧160×28宽窗图或过期几何样本冒充通过。
+
+## 2026-10-01 设置真拆分及配套更新保护（源码候选，未部署）
+
+用户最新决定：删可见“桌面设置”；通知归“自动化与消息”，更新归“基础”，窗口主题进入“常规”的原外观栏目。**本条覆盖上文合成跳转/DOM注入/固定旧家园同步等过渡办法，不得恢复旧实现。** 能力与已有偏好全部保留，桌面及内核两条更新处理器不改。
+
+已核真实启动链：现役旧ASAR仍注册单块desktop-settings，启动还会按ASAR里的factory重写Profile客户端。因此只改插件或外置桥会造成混血，必须新ASAR/外置桥/settings.html/安装生成客户端配套。官方general.item是list；原ui-theme已注册appearance/order10，使用相同ID/priority会直接抛错，不是可接受的替换。新增独立desktop-appearance/order10.5，保留原浅/深/系统控件，邻接CSS不移动React节点。
+
+持久源码：`src/desktop-bridge-client-source.ts` 原生通知/更新分区与外观扩展，受信srcDoc首次即选正确页；`assets/settings.html` 复用原保存/更新脚本，分区内隐藏重复页签；`customizations/ui-tweaks/lib/client.js` 仅归组/邻接样式。退役旧入口必须先确认两新原生ID都在注册清单中，同名未知插件不能误删；旧宿主未配套时保留唯一旧入口。公开slots依赖明确注入，导航轮询/镜像由ctx.effect托管，卸载恢复原导航、重挂用新ctx。
+
+防回退：完整构建打包后、receipt暂存前调用只读 `scripts/verify-settings-split-payload.mjs`，核ASAR/外置桥/新鲜dist、设置资源与已接受能力清单；可指定实际Profile验证启动生成客户端。新能力拟登记 `ui.settings-split-sections`、`ui.appearance-general-extension`，必须在真实组合验收及精确源码复核后接受，不提前填hash放行；旧/混血候选应拒绝。既有定制保护、UI baseline、签名摘要/事务凭据继续独立执行，此附加工具不替代它们、不改下载/激活策略。
+
+首次类型检查0错，9文件定点132/0/0；首次全量1081通过/2失败/26跳过，两个旧测试错误要求未部署源码等于活动/三个历史家园，正在改为canonical行为及“实际加载=已接受hash/link/bundle”的独立验证，保留替换和规则丢失负例。真实共享文档27种尺寸/缩放通过，有限mock后端不等于实际更新安装；完整Profile鼠标/新组合及生产冷启动仍待验收。现役不改、旧回滚家园不改、旧pending不代表本轮候选，未重新登记UI基线或保护hash。
+
+每次失败、精确写入范围/GCC/GIR、证据和后续状态在 [设置拆分与更新防回退记录](../01-当前工作/20261001-设置拆分与更新防回退.md) 追加，不用旧历史PASS声称本轮已生效。完整构建还受上个任务四份手册来源漂移阻止，需要单独授权核验收尾；构建/部署/重启之前不得绕过该阻止。
+
+**同轮最终检查点（未部署）**：两个相关旧测试已按canonical行为/已接受现役内容分别核验，新增规则丢失、缺登记/链接/启用/家园等反例，只有整个Data不存在的CI环境跳过实机检查。正式Node26 tsc 0错；全量1117项、1091通过/0失败/26跳过；UI baseline PASS不代表新界面已激活。最终共享文档34项/6图，隔离真实Profile/Loader/rc.2 Slots/Codex UI 1.1.18/新鲜桥生成客户端52项/42次可信精确鼠标/18图，原外观保留、三入口及1360/900 × 80/100/125%通过，18原图全部实看。七项生产指针/状态/偏好hash/mtime/大小/缺失标记一致，自有隔离进程停止；后端有限mock，未真实更新安装、未重启现役。
+
+**失败补记**：七轮探针失败是隐藏控件靶点、OOPIF输入路径、文档未就绪/旧坐标；另一次JSON绿但像素错页/半透明，主代理拒收。测试装置改为精确当前frameId/OOPIF可信输入、原子靶点采样和实际绘制/动画等待；不删失败截图、不减断言、不用合成点击代替真实鼠标，不重登记baseline掩盖。只采用最终 `Data/Development/settings-split-profile/2026-09-30T19-35-38-030Z-90e58b99-0d68-4706-86a8-d3e2c14cc14c` 与 renderer 同时刻证据。
+
+**交付边界**：源码保护仍报告5条SOURCE_DRIFT（本轮ui-tweaks加既有手册四文件），接受记录/新能力标识未改，完整构建/候选暂存/生产冷启动未执行。手册收尾范围与退出/候选重启须明确确认，不拿旧fdd48340 pending或重新写receipt当新候选；未通过GIR构建项，功能索引仅登记“源码与隔离就绪”，不得写已实现。本轮17项实际文件及完整GCC/GIR见链接记录；以后升级需同时保留入口契约、唯一外观ID和制品一致性门禁，不能把已废弃的合成跳转方案恢复。
+
+### 2026-10-01 地震预警功能与全局UI统一（源码与隔离验证通过，未部署）
+
+诊断、GCC和逐次证据在 [地震预警工作记录](../01-当前工作/20261001-地震预警功能与全局UI统一.md)。唯一源码为 `plugins/dsh-earthquake-alert`，活动Profile是独立真实副本，不把源码编辑当作已生效。原侧栏/main/overlay声明式槽保留；不编辑第三方包或通过全局样式污染其他模块。
+
+字体消费 `--dsh-font-ui` / 官方dsw字阶，统一正文与同类标题层级；品牌标识、代码等明确语义例外保留。样式局限dshea根及横幅，语义颜色/焦点/圆角使用共享tokens；真正的主列宽度（含侧栏/右面板占用）驱动响应式，不只按浏览器视口断点。字形以computedStyle和实际中文字形检查为准，不能把截图相似或仅CSS文本测试当成全局统一证据。
+
+功能验收必须包含未来/过期/断网不告警、最小震级与半径同时生效、余量随时间递减、源独立健康/单飞/卸载、保存拒绝与冲突/跨端口恢复、显式旧值迁移、纯演示不发真声音、真实Loader/API与可信鼠标。全局token自测并入root正式运行器且只核活动基线，不扫描历史版本并集放行。保护接受/完整候选/生产冷启动未完成前，仅登记相应验证阶段，禁止改baseline哈希掩盖漂移。
+
+本轮真实首轮矩阵虽无横向溢出，root逐张实看仍发现320px说明挤窄、dark小字不够可读和demo重复标签；按实际container≤480整行页头、全局次级文字色及独立“演示”徽标修正并重新冻结，不能复用旧轮截图验收新源。真实旧备份负对照已复现明日事件实警横幅；新freeze须保持无误警、可信点击与实际字体/缩放/对比度全矩阵。最后一项窄parent探针误约束display:contents导致假失败，记录后只修有盒子布局祖先装置，未改产品去适配错误测试。迭代记录、全部失败与最终证据在上述工作记录；保护manifest和现役本轮均未改。
+
+**最终隔离验收检查点**：相同最终产品freeze、真实rc.2 Profile/Loader/Codex UI1.1.18的r4已通过；65条记录、32次可信鼠标、24组主列宽度/缩放/双主题、17张新图由QA及root各自逐张实看。320px说明全宽267px两行；页头与操作分行、窄parent及高滚动健康区可用；实际中文标题与文字侧栏均Microsoft YaHei UI。重要说明/提示/事实标签/辅助小字最小实测对比度light4.897、dark6.709，不宣称全应用WCAG或实际扬声器验收。字幕/表单/紧凑事实沿全局语义字阶，统一不是全部文字同字号；不改变代码/终端/外站字体。
+
+最终正式tsc 0错、定点47/47、全量1161项中1135通过/0失败/26跳过，UI baseline只读PASS。8项生产元数据、产品与装置前后摘要完全一致，自有夹具进程停止；无生产告警/音频/重启/部署。来源保护仍精确7项未接受漂移，新增preferences.js映射尚未合法登记；完整GCC/GIR与11项实际文件在工作记录，GIR10未通过，功能索引只记“源码与隔离通过，未部署”。后续不得只同步client遗漏偏好module，或重新写保护hash/使用旧pending来假装已生效。
+
+### 2026-10-01 接手收尾：三道交付门禁的实际拦截与放行顺序
+
+Codex 宕机后接手，本轮连续三次被交付门禁拦下，全部是**真实拦截**而非误报，记录顺序以免下次重犯：
+
+1. **定制源码保护门禁（构建早期，7 条 SOURCE_DRIFT）**：Codex 在途改动使源码领先于已接受清单。处置顺序固定为「逐文件审内容 → 跑该插件对应测试 → 更新清单并 bump revision → 复跑门禁」，禁止直接改哈希。收编 `dsh-manual`（家园路径泛化）与 `dsh-earthquake-alert`（新增 `lib/preferences.js`，必须**同时纳入钉版**，否则运行态会以 `PLUGIN_FILE_ADDED` 拦下新载荷）。
+2. **活动副本落后于已接受源码（`ui-tweaks-motion-guard`，构建测试阶段）**：`customizations/ui-tweaks/lib/client.js` 已改并入清单，但**四处活动家园副本**（`Data/DSH/profiles/web`、`v4-rc2b`、`v5-020rc1`、`auto-020-rc2`）仍是编辑前字节。副本是刻意只读锁，写入需先解除只读再恢复；同步后必须备份 `.bak-`。同类漂移随后在 `dsh-manual` / `dsh-earthquake-alert` 的活动副本复现（`lib/preferences.js` 更是缺失），一并同步——**只改源码不同步副本，交付必被拦**。
+3. **设置拆分制品一致性（打包后、暂存前）**：`scripts/verify-settings-split-payload.mjs` 要求已接受清单含 `ui.settings-split-sections` 与 `ui.appearance-general-extension`。本轮在复核源码 + 定点测试 + Codex 隔离验收记录齐备后才登记，未提前填；登记前先对该门禁做**本地预演**（临时替换 `release/win-unpacked/resources/preservation.json` 验证六项全过，随即还原），避免再白跑一次 40 分钟构建。
+
+构建判据纪律：PowerShell 脚本 `throw` 后外层宿主仍可能返回 exit code 0，**只能凭日志阶段行与 `pointer.json` 槽指针变化判定成功**（本轮两次「exit 0 但无候选」）。放行前需本地预演的三道关：`check-customization-preservation --source-only`、`check-customization-preservation`（运行态采集）、`verify-settings-split-payload --app release/win-unpacked`。
+
+### 2026-10-01 设置三分区拆分：正式部署与实机验收（已激活 1.0.78+build.1）
+
+**改法**：`src/desktop-bridge-client-source.ts` 注册 `settings.section` 两个独立分区（`desktop-notifications` order 90、`desktop-updates` order 91）与 `settings.general.item` 一行（`desktop-appearance` order 10.5，避开官方 `appearance`/`ui-theme` ID）；`assets/settings.html` 进入单分区模式（`html[data-dsh-section] aside{display:none!important}`）隐藏内部页签；`customizations/ui-tweaks/lib/client.js` 只镜像导航分组。源码归属三处，无一是"换个地方显示同一块"。
+
+**部署**：候选 `1.0.78+build.1-local-d4f2b92ba424713e-txn-bd0872ed`，`Data/Updates/Desktop/state.json` 阶段 `completed`。
+
+**实机验收（CDP 9471，同帧取证，证据目录 `customizations/ui/evidence/settings-split-20261001/`）**：
+
+| 验收项 | 证据 |
+|---|---|
+| 左下角设置入口已移除 | 设置关闭后 `aside` 可见、22 个可见条目，底部仅「宏建云工作台」「宏建云工作台 y=1229」「今日消耗金额 y=1281」，`settingsLikeEntries=[]`；`.dcu-settings-seat` 唯一子节点 `display:contents`、0×0 |
+| 三分区真拆分 | 导航分组 `基础=[常规,模型,更新]`、`自动化与消息=[通知,定时任务,IM助理,多智能体交互管理]`；每次点击后 iframe `documentElement.dataset.dshSection` 切换为 `appearance/notifications/updates`，且 `sections.filter(w>0)` **恰好只有所点分区**，内部 `aside` 全程 `display:none` |
+| 外观嵌常规页 | 常规页行序：`appearance`（y=353，浅色/深色/跟随系统）→ `desktop-appearance`（y=502，h=452），设置 iframe 几何 y=502/h=440 正落该行内 |
+| 更新双通道不受影响 | 同一更新页并存「桌面端更新」（当前版本 1.0.78+build.1、检测→下载→验证→构建→部署、检查更新）与「DeepSeek Harness 运行环境」（0.2.0-rc.2、检查并验证候选、官方运行环境交叉核验） |
+| 图标 | 通知=铃铛 `M18 8a6 6 0 0 0-12 0…`、更新=循环箭头 `M21 4v6h-6…`，走 `::before` `mask-image` 官方管线，互不相同 |
+| 退出 | ESC 关闭设置页有效；设置 iframe 为独立 CDP target（`type=iframe`, `about:srcdoc`），`contentDocument` 恒为 null，读帧内状态必须走 target 通道 |
+
+**两条取证纪律（本轮实踩）**：
+
+1. **设置页是整页替换而非模态**：打开设置时整个 `aside.dcu-root` 为 `visibility:hidden`。先前"左下角设置已消失"的结论正是在这个状态下取的——**假阳性**。凡验收"某入口不存在"，必须先关闭设置、确认侧栏 `visibility:visible` 再枚举可见条目。
+2. **`scripts/capture-app-window.ps1` 静默失败**：脚本按进程名 `*DSH*` 找不到窗口，且本机 `Add-Type` 把临时 C# 写到不可写的 `C:\WINDOWS\TEMP`，导致 `WinPrintDSH` 类型从未定义、输出恒为 `0x0`（`printwindow=` 为空）。修法：调用前把 `TEMP`/`TMP` 指向可写目录（与 `Portable-Environment.ps1` 同一口径），并用 `-Hwnd <handle>` 直传窗口句柄。**看到 `0x0` 不要当成"窗口没画出来"，先查这两条。**
+
+### 2026-10-01 「更新」导航图标 16px 不可辨：refresh-cw → rotate-cw（Profile 插件，免构建）
+
+**改法**：`customizations/ui-tweaks/lib/client.js` 两处同时改，缺一不可——镜像导航 CSS 的 `[data-dsh-nav-key="更新"]::before` 规则，以及 `SETTINGS_NAV_ICONS` 里 `desktop-updates` 的 `body`。图标从 lucide `refresh-cw`（两段反向弧 + 双箭头共 4 条子路径）换成 `rotate-cw`（单段近整圆弧 + 右上单箭头）。改完全文共 9 行差异（2 行替换 + 5 行注释），五份副本 md5 统一为 `4363752549de5534f12de622a4a8f427`，444 只读锁全部恢复。
+
+**根因（先诊断后动手）**：用户报"更新图标有问题"。逐项排除后确认**不是管线故障**——20 条导航 mask 全部解码成功（natural 150x150），位置 `left:10px / top:50% / margin-top:-8px`、尺寸 16×16、`currentColor`、`opacity .62` 全部核对正确，两条管线都在跑。真正的缺陷是 **refresh-cw 在 16px 尺度下不可辨**：4 条子路径塞进 viewBox 24 等比 contain 后的 16px 盒子里，曲线互相压边。
+
+顺带纠正一条假线索：内联 `<svg>` 兜底确实是 `lucide-box`（一个箱子），但它被 `.dsh-sg-item>svg{display:none}` 隐藏，从不参与绘制。vision-bridge 把这个从不绘制的元素报成真因（"一个封闭六边形……包裹或盒子"），已按像素证据推翻——**本机 vision-bridge 有整段编造 UI 的前科，取证只用几何与像素**。
+
+**负向对照（同条件 A/B）**：两枚图标都用 viewBox 24 / stroke-width 2 / mask-size contain / 16×16 渲染。旧的 refresh-cw 是 86 个描边像素**全部挤在右侧**、两段反向弧与双箭头互相压边；新的 rotate-cw 是 83 个像素构成**一段完整闭合的圆弧加右上单箭头**，轮廓一眼可读。
+
+**实机验收**：CDP 9471 页面内 canvas 光栅化（`Data/Temp/icon5.mjs`），按真实 computed style 取 mask/opacity/color。20 条导航 mask 全 OK，「更新」实测 `rotateCw=true refreshCw=false`；抽样「通知/常规/模型/归档会话」5 枚字形均完整可辨，无回归。证据在 `customizations/ui/evidence/icon-fix-20261001/`。
+
+**部署**：ui-tweaks 是 Profile 插件（junction 链接到 `local/`），**刷新页面即生效，不需要 40 分钟全量构建**。
+
+**三条要记住的规矩**：
+
+1. **两条图标管线必须同步改**。`customizations/ui-tweaks/lib/client.js` 里同一枚图标有两个来源：镜像导航 CSS（按 `data-dsh-nav-key` 的 `::before` mask 规则）与 `SETTINGS_NAV_ICONS` + `installSettingsNavIcons()`（给 `.dcu-settings-nav .dcu-settings-link` 注入 `data-dsh-settings-icon` 和 mask）。只改一处会出现"两个设置界面图标不一致"。新增/修改任何导航图标都要同时动这两处。
+2. **选图标要在真实尺寸下验**，不能只看 24×24 的原始 SVG。判定标准是 16px 盒子内光栅化后的字形是否完整可辨——描边多、路径闭合多的图标（refresh-cw 这类）在这个尺度必糊。改完必须做 A/B 对照，正向通过不够。
+3. **`Page.captureScreenshot` 在本机会话内会阻塞**（多次 100s 超时，`clip` 参数用 `width`/`height` 而非 `w`/`h`，写错会直接报 `BINDINGS: mandatory field missing`）。取证改走页面内 canvas 光栅化——确定性、无阻塞、且与浏览器 mask 同条件。临时脚本在 `Data/Temp/`：`icon5.mjs`（活体图标光栅化）、`icon-ab.mjs`（A/B 对照）、`png-ascii.mjs` + `png-block.mjs`（PNG 自解码 → ASCII 像素画）。
+
+**门禁**：定点 7 组 35 pass / 0 fail；`scripts/ui-baseline.mjs` PASS；`check-customization-preservation --source-only` 在源码漂移后按规矩登记 `revision 3 → 4` 并写入完整变更记录（原因/改法/证据/负向对照/部署方式）后 PASS，**不是直接改哈希放行**。
+
+### 2026-10-01 「插件配置」导航项点击即消失复发：npm 包就地补丁被物化冲掉（收编为仓库资产 + 三闸门，免构建）
+
+**现象**：设置导航「插件配置」点击后条目从导航中消失、回落到「常规」、面板不渲染，刷新才恢复——与 2026-09-28 记录的完全同一现象。
+
+**改法**：不再手改 `node_modules`，改为新增仓库自有资产 `customizations/codex-ui-patches/apply.mjs`（唯一补丁入口，`--apply` / `--verify` / `--root`），把它作为源码级定制登记进 `customizations/preservation.json`（revision 4→5），并在三个必经点设闸：① `scripts/prepare-dsh-home-generation.mjs` 在**绑定文件 rename 落位之前**施加补丁，失败走既有 catch 撤绑定 + 隔离该家园；② `scripts/prepare-kernel-update.mjs` 在全部家园升级完后做一次全量 `--verify`；③ `Build-DSH-Portable.ps1` 的「定制源码保护门禁」阶段跑只读 `--verify`，非零即阻断打包与暂存。
+
+**根因（先诊断后动手）**：09-28 的修复是**就地改 npm 包文件**。`auto-020-rc2` 家园 09-30 由 pnpm store 重新物化，store 里是未打补丁的原包，硬链一落就把补丁覆盖回去（活动家园 sha256 当时为 `04106142…` = 09-28 记录的**未打补丁原始哈希**，`nlink=2`）。这是 AGENTS.md「profile 包 specifier 领先安装是地雷」的同型事故：**只要修复停留在改产物，下一次物化必然复发。**
+
+**负向对照（用旧制品复现原故障）**：把补丁临时撤回成原始字节（`04106142…`）→ 整页重载 → 点击「插件配置」⇒ 导航 20→19、条目消失、回落 `常规`/`section=general`、面板从未渲染，console 捕获 `TypeError: props.useStore is not a function` 与 `slot entry crashed in 'settings.section'`。**正向对照**：经 `apply.mjs` 重放（`00cc596e…`）→ 重载 → 导航 20→20、条目保留、`section=plugin-config`、面板真实渲染（41 行 / 81 按钮 / 「插件·官方·已安装」）、零错误。
+
+**部署**：补丁与闸门全在 `.mjs` / 仓库脚本，不进 `app.asar` 编译产物，**零构建生效**；补丁经「临时文件 + `renameSync`」写入以断开 pnpm store 硬链（直写会污染整个 store 的原包）。
+
+**门禁**：`tsc` PASS；`dist/test/codex-ui-patches.test.js` 7 pass / 0 fail；`ui-baseline` PASS（零漂移）；`apply.mjs --verify --root .` 修前 exit 1（2 份缺失）→ 修后 exit 0（4/4 ok）；全量 1180 pass / 3 fail / 26 skipped，3 条失败全部属并行会话的 `dsh-earthquake-alert` 用例，与本改动无关。
+
+**三条要记住的规矩**：
+
+1. **对 npm 包的修复必须收编为仓库资产 + 至少一道闸**。就地改 `node_modules` 等于把修复的有效期交给"下一次 profile 物化"，历史上已因此复发一次。凡新增此类补丁，参照 `customizations/codex-ui-patches/`：资产放仓库、锚点写死、上游变形时抛 `PATCH_SHAPE_DRIFT` 而非静默跳过。
+2. **写被 pnpm store 硬链的文件必须 rename 覆盖，不能直写**。直写会污染整个 store 的原包（且日后被物化重置 again，等于复发）。施加后 `nlink=1` 属预期。
+3. **升级 codex-ui（或任何被打了补丁的包）时，`PATCH_SHAPE_DRIFT` 是要修的信号，不是要绕过的障碍**。绝不允许放宽锚点把门禁哄过去；必须逐条重核上游写法并重写补丁。
+
+### 2026-10-01 1.0.78 回滚到 1.0.77 且用户全程无感：降级被记成"已是最新" + 已提交候选被二次降级
+
+**现象**：用户在顶栏看到 1.0.78+build.1 装上了，实际跑的是 1.0.77。`state.json` 只写「已恢复桌面槽指针（pointer-previous）」，界面没有任何警告。日志里两次"回滚"性质完全不同：
+
+| 时刻 | 日志 | 真相 |
+|---|---|---|
+| 13:41:45 | 「候选槽未通过启动验证」（3m27s 后） | **误判**。`health.json` 13:38:44 已落盘、`events.jsonl` 已记 `completed`，候选**提交成功**；启动器按 3 分钟进度租约空等到期后仍走回退分支，把健康的 1.0.78 降级 |
+| 16:18:35 | 「pointer.current 未通过完整性校验」 | **真故障**。槽内 `resources/settings.html`（mtime 16:21:46，hash `395abd53…`）与 13:34:44 固化的 `slot-manifest.json`（记录 `bb0a0ae6…`）不一致——**槽固化后被人从 `assets/` 直接写了进去**，绕过 manifest 重生成 |
+
+**改法（三处，零构建生效：启动器从便携根读取、`assets/**` 走 UI 快通道）**：
+
+1. **`Restore-CurrentDesktopPointer` 回退前必须核对指针是否已被候选进程提交**。`Invoke-PendingDesktopActivation` 的回退 CAS 里新增守卫：`Test-DesktopReferenceMatch (Get-OptionalProperty $freshPointer -Name 'current') $pendingReference` 命中即 `return [pscustomobject]@{ Status = 'committed' }`——**已提交的指针永不被降级**。
+2. **等待提交要有诊断出口**。健康轮询新增 `$publishDeadline = 45s`；`candidate-current` 持续到点则把 `state.phase` / `state.transactionId` 写进 `launcher.log` 再 break，不再静默空转 3 分钟。
+3. **降级必须发 `rolled-back`，不得伪装成 `none`**。`src/main.ts` 的 `applyPortableDesktopUpdateState` 把 `'none'` 映射成 `kind:'none'`＝"当前已是最新版本"，而 `Save-RecoveredDesktopPointer` 原先对所有恢复路径一律写 `'none'` ⇒ 用户跑旧槽、界面说已是最新。改为带 `DowngradeReason` 时写 `'rolled-back'` 并显式传 `-TargetVersion`（候选撤回后指针已无 `pending`，被撤回版本只能由调用方给）。四条 `Restore-CurrentDesktopPointer` 调用点全部补 `-RevertedVersion`。
+4. **顶部栏黄色警告胶囊**：`#restart-btn` **左侧**的 `.rollback-capsule`（`#fadb14` 底 / `#3d2b00` 字 / `height:22px` + `border-radius:11px` = 两端半圆），默认 `display:none`，仅 `status.kind === 'rolled-back'` 时 `data-visible="true"`。文案含被撤回版本与当前版本，完整原因挂 `title`。
+
+**对照复现**：`test/rollback-notice.test.ts` 6 项。负向对照用 `Data/Temp/negctl.mjs` 逐条把修复还原成事故原始写法——①降级写回 `'none'`、②删掉提交守卫、③去掉 `-RevertedVersion`、④胶囊改直角、⑤胶囊移到重启按钮右侧、⑥胶囊对任何状态显示——**6/6 全部变红**，基线全绿，改动逐字节还原。
+
+**门禁**：`tsc` PASS；`run-tests` 定点 50 pass / 0 fail（rollback-notice 6 + shell-update-indicator 3 + launcher-activation-lock 41）；全量 1177 pass / 12 fail / 26 skipped，12 条全部属并行会话在途产物（`dsh-earthquake-alert` 10 条 + `ui-baseline` 2 条），与本次改动无关。
+
+**要记住的规矩**：
+
+1. **降级（downgrade）是一个必须可见的状态，不是 `none`**。任何"指针退回旧槽"的路径都要问一句：用户看得见吗？看不见就是 bug，不是 UX。
+2. **回退前必须先问"这个候选是不是其实成功了"**。候选进程自己提交指针，启动器只是观察者——观察者拿旧快照覆盖观察结果，就是把健康版本降级。任何 CAS 比较失败都要先核对"是否已被对方提交"，再决定降不降。
+3. **槽是不可变制品，固化后禁止直写**。写 `assets/**` 只改源码；`Build-UI-Only` 的第 5 步会重建槽并重生成 `slot-manifest.json`，往已暂存的槽里直接拷文件会让下一次启动的完整性校验必然失败（`Test-CompleteDesktopSlotFiles` 全树重哈希，605 个文件一个不差）。

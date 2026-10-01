@@ -140,14 +140,18 @@ DSH Codex Desktop combines the core runtime, feature products, and plugin market
 
 ## Development
 
-Development requires Windows, Node.js `24.20.0`, and pnpm `11.24.0`.
+Development requires Windows and the Node/pnpm versions in `package.json` (`config.bundledNodeVersion` / `packageManager`). Build tools live in versioned `Tools/node-v<version>` and `Tools/pnpm-v<version>` directories. The gate wrapper selects a Node binary whose SHA256 matches the manifest; legacy `App/resources/node` and `Tools/node` are not implicitly trusted.
 
 ```powershell
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 pnpm install --frozen-lockfile
-pnpm test
-pnpm run dist
+& '.\Tools\node\node.exe' scripts/gate-node-run.mjs node_modules/typescript/bin/tsc
+& '.\Tools\node\node.exe' scripts/gate-node-run.mjs scripts/run-tests.mjs
+# Read-only assembly preflight (version + binary SHA256; no recycling or packaging):
+& '.\Tools\node\node.exe' scripts/gate-node-run.mjs dist/scripts/prepare-runtime.js --check-node
+# Full portable candidate build, when a build/deployment window is available:
+powershell -NoProfile -ExecutionPolicy Bypass -File Build-DSH-Portable.ps1
 ```
 
 Local build artifacts are written to `release\` and are not committed. Pushing a `vX.Y.Z` tag starts the packaging workflow for Windows x64, macOS arm64/x64, and Linux x64/arm64 AppImage / deb artifacts.

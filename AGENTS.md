@@ -28,6 +28,14 @@
 6. **一 bug 一会话**：得出结论就落文档或黑洞条目；跨天接力靠制品，不靠记忆。
 7. **构建与候选激活不并发**：`Build-DSH-Portable.ps1` 会启动脱离进程的回收清理器，在 G: 盘逐文件删除数万个文件（实测 20 分钟删掉 3.3 万个），候选槽冷启动撞上这段盘 I/O 会卡住主视图加载。2026-09-19 实证：候选 14:51:30 启动、其 DSH 服务端 14:51:52 正常 boot，但同一时刻另有构建在建（14:54:07）且回收器正在删 4.4 万文件，7 分钟后主视图 `ERR_FAILED` → fail-closed 退出 → 启动器自动回滚（候选内容已排除：与现役槽只差一个非启动路径默认值）。**规则**：构建与"请用户重启激活候选"必须串行——先让 `Data/Temp/prepare-recycle/` 排空（回收器连扫 3 轮空后自行退出）再请人重启；被杀的构建会留下孤儿回收桶与冻结的 `.sweeping` 心跳，下一个构建才接手清理。
 
+## 定制永久保留门禁（用户决定，2026-09-30）
+
+所有新增、修复、下线以及更新/重构，必须明确功能的持久源码归属、生成/安装路径、活动 Profile/桌面槽与回归证据，不能只改现役文件。更新或重新构建不得让已接受功能回到原版。机器可读保护清单为 `customizations/preservation.json`，执行模块为 `src/customization-preservation.ts`；同时继续执行既有 UI baseline，不以新清单替代 UI 行为验收。
+
+构建与切换前捕获实际本地插件、启用状态、运行文件、稳定 patch/link 和来源；候选必须保持这些能力与用户开关。发现丢失、意外禁用、错误链接、未批准源码漂移或缺少新内核家园/兼容配套时阻止切换，保留现役，不自动删功能或扩大兼容豁免。合法变更要记录差异、补负向对照与真实组合验收，再更新保护记录；禁止仅改哈希放行。完整规则见 `docs/03-技术架构/构建更新与定制防回退规则.md`；本轮证据见 `docs/01-当前工作/20260930-构建独立更新与定制保护.md`。
+
+完整构建须封存源码/工具/正式测试输入、编译后 dist 与真实打包制品；只在门禁完成且输入未漂移时形成成功 receipt。UI 快通道只能替换明确映射的非嵌入素材，不凭 git dirty、mtime 或 `-Force` 认定旧 asar 对应新源码。新本地候选缺最终事务凭据时不得激活、健康提交或从 slots 扫描恢复；构建/装配租约持有到激活提交或完整回退结束。current/previous/pending 对应的定制快照和事务凭据也是受保护运行配套，不能当“已完成临时文件”清理。
+
 ## 官方兼容性双基线
 
 - **实现基线**：以便携版实际内置的 `@deepseek-ai/dsh` 版本、导出和类型声明为准；不得因为官方最新文档出现新 API 就直接在旧运行时中调用。
@@ -128,10 +136,10 @@
    Build-UI-Only.cmd            # 门禁通过才同步素材并暂存候选槽
    Build-UI-Only.cmd -DryRun    # 只跑门禁与差异报告，不动任何文件
    Build-UI-Only.cmd -SkipStage # 只刷新 release\win-unpacked，不暂存
-   Build-UI-Only.cmd -Force     # 带着未打包的 src 改动强推界面（app.asar 仍是旧版）
+   Build-UI-Only.cmd -Force     # 仅兼容旧参数；不绕过任何门禁、不携带未打包源码
    ```
 
-   门禁会拦下必须全量构建的情况：`src/**`、`scripts/*.ts`、`package.json`、锁文件有改动，或 `dist/` 比 `resources\app.asar` 新。**被拦是预期行为**——界面快通道无法携带会进 `app.asar` / `resources\desktop-bridge\` 的改动，强行推进会得到"新界面 + 旧主进程"的混血槽。
+   门禁会拦下必须全量构建的情况：`src/**`、可执行 `scripts/**`、`plugins/**`、`customizations/**`、`package.json`、编译配置、锁文件、工作区依赖配置或 `node_modules/**` 有改动，或 `dist/` 比 `resources\app.asar` 新。**被拦是预期行为**——界面快通道无法携带会进 `app.asar` / `resources\desktop-bridge\` 的改动；历史 `-Force` 强推会得到"新界面 + 旧主进程"的混血槽，**该旁路已禁止**。当前 `Build-UI-Only.ps1` 无论是否传 `-Force` 均执行门禁裁决、编译新鲜度、UI 源码基线、活动 Profile 与既有候选资源的定制保护；任一失败必须先解决或走全量构建，不得用旧 `app.asar` 强推。
 
 3. **端到端验证**：双击 `DSH便携版3.exe` 启动，确认候选通过清单哈希、主界面与 DSH readiness、`Data/Updates/Desktop/state.json` 进入 `completed`，且 `Data/Electron/UserData/startup-error.log` 没有新增错误。
 
@@ -140,9 +148,9 @@
 - **GNU tar / bsdtar 差异**：`runtime-archive.ts` 必须运行时探测（GNU 才加 `--force-local`）。测试环境（Git Bash）解析到 GNU tar，用户双击启动器环境解析到 System32 bsdtar —— **测试通过 ≠ 用户可用，必须用双击启动器路径验证**
 - **ps1 脚本必须带 UTF-8 BOM**：PowerShell 5.1 按 ANSI 解析无 BOM 的 UTF-8，中文注释会导致语法错误
 - **`prepare-runtime` 的删除阶段曾要 20–50 分钟（2026-09-13 定案，并已在脚本内根治）**：装配第一步 `removePreparedPath` 要清掉 `runtime-node` / `runtime-plugins` / `runtime-dsh` / `runtime-dsh.tgz`。真实原因有两条，**都不是"沙箱静默挂起"**：
-  - ① **安全删除守卫是秒级抛错，从不挂起**。它经 `NODE_OPTIONS=--require node-language-shim.cjs` 注入每个 node 进程，撞阈值后 `bulk-guard check` 打印 `SAFE_DELETE_BULK_CONFIRM_REQUIRED` 并 `exit 2`，shim 转 `throw` —— 实测 **1.09 秒**就返回。若要旁路，三行一起设才干净：`NODE_OPTIONS=''`（根治，去掉注入）+ `CODEBUDDY_SAFE_DELETE_ENABLED='0'` + `CODEBUDDY_SAFE_DELETE_SANDBOX='0'`；只设其中一个**有可能传不到孙进程**。
+  - ① **安全删除守卫是秒级抛错，从不挂起**。它经 `NODE_OPTIONS=--require node-language-shim.cjs` 注入每个 node 进程，撞阈值后 `bulk-guard check` 打印 `SAFE_DELETE_BULK_CONFIRM_REQUIRED` 并 `exit 2`，shim 转 `throw` —— 实测 **1.09 秒**就返回。**历史旁路记录（禁止执行，不是操作指令）**：旧实现曾通过清空 `NODE_OPTIONS`、关闭 `CODEBUDDY_SAFE_DELETE_ENABLED` / `CODEBUDDY_SAFE_DELETE_SANDBOX` 避开注入，还存在保护环境传不到孙进程的问题；这一做法违反当前安全边界，已从 `scripts/prepare-runtime.ts` 移除。**当前必须完整继承宿主删除守卫环境**；保护拒绝时保留诊断并有限重试/隔离，不得清空或覆盖守卫变量、改用另一 shell 或外部删除命令继续执行。
   - ② **真正的耗时是本盘删小文件极慢**。实测同一份 20 个小文件：**G: 盘 1008ms（50.4ms/个）、C: 盘 7ms（0.3ms/个）—— 慢 168 倍**；读 / stat / 列目录全都正常（200 次 stat 仅 14ms），所以**不是盘坏了，是删除被逐文件拦截**。`runtime-plugins` 有 **44116 个文件**（`store` 19224 / `staging` 20799 / `offline-verification` 4093）⇒ 单轮同步清理 **≈37 分钟**，全程 CPU≈0、无任何输出，与"进程卡死"外观完全一致。**它慢，但活着**，别杀进程。
-  - ✅ **已根治（2026-09-13，`scripts/prepare-runtime.ts`）**：`removePreparedPath` 现在**先尝试同卷 `rename` 进回收区**（`Data/Temp/prepare-recycle/`，O(1)），再由**脱离本进程树的后台清理器**（`spawn(detached).unref()`，配 `.sweeping` 心跳防止重复启动）真实删除。构建的删除阶段从 37 分钟降到**秒级**。语义不变 —— 函数返回时目标一定不存在；回退路径完整保留：**跨卷 / 被占用 / 显式设 `DSH_PREPARE_NO_RECYCLE=1`** 时仍走原来的 `rm(maxRetries)` + `rmdir /s /q` 兜底。
+  - **回收优化及安全收敛（2026-09-30，`scripts/prepare-runtime.ts`）**：先将明确归属的生成目录同卷移动到 `Data/Temp/prepare-recycle/`，再由后台清理器处理；跨卷/占用时只使用同一受保护的 Node 删除路径。禁止清空删除守卫环境或换 shell 绕过拒绝。删除前和每轮 worker 都核对逻辑路径、真实路径、普通目录及祖先链接；失败有限重试后隔离为 `.failed` 并留诊断，不无限自旋。启动器遇到活跃回收队列/心跳仍阻止候选激活，普通已隔离诊断不再永久阻塞。2026-09-13 的旧耗时数据不是本轮缓存提速证据；本轮需实际测量后才报效果。
   - **回收区自清理**：一次构建会依次回收 `runtime-node` / `runtime-plugins` / `runtime-dsh/.store` / `store/v11/projects` 等，后台清理器**循环清空回收区**（连续 3 轮扫空后自动退出），无需人工干预；`Data/Temp/` 本身在 `.gitignore` 内，也不进 `app.asar` / `extraResources`。
   - **🔴 2026-09-29 清理器卡死根因（两次复现"心跳在跳、两小时零删除"）——两层叠加，均已修复/定位**：
     ① **双实例竞态**：构建的 `pnpm run pack` 与 `prepare-runtime` 并行启动，两进程同时发现无心跳 → 各 spawn 一个清理器 → 双实例对同一桶**并发 rmSync 互踩**（EBUSY/ENOENT 竞态）→ rm 子进程静默退出（`stdio:'ignore'` 且无 exit 监听）→ sweeper 干等 pending 的 2 小时超时。修复（`RECYCLE_CLEANER` 三处）：启动时**心跳抢占让位**（后到实例自杀）；rm 子进程**非零退出立即重置 pending**；同桶**连续失败 3 次改名 `.failed`** 移出队列。
@@ -152,6 +160,7 @@
   - **中断过的构建仍会让产物残缺**：`prepare-runtime` 按 `[runtime-node, runtime-plugins, runtime-dsh, runtime-dsh.tgz]` 先清后建；被中断的构建**只清不建** ⇒ `runtime-node\`、两个 `.tgz` 全缺，只能全量重跑 —— 回收区里的副本是临时的，别指望拿它复用产物。
 - **插件 `lib/` 结构**：`dsh-sidebar-spaces` 的 `node_modules` 实例曾因缺 `lib/index.js` 崩溃（ERR_MODULE_NOT_FOUND）；修复物在 `local/dsh-sidebar-spaces`，不要破坏
 - **禁止原地覆盖 App**：桌面更新和本地构建只可写入 `Data/Updates/Desktop/slots/` 的不可变候选槽；通过启动验证前必须保留当前槽，失败由启动器自动回滚。
+- **🔴 槽固化后禁止直写，降级必须可见（2026-10-01 回滚事故）**：1.0.78+build.1 被回滚到 1.0.77 且**用户全程零提示**，两条独立成因。① **降级被记成 `none`**：指针退回旧槽时 `Save-RecoveredDesktopPointer` 一律写 `Set-UpdateState -Phase 'none'`，而 `src/main.ts` 的 `applyPortableDesktopUpdateState` 把 `'none'` 映射成 `kind:'none'`＝"当前已是最新版本" ⇒ 用户跑旧槽、界面说已是最新。**规矩**：任何"指针退回旧槽"的路径都必须发 `rolled-back`，候选撤回后指针已无 `pending`，被撤回版本只能由调用方用 `-TargetVersion` 显式传入。② **已提交的候选被二次降级**：`health.json` 已落盘、`events.jsonl` 已记 `completed`，启动器仍按 3 分钟进度租约空等到期后走回退分支。**规矩**：回退前必须 `Test-DesktopReferenceMatch (freshPointer.current) $pendingReference`，命中即 `return committed` —— 候选进程自己提交指针，启动器只是观察者，拿旧快照覆盖观察结果就是把健康版本降级；等待提交要有诊断出口（45s `publishDeadline` 把 `state.phase`/`transactionId` 写进日志），不许静默空转。③ **完整性失败也是降级**：当前槽 `Test-CompleteDesktopSlotFiles` 不过时走 `pointer.previous`/`slot-scan`，同样必须带 `DowngradeReason` 发 `rolled-back`。用户可见提示在顶栏 `#restart-btn` 左侧的黄色胶囊（`.rollback-capsule`）。④ **根因之一是往已固化槽里直写素材**：槽内 `resources/settings.html`（16:21:46）与 13:34:44 固化的 `slot-manifest.json` 记录不一致。**写 `assets/**` 只改源码**，`Build-UI-Only` 第 5 步会重建槽并重生成 manifest；往已暂存槽直接拷文件 ⇒ 下次启动完整性校验必然失败（605 个文件全树重哈希）。护栏：`test/rollback-notice.test.ts`（6 项）。
 - **候选槽只留两版：current + previous（用户规则，2026-09-19）**：单槽 ≈780 MB，A/B 契约只需要「当前槽 + 一个回滚目标」。`prunePortableDesktopSlots` 默认 `keepUnreferencedSlots = 0`——指针引用的 `current` / `previous` / `pending` 永远保留，**其余槽一律删除**，不额外留历史版本；需要多留几版只允许通过显式传参（测试用），不得改默认值。调用点只有两个，都在事务提交点之后：`confirmRunningCandidate`（健康提交后）与 `stageLocalDesktopBuild`（暂存后）。**手工删槽前必须先读 `pointer.json` 的 current/previous 与 `state.json` 的 pending 事务**，只删三者之外的目录；`Data/Runtime/Harness/slots/` 是运行时槽，不适用本规则（另有自己的保留策略）。
 - **上游"启动清理"移植必须评估便携盘 I/O 量级（2026-09-19 死页事故）**：上游 v1.0.65 的 `stripOfficialProfileDependencies` 每次启动全删 profile 的 `node_modules/@deepseek-ai`，靠"运行时自装官方层"兜底——上游环境（SSD、store 对齐）秒级完成；便携盘 G: 上是 4.4 万文件级 pnpm 全量校验重装，实测 7-8 分钟且失败 → 主视图永远停在加载屏 → 候选激活连续超时回滚、现役槽也死页（现象极像"候选槽坏了"，实为每次启动都发生）。**凡移植上游启动路径改动，先问"这个操作在 G: 盘 4.4 万文件规模下要多久、失败会怎样"**；修复后的护栏语义见 07-功能清单 47 行。
 - **electron-builder TEMP**：NSIS 打包时 TEMP 必须指向真实可写的用户临时目录，否则找不到临时 include 文件。`Build-DSH-Portable.ps1` 已通过 `Portable-Environment.ps1` 的 `Set-DshPortableEnvironment` 设置（`TEMP/TMP` → `<便携根>\Data\Temp`，`ELECTRON_BUILDER_CACHE` → `Data\Development\electron-builder-cache`）；**绕过该包装脚本直接跑 electron-builder 时必须自行设置这两个变量**

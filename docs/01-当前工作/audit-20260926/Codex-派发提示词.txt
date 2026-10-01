@@ -1,0 +1,22 @@
+你是本轮唯一执行者。仓库根 `G:\DSH-3-Portable`。
+
+第一步：完整读取任务单 `docs\01-当前工作\audit-20260926\Codex-第1批任务单.md`（含 6 个子任务 T1–T6、硬约束、每个子任务的验收命令、交付格式），并按需参考 `docs\01-当前工作\audit-20260926\问题总登记册.md` 的对应条目。
+
+第二步：按任务单执行 T1–T6。
+
+硬约束（违反即打回）：
+- 只改任务单列出的文件；
+- 不得动 `Data\`、`pointer.json`、`.git\`、`App\`、`node_modules\`、任何 slots 槽；
+- 不得删测试、放宽断言、把失败改 skip、写死哈希；
+- 不要顺手修任务单以外的其他问题（另有 160+ 条待修）；
+- 必须用随包 Node：`App\resources\node\node.exe`。
+
+第三步：完成后把执行记录写到 `docs\01-当前工作\audit-20260926\Codex-第1批执行记录.md`（按任务单第 3 节格式：逐任务的改动与前后对照、命令与输出摘要、未完成项、越界自检），并贴出这两条命令的原始输出摘要：
+```
+& .\App\resources\node\node.exe .\node_modules\typescript\bin\tsc
+& .\App\resources\node\node.exe .\scripts\run-tests.mjs
+```
+
+当前门禁基线（供对比，不要为了凑绿而作弊）：`tsc` 退出码 0；`run-tests.mjs` = 653 项 / 622 通过 / 6 失败 / 25 跳过。
+
+第四步：用一句话汇报（改了哪些文件、6 项失败变成几项、哪些没做），不要输出大段日志。

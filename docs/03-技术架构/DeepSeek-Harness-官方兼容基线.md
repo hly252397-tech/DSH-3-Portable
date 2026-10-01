@@ -6,15 +6,50 @@
 
 | 项目 | 当前值 | 用途 |
 |---|---|---|
-| **实现基线（活动运行时槽）** | `@deepseek-ai/dsh 0.1.6-alpha.2`，槽 `Harness/slots/0.1.6-alpha.2-cf1f0a33455401b5`（2026-09-18 16:30 UTC 提交） | **编译、运行、API 与 Profile 兼容性的最终依据**；上一槽 `0.1.6-alpha.1` 保留以支撑回滚。出处：`Data/Runtime/Harness/current.json` |
-| 打包内置运行时（回退） | `@deepseek-ai/dsh 0.1.6-alpha.2`（2026-09-18 随上游 v1.0.64 吸收烘焙；v1.0.65 未改运行时） | 随桌面安装包分发的**回退**运行时，必须与 `package.json` 的 `config.bundledDshVersion` 一致（门禁脚本强制）。**本次起它与活动槽同版本**——不再是"落后一代"的回退件；npm `alpha` 标签亦为 `0.1.6-alpha.2` |
-| 官方审查基线 | `deepseek-ai/deepseek-harness@46a7f68b0922371ce7144b668b90e377d8e799f4` | 2026-09-24 人工审阅；不代表已安装该版本 |
-| 官方审查版本 | `@deepseek-ai/dsh 0.1.7-rc.1` | 精确提交的 CLI manifest 实读；实现仍为 0.1.6-alpha.2，不在本轮升级 |
-| 运行时迁移目标 | `@deepseek-ai/dsh 0.1.6-alpha.2`（受信且已切换为活动槽） | `checkHarnessUpdate` 经 npm integrity + GitHub 标签 commit + 受信清单三重核对后可自动切换；清单当前事实源为 `src/harness-update.ts` 的 `BUILTIN_TRUSTED_HARNESS_RELEASES`（0.1.2-alpha.3 … 0.1.6-alpha.2 共 7 项） |
-| npm 标签快照 | `latest=0.1.5-rc.2`、`next=0.1.5-rc.2`、`alpha=0.1.6-alpha.2`（2026-09-19 复核 npm registry） | 更新器发现通道与插件「关于」页展示口径的来源；0.1.6-alpha.2 仅存在于 alpha 通道，稳定线仍是 0.1.5-rc.2 |
-| 核对日期 | `2026-09-24`（人工审阅并推进审查基线；实现基线未变） | 判断本地规范是否过期 |
+| **实现基线（随包烘焙/隔离候选）** | `@deepseek-ai/dsh 0.1.7-rc.2`（2026-09-25 随上游 v1.0.76 吸收烘焙；`Data/RuntimeCandidate` 已隔离装全并过依赖核对）。**在装槽的 1.0.77 候选以 `0.2.0-rc.2` 为目标**——源码常量（`src/bundled-plugins.ts` / `package.json`）已改，候选激活并实机验证前，本行仍以现役槽为准 | **编译、运行、API 与 Profile 兼容性的最终依据**；激活走独立家园绑定（`Data/DSH-generations/<代>` + `Data/Updates/Harness/homes/<版本>.json`），旧运行时 0.1.6-alpha.2 经无绑定路径继续读原 `Data/DSH`，混用被 fail-closed 阻断 |
+| 官方审查基线 | `deepseek-ai/deepseek-harness@639ed015397290b3745d163aafe02ffee4aa3f84` | 2026-09-29 人工审阅（0.2.0-rc.2 受信）；不代表采用该 HEAD 的全部实现 |
+| 官方审查版本 | `@deepseek-ai/dsh 0.2.0-rc.2` | 官方标签 `dsh-v0.2.0-rc.2` 指向该 commit，且即官方仓库当前 HEAD |
+| 核对日期 | `2026-09-29`（推进审查基线 + 0.2.0-rc.2 受信） | 判断本地规范是否过期 |
 
 机器可读记录见 `DeepSeek-Harness-官方兼容基线.json`。
+
+> **文档地址更正（2026-09-29）**：JSON 的 `official.documentation` 原为 `https://deepseek-ai.github.io/deepseek-harness/`，该地址**返回 404**，导致 `scripts/verify-dsh-official-baseline.mjs --online` 报「官方文档地址不在允许列表中」。已改为脚本允许列表里那条 `https://deepseek-harness.github.io/deepseek-harness/`（实测 200）。这是本轮之前就存在的缺陷，不是本轮引入。
+
+## 2026-09-29 人工审阅记录（0.2.0-rc.2 受信 / 上游桌面壳 v1.0.77）
+
+- **触发**：用户 2026-09-29 指示「DSH 和桌面壳都有新版本了，都拉取更新吧」。桌面壳取上游 `v1.0.77`，内核取官方 `0.2.0-rc.2`。
+- [官方比较](https://github.com/deepseek-ai/deepseek-harness/compare/4878cdabd87d4041bdaff61d04c966883b9fd07a...639ed015397290b3745d163aafe02ffee4aa3f84)：**187 提交 / 300 文件**。
+- 变更主体：`apps/web` 交互打磨（模型选择器模糊搜索、会话时长/主题/快捷键）、`apps/desktop` 托管 CLI 命令管理、Windows ACL 单次修复、cordis `Client` inspect 查询限时，以及 `perf(client)` 长会话渲染与鲸鱼动画降载。
+- **破坏性核查（结论：干净）**：`packages/api` 与 `packages/client` 无任何 `export` 删除；`packages/boot/*` 与 `packages/bundle/*` 只是 `package.json` 版本号 0.2.0-rc.1→rc.2 的提升；官方未发布 rc.2 的 upgrade-guide（现有 `docs/upgrade-guide` 只回填到 0.1.7-rc.2），即官方未申报对外可感知的破坏性变更。唯一 grep 命中的 "breaking" 是 `AGENTS.md` 里的一句策略表述。
+- 受信凭据：npm registry 实取 `dist.integrity`（`sha512-EAJ3gPNcVt/uv8X19PMm9NkVhWgT7xXNMk0UKCVm+IQ5rpSQOcsMUa0HWlnYYVybKMsccjcRB21vVVsaXQ6IdA==`）+ 官方标签 `dsh-v0.2.0-rc.2` → `639ed015`（发布提交 `c1b47e41` "release(dsh): 0.2.0-rc.2"）；已写入 `src/harness-update.ts` 的 `BUILTIN_TRUSTED_HARNESS_RELEASES`。
+- **关键顺序事实**：`BUILTIN_TRUSTED_HARNESS_RELEASES` 编译进 `app.asar`，所以**现役 1.0.76 槽永远无法部署 rc.2**——内核更新必须先有新桌面构建。这是本轮必须先构建、不能直接在内核侧动手的原因。
+- 残余风险（如实记录）：社区插件 peer 精确钉在 `0.2.0-rc.1`，rc.2 不满足。**按用户「内核与插件各自独立更新、只经桥梁连接」的方针处理**：用 `compatibility.json` 的 v5 代际绑定 + 逐插件精确豁免放行（`Prepare-DSH-Kernel-Update.cmd` / `scripts/prepare-kernel-update.mjs`），**不改 peer 宽区间**。切换后必跑 7b 体检 `scripts/check-open-behavior.mjs`。
+- 插件侧**刻意不跟**上游 v1.0.77 的 12 个社区插件版本提升与 `dsh-mcp-connector` 移除（理由与台账见 [上游同步与便携保护基线.md](上游同步与便携保护基线.md) §9）。
+
+## 2026-09-28 人工审阅记录（0.2.0-rc.1 受信前置）
+
+- [官方比较](https://github.com/deepseek-ai/deepseek-harness/compare/21638c56315ae6a2b552d6091945d3144c9af32e...4878cdabd87d4041bdaff61d04c966883b9fd07a)：106 提交 / 678 文件 / 17 贡献者（compare API 单页 300 文件为样本 + 全量提交列表逐条审阅主题）。
+- 变更主体：Windows 沙箱 ACL 诊断修复（Explorer 窗口可见性、ACL 修复安全性）、WebKit/Safari 会话 JSON 兼容、Office/PDF 文本选择双主题、Windows 标题栏间距（caption gaps）、会话日志上传偏好、设置性能（composition 复用）、0.2 预览版公告（**首启会弹一次需用户确认**）、Koffi 依赖钉版、macOS 麦克风权限。
+- **与本仓库定制相关的判定**：无聊天视图文件打开器改道、无 fileLink/openPath/ToolRow/workspaces 相关提交、无破坏性插件 API 变更迹象——升级后仍须实跑 `scripts/check-open-behavior.mjs`（升级流程 7b）实测确认。
+- 受信凭据：npm registry 实取 `dist.integrity`（sha512-F6hK…3ng==）+ 官方标签 `dsh-v0.2.0-rc.1` commit（GitHub API 实取 = HEAD 4878cdab，发布提交 `release(dsh): 0.2.0-rc.1 (#5387)`）；已写入 `src/harness-update.ts` BUILTIN 清单。
+- 残余风险（如实记录）：社区插件（better-sidebar 0.18.0-alpha.0 / codex-ui 1.1.18 等）对 0.2 家族 peer 适配未逐一实测，影子验证不覆盖社区插件——靠 A/B 自动回滚兜底；更新策略已锁 manual（2026-09-28 用户决定），本次为一次性手动升级。
+
+## 2026-09-28 人工审阅记录（设置整合续作）
+
+- [官方比较](https://github.com/deepseek-ai/deepseek-harness/compare/477b4f420553e8a52c2fbccc464d7561b239c443...21638c56315ae6a2b552d6091945d3144c9af32e)：155 提交。比较 API 文件列表有上限，另取两端完整递归树（truncated 均 false）核对，发现 544 个新增/修改文件；这是影响定位而非全仓逐行审计。
+- 官方 `AGENTS.md`、`docs/testing.md` blob 与前次相同，继续沿用已审阅规则。`docs/architecture.md` 仅新增失败步骤须补记缺失工具结果的说明，本次设置入口不触模型事件/会话恢复。
+- 受影响路径核对：`packages/client/runtime`、`ui-settings`、`ui-slots` 未变；`boot/plugin-manager` 只有测试变化，未更改兼容豁免规则。`boot/app-boot/src/profile.ts` 仅在可选 bundle 列表增加 experimental-schedule-bundle。
+- 实读新版 `ui-settings-general` 文档和 `DesktopUpdateIndicator.tsx`：设置仍由 settings.section ledger 投影，Host 拥有桌面更新操作，客户端只展示状态。展示文案/tooltip 变化不要求便携外壳移植；账户/模型 onboarding、插件管理 UI、遥测和官方 desktop 的变更不属于本次实现，不更新已安装运行时。
+- CLI 清单仍为 rc.2。本轮不移植、不调整受信清单、不授权插件风险豁免，仅更新审查 SHA。用户批准暂用已真实验证的 Codex UI 1.1.18；1.1.20 的实际 Loader 拒绝证据保留在设置整合记录。
+
+## 2026-09-25 人工审阅记录（上游 v1.0.76 吸收）
+
+- 审阅范围：官方 `0.1.6-alpha.2 → 0.1.7-rc.2` 全量 diff（6783 文件，其中 packages 3870 文件），聚焦插件实际依赖面，不逐行读 client UI。
+- **官方 AGENTS.md**：新增 dev:web/dev:desktop 命令与 make 目标（开发工具链，不影响便携）；workspace 依赖范围规则细化为 `workspace:*`（DSH）/`workspace:~`（vendor/native）；新规范 "No new assertions to unknown"。均不改变插件 ctx API 语义。
+- **loader**：新增 volatile 配置热更新（schema `meta.volatile` 字段免重挂载生效，事件 `loader/volatile-update`）与 `equalExceptVolatile` 比较；`internal/update` 的 unparse 改为显式 `.call(this.runtime.Config)`。增量功能，无破坏。
+- **core/session**：fork 快照出现 "migration deferred" 注释、tool-history 扩展、types 演化——会话格式持续演化，实证"新版写入后旧运行时拒绝读取"的既知结论；本次升级因此采用独立家园代际隔离而非原地混用。
+- **插件三形态、ctx 服务名、slots/locale、connection/webServer** 未见移除或签名破坏；便携本地插件（命名导出/default 类/default 函数）兼容预期成立，以激活后真实加载为准。
+- 本记录同步于 `DeepSeek-Harness-官方兼容基线.json`（verifiedAt 2026-09-25T16:40+08:00）。
 
 ## 2026-09-24 人工审阅记录（I035 系统认知与手册）
 
@@ -37,7 +72,7 @@
 ## 官方兼容性判定
 
 - 自定义 Harness 行为优先通过 Profile、Bundle、插件、服务、事件和 Client Slot 扩展，不直接改写官方运行时包。
-- 代码必须以**已内置** `0.1.6-alpha.2` 的实际导出和类型声明为准（2026-09-18 随上游 v1.0.64 吸收时更新，2026-09-19 复核时**活动运行时槽已同为 `0.1.6-alpha.2`**，声明、回退件与实跑三者一致）；官方文档只作为迁移预警，更新尚未经 A/B 切换生效前不得假定新 API 存在。
+- 代码必须以**已内置**运行时（**活动槽 `Data/Runtime/Harness/current.json`**；2026-09-26 读数为 `0.1.7-rc.2`，槽 `0.1.7-rc.2-4d29c691bfdf224c`）的实际导出和类型声明为准。**本行不再写死版本号**——历史沿革：`0.1.2-rc.1`（2026-09-11 前）→ `0.1.5-rc.2` → `0.1.6-alpha.2`（2026-09-18 随上游 v1.0.64 吸收）→ `0.1.7-rc.2`（2026-09-25 随上游 v1.0.76 吸收）。官方文档只作为迁移预警，更新尚未经 A/B 切换生效前不得假定新 API 存在。
 - 运行时升级属于兼容性迁移：需要独立候选、依赖闭包锁定、Profile 真实组合测试、会话格式评估、A/B 切换和自动回滚。
 - 产品可见插件不能只做手工 `ctx.plugin()` 单元测试，必须通过 Loader + Profile 的真实组合路径验证。
 - 用户可见状态只能在事务提交点后发布；失败前不得显示“完成”。
@@ -135,8 +170,11 @@
 - **改了什么**：`package.json` 的 `bundledDshVersion`、`src/bundled-plugins.ts` 的 `OFFICIAL_DSH_VERSION`、
   以及随包矩阵四个插件（codex-ui `1.1.11`、dsh-context `0.53.0`、dsh-mcp-connector `0.2.49`、usage-billing `1.4.0`），
   连同声明的测试期望与本文档的"当前值"两行。
-- **刻意没跟的**：`dsh-better-sidebar` 保持 `0.18.0`（上游 `0.19.1`）——它是**本地定制 link 分发**，升上游会把
-  定制件换成 npm 包，等于覆盖用户定制（矩阵注释与 UI 契约均如此规定）。
+- **刻意没跟的**：`dsh-better-sidebar` 以**本地定制 link 分发**，实际安装版本为 `0.18.0-alpha.0`
+  （`Data/DSH/profiles/web/local/dsh-better-sidebar/package.json`，2026-09-26 实测），升上游会把定制件换成 npm 包，等于覆盖用户定制。
+  **⚠ 2026-09-26 发现一处内部不一致（待处置）**：`src/bundled-plugins.ts:64` 的矩阵条目写 `dsh-better-sidebar: 0.21.1`，
+  而**同一文件 `:37-38` 的注释**仍写"版本仍锁 0.18.0；升到上游的 0.19.1…"——**注释与矩阵条目互相矛盾**，
+  且矩阵值（0.21.1）与实际安装（0.18.0-alpha.0）不一致。已登记为独立问题，未擅自改动矩阵或安装（涉及分发口径）。
 - **刻意没改的**：`package.json` 的 `version` 仍为便携仓自己的 `1.0.66`；上游的 `1.0.62→1.0.63` 属另一条发布线。
 - **尚未完成（下一步）**：`0.1.6-alpha.1` 的运行时**尚未安装、活动槽仍为 `0.1.5-rc.2`**。按铁律不能原地安装，
   须走 `request-harness-update` → 外壳 A/B 更新器；并需复核各插件对 `0.1.6-alpha.1` 的 peer 兼容、
