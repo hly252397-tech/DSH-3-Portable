@@ -34,3 +34,38 @@ Customize/App-Overlay/*
 .tmp/
 .stability-dist/
 .workbuddy/
+
+# 过程证据与截图：量大且可再生，不入库（artifacts/ui-concept 的原型 HTML 是既有跟踪项，忽略规则不影响它）。
+artifacts/
+Downloads/
+
+# 第三方工具目录与本机会话状态，不属于源码仓库。
+.opencode/
+.zcode/
+
+# 手工备份文件（改前留的 .bak-peer-* 等）。
+*.bak-*
+
+# 一次性原型草稿：AgentOS Evolution Spec 的演示副本，已由 AgentOS/ 正式实现取代。
+/app.js
+/index.html
+/styles.css
+/evolution-spec.html
+/evolution-spec.css
+/evolution-essay.html
+/evolution-essay.css
+/evolution-essay.js
+/opencode.json
+
+# 根目录遗留的误存截图。
+/DSH-3-PortableDataTemphover1.png
+
+# AgentOS 的运行态目录（源码在 lib/test/scripts/docs，入库；状态不入库）。
+AgentOS/cache/
+AgentOS/logs/
+AgentOS/temp/
+AgentOS/trash/
+AgentOS/runtime/
+AgentOS/verdicts/
+AgentOS/events/
+AgentOS/memory/
