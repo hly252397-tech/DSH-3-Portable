@@ -16,6 +16,7 @@ test('sandbox preload 的 IPC 字面量与主契约保持一致', async () => {
   const browserPanel = await readFile(new URL('../../src/browser-panel-preload.cts', import.meta.url), 'utf8')
   const dsh = await readFile(new URL('../../src/dsh-view-preload.cts', import.meta.url), 'utf8')
   assert.deepEqual(channelLiterals(shell), [
+    SHELL_IPC.forwardInput,
     SHELL_IPC.action, SHELL_IPC.bootstrap, SHELL_IPC.browserActivateTab, SHELL_IPC.browserAutofillPage,
     SHELL_IPC.browserBack, SHELL_IPC.browserBookmarkCurrent, SHELL_IPC.browserClearData,
     SHELL_IPC.browserClearDownloads, SHELL_IPC.browserCloseTab, SHELL_IPC.browserDevTools,
@@ -57,6 +58,7 @@ test('sandbox preload 的 IPC 字面量与主契约保持一致', async () => {
     SHELL_IPC.browserToggleMenu, SHELL_IPC.getBootstrap, SHELL_IPC.state,
   ].sort())
   assert.deepEqual(channelLiterals(dsh), [
+    SHELL_IPC.embeddedSettingsDocument, SHELL_IPC.embeddedSettingsRequest, SHELL_IPC.bootstrap, SHELL_IPC.desktopUpdateState, SHELL_IPC.harnessUpdateState,
     SHELL_IPC.action, SHELL_IPC.browserEmbeddedConfig, SHELL_IPC.browserEmbeddedGuestAttached, SHELL_IPC.browserEmbeddedState,
     SHELL_IPC.browserPanelBounds, SHELL_IPC.browserPanelExecuteJs, SHELL_IPC.browserPanelHide, SHELL_IPC.browserPanelOccluded, SHELL_IPC.browserPanelPrepareOcclusion, SHELL_IPC.browserPanelShow, SHELL_IPC.browserPanelTabs,
     SHELL_IPC.dshAction, SHELL_IPC.dshBrowserCloseRequest, SHELL_IPC.dshLocale, SHELL_IPC.dshNotification,

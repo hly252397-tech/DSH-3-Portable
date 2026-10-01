@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import test from 'node:test'
 
 import { MAXIMUM_PANEL_WIDTH_MARGIN, MINIMUM_PANEL_VIEWPORT_CSS, browserPanelMaxWidthCss, capBrowserWorkspacePanelWidth, normalizeBrowserPanelBounds, resolveBrowserDownloadsDrawerHeight, resolveBrowserPageTop, shouldHideBrowserPanel, shouldShowPageTabBar } from '../src/browser-panel-layout.js'
@@ -193,18 +195,24 @@ test('内置浏览器历史 chrome 已整段删除：唯一 chrome 是 browser-p
   assert.match(panel, /browser-maximize/, 'browser-panel.html 必须含最大化图标')
 })
 
-test('完整版浏览器只在卡片内嵌网页，外链仍进内置浏览器', async () => {
+test('完整版浏览器只在卡片内嵌网页，外链仍进内置浏览器', async (t) => {
   const main = await readFile(new URL('../../src/main.ts', import.meta.url), 'utf8')
-  const embedded = await readFile(new URL('../../Data/DSH/profiles/web/local/dsh-better-sidebar/portable/embedded-browser-view.js', import.meta.url), 'utf8')
+  const embeddedUrl = new URL('../../Data/DSH/profiles/web/local/dsh-better-sidebar/portable/embedded-browser-view.js', import.meta.url)
   assert.doesNotMatch(main, /browserPanelView|tab\.view|DSH_EMBEDDED_BROWSER/, '旧浏览器叠加层不得重新出现')
   assert.match(main, /webviewTag: true/, 'DSH 卡片必须允许内嵌网页组件')
   assert.match(main, /classifyEmbeddedBrowserGuest/, '网页组件必须由主进程校验')
-  assert.match(embedded, /document\.createElement\('webview'\)/, '网页必须在卡片 DOM 内呈现')
   assert.match(main, /function openBrowser[\s\S]{0,600}createBrowserTab/, 'openBrowser 必须走 createBrowserTab')
   // 外链进内置浏览器（不是系统浏览器）
   assert.match(main, /function routeDshExternalLink[\s\S]{0,200}openBrowser\(/, '外链必须进完整版浏览器')
   // 默认首页 = DeepSeek
   assert.match(main, /BROWSER_DEFAULT_HOMEPAGES.*deepseek/i, '默认首页必须含 DeepSeek')
+  // 实机产物在 Data/DSH/profiles 下，CI 全新检出没有 ⇒ existsSync 守卫 + skip。
+  if (!existsSync(fileURLToPath(embeddedUrl))) {
+    t.skip('实机产物缺失（CI 全新检出）: Data/DSH/profiles/web/local/dsh-better-sidebar/portable/embedded-browser-view.js')
+    return
+  }
+  const embedded = await readFile(embeddedUrl, 'utf8')
+  assert.match(embedded, /document\.createElement\('webview'\)/, '网页必须在卡片 DOM 内呈现')
 })
 
 test('卡片生命周期撤销不关闭无 owner 的 shell 浏览器工作区', async () => {
@@ -218,15 +226,24 @@ test('卡片生命周期撤销不关闭无 owner 的 shell 浏览器工作区', 
   assert.match(main, /if \(browserPanelOwner !== undefined\) revokeBrowserPanel\('session-switch'\)/)
 })
 
-test('文件预览与完整浏览器互斥：编辑器打开时收掉浏览器视图', async () => {
-  const bundle = await readFile(new URL('../../Data/DSH/profiles/web/local/dsh-better-sidebar/lib/client.js', import.meta.url), 'utf8')
-  const browserView = await readFile(new URL('../../Data/DSH/profiles/web/local/dsh-better-sidebar/portable/browser-view.js', import.meta.url), 'utf8')
+test('文件预览与完整浏览器互斥：编辑器打开时收掉浏览器视图', async (t) => {
   const main = await readFile(new URL('../../src/main.ts', import.meta.url), 'utf8')
+  // 主进程：hide(undefined) 允许强制收（纯源码断言，必须在实机产物守卫之前跑完）
+  assert.match(main, /if \(owner !== undefined && owner !== null && owner !== browserPanelOwner\) return/, 'hide 无 owner 时必须允许强制收')
+  // 实机产物在 Data/DSH/profiles 下，CI 全新检出没有 ⇒ existsSync 守卫 + skip。
+  const bundleUrl = new URL('../../Data/DSH/profiles/web/local/dsh-better-sidebar/lib/client.js', import.meta.url)
+  const browserViewUrl = new URL('../../Data/DSH/profiles/web/local/dsh-better-sidebar/portable/browser-view.js', import.meta.url)
+  const missing = [bundleUrl, browserViewUrl].filter(url => !existsSync(fileURLToPath(url)))
+  if (missing.length) {
+    t.skip(`实机产物缺失（CI 全新检出）: ${missing.map(url => fileURLToPath(url)).join(', ')}`)
+    return
+  }
+  const bundle = await readFile(bundleUrl, 'utf8')
+  const browserView = await readFile(browserViewUrl, 'utf8')
+  // src/main.ts 已在本用例开头读取（纯源码断言须先于实机产物守卫执行）
   assert.match(bundle, /function openSidebarFile[\s\S]{0,400}browserPanel\?\.hide/, 'openSidebarFile 必须先收原生层')
   assert.match(bundle, /function EditorHost[\s\S]{0,800}browserPanel\?\.hide/, 'EditorHost 挂载文件时必须收原生层')
   assert.match(browserView, /bridge\.show\(/, 'BrowserView 必须接入完整浏览器')
   assert.match(browserView, /react\.useLayoutEffect\(/, '首次可见时须在布局阶段认领完整浏览器')
   assert.doesNotMatch(browserView, /createElement\(['"]iframe['"]/, '不得再叠加第二套 iframe 浏览器')
-  // 主进程：hide(undefined) 允许强制收
-  assert.match(main, /if \(owner !== undefined && owner !== null && owner !== browserPanelOwner\) return/, 'hide 无 owner 时必须允许强制收')
 })

@@ -16,6 +16,7 @@ function loadClient(options: { elements?: unknown[]; errors?: string[]; focused?
   listener(): ActionListener
   notifications: Array<Record<string, unknown>>
   themes: Array<Record<string, unknown>>
+  states: Array<Record<string, boolean>>
   openSession(id: string): void
   reply(value: { sessionId: string; text: string }): void
 } {
@@ -28,6 +29,7 @@ function loadClient(options: { elements?: unknown[]; errors?: string[]; focused?
   const notifications: Array<Record<string, unknown>> = []
   const locales: string[] = []
   const themes: Array<Record<string, unknown>> = []
+  const states: Array<Record<string, boolean>> = []
   const documentListeners = { dblclick: new Set<(event: Event) => void>() }
   const context = {
     console: { error: (...args: unknown[]) => { options.errors?.push(args.map(String).join(' ')) } },
@@ -50,7 +52,7 @@ function loadClient(options: { elements?: unknown[]; errors?: string[]; focused?
         reportNotification(event: Record<string, unknown>): void { notifications.push(event) },
         reportLocale(locale: string): void { locales.push(locale) },
         reportTheme(value: Record<string, unknown>): void { themes.push(value) },
-        reportState(): void {},
+        reportState(state: Record<string, boolean>): void { states.push(state) },
       },
       addEventListener(type: string, listener: () => void): void { if (type === 'focus') focusListeners.add(listener) },
       removeEventListener(type: string, listener: () => void): void { if (type === 'focus') focusListeners.delete(listener) },
@@ -81,10 +83,57 @@ function loadClient(options: { elements?: unknown[]; errors?: string[]; focused?
     listener: () => { assert.ok(actionListener); return actionListener },
     notifications,
     themes,
+    states,
     openSession: id => { assert.ok(openSessionListener); openSessionListener(id) },
     reply: value => { assert.ok(notificationReplyListener); notificationReplyListener(value) },
   }
 }
+
+test('rc.2 navigation follows settled mainView, supports history branches and removes deleted targets', async () => {
+  const client = loadClient()
+  const byId: Record<string, { displayTitle: string; running: boolean; retainedBy: { mainView: number } }> = {}
+  for (const id of ['a', 'b', 'c', 'd']) byId[id] = { displayTitle: id, running: false, retainedBy: { mainView: id === 'a' ? 1 : 0 } }
+  let notify = (): void => {}
+  let cleanup = (): void => {}
+  let selected = 'a'
+  let reject = false
+  const visit = (id: string): void => {
+    if (reject) throw new Error('navigation refused')
+    byId[id].retainedBy.mainView = 1
+    notify() // rc.2 retains next before releasing previous.
+    if (id !== selected && byId[selected]) byId[selected].retainedBy.mainView = 0
+    selected = id
+    notify()
+  }
+  client.apply({
+    ...clientContext({}),
+    effect: (fn: () => () => void) => { cleanup = fn() },
+    sessions: {
+      binding: () => undefined,
+      list: { getSnapshot: () => ({ ids: Object.keys(byId), byId }), subscribe: (fn: () => void) => { notify = fn; return () => { notify = () => {} } } },
+      // Deliberately no sessions.open: it no longer exists in rc.2.
+    },
+    uiWorkspace: { openSession: visit },
+  })
+  const settle = async (): Promise<void> => { await new Promise<void>(resolve => setImmediate(resolve)) }
+  await settle()
+  visit('b'); await settle(); visit('c'); await settle()
+  assert.equal(client.states.at(-1)?.canBack, true)
+  client.listener()('back'); await settle(); assert.equal(selected, 'b')
+  client.listener()('back'); await settle(); assert.equal(selected, 'a')
+  assert.equal(client.states.at(-1)?.canBack, false)
+  client.listener()('forward'); await settle(); assert.equal(selected, 'b')
+  visit('d'); await settle()
+  assert.equal(client.states.at(-1)?.canForward, false)
+  reject = true; client.listener()('back'); await settle(); assert.equal(selected, 'd')
+  assert.equal(client.states.at(-1)?.canForward, false, 'failed open must not move history cursor')
+  reject = false; delete byId.b; notify(); await settle()
+  client.listener()('back'); await settle(); assert.equal(selected, 'a', 'skip deleted history targets')
+  client.openSession('c'); await settle(); assert.equal(selected, 'c')
+  cleanup()
+  const count = client.states.length
+  visit('d'); await settle(); assert.equal(client.states.length, count)
+})
 
 test('通知回复不把会话级 conversation 声明为根上下文注入', () => {
   const client = loadClient()

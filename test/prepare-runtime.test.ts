@@ -1,14 +1,31 @@
 import assert from 'node:assert/strict'
-import { existsSync } from 'node:fs'
-import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { copyFile, mkdir, mkdtemp, readdir, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises'
+import { homedir, tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { parse as parseYaml } from 'yaml'
 
-import { copyWorkspacePackages, officialRuntimeGlobalNodeModulesRoot, officialRuntimeNpmDependencies, officialRuntimeNpmInstallArgs, pruneStoreForPackaging, removePreparedPath, resolveBundledNodeSha256, validateOfficialRuntimeLayout, writePnpmShims, writeReleaseSourceManifest } from '../scripts/prepare-runtime.js'
+import { assertBundledPluginMetadataComplete, assertPreparedRemovalTarget, assertRecycleRootPhysical, completeBundledPluginMetadata, copyWorkspacePackages, officialRuntimeGlobalNodeModulesRoot, officialRuntimeNpmDependencies, officialRuntimeNpmInstallArgs, pruneStoreForPackaging, publishBundledLockfile, removePreparedPath, resolveBundledNodeSha256, validateOfficialRuntimeLayout, verifyBundledPluginStore, writePnpmShims, writeReleaseSourceManifest } from '../scripts/prepare-runtime.js'
+import { STORE_PACKAGES } from '../src/bundled-plugins.js'
 import { DEFAULT_DESKTOP_RELEASE_SOURCE } from '../src/portable-desktop-update.js'
 import { DESKTOP_BRIDGE_FILES } from '../src/desktop-host.js'
+
+test('桌面源码跟随已吸收 v1.0.78 基座并保持 rc.2 启动依赖一致', async () => {
+  const manifest = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as {
+    version: string
+    config: { bundledDshVersion: string }
+  }
+  assert.match(manifest.version, /^1\.0\.78\+build\.[1-9]\d*$/)
+  assert.equal(manifest.config.bundledDshVersion, '0.2.0-rc.2')
+  const dependencies = officialRuntimeNpmDependencies()
+  for (const name of ['dsh', 'dsh-scope', 'dsh-timeout', 'dsh-invariants']) {
+    assert.equal(dependencies[`@deepseek-ai/${name}`], manifest.config.bundledDshVersion)
+  }
+})
 
 test('按目标平台选择随包 Node 的 SHA256', () => {
   const checksums = {
@@ -30,11 +47,11 @@ test('项目配置包含 Linux x64 与 ARM64 的随包 Node SHA256', async () =>
   }
   assert.equal(
     resolveBundledNodeSha256(manifest.config?.bundledNodeSha256, 'linux', 'x64'),
-    '7FDE7B8AFA198DA66257F42EE2001D874C7355631E6D1579A5FB5EF1F246DF4C',
+    'AB9C8EECF9F82D6693CDC3ACCCED17034065C8D96213B0AA76A7E803D20AE1DA',
   )
   assert.equal(
     resolveBundledNodeSha256(manifest.config?.bundledNodeSha256, 'linux', 'arm64'),
-    '0F8949D1028F6D61506B2D5BC57E7E6FE893D7B1997509B7847294FC9C616584',
+    '71B004F18A82F3EA8F26109798564A12E5E4C7989A4C35B93851830B5815DD03',
   )
 })
 
@@ -135,7 +152,9 @@ test('Windows 只写 pnpm.cmd，避免和 pnpm 包装目录撞名', async () => 
 })
 
 test('打包前删除 pnpm store 的 projects 链接，避免 7zip 扫到断裂路径', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-store-'))
+  const root = await mkdtemp(join(tmpdir(), 'dsh-store-prune-'))
+  const previousNoRecycle = process.env.DSH_PREPARE_NO_RECYCLE
+  process.env.DSH_PREPARE_NO_RECYCLE = '1'
   try {
     const projects = join(root, 'v11', 'projects', 'broken')
     const files = join(root, 'v11', 'files')
@@ -146,6 +165,8 @@ test('打包前删除 pnpm store 的 projects 链接，避免 7zip 扫到断裂�
     assert.equal(existsSync(projects), false)
     assert.equal(existsSync(join(files, 'keep.txt')), true)
   } finally {
+    if (previousNoRecycle === undefined) delete process.env.DSH_PREPARE_NO_RECYCLE
+    else process.env.DSH_PREPARE_NO_RECYCLE = previousNoRecycle
     await rm(root, { recursive: true, force: true })
   }
 })
@@ -183,14 +204,27 @@ test('打包配置把预装官方运行时放到 extraResources', async () => {
 test('清理运行时目录必须可重试，避免 Windows ENOTEMPTY', async () => {
   const source = await readFile(new URL('../../scripts/prepare-runtime.ts', import.meta.url), 'utf8')
   assert.match(source, /export async function removePreparedPath/)
-  assert.match(source, /maxRetries/)
+  assert.match(source, /await rm\(target, \{ force: true, maxRetries: 10, recursive: true, retryDelay: 200 \}\)/)
+  assert.match(source, /target = assertPreparedRemovalTarget\(target\)/)
+  assert.match(source, /assertPreparedRemovalTarget\(target\)\s+await rm\(target/)
+  assert.doesNotMatch(source, /NODE_OPTIONS\s*[:=]\s*['"]{2}|CODEBUDDY_SAFE_DELETE_[A-Z_]+\s*[:=]/)
+  assert.doesNotMatch(source, /rmdir\s+\/s|del\s+\/f|spawnSync\(process\.env\.ComSpec/i)
   assert.match(source, /await removePreparedPath\(target\)/)
   const root = await mkdtemp(join(tmpdir(), 'dsh-rm-'))
-  const nested = join(root, 'pnpm-package', 'artifacts', 'exe', 'dist', 'node_modules', 'undici', 'lib')
-  await mkdir(nested, { recursive: true })
-  await writeFile(join(nested, 'keep.txt'), 'x', 'utf8')
-  await removePreparedPath(root)
-  assert.equal(existsSync(root), false)
+  const previousNoRecycle = process.env.DSH_PREPARE_NO_RECYCLE
+  process.env.DSH_PREPARE_NO_RECYCLE = '1'
+  try {
+    const nested = join(root, 'pnpm-package', 'artifacts', 'exe', 'dist', 'node_modules', 'undici', 'lib')
+    await mkdir(nested, { recursive: true })
+    await writeFile(join(nested, 'keep.txt'), 'x', 'utf8')
+    assert.equal(assertPreparedRemovalTarget(root), root)
+    await removePreparedPath(root)
+    assert.equal(existsSync(root), false)
+  } finally {
+    if (previousNoRecycle === undefined) delete process.env.DSH_PREPARE_NO_RECYCLE
+    else process.env.DSH_PREPARE_NO_RECYCLE = previousNoRecycle
+    await rm(root, { recursive: true, force: true })
+  }
 })
 
 test('项目内待清理目录改走同卷回收，避免慢盘同步删除把构建挂成假死', async () => {
@@ -201,24 +235,135 @@ test('项目内待清理目录改走同卷回收，避免慢盘同步删除把�
   assert.match(source, /await rename\(target, bucket\)/)
   assert.match(source, /function startRecycleSweeper/)
   assert.match(source, /DSH_PREPARE_NO_RECYCLE/)
-  // 原有同步删除必须完整保留为回退路径：跨卷、被占用或显式关闭回收时仍走它。
-  assert.match(source, /spawnSync\(process\.env\.ComSpec/)
+  // 跨卷或显式关闭回收时只走同一 Node API，保护拒绝不能换 shell 放行。
+  assert.match(source, /await rm\(target, \{ force: true, maxRetries: 10, recursive: true/)
+  assert.doesNotMatch(source, /spawnSync\(process\.env\.ComSpec/)
 
   const previous = process.env.DSH_PREPARE_NO_RECYCLE
+  const previousRoot = process.env.DSH_RECYCLE_ROOT
   delete process.env.DSH_PREPARE_NO_RECYCLE
-  const projectRoot = fileURLToPath(new URL('../../', import.meta.url))
-  const probe = join(projectRoot, 'Data', 'Temp', `recycle-probe-${Date.now()}`)
+  // 回收区指到本次运行的临时目录：这条用例会 spawn 一个**脱离进程树**的真清理器，
+  // 若让它对着实机 Data\Temp\prepare-recycle 跑，它会比测试进程活得久；一旦撞上被
+  // 杀软锁住的文件就无限自旋、持续烧 G: 盘 I/O（2026-09-30 实测，测试污染了机器真实状态）。
+  const sandbox = await mkdtemp(join(tmpdir(), 'dsh-recycle-root-'))
+  process.env.DSH_RECYCLE_ROOT = sandbox
+  const probe = join(sandbox, `recycle-probe-${Date.now()}`)
   await mkdir(join(probe, 'nested'), { recursive: true })
   await writeFile(join(probe, 'nested', 'file.txt'), 'x', 'utf8')
   try {
     await removePreparedPath(probe)
     assert.equal(existsSync(probe), false, '回收后原路径必须消失')
-    const buckets = await readdir(join(projectRoot, 'Data', 'Temp', 'prepare-recycle')).catch(() => [] as string[])
+    const buckets = await readdir(sandbox).catch(() => [] as string[])
     assert.ok(buckets.some(name => name.startsWith('recycle-probe-')), '应出现同名回收桶')
+    // 护栏：回收根可被 DSH_RECYCLE_ROOT 覆盖，否则测试无法与实机状态隔离。
+    assert.match(source, /DSH_RECYCLE_ROOT/)
   } finally {
     if (previous !== undefined) process.env.DSH_PREPARE_NO_RECYCLE = previous
+    else delete process.env.DSH_PREPARE_NO_RECYCLE
+    if (previousRoot !== undefined) process.env.DSH_RECYCLE_ROOT = previousRoot
+    else delete process.env.DSH_RECYCLE_ROOT
     await rm(probe, { force: true, maxRetries: 10, recursive: true }).catch(() => undefined)
+    await rm(sandbox, { force: true, maxRetries: 10, recursive: true }).catch(() => undefined)
   }
+})
+
+test('回收清理器：失败计数在子进程退出时立即生效，不会被 pending 清空架空', async () => {
+  // P2 回归护栏。上一版把「失败 3 次改名 .failed」的计数放在一个 15 秒后的 setTimeout 里、
+  // 判据是 `if(pending&&…)`，而同一条语句里还有个 exit 回调 `if(code!==0)pending=null`。
+  // 被杀软锁住的文件让 rmSync 瞬间抛错退出 ⇒ pending 先被清空 ⇒ 计数永远到不了 3
+  // ⇒ 桶永远不被隔离 ⇒ 每 5 秒重试一次、心跳常新而删除量为 0。
+  // 断言两条结构性事实：①计数发生在 exit 回调里（不再有 15 秒 setTimeout 计时器）；
+  // ②exit 回调按桶名累计、达到阈值才改名 .failed。
+  const source = await readFile(new URL('../../scripts/prepare-runtime.ts', import.meta.url), 'utf8')
+  const cleaner = source.slice(source.indexOf('const RECYCLE_CLEANER'))
+  assert.doesNotMatch(cleaner, /setTimeout\(\(\)=>\{if\(pending&&/, '失败计数不得放在延迟计时器里（pending 可能已被清空）')
+  assert.match(cleaner, /c\.on\('exit',code=>\{const b=pending;pending=null;/, '失败计数必须在 exit 回调里当场完成')
+  assert.match(cleaner, /if\(\+\+failCount>=3\)\{try\{fs\.renameSync\(path\.join\(root,b\),path\.join\(root,b\+'\.failed'\)\)\}/, '连续失败 3 次必须改名 .failed 移出队列')
+  assert.match(cleaner, /if\(code===0\)\{failName='';failCount=0;return\}/, '成功一次即清零失败计数')
+  assert.match(cleaner, /skipped\.add\(b\)/, '隔离改名或诊断写入被拒时仍需内存跳过，不无限重试')
+  assert.match(cleaner, /n\+'\.failed\.json'/, '诊断标记使失败桶在下一次启动仍能被排除')
+})
+
+test('回收与同步删除完整继承保护环境，不允许跨 shell 破坏性回退', async () => {
+  const source = await readFile(new URL('../../scripts/prepare-runtime.ts', import.meta.url), 'utf8')
+  assert.doesNotMatch(source, /NODE_OPTIONS\s*[:=]\s*['"]{2}/)
+  assert.doesNotMatch(source, /CODEBUDDY_SAFE_DELETE_[A-Z_]+\s*[:=]/)
+  assert.doesNotMatch(source, /rmdir\s+\/s|del\s+\/f|spawnSync\(process\.env\.ComSpec/i)
+  assert.match(source, /env:\{\.\.\.process\.env\}/)
+})
+
+test('清理边界拒绝工作区、家园、临时根、活动 App 和槽路径（只读检查）', () => {
+  const root = dirname(fileURLToPath(new URL('../../package.json', import.meta.url)))
+  for (const target of [root, homedir(), tmpdir(), join(root, 'App'), join(root, 'src'), join(root, 'Data', 'DSH'), join(root, 'Data', 'Runtime', 'Harness', 'slots', 'active'), join(root, 'Data', 'Updates', 'Desktop', 'slots', 'active')]) {
+    assert.throws(() => assertPreparedRemovalTarget(target), /拒绝清理/)
+  }
+})
+
+test('清理边界拒绝测试目录内经 junction 指向外部的普通文件夹', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-cleanup-boundary-'))
+  const outside = await mkdtemp(join(tmpdir(), 'dsh-cleanup-outside-'))
+  try {
+    await mkdir(join(outside, 'payload'))
+    await writeFile(join(outside, 'payload', 'keep.txt'), 'must remain')
+    await symlink(outside, join(root, 'linked'), process.platform === 'win32' ? 'junction' : 'dir')
+    await assert.rejects(removePreparedPath(join(root, 'linked', 'payload')), /目录链接|外部路径/)
+    assert.equal(await readFile(join(outside, 'payload', 'keep.txt'), 'utf8'), 'must remain')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+    await rm(outside, { recursive: true, force: true })
+  }
+})
+
+test('显式回收根不能指向 App 或装配产物，拒绝后原目标保留', async () => {
+  const portableRoot = dirname(fileURLToPath(new URL('../../package.json', import.meta.url)))
+  const root = await mkdtemp(join(tmpdir(), 'dsh-invalid-recycle-'))
+  const previousRoot = process.env.DSH_RECYCLE_ROOT, previousDisabled = process.env.DSH_PREPARE_NO_RECYCLE
+  const target = join(root, 'ordinary-generated-test-output')
+  await mkdir(target)
+  await writeFile(join(target, 'keep.txt'), 'still present')
+  delete process.env.DSH_PREPARE_NO_RECYCLE
+  try {
+    for (const invalid of [join(portableRoot, 'App'), join(portableRoot, 'runtime-node')]) {
+      process.env.DSH_RECYCLE_ROOT = invalid
+      await assert.rejects(removePreparedPath(target), /拒绝清理/)
+      assert.equal(await readFile(join(target, 'keep.txt'), 'utf8'), 'still present')
+    }
+  } finally {
+    if (previousRoot === undefined) delete process.env.DSH_RECYCLE_ROOT
+    else process.env.DSH_RECYCLE_ROOT = previousRoot
+    if (previousDisabled === undefined) delete process.env.DSH_PREPARE_NO_RECYCLE
+    else process.env.DSH_PREPARE_NO_RECYCLE = previousDisabled
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('回收根和祖先在首轮验证后换成 junction 必须再次拒绝，外部文件不变', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-recycle-drift-'))
+  const outside = await mkdtemp(join(tmpdir(), 'dsh-recycle-outside-'))
+  try {
+    await writeFile(join(outside, 'keep.txt'), 'external unchanged')
+    const spool = join(root, 'spool')
+    await mkdir(spool)
+    assert.equal(assertRecycleRootPhysical(spool), spool)
+    await rename(spool, join(root, 'original-spool'))
+    await symlink(outside, spool, process.platform === 'win32' ? 'junction' : 'dir')
+    assert.throws(() => assertRecycleRootPhysical(spool), /链接|外部路径/)
+    await mkdir(join(outside, 'spool-child'))
+    assert.throws(() => assertRecycleRootPhysical(join(spool, 'spool-child')), /链接|外部路径/)
+    assert.equal(await readFile(join(outside, 'keep.txt'), 'utf8'), 'external unchanged')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+    await rm(outside, { recursive: true, force: true })
+  }
+})
+
+test('清理器每 tick/worker 和失败隔离回调都重新核对真实回收根', async () => {
+  const source = await readFile(new URL('../../scripts/prepare-runtime.ts', import.meta.url), 'utf8')
+  assert.match(source, /const tick=\(\)=>\{requireRoot\(\);/)
+  assert.match(source, /const requireRoot=\(\)=>\{try\{assertRoot\(\)\}catch\{process\.exit\(1\)\}\}/)
+  assert.match(source, /s\.isDirectory\(\).*s\.isSymbolicLink\(\).*path\.relative\(path\.resolve\(root\),fs\.realpathSync\(root\)\)/)
+  assert.match(source, /assertRoot\(\);fs\.rmSync\(target/)
+  assert.match(source, /c\.on\('exit',code=>\{const b=pending;pending=null;requireRoot\(\);/)
 })
 
 test('打包配置显式映射完整编译产物', async () => {
@@ -250,11 +395,11 @@ test('官方运行时使用 npm 安装以兼容预发布 peer 依赖', () => {
     '--no-fund',
     '--allow-scripts=@deepseek-ai/dsh-subprocess-local,@google/genai,koffi,node-pty,protobufjs',
     '--registry=https://registry.npmjs.org/',
-    '@deepseek-ai/dsh@0.1.6-alpha.2',
-    '@deepseek-ai/cordis-plugin-group@1.0.2',
-    '@deepseek-ai/dsh-scope@0.1.6-alpha.2',
-    '@deepseek-ai/dsh-timeout@0.1.6-alpha.2',
-    '@deepseek-ai/dsh-invariants@0.1.6-alpha.2',
+    '@deepseek-ai/dsh@0.2.0-rc.2',
+    '@deepseek-ai/cordis-plugin-group@1.0.4',
+    '@deepseek-ai/dsh-scope@0.2.0-rc.2',
+    '@deepseek-ai/dsh-timeout@0.2.0-rc.2',
+    '@deepseek-ai/dsh-invariants@0.2.0-rc.2',
   ])
 })
 
@@ -265,11 +410,11 @@ test('npm 全局安装目录按平台归一化', () => {
 
 test('官方运行时把 DSH 和启动 peer 一起装成 npm 顶层依赖', () => {
   assert.deepEqual(officialRuntimeNpmDependencies(), {
-    '@deepseek-ai/dsh': '0.1.6-alpha.2',
-    '@deepseek-ai/cordis-plugin-group': '1.0.2',
-    '@deepseek-ai/dsh-scope': '0.1.6-alpha.2',
-    '@deepseek-ai/dsh-timeout': '0.1.6-alpha.2',
-    '@deepseek-ai/dsh-invariants': '0.1.6-alpha.2',
+    '@deepseek-ai/dsh': '0.2.0-rc.2',
+    '@deepseek-ai/cordis-plugin-group': '1.0.4',
+    '@deepseek-ai/dsh-scope': '0.2.0-rc.2',
+    '@deepseek-ai/dsh-timeout': '0.2.0-rc.2',
+    '@deepseek-ai/dsh-invariants': '0.2.0-rc.2',
   })
 })
 
@@ -334,7 +479,9 @@ test('便携构建依赖安装显式使用非交互 CI 模式并恢复调用方�
   assert.match(script, /\$env:CI = 'true'/)
   assert.match(script, /install --frozen-lockfile/)
   assert.match(script, /\$env:CI = \$previousCi/)
-  assert.match(script, /Get-FileHash -LiteralPath \$nodeExecutable -Algorithm SHA256/)
+  assert.match(script, /Get-DshBuildFileSha256 -LiteralPath \$nodeExecutable/)
+  assert.match(script, /Get-DshBuildFileSha256 -LiteralPath \$extractedNode/)
+  assert.doesNotMatch(script, /Get-FileHash|\$env:PSModulePath\s*=/)
   assert.match(script, /\$nodeNeedsInstall/)
   assert.match(script, /node_modules\\electron\\install\.js/)
   assert.match(script, /Electron 安装脚本未生成开发态可执行文件/)
@@ -342,21 +489,91 @@ test('便携构建依赖安装显式使用非交互 CI 模式并恢复调用方�
   assert.match(manifest.scripts?.pack ?? '', /electron-builder --dir --publish never/)
 })
 
+test('便携构建 SHA256 不依赖 PowerShell 模块路径，并拒绝缺失文件且释放句柄', { skip: process.platform !== 'win32' }, async () => {
+  const script = await readFile(new URL('../../Build-DSH-Portable.ps1', import.meta.url), 'utf8')
+  const helper = script.match(/^function Get-DshBuildFileSha256 \{[\s\S]*?^\}/m)?.[0]
+  assert.ok(helper, '只抽取纯哈希 helper，禁止执行整个构建脚本')
+  assert.match(helper, /\[System\.IO\.File\]::OpenRead\(\$LiteralPath\)/)
+  assert.match(helper, /finally[\s\S]*\$sha\.Dispose\(\)[\s\S]*\$stream\.Dispose\(\)/)
+  assert.doesNotMatch(helper, /Get-FileHash|Import-Module|\$env:|SetEnvironmentVariable/)
+  const root = await mkdtemp(join(tmpdir(), 'dsh-build-hash-'))
+  try {
+    const file = join(root, 'input.bin')
+    const missing = join(root, 'missing.bin')
+    const contents = Buffer.concat([Buffer.from([0, 1, 127, 255]), Buffer.from('\r\n中文 SHA256\n', 'utf8')])
+    await writeFile(file, contents)
+    const expected = createHash('sha256').update(contents).digest('hex').toUpperCase()
+    const quote = (value: string) => "'" + value.replaceAll("'", "''") + "'"
+    const code = [
+      '$ErrorActionPreference="Stop"',
+      helper,
+      '[Console]::WriteLine((Get-DshBuildFileSha256 -LiteralPath ' + quote(file) + '))',
+      '$exclusive=[System.IO.File]::Open(' + quote(file) + ',[System.IO.FileMode]::Open,[System.IO.FileAccess]::ReadWrite,[System.IO.FileShare]::None)',
+      '$exclusive.Dispose()',
+      '$rejected=$false; try { Get-DshBuildFileSha256 -LiteralPath ' + quote(missing) + ' } catch { $rejected=$true }',
+      'if (-not $rejected -or [System.IO.File]::Exists(' + quote(missing) + ')) { throw "Missing file must fail without creating it" }',
+      '[Console]::WriteLine("MISSING_REJECTED")',
+    ].join('\n')
+    const powershell = join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+    // Keep inherited PSModulePath: this is the Node → CMD → WinPS build failure case.
+    const result = spawnSync(powershell, ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(code, 'utf16le').toString('base64')], {
+      env: { ...process.env }, encoding: 'utf8', timeout: 15_000, windowsHide: true,
+    })
+    assert.equal(result.error, undefined)
+    assert.equal(result.status, 0, result.stderr)
+    assert.deepEqual(result.stdout.trim().split(/\r?\n/), [expected, 'MISSING_REJECTED'])
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 test('桌面候选在切换前后台预热共享环境，重启只消费完整缓存', async () => {
   const main = await readFile(new URL('../../src/main.ts', import.meta.url), 'utf8')
   const updater = await readFile(new URL('../../src/portable-desktop-update.ts', import.meta.url), 'utf8')
   const stage = await readFile(new URL('../../scripts/stage-local-desktop-candidate.ts', import.meta.url), 'utf8')
   const build = await readFile(new URL('../../Build-DSH-Portable.ps1', import.meta.url), 'utf8')
+  const receiptCli = await readFile(new URL('../../scripts/build-input-receipt.mjs', import.meta.url), 'utf8')
+  const receipt = await readFile(new URL('../../scripts/lib/build-input-receipt.mjs', import.meta.url), 'utf8')
   const prepare = await readFile(new URL('../../scripts/prepare-runtime.ts', import.meta.url), 'utf8')
   assert.match(main, /prepareCandidateRuntime:/)
   assert.match(main, /preparePackagedRuntimeCacheInChild/)
   assert.match(updater, /当前桌面保持运行，正在后台准备候选共享环境/)
   assert.match(stage, /preparePackagedRuntimeCacheInChild/)
   assert.ok(stage.indexOf('const preparation = await preparePackagedRuntimeCacheInChild') < stage.indexOf('const staged = await stageLocalDesktopBuild'))
-  assert.match(build, /--replace-pending/)
+  const buildLines = build.split(/\r?\n/).map(line => line.trim())
+  const buildCommands = [
+    '& $nodeExecutable $buildInputReceiptScript capture $portableRoot $buildInputSnapshot',
+    "& $nodeExecutable (Join-Path $portableRoot 'node_modules\\typescript\\bin\\tsc')",
+    '& $nodeExecutable $buildInputReceiptScript pin-compiled $portableRoot $buildInputSnapshot',
+    "& $nodeExecutable (Join-Path $portableRoot 'scripts\\run-tests.mjs')",
+    "& $nodeExecutable (Join-Path $portableRoot 'dist\\scripts\\prepare-runtime.js')",
+    '& $pnpmCommand exec electron-builder --dir --publish never',
+    '& $nodeExecutable $buildInputReceiptScript stage $portableRoot $builtApp $buildInputSnapshot ([string]$manifest.version) full',
+  ]
+  let priorCommand = -1
+  for (const command of buildCommands) {
+    const position = buildLines.indexOf(command)
+    assert.ok(position > priorCommand, `构建顺序或接线错误：${command}`)
+    assert.match(buildLines[position + 1] ?? '', /^if \(\$LASTEXITCODE -ne 0\) \{ throw /)
+    priorCommand = position
+  }
+  assert.match(build, /if \(-not \$SkipTests\) \{/)
+  assert.match(receiptCli, /const staged = await stageBuildWithReceipt\(/)
+  assert.match(receiptCli, /mode === 'full' \? \{ compiledSnapshot: await readCompiledSnapshot\(root, snapshotArg\) \}/)
+  assert.match(receiptCli, /spawn\(process\.execPath, \[join\(root, 'dist\/scripts\/stage-local-desktop-candidate\.js'\), root, appOrSnapshot, version, '--replace-pending'\]/)
+  assert.match(receiptCli, /windowsHide: true, env: \{ \.\.\.process\.env, DSH_BUILD_RECEIPT_INTENT: JSON\.stringify\(intent\) \}/)
+  assert.match(stage, /if \(!receiptIntentRaw\) throw new Error\(/)
+  assert.match(stage, /replacePending: replaceOption === '--replace-pending'/)
+  assert.match(receipt, /if \(mode === 'full'\) await assertCompiledInputsUnchanged\(root, snapshot, compiledSnapshot\)/)
+  assert.match(receipt, /if \(!ownPending\(pointer, staged\)\) throw error\('BUILD_PENDING_CHANGED'/)
+  const receiptStage = receipt.slice(receipt.indexOf('export async function stageBuildWithReceipt('))
+  const payloadValidation = receiptStage.indexOf('await verifyReceiptSlotPayload(root, staged.slotRelativePath, staged.transactionId)')
+  const finalizedProof = receiptStage.indexOf("await atomicJson(join(transaction, 'build-finalized.json')")
+  assert.ok(payloadValidation >= 0 && finalizedProof > payloadValidation)
+  assert.doesNotMatch([build, receiptCli, stage].join('\n'), /\b(?:Stop-Process|taskkill(?:\.exe)?)\b|\bprocess\.kill\s*\(/i)
   assert.match(prepare, /writeDirectoryContentSha256/)
   assert.match(prepare, /writePnpmStoreContentSha256/)
-  assert.match(prepare, /dsh-store-lock\.yaml/)
+  assert.match(prepare, /BUNDLED_LOCKFILE_NAME/)
   assert.match(updater, /resources\/dsh-runtime\.tgz\.content-sha256/)
   assert.match(updater, /resources\/plugins-store\.tgz\.content-sha256/)
 })
@@ -435,7 +652,17 @@ test('Windows 冒烟兼容 alpha.2+ 启动 token 鉴权', async () => {
 
 test('正式标签缺少签名凭据时仍允许生成带 ad-hoc 签名的多平台测试版', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/desktop-package.yml', import.meta.url), 'utf8')
-  assert.match(workflow, /version: 11\.24\.0/)
+  const jobs = parseYaml(workflow).jobs
+  const steps = Object.values(jobs).flatMap((job: any) => job.steps ?? [])
+  const nodeSteps = steps.filter((step: any) => step.uses?.startsWith('actions/setup-node@'))
+  assert.equal(nodeSteps.length, 2)
+  for (const step of nodeSteps) {
+    assert.equal(step.with['node-version-file'], 'package.json')
+    assert.equal(step.with['node-version'], undefined, 'CI must not override the manifest Node')
+  }
+  const pnpmStep = steps.find((step: any) => step.uses?.startsWith('pnpm/action-setup@'))
+  assert.ok(pnpmStep)
+  assert.equal(pnpmStep.with?.version, undefined, 'pnpm action must read packageManager')
   assert.match(workflow, /actions\/checkout@v7/)
   assert.match(workflow, /actions\/setup-node@v7/)
   assert.match(workflow, /actions\/upload-artifact@v7/)
@@ -451,9 +678,21 @@ test('正式标签缺少签名凭据时仍允许生成带 ad-hoc 签名的多平
   assert.doesNotMatch(workflow, /--config\.mac\.identity=-/)
   assert.doesNotMatch(workflow, /--config\.mac\.hardenedRuntime=false/)
   assert.match(workflow, /codesign --verify --deep --strict --verbose=2/)
-  assert.match(workflow, /pnpm test\r?\n\s+if \(\$LASTEXITCODE -ne 0\) \{ exit \$LASTEXITCODE \}/)
+  const packagingStep = steps.find((step: any) => step.run?.includes('pnpm run prepare-runtime:built'))
+  assert.ok(packagingStep, '打包必须消费本轮唯一编译的制品')
+  const run = String(packagingStep.run)
+  const lines = run.split(/\r?\n/).map(line => line.trim())
+  const commands = ['pnpm run build', 'pnpm run test:built', 'pnpm run preserve:check', 'pnpm run prepare-runtime:built']
+  let preceding = -1
+  for (const command of commands) {
+    const index = lines.indexOf(command)
+    assert.ok(index > preceding, '顺序必须为单次编译 → 测试 → 定制保留门禁 → 装配')
+    assert.match(lines[index + 1] ?? '', /^if \(\$LASTEXITCODE -ne 0\) \{ exit \$LASTEXITCODE \}$/, '每步下一行必须检查并传播退出码')
+    preceding = index
+  }
+  assert.equal((run.match(/^\s*pnpm run build\s*$/gm) ?? []).length, 1)
+  assert.doesNotMatch(run, /^\s*pnpm (?:test|run prepare-runtime)\s*$/m, '禁止通过旧入口重复编译')
   assert.doesNotMatch(workflow, /pnpm run dist -- @buildArguments/)
-  assert.match(workflow, /pnpm run prepare-runtime\r?\n\s+if \(\$LASTEXITCODE -ne 0\) \{ exit \$LASTEXITCODE \}/)
   assert.match(workflow, /pnpm exec electron-builder --publish never @buildArguments\r?\n\s+if \(\$LASTEXITCODE -ne 0\) \{ exit \$LASTEXITCODE \}/)
 })
 
@@ -572,4 +811,94 @@ test('Linux ARM64 使用原生 runner、独立更新元数据与双格式制品'
     build?: { linux?: { target?: string[] } }
   }
   assert.deepEqual(manifest.build?.linux?.target, ['AppImage', 'deb'])
+})
+
+test('装配锁文件会放进随包仓库', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-publish-lock-'))
+  try {
+    const staging = join(root, 'staging')
+    const store = join(root, 'store')
+    await mkdir(staging)
+    await mkdir(store)
+    await writeFile(join(staging, 'pnpm-lock.yaml'), 'lockfileVersion: 9.0\n', 'utf8')
+    await publishBundledLockfile(staging, store)
+    assert.equal(await readFile(join(store, 'bundled-lock.yaml'), 'utf8'), 'lockfileVersion: 9.0\n')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('打包离线门禁传播安装失败并清理临时 Profile', async () => {
+  const root=await mkdtemp(join(tmpdir(),'dsh-offline-gate-'))
+  try {
+    await mkdir(join(root, 'store'), { recursive: true })
+    await writeFile(join(root, 'store', 'bundled-lock.yaml'), 'lockfileVersion: 9.0\n', 'utf8')
+    let calls=0
+    await assert.rejects(verifyBundledPluginStore(root,'unused',args=>{
+      calls++
+      assert.ok(args.includes('--offline'))
+      assert.ok(args.includes('--frozen-lockfile'))
+      throw new Error('ERR_PNPM_NO_OFFLINE_META')
+    }),/ERR_PNPM_NO_OFFLINE_META/)
+    assert.equal(calls,1)
+    assert.deepEqual(await readdir(root), ['store'])
+  } finally { await rm(root,{recursive:true,force:true}) }
+})
+
+test('pnpm 返回成功但未装全插件时打包门禁仍拒绝', async () => {
+  const root=await mkdtemp(join(tmpdir(),'dsh-offline-incomplete-'))
+  try {
+    await mkdir(join(root, 'store'), { recursive: true })
+    await writeFile(join(root, 'store', 'bundled-lock.yaml'), 'lockfileVersion: 9.0\n', 'utf8')
+    await assert.rejects(verifyBundledPluginStore(root,'unused',()=>{}),/ENOENT/)
+    assert.deepEqual(await readdir(root), ['store'])
+  } finally { await rm(root,{recursive:true,force:true}) }
+})
+
+test('离线安装返回错误插件版本时阻止打包', async () => {
+  const root=await mkdtemp(join(tmpdir(),'dsh-offline-version-'))
+  try {
+    await mkdir(join(root, 'store'), { recursive: true })
+    await writeFile(join(root, 'store', 'bundled-lock.yaml'), 'lockfileVersion: 9.0\n', 'utf8')
+    await assert.rejects(verifyBundledPluginStore(root,'unused',args=>{
+      const profile = args.find(arg => arg.startsWith('--dir='))?.slice('--dir='.length)
+      if (profile === undefined) throw new Error('缺少安装目录')
+      for (const plugin of STORE_PACKAGES) {
+        const dir = join(profile, 'node_modules', ...plugin.packageName.split('/'))
+        mkdirSync(dir, { recursive: true })
+        writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: plugin.packageName, version: '0.0.0' }), 'utf8')
+      }
+    }),/版本不匹配/)
+    assert.deepEqual(await readdir(root), ['store'])
+  } finally {await rm(root,{recursive:true,force:true})}
+})
+
+test('缺少 metadata-full 时打包门禁拒绝随包仓库', async () => {
+  const root=await mkdtemp(join(tmpdir(),'dsh-meta-incomplete-'))
+  try {
+    const metadata=join(root,'store','cache','v11','metadata','registry.npmjs.org')
+    await mkdir(metadata,{recursive:true})
+    await writeFile(join(metadata,'node-sdk.jsonl'),'{"modified":"2026-09-04T00:00:00.000Z"}\n{"name":"node-sdk","versions":{"1.0.0":{"version":"1.0.0"}}}\n','utf8')
+    await assert.rejects(assertBundledPluginMetadataComplete(join(root,'store')),/完整元数据/)
+  } finally {await rm(root,{recursive:true,force:true})}
+})
+
+test('缺失的 metadata-full 会用缩写元数据补上路径，已有文件不改写', async () => {
+  const root=await mkdtemp(join(tmpdir(),'dsh-meta-complete-'))
+  try {
+    const store=join(root,'store')
+    const metadata=join(store,'cache','v11','metadata','registry.npmjs.org','@scope')
+    const full=join(store,'cache','v11','metadata-full','registry.npmjs.org')
+    const abbreviated='{"modified":"2026-09-04T00:00:00.000Z"}\n{"name":"@scope/pkg","versions":{"1.0.0":{"version":"1.0.0"}}}\n'
+    const existing='{"modified":"2026-01-01T00:00:00.000Z"}\n{"name":"debug","time":{"1.0.0":"2026-01-01T00:00:00.000Z"}}\n'
+    await mkdir(metadata,{recursive:true})
+    await mkdir(full,{recursive:true})
+    await writeFile(join(metadata,'pkg.jsonl'),abbreviated,'utf8')
+    await writeFile(join(full,'debug.jsonl'),existing,'utf8')
+    await writeFile(join(store,'cache','v11','metadata','registry.npmjs.org','debug.jsonl'),'{"modified":"2026-09-04T00:00:00.000Z"}\n{"name":"debug"}\n','utf8')
+    await completeBundledPluginMetadata(store)
+    await assertBundledPluginMetadataComplete(store)
+    assert.equal(await readFile(join(store,'cache','v11','metadata-full','registry.npmjs.org','@scope','pkg.jsonl'),'utf8'),abbreviated)
+    assert.equal(await readFile(join(full,'debug.jsonl'),'utf8'),existing)
+  } finally {await rm(root,{recursive:true,force:true})}
 })

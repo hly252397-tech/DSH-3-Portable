@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readFile, rm, symlink, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
@@ -8,6 +8,8 @@ import { setTimeout as delay } from 'node:timers/promises'
 
 import { makeTrackedTempDir as mkdtemp, removeTempDir } from './helpers/tmp.js'
 
+import * as runtimeExtraction from '../src/extract-runtime.js'
+import type { StartupProgress } from '../src/startup-progress.js'
 import { packDirectoryToTarGz, writeDirectoryContentSha256, writeFileSha256 } from '../src/runtime-archive.js'
 import {
   RUNTIME_EXTRACTION_PROGRESS_PREFIX,
@@ -66,6 +68,87 @@ async function createHangingExtractor(root: string): Promise<string> {
   ].join('\n'), 'utf8')
   return extractorPath
 }
+
+test('复制解压树展开目录联接并在实体落盘后上报进度', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-extract-junction-'))
+  try {
+    const outside = join(root, 'outside')
+    const source = join(root, 'source')
+    const dest = join(root, 'dest')
+    await mkdir(join(outside, 'nested'), { recursive: true })
+    await mkdir(source)
+    await writeFile(join(outside, 'nested', 'keep.txt'), 'lucide')
+    await writeFile(join(source, 'regular.txt'), 'regular')
+    await symlink(outside, join(source, 'files'), process.platform === 'win32' ? 'junction' : 'dir')
+    assert.ok('copyExtractedTree' in runtimeExtraction && typeof runtimeExtraction.copyExtractedTree === 'function')
+    const progress: StartupProgress[] = []
+    runtimeExtraction.copyExtractedTree(source, dest, (event: StartupProgress) => {
+      progress.push(event)
+      if (event.phase === 'copy' && event.completed === event.total) {
+        assert.equal(existsSync(join(dest, 'files', 'nested', 'keep.txt')), true)
+        assert.equal(existsSync(join(dest, 'regular.txt')), true)
+      }
+    })
+    assert.equal((await lstat(join(dest, 'files'))).isSymbolicLink(), false)
+    await rm(source, { recursive: true, force: true })
+    await rm(outside, { recursive: true, force: true })
+    assert.equal(await readFile(join(dest, 'files', 'nested', 'keep.txt'), 'utf8'), 'lucide')
+    assert.equal(await readFile(join(dest, 'regular.txt'), 'utf8'), 'regular')
+    assert.deepEqual(progress[0], { phase: 'scan' })
+    assert.deepEqual(progress.at(-1), { phase: 'copy', completed: 2, total: 2 })
+  } finally {
+    await removeTempDir(root)
+  }
+})
+
+test('真正安装路径展开归档内的目录链接，暂存树清理后内容仍可读', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-extract-linked-archive-'))
+  try {
+    const source = join(root, 'source')
+    const resources = join(root, 'resources')
+    const dest = join(root, 'store')
+    await mkdir(join(source, 'v11', 'files', 'nested'), { recursive: true })
+    await mkdir(resources)
+    await writeFile(join(source, 'v11', 'files', 'nested', 'keep.txt'), 'archived-package')
+    await symlink(join(source, 'v11', 'files'), join(source, 'v11', 'alias'), process.platform === 'win32' ? 'junction' : 'dir')
+    const archive = join(resources, 'plugins-store.tgz')
+    packDirectoryToTarGz(source, archive)
+    writeFileSha256(archive)
+    const progress: RuntimeExtractionProgress[] = []
+    assert.deepEqual(await extractPackagedRuntimes(resources, undefined, dest, event => progress.push(event)), { official: false, store: true })
+    await rm(source, { recursive: true, force: true })
+    assert.equal(await readFile(join(dest, 'v11', 'alias', 'nested', 'keep.txt'), 'utf8'), 'archived-package')
+    if (process.platform === 'win32') {
+      assert.equal((await lstat(join(dest, 'v11', 'alias'))).isSymbolicLink(), false)
+      assert.deepEqual(progress.filter(event => event.progress?.phase === 'copy').at(-1)?.progress, { phase: 'copy', completed: 2, total: 2 })
+    }
+    assert.equal(packagedRuntimesNeedExtraction(resources, undefined, dest), false)
+  } finally {
+    await removeTempDir(root)
+  }
+})
+
+test('初始化前已取消时不创建缓存目录也不启动子进程', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-extract-pre-abort-'))
+  try {
+    const controller = new AbortController()
+    controller.abort()
+    const installDir = join(root, 'must-not-exist')
+    const progress: RuntimeExtractionProgress[] = []
+    await assert.rejects(extractPackagedRuntimesInChild({
+      nodeExecutable: process.execPath,
+      scriptPath: join(root, 'does-not-exist.mjs'),
+      installDir,
+      resourcesDir: root,
+      signal: controller.signal,
+      onProgress: event => progress.push(event),
+    }), /初始化已取消/)
+    assert.equal(existsSync(installDir), false)
+    assert.deepEqual(progress, [])
+  } finally {
+    await removeTempDir(root)
+  }
+})
 
 test('已解压过的运行时不会重复解压，内容缺失时会自愈', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-extract-'))

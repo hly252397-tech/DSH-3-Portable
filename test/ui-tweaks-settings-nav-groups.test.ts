@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
+import vm from 'node:vm'
 
 /**
  * 设置导航分组镜像的结构防回退（2026-09-29）。
@@ -39,7 +40,8 @@ test('入口取值走 descendant 查询（nav 直接子节点假设会让分组�
 test('搜索过滤可见性判据是 DOM 存在性，不得用 offsetParent', () => {
   const body = extractFunction('installSettingsNavGroups')
   assert.doesNotMatch(body, /offsetParent/, '原件容器被本插件 CSS 隐藏，offsetParent 恒 null，会把全部项判为不可见')
-  assert.match(body, /findOriginalByKey\(nav, navKey\(item\.textContent\)\)/, '必须按 key 回查当前 DOM 里的原件')
+  assert.match(body, /findOriginalByKey\(nav, item\.dataset\.dshNavKey, Number\(item\.dataset\.dshNavOrdinal\)\)/,
+    '必须按 key/同名序号回查当前 DOM 里的原件')
 })
 
 test('点击转发按 key 现查，不闭包持有原节点', () => {
@@ -82,6 +84,381 @@ function navMembers(): string[] {
   // 界面上就是四个空格；当时这条断言还没写，所以没拦住。
   return groups.flatMap(([, members]) => members).map((m) => m.replace(/\s+/g, ''))
 }
+
+/** Executed DOM contract, not a text-only grouping assertion. The fixture keeps the real
+ * nav > back + label > input + groups > section > original buttons hierarchy. It intentionally
+ * gives originals no section-id attribute: Codex UI does not expose one on its nav buttons.
+ * Real Profile/Loader and pixel/IPC acceptance remain separate gates owned by the root task. */
+class NavElement {
+  readonly children: NavElement[] = []
+  parentElement: NavElement | null = null
+  className = ''
+  id = ''
+  type = ''
+  hidden = false
+  readonly dataset: Record<string, string> = {}
+  readonly attributes = new Map<string, string>()
+  private text = ''
+  private html = ''
+  private readonly listeners = new Map<string, (() => void)[]>()
+  readonly tagName: string
+  constructor(tag: string) { this.tagName = tag.toUpperCase() }
+  get classList(): {
+    contains(name: string): boolean,
+    add(name: string): void,
+    remove(name: string): void,
+    toggle(name: string, force: boolean): void,
+  } {
+    const has = (name: string) => this.className.split(/\s+/).includes(name)
+    return {
+      contains: has,
+      add: (name: string) => { if (!has(name)) this.className = `${this.className} ${name}`.trim() },
+      remove: (name: string) => { this.className = this.className.split(/\s+/).filter(part => part !== name).join(' ') },
+      toggle: (name: string, force: boolean) => {
+        if (force) this.classList.add(name)
+        else this.classList.remove(name)
+      },
+    }
+  }
+  get textContent(): string { return this.text + this.children.map(child => child.textContent).join('') }
+  set textContent(value: string) { this.text = value; this.html = ''; this.children.splice(0) }
+  get innerHTML(): string { return this.html || this.text }
+  set innerHTML(value: string) { this.html = value; this.text = value.replace(/<[^>]*>/g, ''); this.children.splice(0) }
+  appendChild(child: NavElement): NavElement {
+    child.remove()
+    child.parentElement = this
+    this.children.push(child)
+    return child
+  }
+  remove(): void {
+    const siblings = this.parentElement?.children
+    if (siblings) siblings.splice(siblings.indexOf(this), 1)
+    this.parentElement = null
+  }
+  insertAdjacentElement(position: string, child: NavElement): void {
+    assert.equal(position, 'afterend')
+    assert.ok(this.parentElement)
+    child.remove()
+    child.parentElement = this.parentElement
+    this.parentElement.children.splice(this.parentElement.children.indexOf(this) + 1, 0, child)
+  }
+  closest(selector: string): NavElement | null {
+    for (let current: NavElement | null = this; current; current = current.parentElement) {
+      if (current.matches(selector)) return current
+    }
+    return null
+  }
+  matches(selector: string): boolean {
+    return selector.split(',').some(part => {
+      const value = part.trim()
+      if (value === '.dcu-settings-groups button') return this.tagName === 'BUTTON' && this.parentElement?.closest('.dcu-settings-groups') !== null
+      if (value.startsWith('#')) return this.id === value.slice(1)
+      if (value.startsWith('.')) return this.classList.contains(value.slice(1))
+      if (value === '[aria-current]' || value === '[data-active]') return this.attributes.has(value.slice(1, -1))
+      if (value === '[data-state="active"]') return this.attributes.get('data-state') === 'active'
+      if (value === '[role="searchbox"]') return this.attributes.get('role') === 'searchbox'
+      if (value === 'button.dcu-settings-link') return this.tagName === 'BUTTON' && this.classList.contains('dcu-settings-link')
+      return this.tagName.toLowerCase() === value
+    })
+  }
+  querySelectorAll(selector: string): NavElement[] {
+    const descendants = this.children.flatMap(child => [child, ...child.allDescendants()])
+    return descendants.filter(child => child.matches(selector))
+  }
+  private allDescendants(): NavElement[] { return this.children.flatMap(child => [child, ...child.allDescendants()]) }
+  querySelector(selector: string): NavElement | null { return this.querySelectorAll(selector)[0] ?? null }
+  addEventListener(name: string, listener: () => void): void {
+    this.listeners.set(name, [...(this.listeners.get(name) ?? []), listener])
+  }
+  click(): void { for (const listener of this.listeners.get('click') ?? []) listener() }
+}
+
+type SectionFixture = { id: string, label: string }
+const general = { id: 'general', label: '常规' }
+const legacy = { id: 'desktop-settings', label: '桌面设置' }
+const notifications = { id: 'desktop-notifications', label: '通知' }
+const updates = { id: 'desktop-updates', label: '更新' }
+const unknown = { id: 'unknown-plugin', label: '未知插件' }
+
+function navigationFixture(initial: SectionFixture[], registry: 'present' | 'absent' | 'throws' = 'present') {
+  let entries = initial
+  let nav: NavElement
+  let nativeGroup: NavElement
+  let renderVersion = 0
+  let mounted = true
+  let contextSequence = 0
+  const clicks: string[] = []
+  const registryReads: number[] = []
+  const timers = new Map<number, () => void>()
+  let timerSequence = 0
+  const disposers: (() => void)[] = []
+  function newNav(): void {
+    nav = new NavElement('nav')
+    nav.className = 'dcu-settings-nav'
+    const back = nav.appendChild(new NavElement('button'))
+    back.className = 'dcu-settings-back'
+    back.textContent = '返回应用'
+    const search = nav.appendChild(new NavElement('label'))
+    search.className = 'dcu-settings-search'
+    search.appendChild(new NavElement('input'))
+    const groups = nav.appendChild(new NavElement('div'))
+    groups.className = 'dcu-settings-groups'
+    nativeGroup = groups.appendChild(new NavElement('section'))
+    nativeGroup.className = 'dcu-settings-group'
+  }
+  function render(ids = entries.map(entry => entry.id)): void {
+    for (const child of [...nativeGroup.children]) child.remove()
+    const heading = nativeGroup.appendChild(new NavElement('h2'))
+    heading.className = 'dcu-settings-group-label'
+    heading.textContent = '集成'
+    const version = ++renderVersion
+    for (const entry of entries.filter(entry => ids.includes(entry.id))) {
+      const button = nativeGroup.appendChild(new NavElement('button'))
+      button.className = 'dcu-settings-link'
+      button.innerHTML = `<svg></svg><span>${entry.label}</span>`
+      button.addEventListener('click', () => {
+        clicks.push(`${entry.id}:${version}`)
+        for (const sibling of nativeGroup.children) sibling.attributes.delete('aria-current')
+        button.attributes.set('aria-current', 'page')
+      })
+    }
+  }
+  newNav()
+  render()
+  const document = {
+    createElement: (tag: string) => new NavElement(tag),
+    querySelector: (selector: string) => !mounted ? null : selector === '.dcu-settings-nav, nav[aria-label="设置"]' ? nav : nav.querySelector(selector),
+  }
+  const newContext = () => {
+    const contextId = ++contextSequence
+    const effect = (setup: () => (() => void), label: string) => {
+      assert.equal(label, 'dsh-ui-tweaks: settings navigation')
+      const dispose = setup()
+      disposers.push(dispose)
+      return dispose
+    }
+    return registry === 'absent' ? { effect } : { effect, slots: { entriesOfSlot: (key: string) => {
+      assert.equal(key, 'settings.section')
+      registryReads.push(contextId)
+      if (registry === 'throws') throw new Error('registry unavailable')
+      return entries.map(entry => ({ options: { id: entry.id, label: () => entry.label } }))
+    } } }
+  }
+  const start = SOURCE.indexOf('const SETTINGS_NAV_GROUPS = [')
+  const end = SOURCE.indexOf('];', start)
+  const groups = vm.runInNewContext(SOURCE.slice(start, end + 2) + '\nSETTINGS_NAV_GROUPS;') as [string, string[]][]
+  const window = {}
+  const install = () => vm.runInNewContext(`(${extractFunction('installSettingsNavGroups')}\n})(ctx)`, {
+    ctx: newContext(), document, window, SETTINGS_NAV_GROUPS: groups,
+    navKey: (value: unknown) => String(value || '').replace(/\s+/g, ''),
+    setInterval: (tick: () => void, delay: number) => {
+      assert.equal(delay, 800)
+      const id = ++timerSequence
+      timers.set(id, tick)
+      return id
+    },
+    clearInterval: (id: number) => { assert.ok(timers.delete(id), 'only the owned live timer may be cleared') },
+  })
+  install()
+  const tick = () => { for (const timer of [...timers.values()]) timer() }
+  const items = () => nav.querySelectorAll('.dsh-sg-item').filter(item => !item.hidden && !item.parentElement?.hidden)
+  return {
+    clicks, tick, render, items, registryReads,
+    timerCount: () => timers.size,
+    dispose: () => { const dispose = disposers.at(-1); assert.ok(dispose); dispose() },
+    getDisposer: () => { const dispose = disposers.at(-1); assert.ok(dispose); return dispose },
+    reapply: install,
+    nav: () => nav,
+    originalButtons: () => nativeGroup.querySelectorAll('button.dcu-settings-link'),
+    version: () => renderVersion,
+    groupItems: (title: string) => nav.querySelectorAll('.dsh-sg-group')
+      .filter(group => !group.hidden && group.children[0]?.textContent === title)
+      .flatMap(group => group.querySelectorAll('.dsh-sg-item').filter(item => !item.hidden).map(item => item.textContent)),
+    setEntries: (next: SectionFixture[]) => { entries = next; render() },
+    replaceNav: () => { newNav(); render() },
+    closeNav: () => { mounted = false },
+    reopenNav: () => { newNav(); render(); mounted = true },
+    click: (label: string, ordinal = 0) => {
+      const button = items().filter(item => item.textContent === label)[ordinal]
+      assert.ok(button, `mirror missing: ${label}/${ordinal}`)
+      button.click()
+    },
+  }
+}
+
+test('executed navigation: legacy host keeps its sole real desktop entry and unknown routes', () => {
+  const fixture = navigationFixture([general, legacy, unknown])
+  assert.deepEqual(fixture.groupItems('基础'), ['常规'])
+  assert.deepEqual(fixture.groupItems('其他'), ['桌面设置', '未知插件'])
+  fixture.click('桌面设置')
+  assert.deepEqual(fixture.clicks, ['desktop-settings:1'])
+  assert.ok(fixture.items().find(item => item.textContent === '桌面设置')?.classList.contains('dsh-on'))
+  assert.equal(fixture.originalButtons().length, 3, 'only mirror changes; native buttons survive')
+})
+
+test('executed navigation: new host groups real notifications and updates without synthetic forwarding', () => {
+  const fixture = navigationFixture([general, notifications, updates, unknown])
+  assert.deepEqual(fixture.groupItems('基础'), ['常规', '更新'])
+  assert.deepEqual(fixture.groupItems('自动化与消息'), ['通知'])
+  assert.deepEqual(fixture.groupItems('其他'), ['未知插件'])
+  fixture.click('通知')
+  fixture.click('更新')
+  assert.deepEqual(fixture.clicks, ['desktop-notifications:1', 'desktop-updates:1'])
+  assert.ok(!fixture.items().some(item => item.textContent === '桌面设置'))
+})
+
+test('executed navigation: mixed host retires only the known monolith after both split sections exist', () => {
+  const fixture = navigationFixture([general, legacy, notifications, updates, unknown])
+  assert.deepEqual(fixture.groupItems('基础'), ['常规', '更新'])
+  assert.deepEqual(fixture.groupItems('自动化与消息'), ['通知'])
+  assert.deepEqual(fixture.groupItems('其他'), ['未知插件'])
+  assert.equal(fixture.originalButtons().length, 5, 'retirement never removes native/React nodes')
+  const back = fixture.nav().children.find(child => child.className.includes('dcu-settings-back'))
+  assert.ok(back?.classList.contains('dsh-nav-keep'))
+  assert.equal(fixture.nav().querySelector('input')?.parentElement?.parentElement, fixture.nav())
+})
+
+test('executed navigation: searches do not revive retired desktop settings and clearing search restores routes', () => {
+  const fixture = navigationFixture([general, legacy, notifications, updates, unknown])
+  fixture.render(['desktop-settings', 'unknown-plugin'])
+  fixture.tick()
+  assert.deepEqual(fixture.groupItems('其他'), ['未知插件'])
+  assert.ok(!fixture.items().some(item => item.textContent === '桌面设置'))
+  assert.deepEqual(fixture.groupItems('基础'), [])
+  fixture.render(['desktop-notifications'])
+  fixture.tick()
+  assert.deepEqual(fixture.groupItems('自动化与消息'), ['通知'])
+  fixture.click('通知')
+  assert.deepEqual(fixture.clicks, ['desktop-notifications:3'])
+  fixture.render([])
+  fixture.tick()
+  assert.deepEqual(fixture.items(), [])
+  assert.ok(!fixture.nav().classList.contains('dsh-grouped'), 'empty rendering cannot leave a broken hidden original nav')
+  fixture.render()
+  fixture.tick()
+  assert.deepEqual(fixture.groupItems('基础'), ['常规', '更新'])
+  assert.deepEqual(fixture.groupItems('其他'), ['未知插件'])
+})
+
+test('executed navigation: React button rebuild, whole-nav remount and late plugin registration stay clickable', () => {
+  const fixture = navigationFixture([general, notifications, updates])
+  const existingMirror = fixture.items().find(item => item.textContent === '更新')
+  assert.ok(existingMirror)
+  fixture.render()
+  existingMirror.click()
+  assert.deepEqual(fixture.clicks, ['desktop-updates:2'], 'click must resolve the fresh original without waiting for poll')
+  fixture.setEntries([general, notifications, updates, unknown])
+  fixture.tick()
+  fixture.click('未知插件')
+  fixture.replaceNav()
+  fixture.tick()
+  fixture.click('通知')
+  assert.deepEqual(fixture.clicks, ['desktop-updates:2', 'unknown-plugin:3', 'desktop-notifications:4'])
+  assert.deepEqual(fixture.groupItems('其他'), ['未知插件'])
+})
+
+test('executed navigation: same-label unknown plugins are not retired or sent to the first matching route', () => {
+  const unrelated = { id: 'unrelated-plugin', label: '桌面设置' }
+  const onlyUnrelated = navigationFixture([general, notifications, updates, unrelated])
+  onlyUnrelated.click('桌面设置')
+  assert.deepEqual(onlyUnrelated.clicks, ['unrelated-plugin:1'])
+  const duplicate = navigationFixture([general, legacy, notifications, updates, unrelated])
+  assert.deepEqual(duplicate.groupItems('其他'), ['桌面设置', '桌面设置'])
+  duplicate.click('桌面设置', 0)
+  duplicate.click('桌面设置', 1)
+  assert.deepEqual(duplicate.clicks, ['desktop-settings:1', 'unrelated-plugin:1'])
+  duplicate.render()
+  duplicate.click('桌面设置', 1)
+  assert.equal(duplicate.clicks.at(-1), 'unrelated-plugin:2')
+})
+
+test('executed navigation: partial/missing registry preserves fallback; actual slot unload restores it', () => {
+  const fixture = navigationFixture([general, legacy, notifications])
+  assert.deepEqual(fixture.groupItems('其他'), ['桌面设置'])
+  fixture.setEntries([general, legacy, notifications, updates])
+  fixture.tick()
+  assert.deepEqual(fixture.groupItems('其他'), [])
+  fixture.setEntries([general, legacy, notifications])
+  fixture.tick()
+  fixture.click('桌面设置')
+  assert.deepEqual(fixture.clicks, ['desktop-settings:3'])
+  for (const registry of ['absent', 'throws'] as const) {
+    const unavailable = navigationFixture([general, legacy, notifications, updates], registry)
+    unavailable.click('桌面设置')
+    assert.deepEqual(unavailable.clicks, ['desktop-settings:1'])
+  }
+})
+
+test('executed navigation lifecycle: closing settings releases its mirror and reopening builds a fresh one', () => {
+  const fixture = navigationFixture([general, notifications, updates, unknown])
+  const closedNav = fixture.nav()
+  fixture.closeNav()
+  fixture.tick()
+  assert.equal(closedNav.querySelector('#dsh-settings-groups'), null)
+  assert.ok(!closedNav.classList.contains('dsh-grouped'))
+  assert.equal(fixture.timerCount(), 1, 'plugin stays mounted while just the settings page is closed')
+  fixture.reopenNav()
+  fixture.tick()
+  assert.deepEqual(fixture.groupItems('基础'), ['常规', '更新'])
+  fixture.click('未知插件')
+  assert.deepEqual(fixture.clicks, ['unknown-plugin:2'])
+  fixture.dispose()
+  assert.equal(fixture.timerCount(), 0)
+})
+
+test('executed navigation lifecycle: dispose restores originals and remount uses the new slots context only', () => {
+  const fixture = navigationFixture([general, legacy, unknown])
+  const oldNav = fixture.nav()
+  const oldMirror = fixture.items().find(item => item.textContent === '桌面设置')
+  assert.ok(oldMirror)
+  const oldDispose = fixture.getDisposer()
+  const originals = fixture.originalButtons()
+  oldNav.classList.add('another-plugin-marker')
+  assert.equal(fixture.timerCount(), 1)
+  fixture.dispose()
+  assert.equal(fixture.timerCount(), 0)
+  assert.equal(oldNav.querySelector('#dsh-settings-groups'), null)
+  assert.ok(!oldNav.classList.contains('dsh-grouped'))
+  assert.ok(oldNav.classList.contains('another-plugin-marker'))
+  assert.ok(!oldNav.children[0]?.classList.contains('dsh-nav-keep'))
+  assert.deepEqual(fixture.originalButtons(), originals, 'disposal must not remove or reconstruct originals')
+  oldMirror.click()
+  assert.deepEqual(fixture.clicks, [], 'detached old mirror cannot dispatch after disposal')
+  fixture.setEntries([general, legacy, notifications, updates, unknown])
+  fixture.registryReads.splice(0)
+  fixture.reapply()
+  assert.equal(fixture.timerCount(), 1)
+  assert.deepEqual(fixture.groupItems('基础'), ['常规', '更新'])
+  assert.deepEqual(fixture.groupItems('其他'), ['未知插件'])
+  fixture.click('通知')
+  assert.deepEqual(fixture.clicks, ['desktop-notifications:2'])
+  assert.ok(fixture.registryReads.length > 0)
+  assert.ok(fixture.registryReads.every(contextId => contextId === 2), 'disposed ctx must not read or authorize slots')
+  oldDispose()
+  assert.equal(fixture.timerCount(), 1, 'late repeated old cleanup cannot clear the new timer/token')
+  fixture.dispose()
+  assert.equal(fixture.timerCount(), 0)
+})
+
+test('executed navigation lifecycle: React removing only the mirror does not transfer original-class ownership', () => {
+  const fixture = navigationFixture([general, notifications, updates, unknown])
+  const nav = fixture.nav()
+  const removed = nav.querySelector('#dsh-settings-groups')
+  assert.ok(removed)
+  removed.remove()
+  assert.ok(nav.classList.contains('dsh-grouped'), 'fixture reproduces an independently removed mirror')
+  fixture.tick()
+  const rebuilt = nav.querySelector('#dsh-settings-groups')
+  assert.ok(rebuilt)
+  assert.notEqual(rebuilt, removed)
+  fixture.click('更新')
+  assert.deepEqual(fixture.clicks, ['desktop-updates:1'])
+  fixture.dispose()
+  assert.equal(nav.querySelector('#dsh-settings-groups'), null)
+  assert.ok(!nav.classList.contains('dsh-grouped'), 'prior ownership must survive a same-nav mirror rebuild')
+  assert.equal(fixture.originalButtons().length, 4)
+  assert.equal(fixture.timerCount(), 0)
+})
 
 function iconRules(): Map<string, string> {
   const map = new Map<string, string>()

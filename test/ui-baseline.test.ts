@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -28,6 +29,12 @@ test('UI baseline rejects unrecorded changes, corrupt recovery snapshots and mis
     assert.throws(() => api.recordBaseline(root, { note: 'docs/change.md', evidence: ['artifacts/fail.json'] }), /not passing/)
     api.recordBaseline(root, { note: 'docs/change.md', evidence: ['artifacts/qa.json'] })
     assert.deepEqual(api.verifyBaseline(root, { live: false }), [])
+    // Exercise the actual CLI only against this disposable fixture, never accept live drift.
+    const cli = spawnSync(process.execPath, [resolve('scripts/ui-baseline.mjs'), '--record', '--source-only',
+      '--note', 'docs/change.md', '--evidence', 'artifacts/qa.json'],
+    { cwd: root, encoding: 'utf8', windowsHide: true, timeout: 30000 })
+    assert.equal(cli.status, 0, cli.error?.message ?? cli.stderr)
+    assert.match(cli.stdout, /PASS UI source snapshots/)
     put('assets/theme.css', 'upstream replacement\n')
     assert.ok(api.verifyBaseline(root, { live: false }).includes('UI drift: assets/theme.css'))
     put('assets/theme.css', 'accepted source\r\n')

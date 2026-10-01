@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
 
-import { PortableDesktopUpdater, physicalFileIsRegular, physicalFileSha256, portableDesktopPointerPath, portableDesktopUpdateRoot, prunePortableDesktopSlots, resolvePortableReleaseSource, stageLocalDesktopBuild } from '../src/portable-desktop-update.js'
+import { PortableDesktopUpdater, loadPortableDesktopPointer, physicalFileIsRegular, physicalFileSha256, portableDesktopPointerPath, portableDesktopUpdateRoot, prunePortableDesktopSlots, resolvePortableReleaseSource, stageLocalDesktopBuild } from '../src/portable-desktop-update.js'
+import { DesktopUpdateChannelGate } from '../src/desktop-updater.js'
 // 用受跟踪的 mkdtemp：测试结束后自动删除临时目录（见 test/helpers/tmp.ts）。
 import { makeTrackedTempDir as mkdtemp } from './helpers/tmp.js'
 
@@ -69,12 +70,12 @@ async function fixture(): Promise<{ archive: Buffer; requestCount: () => number;
           body: 'verified release',
           assets: [{
             name: 'dsh-codex-desktop-1.1.0-win-x64.zip',
-            browser_download_url: 'https://github.com/MichengAI/dsh-codex-desktop/releases/download/v1.1.0/dsh-codex-desktop-1.1.0-win-x64.zip',
+            browser_download_url: 'https://github.com/hly252397-tech/DSH-3-Portable/releases/download/v1.1.0/dsh-codex-desktop-1.1.0-win-x64.zip',
             size: archive.length,
             digest: `sha256:${sha256}`,
           }, {
             name: 'dsh-portable-contract-1.1.0-win-x64.json',
-            browser_download_url: 'https://github.com/MichengAI/dsh-codex-desktop/releases/download/v1.1.0/dsh-portable-contract-1.1.0-win-x64.json',
+            browser_download_url: 'https://github.com/hly252397-tech/DSH-3-Portable/releases/download/v1.1.0/dsh-portable-contract-1.1.0-win-x64.json',
             size: contract.length,
             digest: `sha256:${contractSha256}`,
           }],
@@ -92,6 +93,195 @@ async function fixture(): Promise<{ archive: Buffer; requestCount: () => number;
   await updater.initialize()
   return { archive, requestCount: () => call, root, updater }
 }
+
+test('发布通道切换清除旧 available，手动 prepare 不能复用旧缓存', async () => {
+  const { root, updater, requestCount } = await fixture()
+  await updater.check('stable')
+  assert.equal(updater.state.phase, 'available')
+  assert.equal(updater.state.release?.version, '1.1.0')
+  const before = requestCount()
+  assert.equal(await updater.invalidateReleaseForChannelChange(), true)
+  assert.equal(updater.state.phase, 'idle')
+  assert.equal(updater.state.release, undefined)
+  assert.equal(updater.state.targetVersion, undefined)
+  assert.equal(updater.state.transactionId, undefined)
+  await assert.rejects(updater.prepare(), /没有可构建/)
+  assert.equal(requestCount(), before)
+  assert.equal(existsSync(portableDesktopPointerPath(portableDesktopUpdateRoot(root))), false)
+  const persisted = JSON.parse(await readFile(join(portableDesktopUpdateRoot(root), 'state.json'), 'utf8'))
+  assert.equal(persisted.release, undefined)
+  assert.equal(persisted.phase, 'idle')
+})
+
+test('新通道限流不能恢复切换前的旧 release', async () => {
+  const { root, updater } = await fixture()
+  await updater.check('stable')
+  assert.equal(await updater.invalidateReleaseForChannelChange(), true)
+  const limited = new PortableDesktopUpdater({
+    portableRoot: root,
+    currentVersion: '1.0.0',
+    fetch: (async () => new Response('rate limited', { status: 429 })) as typeof fetch,
+  })
+  await limited.initialize()
+  const next = await limited.check('preview')
+  assert.equal(next.phase, 'none')
+  assert.equal(next.errorCode, 'RELEASE_RATE_LIMITED')
+  assert.equal(next.release, undefined)
+  await assert.rejects(limited.prepare(), /没有可构建/)
+})
+
+test('限流之后成功检查清除旧错误码并重新取得通道许可', async () => {
+  const { root, updater } = await fixture()
+  await updater.check('stable')
+  const cached = updater.state.release!
+  const contract = Buffer.from(`${JSON.stringify({
+    schema: 1,
+    edition: 'dsh-3-portable',
+    version: cached.version,
+    artifact: cached.assetName,
+    sha256: cached.sha256,
+    capabilities: ['portable-data-v1', 'desktop-ab-v1', 'desktop-update-state-v1', 'embedded-browser-v1', 'runtime-prewarm-v1'],
+  })}\n`)
+  const contractName = `dsh-portable-contract-${cached.version}-win-x64.json`
+  const contractSha256 = createHash('sha256').update(contract).digest('hex')
+  let limited = true
+  const resumed = new PortableDesktopUpdater({
+    portableRoot: root,
+    currentVersion: '1.0.0',
+    fetch: (async input => {
+      if (limited) return new Response('rate limited', { status: 403 })
+      if (String(input).endsWith(contractName)) return new Response(contract)
+      return Response.json({
+        tag_name: cached.tag,
+        draft: false,
+        prerelease: false,
+        assets: [{
+          name: cached.assetName,
+          browser_download_url: cached.assetUrl,
+          size: cached.assetSize,
+          digest: `sha256:${cached.sha256}`,
+        }, {
+          name: contractName,
+          browser_download_url: `https://github.com/hly252397-tech/DSH-3-Portable/releases/download/${cached.tag}/${contractName}`,
+          size: contract.length,
+          digest: `sha256:${contractSha256}`,
+        }],
+      })
+    }) as typeof fetch,
+  })
+  await resumed.initialize()
+  const gate = new DesktopUpdateChannelGate()
+  const preferences = { policy: 'auto-on-exit', channel: 'stable' } as const
+  const firstTicket = gate.beginCheck(preferences)
+  const rateLimited = await resumed.check('stable')
+  assert.equal(rateLimited.phase, 'available')
+  assert.equal(rateLimited.errorCode, 'RELEASE_RATE_LIMITED')
+  assert.equal(gate.acceptCheck(firstTicket, preferences, rateLimited), false)
+  limited = false
+  const nextTicket = gate.beginCheck(preferences)
+  const checked = await resumed.check('stable')
+  assert.equal(checked.phase, 'available')
+  assert.equal(checked.errorCode, undefined)
+  assert.equal(gate.acceptCheck(nextTicket, preferences, checked), true)
+  assert.equal(gate.mayUseCandidate(nextTicket, preferences), true)
+})
+
+test('检查中拒绝发布通道切换且不清除在途检查', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-channel-checking-'))
+  let enteredFetch!: () => void
+  let finishFetch!: () => void
+  const entered = new Promise<void>(resolve => { enteredFetch = resolve })
+  const finish = new Promise<void>(resolve => { finishFetch = resolve })
+  const updater = new PortableDesktopUpdater({
+    portableRoot: root,
+    currentVersion: '1.0.0',
+    fetch: (async () => {
+      enteredFetch()
+      await finish
+      return new Response('', { status: 404 })
+    }) as typeof fetch,
+  })
+  await updater.initialize()
+  const checking = updater.check('preview')
+  await entered
+  assert.equal(updater.state.phase, 'checking')
+  assert.equal(await updater.invalidateReleaseForChannelChange(), false)
+  assert.equal(updater.state.phase, 'checking')
+  finishFetch()
+  assert.equal((await checking).phase, 'none')
+})
+
+test('ready 或已有 pending 时拒绝通道切换，不改槽和部署指针', async () => {
+  const { root, updater } = await fixture()
+  await updater.check('stable')
+  const ready = await updater.prepare()
+  assert.equal(ready.phase, 'ready')
+  assert.equal(await updater.invalidateReleaseForChannelChange(), false)
+  assert.equal(updater.state.slotRelativePath, ready.slotRelativePath)
+  await updater.stageActivation()
+  const pointerPath = portableDesktopPointerPath(portableDesktopUpdateRoot(root))
+  const before = await readFile(pointerPath, 'utf8')
+  assert.equal(await updater.invalidateReleaseForChannelChange(), false)
+  assert.equal(await readFile(pointerPath, 'utf8'), before)
+  assert.equal(updater.state.phase, 'deploying')
+})
+
+test('恢复的 ready 可安全重验并复用候选，不删除槽、下载或便携数据', async () => {
+  const { root, updater, requestCount } = await fixture()
+  await updater.check('stable')
+  const ready = await updater.prepare()
+  const slot = resolve(root, ready.slotRelativePath!)
+  const archivePath = join(portableDesktopUpdateRoot(root), 'downloads', ready.release!.version, ready.release!.assetName)
+  const dataPath = join(root, 'Data', 'keep-conversation.txt')
+  await writeFile(dataPath, 'keep this conversation')
+  const archive = await readFile(archivePath)
+  const manifest = await readFile(join(slot, 'slot-manifest.json'))
+  const count = requestCount()
+  assert.equal(await updater.resetPreparedReleaseForRecheck(), true)
+  assert.equal(updater.state.phase, 'idle')
+  assert.equal(updater.state.release, undefined)
+  assert.equal(await readFile(dataPath, 'utf8'), 'keep this conversation')
+  assert.deepEqual(await readFile(archivePath), archive)
+  assert.deepEqual(await readFile(join(slot, 'slot-manifest.json')), manifest)
+  assert.equal(existsSync(portableDesktopPointerPath(portableDesktopUpdateRoot(root))), false)
+  assert.equal((await updater.check('stable')).phase, 'available')
+  const preparedAgain = await updater.prepare()
+  assert.equal(preparedAgain.phase, 'ready')
+  assert.equal(preparedAgain.slotRelativePath, ready.slotRelativePath)
+  // Two metadata/contract requests, never a second archive download.
+  assert.equal(requestCount() - count, 2)
+  assert.deepEqual(await readFile(archivePath), archive)
+  assert.equal(await readFile(dataPath, 'utf8'), 'keep this conversation')
+})
+
+test('ready 重验必须拒绝已有 pending，保留指针与候选元数据', async () => {
+  const { root, updater } = await fixture()
+  await updater.check('stable')
+  const ready = await updater.prepare()
+  await updater.stageActivation()
+  const updateRoot = portableDesktopUpdateRoot(root)
+  const pointerPath = portableDesktopPointerPath(updateRoot)
+  const pointer = await readFile(pointerPath, 'utf8')
+  // Model a crash after pointer staging but before the deploying state write.
+  await writeFile(join(updateRoot, 'state.json'), JSON.stringify(ready))
+  const restored = new PortableDesktopUpdater({ portableRoot: root, currentVersion: '1.0.0' })
+  await restored.initialize()
+  assert.equal(restored.state.phase, 'ready')
+  assert.equal(await restored.resetPreparedReleaseForRecheck(), false)
+  assert.equal(restored.state.phase, 'ready')
+  assert.equal(restored.state.slotRelativePath, ready.slotRelativePath)
+  assert.equal(await readFile(pointerPath, 'utf8'), pointer)
+})
+
+test('不可信指针不能被通道切换清缓存绕过', async () => {
+  const { root, updater } = await fixture()
+  await updater.check('stable')
+  const pointerPath = portableDesktopPointerPath(portableDesktopUpdateRoot(root))
+  await writeFile(pointerPath, '{bad pointer')
+  assert.equal(await updater.invalidateReleaseForChannelChange(), false)
+  assert.equal(updater.state.phase, 'available')
+  assert.equal(await readFile(pointerPath, 'utf8'), '{bad pointer')
+})
 
 test('GitHub 速率限制（403/429）保持上一结论，不渲染成红色更新失败', async t => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-rate-limit-'))
@@ -147,6 +337,23 @@ test('统一更新器完成检测、下载、构建、部署和健康提交', as
   assert.match(await readFile(join(portableDesktopUpdateRoot(root), 'events.jsonl'), 'utf8'), /"phase":"completed"/)
 })
 
+test('本地 replacePending 不能置换已开始激活的候选', async () => {
+  const { root, updater } = await fixture()
+  await updater.check()
+  const ready = await updater.prepare()
+  await updater.stageActivation()
+  const updateRoot = portableDesktopUpdateRoot(root)
+  const pointerPath = portableDesktopPointerPath(updateRoot)
+  const originalPointer = await readFile(pointerPath, 'utf8')
+  const attempt = join(updateRoot, 'transactions', ready.transactionId!, 'activation-attempt.json')
+  await mkdir(dirname(attempt), { recursive: true })
+  await writeFile(attempt, '{"started":true}')
+  const appDirectory = join(root, 'release', 'replacement')
+  await materializePackagedApp(appDirectory)
+  await assert.rejects(stageLocalDesktopBuild({ portableRoot: root, appDirectory, version: '1.1.0', replacePending: true, readProductVersion: async () => '1.1.0.0' }), /待部署事务/)
+  assert.equal(await readFile(pointerPath, 'utf8'), originalPointer)
+})
+
 test('候选文件在部署前被篡改时由槽清单门禁拒绝', async () => {
   const { root, updater } = await fixture()
   await updater.check()
@@ -164,7 +371,7 @@ test('已验证的 Release 缓存被复用且不会再次访问下载地址', as
   await writeFile(cache, archive)
 
   const ready = await updater.prepare()
-  assert.equal(ready.phase, 'ready')
+  assert.equal(ready.phase, 'ready', JSON.stringify({ phase: ready.phase, errorCode: ready.errorCode, detail: ready.detail }))
   assert.equal(requestCount(), 2)
   assert.match(ready.detail, /复用|构建和验证/)
 })
@@ -183,7 +390,7 @@ test('缺少便携兼容契约的上游新版本进入已阻止状态而非更�
         tag_name: 'v1.1.0', draft: false, prerelease: false,
         assets: [{
           name: 'dsh-codex-desktop-1.1.0-win-x64.zip',
-          browser_download_url: 'https://github.com/MichengAI/dsh-codex-desktop/releases/download/v1.1.0/dsh-codex-desktop-1.1.0-win-x64.zip',
+          browser_download_url: 'https://github.com/hly252397-tech/DSH-3-Portable/releases/download/v1.1.0/dsh-codex-desktop-1.1.0-win-x64.zip',
           size: archive.length,
           digest: `sha256:${sha256}`,
         }],
@@ -227,12 +434,12 @@ test('被阻止后出现合规 Release 可恢复正常更新流程', async () =>
           tag_name: 'v1.1.0', draft: false, prerelease: false,
           assets: [{
             name: 'dsh-codex-desktop-1.1.0-win-x64.zip',
-            browser_download_url: 'https://github.com/MichengAI/dsh-codex-desktop/releases/download/v1.1.0/dsh-codex-desktop-1.1.0-win-x64.zip',
+            browser_download_url: 'https://github.com/hly252397-tech/DSH-3-Portable/releases/download/v1.1.0/dsh-codex-desktop-1.1.0-win-x64.zip',
             size: archive.length,
             digest: `sha256:${sha256}`,
           }, ...(includeContract ? [{
             name: 'dsh-portable-contract-1.1.0-win-x64.json',
-            browser_download_url: 'https://github.com/MichengAI/dsh-codex-desktop/releases/download/v1.1.0/dsh-portable-contract-1.1.0-win-x64.json',
+            browser_download_url: 'https://github.com/hly252397-tech/DSH-3-Portable/releases/download/v1.1.0/dsh-portable-contract-1.1.0-win-x64.json',
             size: contract.length,
             digest: `sha256:${contractSha256}`,
           }] : [])],
@@ -320,7 +527,7 @@ test('更新源按构建期配置解析 API 与受信资产域', async () => {
   const invalidState = await invalid.check()
   assert.equal(invalidState.phase, 'error')
   assert.equal(invalidState.errorCode, 'ASSET_MISSING')
-  assert.equal(invalidUrls[0], 'https://api.github.com/repos/MichengAI/dsh-codex-desktop/releases/latest')
+  assert.equal(invalidUrls[0], 'https://api.github.com/repos/hly252397-tech/DSH-3-Portable/releases/latest')
 })
 
 test('当前本地版本不低于 Release 时不要求下载兼容契约', async () => {
@@ -466,7 +673,7 @@ test('缺少 GitHub Release SHA256 时检查失败且保留当前版本', async 
     currentVersion: '1.0.0',
     fetch: async () => Response.json({
       tag_name: 'v1.1.0', draft: false, prerelease: false,
-      assets: [{ name: 'dsh-codex-desktop-1.1.0-win-x64.zip', browser_download_url: 'https://github.com/MichengAI/dsh-codex-desktop/releases/download/v1.1.0/file.zip', size: 1_000_000 }],
+      assets: [{ name: 'dsh-codex-desktop-1.1.0-win-x64.zip', browser_download_url: 'https://github.com/hly252397-tech/DSH-3-Portable/releases/download/v1.1.0/file.zip', size: 1_000_000 }],
     }),
   })
   await updater.initialize()
@@ -514,6 +721,113 @@ test('仅修改额外 UI 资源也会产生新候选，相同内容仍复用原�
   assert.equal(existsSync(join(root, first.slotRelativePath)), false)
   const same = await stageLocalDesktopBuild(options)
   assert.equal(same.slotRelativePath, second.slotRelativePath)
+})
+
+async function receiptFixture() {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-build-receipt-stage-'))
+  const source = join(root, 'release', 'win-unpacked')
+  await materializePackagedApp(source)
+  await writeFile(join(source, 'resources', 'shell.html'), 'accepted-ui')
+  await mkdir(join(root, 'App'), { recursive: true })
+  await writeFile(join(root, 'App', 'DSH Codex Desktop.exe'), 'current')
+  return {
+    root, source,
+    options: {
+      portableRoot: root, appDirectory: source, version: '1.0.0',
+      readProductVersion: async () => '1.0.0.0', replacePending: true,
+      customizationSnapshot: { fingerprint: 'c'.repeat(64) },
+      buildReceiptIntent: {
+        inputFingerprint: 'a'.repeat(64), coreFingerprint: 'b'.repeat(64),
+        asarSha256: await physicalFileSha256(join(source, 'resources', 'app.asar')),
+      },
+    },
+  }
+}
+
+async function finalizeFixture(root: string, staged: Awaited<ReturnType<typeof stageLocalDesktopBuild>>) {
+  const transaction = join(portableDesktopUpdateRoot(root), 'transactions', staged.transactionId)
+  const intent = JSON.parse(await readFile(join(transaction, 'build-intent.json'), 'utf8'))
+  const receipt = { schema: 1, kind: 'dsh-desktop-build', status: 'validated',
+    inputs: { fingerprint: intent.inputFingerprint, coreFingerprint: intent.coreFingerprint },
+    asar: { sha256: intent.asarSha256 } }
+  await writeFile(join(transaction, 'build-receipt.json'), JSON.stringify(receipt))
+  await writeFile(join(transaction, 'build-finalized.json'), JSON.stringify({ ...intent,
+    receiptSha256: await physicalFileSha256(join(transaction, 'build-receipt.json')) }))
+  return transaction
+}
+
+test('新本地构建先持久化 intent 和完整载荷标记，缺最终凭据不可绕过启动器直接提交', async () => {
+  const { root, options } = await receiptFixture()
+  const staged = await stageLocalDesktopBuild(options)
+  const pointer = await loadPortableDesktopPointer(portableDesktopPointerPath(portableDesktopUpdateRoot(root)), root)
+  assert.equal(pointer?.pending?.producer, 'local-build-receipt-v1')
+  assert.equal(pointer?.pending?.transactionId, staged.transactionId)
+  const transaction = join(portableDesktopUpdateRoot(root), 'transactions', staged.transactionId)
+  const intent = JSON.parse(await readFile(join(transaction, 'build-intent.json'), 'utf8'))
+  assert.equal(intent.slotRelativePath, staged.slotRelativePath)
+  assert.equal(intent.slotManifestSha256, pointer!.pending!.sha256)
+  const manifest = JSON.parse(await readFile(join(root, staged.slotRelativePath, 'slot-manifest.json'), 'utf8'))
+  assert.equal(manifest.producer, 'local-build-receipt-v1')
+  assert.equal(manifest.transactionId, staged.transactionId)
+  assert.equal(manifest.completeFileList, true)
+  assert.equal(manifest.files['resources/shell.html'], createHash('sha256').update('accepted-ui').digest('hex'))
+  assert.equal(existsSync(join(transaction, 'build-finalized.json')), false)
+  const updater = new PortableDesktopUpdater({ portableRoot: root, currentVersion: '1.0.0' })
+  await updater.initialize()
+  await assert.rejects(updater.confirmRunningCandidate(staged.transactionId, join(root, staged.slotRelativePath), join(transaction, 'health.json')), /尚未完成构建校验/)
+  assert.equal((await loadPortableDesktopPointer(portableDesktopPointerPath(portableDesktopUpdateRoot(root)), root))?.pending?.transactionId, staged.transactionId)
+  await finalizeFixture(root, staged)
+  assert.equal((await updater.confirmRunningCandidate(staged.transactionId, join(root, staged.slotRelativePath), join(transaction, 'health.json'))).phase, 'completed')
+})
+
+test('构建凭据缺原快照或程序摘要不符时不发布 pending', async () => {
+  const { root, options } = await receiptFixture()
+  await assert.rejects(stageLocalDesktopBuild({ ...options, customizationSnapshot: undefined }), /完整定制快照/)
+  await assert.rejects(stageLocalDesktopBuild({ ...options, buildReceiptIntent: { ...options.buildReceiptIntent, asarSha256: 'd'.repeat(64) } }), /已验证的构建凭据不一致/)
+  assert.equal(existsSync(portableDesktopPointerPath(portableDesktopUpdateRoot(root))), false)
+})
+
+test('复制后额外 UI 载荷变化不能靠固定必需文件清单通过', async () => {
+  const { root, options } = await receiptFixture()
+  await assert.rejects(stageLocalDesktopBuild({ ...options, onCopyComplete: async () => {
+    const transactions = join(portableDesktopUpdateRoot(root), 'transactions')
+    const [id] = await readdir(transactions)
+    await writeFile(join(transactions, id!, 'app', 'resources', 'shell.html'), 'reverted-ui')
+  } }), /完整桌面载荷与源制品不一致/)
+  assert.equal(existsSync(portableDesktopPointerPath(portableDesktopUpdateRoot(root))), false)
+})
+
+test('旧本地槽非 required 的界面文件篡改时不能复用', async () => {
+  const { root, options } = await receiptFixture()
+  const legacy = { ...options, buildReceiptIntent: undefined, customizationSnapshot: undefined }
+  const staged = await stageLocalDesktopBuild(legacy)
+  await writeFile(join(root, staged.slotRelativePath, 'resources', 'shell.html'), 'reverted-ui')
+  await assert.rejects(stageLocalDesktopBuild(legacy), /完整载荷已变化/)
+  assert.equal((await loadPortableDesktopPointer(portableDesktopPointerPath(portableDesktopUpdateRoot(root)), root))?.pending?.transactionId, staged.transactionId)
+})
+
+test('最终凭据不能掩盖候选 UI 篡改或完整文件集合多出文件', async () => {
+  const { root, options } = await receiptFixture()
+  const staged = await stageLocalDesktopBuild(options)
+  const transaction = await finalizeFixture(root, staged)
+  const slot = join(root, staged.slotRelativePath)
+  const updater = new PortableDesktopUpdater({ portableRoot: root, currentVersion: '1.0.0' })
+  await updater.initialize()
+  await writeFile(join(slot, 'resources', 'shell.html'), 'reverted-ui')
+  await assert.rejects(updater.confirmRunningCandidate(staged.transactionId, slot, join(transaction, 'health.json')), /完整载荷摘要不匹配/)
+  await writeFile(join(slot, 'resources', 'shell.html'), 'accepted-ui')
+  await writeFile(join(slot, 'unexpected.js'), 'unexpected')
+  await assert.rejects(updater.confirmRunningCandidate(staged.transactionId, slot, join(transaction, 'health.json')), /完整文件集合/)
+  assert.equal((await loadPortableDesktopPointer(portableDesktopPointerPath(portableDesktopUpdateRoot(root)), root))?.pending?.transactionId, staged.transactionId)
+})
+
+test('回退凭据记录 D 内真正被替换的 pending 且最终校验之前不回收它', async () => {
+  const { root, options } = await receiptFixture()
+  const prior = await stageLocalDesktopBuild({ ...options, buildReceiptIntent: undefined })
+  const staged = await stageLocalDesktopBuild(options)
+  const previous = JSON.parse(await readFile(join(portableDesktopUpdateRoot(root), 'transactions', staged.transactionId, 'build-prior-pointer.json'), 'utf8'))
+  assert.equal(previous.pending.transactionId, prior.transactionId)
+  assert.equal(existsSync(join(root, prior.slotRelativePath)), true)
 })
 
 test('暂存复制期间的并发提交不能被写回覆盖，正在运行的槽也不能被回收', async () => {

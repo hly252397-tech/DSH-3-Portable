@@ -91,7 +91,12 @@ test('重复关闭同一 DSH 子进程是安全的', async () => {
   await Promise.all([server.stop(), server.stop()])
 })
 
-const fixtureStartupTimeoutMs = 3_000
+// Keep the original local budget; slow CI/parallel disk load may explicitly choose a measured budget.
+// This never changes the product's startup timeout, and timeout/child cleanup assertions remain active.
+const fixtureStartupTimeoutMs = Number(process.env.DSH_TEST_FIXTURE_STARTUP_MS ?? 3_000)
+if (!Number.isSafeInteger(fixtureStartupTimeoutMs) || fixtureStartupTimeoutMs < 3_000 || fixtureStartupTimeoutMs > 120_000) {
+  throw new Error('DSH_TEST_FIXTURE_STARTUP_MS must be an integer between 3000 and 120000')
+}
 
 function startFixture(mode: 'authenticated' | 'chunked' | 'exit' | 'healthy' | 'silent' | 'unhealthy', startupTimeoutMs = fixtureStartupTimeoutMs, environment: NodeJS.ProcessEnv = {}): Promise<DshServer> {
   return startDsh({

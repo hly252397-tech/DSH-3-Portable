@@ -131,6 +131,7 @@ test('桌面通知和更新设置使用独立窗口并进入打包资源', async
   assert.match(settings, /id="updatesPage"/)
   assert.match(settings, /data-value="notify"/)
   assert.match(settings, /data-value="auto-download"/)
+  assert.match(settings, /data-value="auto-on-exit"/)
   assert.match(settings, /data-value="manual"/)
   assert.match(settings, /api\.updateUpdatePreferences/)
   assert.match(settings, /api\.desktopUpdateAction/)
@@ -138,7 +139,11 @@ test('桌面通知和更新设置使用独立窗口并进入打包资源', async
   assert.match(main, /SHELL_IPC\.closeDesktopSettings/)
   assert.match(settings, /api\.onDesktopUpdateState/)
   assert.match(settings, /安装前始终由你确认/)
-  assert.match(settings, /Installation always requires your confirmation/)
+  // The user-selected next-launch policy is an explicit exception to immediate
+  // install confirmation, not permission to interrupt work after downloading.
+  assert.match(settings, /Download automatically, ask before install/)
+  assert.match(settings, /Download automatically, update on next launch/)
+  assert.match(settings, /without interrupting tasks/)
   assert.match(main, /showDesktopSettingsWindow\('updates'\)/)
   assert.match(main, /PortableDesktopUpdater/)
   assert.match(main, /stageActivation\(\)/)
