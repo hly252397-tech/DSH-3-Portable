@@ -1,0 +1,21 @@
+{
+  "name": "@dsh-portable/agentos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "便携式高自治 Agent 可靠执行系统 - 第 0/1 阶段可信执行基础 (Workspace Fingerprint / Gate Verdict / Task Event Ledger / Candidate Isolation / Boot Circuit Breaker / Exit Guard)",
+  "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "bin": {
+    "agentos": "./bin/agentos.mjs"
+  },
+  "scripts": {
+    "init": "node bin/agentos.mjs init",
+    "test": "node scripts/run-tests.mjs",
+    "fingerprint": "node bin/agentos.mjs fingerprint",
+    "exit-check": "node bin/agentos.mjs exit-check"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

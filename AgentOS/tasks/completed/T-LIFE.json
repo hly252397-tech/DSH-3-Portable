@@ -1,0 +1,119 @@
+{
+  "task": {
+    "schema_version": 1,
+    "id": "T-LIFE",
+    "goal_contract_id": "goal-20260917052623-19a4fa4e",
+    "parent_task_id": null,
+    "state": "COMPLETED",
+    "created_at": "2026-09-17T05:26:23.240Z",
+    "updated_at": "2026-09-17T05:26:25.051Z",
+    "history": [
+      {
+        "from": null,
+        "to": "NEW",
+        "at": "2026-09-17T05:26:23.240Z",
+        "reason": "created"
+      },
+      {
+        "from": "NEW",
+        "to": "SCOPING",
+        "at": "2026-09-17T05:26:23.434Z",
+        "reason": "cli"
+      },
+      {
+        "from": "SCOPING",
+        "to": "PLANNING",
+        "at": "2026-09-17T05:26:23.636Z",
+        "reason": "cli"
+      },
+      {
+        "from": "PLANNING",
+        "to": "EXECUTING",
+        "at": "2026-09-17T05:26:23.817Z",
+        "reason": "cli"
+      },
+      {
+        "from": "EXECUTING",
+        "to": "DIRTY",
+        "at": "2026-09-17T05:26:24.007Z",
+        "reason": "cli"
+      },
+      {
+        "from": "DIRTY",
+        "to": "VERIFYING",
+        "at": "2026-09-17T05:26:24.179Z",
+        "reason": "cli"
+      },
+      {
+        "from": "VERIFYING",
+        "to": "CLEANING",
+        "at": "2026-09-17T05:26:24.400Z",
+        "reason": "cli"
+      },
+      {
+        "from": "CLEANING",
+        "to": "PACKAGING",
+        "at": "2026-09-17T05:26:24.574Z",
+        "reason": "cli"
+      },
+      {
+        "from": "PACKAGING",
+        "to": "READY_TO_COMPLETE",
+        "at": "2026-09-17T05:26:24.750Z",
+        "reason": "cli"
+      },
+      {
+        "from": "READY_TO_COMPLETE",
+        "to": "COMPLETED",
+        "at": "2026-09-17T05:26:25.051Z",
+        "reason": "cli"
+      }
+    ]
+  },
+  "contract": {
+    "schema_version": 1,
+    "id": "goal-20260917052623-19a4fa4e",
+    "created_at": "2026-09-17T05:26:23.240Z",
+    "goal": "ship final UI candidate",
+    "success_criteria": [
+      {
+        "id": "sc-1"
+      },
+      {
+        "id": "sc-2"
+      }
+    ],
+    "constraints": [
+      "no stable edit"
+    ],
+    "allowed_scope": [
+      "web/local"
+    ],
+    "protected_invariants": [
+      {
+        "id": "pi-1"
+      }
+    ],
+    "known_unknowns": [
+      {
+        "id": "ku-1"
+      }
+    ],
+    "pending_items": [
+      {
+        "id": "p-1"
+      }
+    ],
+    "done_definition": [
+      {
+        "id": "dd-test"
+      },
+      {
+        "id": "dd-clean"
+      },
+      {
+        "id": "dd-package"
+      }
+    ]
+  }
+}
