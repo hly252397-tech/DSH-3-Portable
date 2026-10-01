@@ -1,0 +1,76 @@
+[
+  {
+    "compact": false,
+    "group": {
+      "x": 15,
+      "y": 776,
+      "width": 107,
+      "height": 65
+    },
+    "name": {
+      "x": 45,
+      "y": 814,
+      "width": 63,
+      "height": 18
+    },
+    "nameClient": 63,
+    "nameScroll": 66,
+    "button": {
+      "x": 19,
+      "y": 807,
+      "width": 99,
+      "height": 32
+    },
+    "title": {
+      "x": 19,
+      "y": 783,
+      "width": 99,
+      "height": 22
+    },
+    "label": null,
+    "tooltip": "https://login.hongjian.com/login/login.jsp",
+    "foot": {
+      "x": 7,
+      "y": 731,
+      "width": 238,
+      "height": 118
+    }
+  },
+  {
+    "compact": true,
+    "group": {
+      "x": 16,
+      "y": 700,
+      "width": 36,
+      "height": 129
+    },
+    "name": {
+      "x": 46,
+      "y": 802,
+      "width": 0,
+      "height": 18
+    },
+    "nameClient": 0,
+    "nameScroll": 66,
+    "button": {
+      "x": 20,
+      "y": 795,
+      "width": 28,
+      "height": 32
+    },
+    "title": {
+      "x": 20,
+      "y": 707,
+      "width": 28,
+      "height": 86
+    },
+    "label": null,
+    "tooltip": "https://login.hongjian.com/login/login.jsp",
+    "foot": {
+      "x": 16,
+      "y": 656,
+      "width": 36,
+      "height": 185
+    }
+  }
+]

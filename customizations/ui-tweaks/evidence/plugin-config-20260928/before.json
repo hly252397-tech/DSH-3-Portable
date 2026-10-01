@@ -1,0 +1,18 @@
+{
+  "mode": "before",
+  "results": [
+    {
+      "section": "general",
+      "configPage": false,
+      "panel": false,
+      "entry": false,
+      "text": "常规\n权限\n权限\n选择新会话的默认权限模式\n工作区内修改\n常规\n语言\n中文\n外观\n浅色\n深色\n跟随系统\n工作步骤展示\n选择希望看到多少工具调用细节\n标准\n性能与用量\n选择性能与用量信息展示的详细程度\n详细\n快捷键\n\n查看和编辑当前可用的快捷键和输入操作\n\n编辑快捷键\n编辑器\n字号大小\n仅影响会话内容的字号\n14\npx\n繁忙时的发送行为\n智能体运行时 Enter 键和发送按钮的行为；Cmd/Ctrl+Enter 使用另一行为\n排队发送\n高级\n配置文件\n\n在外部编辑器中查看和编辑配置\n\n打开"
+    }
+  ],
+  "errors": [
+    "Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security\n  Policy set or a policy with \"unsafe-eval\" enabled. This exposes users of\n  this app to unnecessary security risks.\n\nFor more information and help, consult\nhttps://electronjs.org/docs/tutorial/security.\nThis warning will not show up\nonce the app is packaged.",
+    "TypeError: props.useStore is not a function",
+    "slot entry crashed in 'settings.section': TypeError: props.useStore is not a function"
+  ],
+  "scratch": "G:\\DSH-3-Portable\\Data\\Temp\\plugin-config-profile-PuFA2t"
+}

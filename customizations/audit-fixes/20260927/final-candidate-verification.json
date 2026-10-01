@@ -1,0 +1,12 @@
+{
+  "CheckedAt": "2026-09-27T17:57:48.3949066+08:00",
+  "Current": "Data/Updates/Desktop/slots/1.0.76-local-9ea0cb9f0a866321",
+  "Pending": "Data/Updates/Desktop/slots/1.0.76-local-08792d6114f916b8",
+  "Previous": "Data/Updates/Desktop/slots/1.0.76-local-e0a2ad669e01b589",
+  "ActivePid": 69956,
+  "ActiveSince": "2026-09-27T15:06:37.170682+08:00",
+  "CandidateAsar": "C30F0663664533287BEBCC274FB57060FE4AC0C07616094BAD1F87040A066C41",
+  "NodeSha256": "CEA6AC365F9BB9586DAFD2084D996E092E7D3E7D07AB52D1F76BF53D1FCA9BC4",
+  "Recycler": "3 empty scans",
+  "Restarted": false
+}

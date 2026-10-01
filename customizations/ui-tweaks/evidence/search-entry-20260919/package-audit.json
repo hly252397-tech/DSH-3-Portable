@@ -1,0 +1,13 @@
+{
+  "current": "Data/Updates/Desktop/slots/1.0.65+build.8-local-c5f27cae0ed7e8dd",
+  "builtFiles": 600,
+  "differences": [],
+  "onlyActive": [
+    "slot-manifest.json"
+  ],
+  "assetDifferences": [
+    "assets\\shell.html"
+  ],
+  "appAsar": "58f799ea5c678b18a585d4f95014a002525fe86f70b17af3ceac2f36527ad247",
+  "pass": true
+}

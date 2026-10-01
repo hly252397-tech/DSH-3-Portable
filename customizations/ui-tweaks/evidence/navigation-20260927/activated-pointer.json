@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "current": {
+    "relativePath": "Data/Updates/Desktop/slots/1.0.76-local-9ea0cb9f0a866321",
+    "version": "1.0.76",
+    "sha256": "2be338a58675ff3caab74d742831f99166ad263c157f31328e45e0ab4538525a",
+    "transactionId": "e188f833-95bc-4a8e-9f75-70fe021169dd"
+  },
+  "previous": {
+    "relativePath": "Data/Updates/Desktop/slots/1.0.76-local-e0a2ad669e01b589",
+    "version": "1.0.76",
+    "sha256": "2a1f87cd24fa5264ada6c508302a5e1e725d9c5f21a7486d2854597bdbc7e238",
+    "transactionId": "ccbebcbf-a895-4d65-a5e1-1b0d83968686"
+  },
+  "updatedAt": "2026-09-27T07:03:34.573Z"
+}

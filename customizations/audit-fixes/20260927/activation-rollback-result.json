@@ -1,0 +1,37 @@
+{
+  "at": "2026-09-27T18:22:46.7426756+08:00",
+  "outcome": "candidate startup rejected; original desktop and Profile restored",
+  "candidate": "08792d6114f916b8",
+  "current": "Data/Updates/Desktop/slots/1.0.76-local-9ea0cb9f0a866321",
+  "pending": null,
+  "candidateHealthExists": false,
+  "normalPid": 62968,
+  "normalCommand": "\"G:\\DSH-3-Portable\\Data\\Updates\\Desktop\\slots\\1.0.76-local-9ea0cb9f0a866321\\DSH Codex Desktop.exe\" --user-data-dir=\"G:\\DSH-3-Portable\\Data\\Electron\\UserData\" --disk-cache-dir=\"G:\\DSH-3-Portable\\Data\\Electron\\Cache\" ",
+  "debugListenerCount": 0,
+  "profileChecks": [
+    {
+      "file": "package.json",
+      "restored": true
+    },
+    {
+      "file": "pnpm-lock.yaml",
+      "restored": true
+    },
+    {
+      "file": "cordis.yml",
+      "restored": true
+    },
+    {
+      "file": "node_modules\\dsh-mcp-connector\\lib\\connection-scopes.js",
+      "restored": true
+    },
+    {
+      "file": "node_modules\\dsh-mcp-connector\\lib\\governance.js",
+      "restored": true
+    }
+  ],
+  "gates": "narrow 1100x908 and wide 1376x908: UI14/14, deps5/5, geometry10/10",
+  "backup": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-08792d6114f916b8-20260927",
+  "startupErrorLastWrite": "2026-09-26T18:56:28.6060448+08:00",
+  "newFailureEvidence": "activation-plugin-update-failure.log"
+}

@@ -1,0 +1,92 @@
+{
+  "results": [
+    {
+      "width": 480,
+      "zoom": 0.8,
+      "dark": false,
+      "icons": 5,
+      "ok": true
+    },
+    {
+      "width": 480,
+      "zoom": 0.8,
+      "dark": true,
+      "icons": 5,
+      "ok": true
+    },
+    {
+      "width": 480,
+      "zoom": 1,
+      "dark": false,
+      "icons": 5,
+      "ok": true
+    },
+    {
+      "width": 480,
+      "zoom": 1,
+      "dark": true,
+      "icons": 5,
+      "ok": true
+    },
+    {
+      "width": 480,
+      "zoom": 1.25,
+      "dark": false,
+      "icons": 5,
+      "ok": true
+    },
+    {
+      "width": 480,
+      "zoom": 1.25,
+      "dark": true,
+      "icons": 5,
+      "ok": true
+    },
+    {
+      "width": 1360,
+      "zoom": 0.8,
+      "dark": false,
+      "icons": 5,
+      "ok": true
+    },
+    {
+      "width": 1360,
+      "zoom": 0.8,
+      "dark": true,
+      "icons": 5,
+      "ok": true
+    },
+    {
+      "width": 1360,
+      "zoom": 1,
+      "dark": false,
+      "icons": 5,
+      "ok": true
+    },
+    {
+      "width": 1360,
+      "zoom": 1,
+      "dark": true,
+      "icons": 5,
+      "ok": true
+    },
+    {
+      "width": 1360,
+      "zoom": 1.25,
+      "dark": false,
+      "icons": 5,
+      "ok": true
+    },
+    {
+      "width": 1360,
+      "zoom": 1.25,
+      "dark": true,
+      "icons": 5,
+      "ok": true
+    }
+  ],
+  "lifecycle": {
+    "remount": true,
+    "cleanup": true
+  }
+}

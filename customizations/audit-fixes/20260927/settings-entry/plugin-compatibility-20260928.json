@@ -1,0 +1,90 @@
+{
+  "status": "pass",
+  "scope": "official compatibility evaluator; no exemptions; prior isolated manifests, not candidate acceptance",
+  "results": [
+    {
+      "name": "@michengai/dsh-codex-ui",
+      "version": "1.1.18",
+      "expected": "1.1.18",
+      "pass": true
+    },
+    {
+      "name": "@michengai/dsh-im-connect",
+      "version": "0.1.55",
+      "expected": "0.1.55",
+      "pass": true
+    },
+    {
+      "name": "@michengai/dsh-automation",
+      "version": "0.1.51",
+      "expected": "0.1.51",
+      "pass": true
+    },
+    {
+      "name": "@michengai/dsh-skills-manager",
+      "version": "1.1.4",
+      "expected": "1.1.4",
+      "pass": true
+    },
+    {
+      "name": "@michengai/dsh-archive-manager",
+      "version": "1.0.5",
+      "expected": "1.0.5",
+      "pass": true
+    },
+    {
+      "name": "@michengai/dsh-agency-agents",
+      "version": "1.0.5",
+      "expected": "1.0.5",
+      "pass": true
+    },
+    {
+      "name": "@michengai/dsh-codex-pet",
+      "version": "0.1.10",
+      "expected": "0.1.10",
+      "pass": true
+    },
+    {
+      "name": "@michengai/dsh-btw",
+      "version": "0.1.13",
+      "expected": "0.1.13",
+      "pass": true
+    },
+    {
+      "name": "@michengai/dsh-simplify",
+      "version": "0.1.10",
+      "expected": "0.1.10",
+      "pass": true
+    },
+    {
+      "name": "@michengai/dsh-code-review",
+      "version": "0.1.7",
+      "expected": "0.1.7",
+      "pass": true
+    },
+    {
+      "name": "@michengai/dsh-pua",
+      "version": "0.3.18",
+      "expected": "0.3.18",
+      "pass": true
+    },
+    {
+      "name": "dsh-better-sidebar",
+      "version": "0.21.1",
+      "expected": "0.21.1",
+      "pass": true
+    },
+    {
+      "name": "dsh-mcp-connector",
+      "version": "0.2.59",
+      "expected": "0.2.59",
+      "pass": true
+    },
+    {
+      "name": "dshmarket",
+      "version": "1.66.2",
+      "expected": "1.66.2",
+      "pass": true
+    }
+  ]
+}

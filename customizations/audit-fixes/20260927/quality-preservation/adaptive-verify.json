@@ -1,0 +1,71 @@
+{
+  "status": "pass",
+  "checkedAt": "2026-09-27T08:47:19.823Z",
+  "viewport": {
+    "w": 1360,
+    "h": 856
+  },
+  "compact": "0",
+  "results": [
+    {
+      "name": "探针数据新鲜（≤120s）",
+      "ok": true,
+      "measured": "5s",
+      "expected": "0–120s"
+    },
+    {
+      "name": "探针不处于拖动过渡帧",
+      "ok": true,
+      "measured": "false",
+      "expected": "非拖动"
+    },
+    {
+      "name": "采样目标是会话页而非设置覆盖层",
+      "ok": true,
+      "measured": "按命中元素检查当前页面",
+      "expected": "会话页"
+    },
+    {
+      "name": "外壳尺子已下发（--dsh-app-width ≈ 视口宽）",
+      "ok": true,
+      "measured": "appW=1360px vw=1360",
+      "expected": "两者相等"
+    },
+    {
+      "name": "两框之间无空白带（无 body 带）",
+      "ok": true,
+      "measured": "无",
+      "expected": "无"
+    },
+    {
+      "name": "面板开启贴合、关闭释放让位且输入框无覆盖",
+      "ok": true,
+      "measured": "开启边界一致",
+      "expected": "几何一致"
+    },
+    {
+      "name": "对话列保住内容下限",
+      "ok": true,
+      "measured": "root=640 vw=1360",
+      "expected": "≥400（窄窗豁免）"
+    },
+    {
+      "name": "开启时拖动柄居中，关闭时无可命中拖动柄",
+      "ok": true,
+      "measured": "handle=632..648",
+      "expected": "≈640"
+    },
+    {
+      "name": "右栏实际可见性与开关一致",
+      "ok": true,
+      "measured": "panelFrom=640",
+      "expected": "< vw-40"
+    },
+    {
+      "name": "无被挤压成竖排的后台任务徽标",
+      "ok": true,
+      "measured": "无",
+      "expected": "无"
+    }
+  ]
+}

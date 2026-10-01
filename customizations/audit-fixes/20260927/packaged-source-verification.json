@@ -1,0 +1,39 @@
+{
+  "sampledAt": "2026-09-27T09:50:02.446Z",
+  "version": "1.0.76",
+  "entry": "dist/src/main.js",
+  "results": [
+    {
+      "file": "dist/src/main.js",
+      "match": true
+    },
+    {
+      "file": "dist/src/shell-input.js",
+      "match": true
+    },
+    {
+      "file": "dist/src/shell-preload.cjs",
+      "match": true
+    },
+    {
+      "file": "dist/src/shell-contract.js",
+      "match": true
+    },
+    {
+      "file": "dist/src/mcp-scope-refresh.js",
+      "match": true
+    },
+    {
+      "file": "dist/src/plugin-toolchain.js",
+      "match": true
+    },
+    {
+      "file": "dist/src/plugin-seed.js",
+      "match": true
+    },
+    {
+      "file": "dist/src/desktop-host.js",
+      "match": true
+    }
+  ]
+}

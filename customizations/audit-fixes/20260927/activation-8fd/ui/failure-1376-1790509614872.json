@@ -1,0 +1,11 @@
+{
+  "at": "2026-09-27T11:46:54.873Z",
+  "error": "AssertionError [ERR_ASSERTION]: Need four existing sessions\n    at G:\\DSH-3-Portable\\customizations\\audit-fixes\\20260927\\activation-qa.cjs:30:10",
+  "results": [
+    {
+      "check": "independent-reload",
+      "pass": true,
+      "url": "http://127.0.0.1:50987/"
+    }
+  ]
+}

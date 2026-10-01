@@ -1,0 +1,10 @@
+{
+  "status": "fail",
+  "results": [
+    {
+      "name": "old stale transition reproduced; new native bounds synchronized",
+      "ok": true
+    }
+  ],
+  "error": "Error: No foreground frame: click size=1000 zoom=0.8\n    at G:\\DSH-3-Portable\\scripts\\verify-shell-surface.cjs:71:40\n    at async run (G:\\DSH-3-Portable\\scripts\\verify-shell-surface.cjs:69:7)"
+}

@@ -1,0 +1,100 @@
+{
+  "status": "pass",
+  "at": "2026-09-19T15:04:08.385Z",
+  "before": {
+    "origin": "http://127.0.0.1:57728",
+    "rect": {
+      "x": 722,
+      "y": 478.625,
+      "width": 26,
+      "height": 26,
+      "top": 478.625,
+      "right": 748,
+      "bottom": 504.625,
+      "left": 722
+    },
+    "buttonRect": {
+      "x": 687,
+      "y": 477.625,
+      "width": 96,
+      "height": 28,
+      "top": 477.625,
+      "right": 783,
+      "bottom": 505.625,
+      "left": 687
+    },
+    "label": "选择模型，当前 DeepSeek-V41-Flash，推理等级 High",
+    "expanded": "false",
+    "icon": {
+      "background": "none",
+      "mask": "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'><rect x='3.5' y='3.5' width='9' height='9' rx='2'/><rect x='6' y='6' width='4' height='4' rx='.6'/><path d='M6 1.5v2m4-2v2M6 12.5v2m4-2v2M1.5 6h2m-2 4h2m9-4h2m-2 4h2'/></svg>\")",
+      "color": "rgb(82, 82, 91)",
+      "width": "16px",
+      "height": "16px",
+      "pointerEvents": "none"
+    },
+    "drafts": [
+      0,
+      0
+    ]
+  },
+  "opened": {
+    "expanded": "true",
+    "menus": 1
+  },
+  "after": {
+    "origin": "http://127.0.0.1:57728",
+    "rect": {
+      "x": 722,
+      "y": 478.625,
+      "width": 26,
+      "height": 26,
+      "top": 478.625,
+      "right": 748,
+      "bottom": 504.625,
+      "left": 722
+    },
+    "buttonRect": {
+      "x": 687,
+      "y": 477.625,
+      "width": 96,
+      "height": 28,
+      "top": 477.625,
+      "right": 783,
+      "bottom": 505.625,
+      "left": 687
+    },
+    "label": "选择模型，当前 DeepSeek-V41-Flash，推理等级 High",
+    "expanded": "false",
+    "icon": {
+      "background": "none",
+      "mask": "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'><rect x='3.5' y='3.5' width='9' height='9' rx='2'/><rect x='6' y='6' width='4' height='4' rx='.6'/><path d='M6 1.5v2m4-2v2M6 12.5v2m4-2v2M1.5 6h2m-2 4h2m9-4h2m-2 4h2'/></svg>\")",
+      "color": "rgb(82, 82, 91)",
+      "width": "16px",
+      "height": "16px",
+      "pointerEvents": "none"
+    },
+    "drafts": [
+      0,
+      0
+    ]
+  },
+  "results": [
+    {
+      "name": "new microchip renders",
+      "pass": true
+    },
+    {
+      "name": "same size and click-through",
+      "pass": true
+    },
+    {
+      "name": "real model menu opens",
+      "pass": true
+    },
+    {
+      "name": "Escape closes without selecting another model",
+      "pass": true
+    }
+  ]
+}

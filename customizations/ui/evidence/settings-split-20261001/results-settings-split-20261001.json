@@ -1,0 +1,694 @@
+{
+  "capturedAt": "2026-10-01T06:09:34.087Z",
+  "cdpPort": 9471,
+  "sections": {
+    "常规": {
+      "clicked": {
+        "clicked": true
+      },
+      "activeNav": "常规",
+      "nav": {
+        "navPresent": true,
+        "groups": [
+          {
+            "title": "基础",
+            "items": [
+              {
+                "label": "常规",
+                "key": "常规",
+                "active": true,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-settings"
+              },
+              {
+                "label": "模型",
+                "key": "模型",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-cpu"
+              },
+              {
+                "label": "更新",
+                "key": "更新",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,<svg x",
+                "iconSvgClass": "lucide lucide-box"
+              }
+            ]
+          },
+          {
+            "title": "插件与扩展",
+            "items": [
+              {
+                "label": "插件市场",
+                "key": "插件市场",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-store"
+              },
+              {
+                "label": "内置插件",
+                "key": "内置插件",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-sliders-horizontal"
+              },
+              {
+                "label": "插件配置",
+                "key": "插件配置",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-sliders-horizontal"
+              },
+              {
+                "label": "技能",
+                "key": "技能",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-sparkles"
+              },
+              {
+                "label": "连接器",
+                "key": "连接器",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-link"
+              }
+            ]
+          },
+          {
+            "title": "智能体",
+            "items": [
+              {
+                "label": "专家",
+                "key": "专家",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-user"
+              },
+              {
+                "label": "Agent 预设",
+                "key": "Agent预设",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-box"
+              },
+              {
+                "label": "DSH 手册",
+                "key": "DSH手册",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-box"
+              }
+            ]
+          },
+          {
+            "title": "界面定制",
+            "items": [
+              {
+                "label": "自定义空间",
+                "key": "自定义空间",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-box"
+              },
+              {
+                "label": "侧边卡片",
+                "key": "侧边卡片",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-panel-right"
+              },
+              {
+                "label": "Codex UI",
+                "key": "CodexUI",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-circle-question-mark"
+              },
+              {
+                "label": "宠物",
+                "key": "宠物",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-box"
+              }
+            ]
+          },
+          {
+            "title": "自动化与消息",
+            "items": [
+              {
+                "label": "通知",
+                "key": "通知",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,<svg x",
+                "iconSvgClass": "lucide lucide-box"
+              },
+              {
+                "label": "定时任务",
+                "key": "定时任务",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": null
+              },
+              {
+                "label": "IM助理",
+                "key": "IM助理",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-message-square"
+              },
+              {
+                "label": "多智能体交互管理",
+                "key": "多智能体交互管理",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-link"
+              }
+            ]
+          },
+          {
+            "title": "会话记录",
+            "items": [
+              {
+                "label": "归档会话",
+                "key": "归档会话",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-archive"
+              }
+            ]
+          }
+        ],
+        "officialMirrorSource": {
+          "display": "none",
+          "w": 0
+        },
+        "backButton": true
+      },
+      "frame": {
+        "active": "appearance",
+        "sections": [
+          {
+            "key": "appearance",
+            "w": 734,
+            "h": 440,
+            "h1": "通知",
+            "text": "主题配色\n选择外壳强调色。立即应用到当前窗口并保存；其他已打开的窗口通常会即时同步，未同步的窗口在下次打开时使用所选主题。\n深海蓝\n#176FD1\n湖蓝系\n#0961F6\n塞绿系\n#1B5523\n朱红靛蓝系\n#FF4C00\n石板春梅系\n#0F95B0\n迪奥金系\n#A99563\n\n已同步全局主题"
+          }
+        ],
+        "visible": [
+          "appearance"
+        ],
+        "asideHidden": true,
+        "asideWidth": 0
+      },
+      "screenshot": "customizations/ui/evidence/settings-split-20261001/01-general.png",
+      "screenshotSha256": "f84cf68f68d8df0e72600b23ae9fdd5b0185fd4b676d272688bf8aff0b0dcb40"
+    },
+    "通知": {
+      "clicked": {
+        "clicked": true
+      },
+      "activeNav": "通知",
+      "nav": {
+        "navPresent": true,
+        "groups": [
+          {
+            "title": "基础",
+            "items": [
+              {
+                "label": "常规",
+                "key": "常规",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-settings"
+              },
+              {
+                "label": "模型",
+                "key": "模型",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-cpu"
+              },
+              {
+                "label": "更新",
+                "key": "更新",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,<svg x",
+                "iconSvgClass": "lucide lucide-box"
+              }
+            ]
+          },
+          {
+            "title": "插件与扩展",
+            "items": [
+              {
+                "label": "插件市场",
+                "key": "插件市场",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-store"
+              },
+              {
+                "label": "内置插件",
+                "key": "内置插件",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-sliders-horizontal"
+              },
+              {
+                "label": "插件配置",
+                "key": "插件配置",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-sliders-horizontal"
+              },
+              {
+                "label": "技能",
+                "key": "技能",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-sparkles"
+              },
+              {
+                "label": "连接器",
+                "key": "连接器",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-link"
+              }
+            ]
+          },
+          {
+            "title": "智能体",
+            "items": [
+              {
+                "label": "专家",
+                "key": "专家",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-user"
+              },
+              {
+                "label": "Agent 预设",
+                "key": "Agent预设",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-box"
+              },
+              {
+                "label": "DSH 手册",
+                "key": "DSH手册",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-box"
+              }
+            ]
+          },
+          {
+            "title": "界面定制",
+            "items": [
+              {
+                "label": "自定义空间",
+                "key": "自定义空间",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-box"
+              },
+              {
+                "label": "侧边卡片",
+                "key": "侧边卡片",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-panel-right"
+              },
+              {
+                "label": "Codex UI",
+                "key": "CodexUI",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-circle-question-mark"
+              },
+              {
+                "label": "宠物",
+                "key": "宠物",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-box"
+              }
+            ]
+          },
+          {
+            "title": "自动化与消息",
+            "items": [
+              {
+                "label": "通知",
+                "key": "通知",
+                "active": true,
+                "iconMask": "url(\"data:image/svg+xml,<svg x",
+                "iconSvgClass": "lucide lucide-box"
+              },
+              {
+                "label": "定时任务",
+                "key": "定时任务",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": null
+              },
+              {
+                "label": "IM助理",
+                "key": "IM助理",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-message-square"
+              },
+              {
+                "label": "多智能体交互管理",
+                "key": "多智能体交互管理",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-link"
+              }
+            ]
+          },
+          {
+            "title": "会话记录",
+            "items": [
+              {
+                "label": "归档会话",
+                "key": "归档会话",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-archive"
+              }
+            ]
+          }
+        ],
+        "officialMirrorSource": {
+          "display": "none",
+          "w": 0
+        },
+        "backButton": true
+      },
+      "frame": {
+        "active": "notifications",
+        "sections": [
+          {
+            "key": "notifications",
+            "w": 768,
+            "h": 1168,
+            "h1": "通知",
+            "text": "通知\n任务完成通知\n设置 DeepSeek Harne  完成任务时何时提醒你\n仅在窗口未聚焦时\n审批通知\n需要你审批权限或计划时显示提醒\n问题通知\n任务需要你的输入才能继续时显示提醒\n已保存"
+          }
+        ],
+        "visible": [
+          "notifications"
+        ],
+        "asideHidden": true,
+        "asideWidth": 0
+      },
+      "screenshot": "customizations/ui/evidence/settings-split-20261001/02-notifications.png",
+      "screenshotSha256": "85199e8075f3f5f90e6c166ec82d34e68d5f66831c6f442a32d8355054215b77"
+    },
+    "更新": {
+      "clicked": {
+        "clicked": true
+      },
+      "activeNav": "更新",
+      "nav": {
+        "navPresent": true,
+        "groups": [
+          {
+            "title": "基础",
+            "items": [
+              {
+                "label": "常规",
+                "key": "常规",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-settings"
+              },
+              {
+                "label": "模型",
+                "key": "模型",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-cpu"
+              },
+              {
+                "label": "更新",
+                "key": "更新",
+                "active": true,
+                "iconMask": "url(\"data:image/svg+xml,<svg x",
+                "iconSvgClass": "lucide lucide-box"
+              }
+            ]
+          },
+          {
+            "title": "插件与扩展",
+            "items": [
+              {
+                "label": "插件市场",
+                "key": "插件市场",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-store"
+              },
+              {
+                "label": "内置插件",
+                "key": "内置插件",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-sliders-horizontal"
+              },
+              {
+                "label": "插件配置",
+                "key": "插件配置",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-sliders-horizontal"
+              },
+              {
+                "label": "技能",
+                "key": "技能",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-sparkles"
+              },
+              {
+                "label": "连接器",
+                "key": "连接器",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-link"
+              }
+            ]
+          },
+          {
+            "title": "智能体",
+            "items": [
+              {
+                "label": "专家",
+                "key": "专家",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-user"
+              },
+              {
+                "label": "Agent 预设",
+                "key": "Agent预设",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-box"
+              },
+              {
+                "label": "DSH 手册",
+                "key": "DSH手册",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-box"
+              }
+            ]
+          },
+          {
+            "title": "界面定制",
+            "items": [
+              {
+                "label": "自定义空间",
+                "key": "自定义空间",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-box"
+              },
+              {
+                "label": "侧边卡片",
+                "key": "侧边卡片",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-panel-right"
+              },
+              {
+                "label": "Codex UI",
+                "key": "CodexUI",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-circle-question-mark"
+              },
+              {
+                "label": "宠物",
+                "key": "宠物",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-box"
+              }
+            ]
+          },
+          {
+            "title": "自动化与消息",
+            "items": [
+              {
+                "label": "通知",
+                "key": "通知",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,<svg x",
+                "iconSvgClass": "lucide lucide-box"
+              },
+              {
+                "label": "定时任务",
+                "key": "定时任务",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": null
+              },
+              {
+                "label": "IM助理",
+                "key": "IM助理",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-message-square"
+              },
+              {
+                "label": "多智能体交互管理",
+                "key": "多智能体交互管理",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-link"
+              }
+            ]
+          },
+          {
+            "title": "会话记录",
+            "items": [
+              {
+                "label": "归档会话",
+                "key": "归档会话",
+                "active": false,
+                "iconMask": "url(\"data:image/svg+xml,%3Csvg",
+                "iconSvgClass": "lucide lucide-archive"
+              }
+            ]
+          }
+        ],
+        "officialMirrorSource": {
+          "display": "none",
+          "w": 0
+        },
+        "backButton": true
+      },
+      "frame": {
+        "active": "updates",
+        "sections": [
+          {
+            "key": "updates",
+            "w": 768,
+            "h": 1168,
+            "h1": "通知",
+            "text": "更新\n自动更新\n每 6 小时独立检查桌面发布；可后台下载并在下次正常启动更新，不中断任务。\n仅手动检查\n包含预发布版本\n桌面与运行环境分别更新；仅安装通过定制保护检查的便携发布。\n当前版本\n1.0.78+build.1\n上次检查：2026年10月1日 14:05\n已是最新\n更新总进度\n100%\n检测\n下载\n验证\n构建\n部署\n完成\n桌面端更新\n在便携盘内完成检测、下载、验证、构建、A/B 部署和启动验证。\n检查更新\nDeepSeek Harne  运行环境\n运行环境更新策略\n下载受信成品并隔离验证；正式激活仍受安全门禁保护，不打断任务或回退会话数据。\n自动下载并验证\n当前 Harne \n0.2."
+          }
+        ],
+        "visible": [
+          "updates"
+        ],
+        "asideHidden": true,
+        "asideWidth": 0
+      },
+      "screenshot": "customizations/ui/evidence/settings-split-20261001/03-updates.png",
+      "screenshotSha256": "59cb20115a055d86c0910d3c2f828c32867ddaf49a93b1deb812a95f5f2eafba"
+    }
+  },
+  "sidebar": {
+    "settingsOpen": false,
+    "asideVisible": "visible",
+    "visibleEntryCount": 22,
+    "bottomEntries": [
+      {
+        "label": "宏建云工作台",
+        "y": 1229,
+        "aria": "宏建云工作台"
+      },
+      {
+        "label": "今日消耗金额¥0.39",
+        "y": 1281,
+        "aria": null
+      }
+    ],
+    "settingsLikeEntries": [],
+    "settingsSeatExists": true,
+    "settingsSeatChildren": [
+      {
+        "tag": "DIV",
+        "display": "contents",
+        "w": 0,
+        "h": 0
+      }
+    ],
+    "multiAgentLabels": []
+  },
+  "notes": [],
+  "open": {
+    "opened": true
+  },
+  "screenshots": {
+    "general": "f84cf68f68d8df0e72600b23ae9fdd5b0185fd4b676d272688bf8aff0b0dcb40",
+    "notifications": "85199e8075f3f5f90e6c166ec82d34e68d5f66831c6f442a32d8355054215b77",
+    "updates": "59cb20115a055d86c0910d3c2f828c32867ddaf49a93b1deb812a95f5f2eafba",
+    "sidebarNoSettingsSeat": "f8d553e1dea5215445f04aa35c53643a752b91a424e47fa1d036b2046e743193"
+  },
+  "updatesPageFullText": {
+    "key": "updates",
+    "text": "更新\n自动更新\n每 6 小时独立检查桌面发布；可后台下载并在下次正常启动更新，不中断任务。\n仅手动检查\n包含预发布版本\n桌面与运行环境分别更新；仅安装通过定制保护检查的便携发布。\n当前版本\n1.0.78+build.1\n上次检查：2026年10月1日 14:05\n已是最新\n更新总进度\n100%\n检测\n下载\n验证\n构建\n部署\n完成\n桌面端更新\n在便携盘内完成检测、下载、验证、构建、A/B 部署和启动验证。\n检查更新\nDeepSeek Harness 运行环境\n运行环境更新策略\n下载受信成品并隔离验证；正式激活仍受安全门禁保护，不打断任务或回退会话数据。\n自动下载并验证\n当前 Harness\n0.2.0-rc.2\n上次检查：2026年10月1日 13:47\n准备就绪\n官方运行环境\n交叉核验 npm 与 GitHub，不修改正在运行的槽，也不会退出桌面应用。\n检查并验证候选\n\n当前已是受检通道的最新版本。\n\n当前已是最新桌面端版本。"
+  },
+  "appearanceEmbedding": {
+    "note": "常规页内官方 appearance 行在上、新增 desktop-appearance 行内直接嵌设置 iframe",
+    "officialAppearanceRow": {
+      "key": "appearance",
+      "y": 353,
+      "text": "外观 浅色 深色 跟随系统"
+    },
+    "desktopAppearanceRow": {
+      "key": "desktop-appearance",
+      "y": 502,
+      "height": 452
+    },
+    "settingsIframe": {
+      "y": 502,
+      "height": 440
+    }
+  },
+  "earthquakeAlert": {
+    "entry": "侧栏 地震预警 (button.dcu-global-panel, aria-current=page 打开)",
+    "panel": ".dshea-root",
+    "sections": [
+      "当前预警",
+      "历史事件",
+      "关注地点",
+      "提醒设置",
+      "最近地震",
+      "数据健康"
+    ],
+    "liveData": "最近地震含 2026-10-01 13:38:40 M3.9 四川宜宾市高县（后台仍在抓取）",
+    "closeSemantics": "路由式主面板，非模态：点侧栏其他面板按钮即离开（实测点「任务」后 .dshea-root 消失）；面板内无关闭按钮、ESC 不响应，属设计而非缺陷"
+  }
+}

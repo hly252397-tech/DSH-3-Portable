@@ -1,0 +1,1 @@
+{"status":"pass","results":[{"name":"tsc --noEmit","status":"pass"},{"name":"browser snapshot handoff: syntax + bundle verified","status":"pass"},{"name":"custom-spaces typing fix: A/B 25ms TEA→FASTABCDEFGHIJ","status":"pass"},{"name":"IPC browserPanelExecuteJs: contract+preload+handler","status":"pass"},{"name":"dsh-work-mode removal: bundles 32→31","status":"pass"}]}

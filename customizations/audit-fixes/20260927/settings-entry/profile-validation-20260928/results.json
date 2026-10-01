@@ -1,0 +1,308 @@
+{
+  "status": "pass",
+  "scope": "isolated-real-profile-preload-main-ipc-preferences; updater execution not exercised",
+  "uiVersion": "1.1.18",
+  "bundled": false,
+  "results": [
+    {
+      "name": "real Profile Loader loaded codex-ui",
+      "pass": true,
+      "origin": "http://127.0.0.1:51862"
+    },
+    {
+      "name": "real shell click to DSH settings to sandbox child using real preload and main IPC",
+      "pass": true
+    },
+    {
+      "name": "original notification theme update-policy persistence writes only isolated paths",
+      "pass": true
+    },
+    {
+      "name": "real settings geometry 1360/0.9",
+      "pass": true,
+      "x": 509.045166015625,
+      "right": 1277.0660400390625,
+      "width": 768.0208740234375,
+      "viewport": 1511
+    },
+    {
+      "name": "real settings geometry 1360/1",
+      "pass": true,
+      "x": 433.5,
+      "right": 1201.5,
+      "width": 768,
+      "viewport": 1360
+    },
+    {
+      "name": "real settings geometry 1360/1.1",
+      "pass": true,
+      "x": 371.6761169433594,
+      "right": 1139.6732482910156,
+      "width": 767.9971313476562,
+      "viewport": 1236
+    },
+    {
+      "name": "real settings geometry 1000/0.9",
+      "pass": true,
+      "x": 322.9971618652344,
+      "right": 861.0937194824219,
+      "width": 538.0965576171875,
+      "viewport": 909
+    },
+    {
+      "name": "real settings geometry 1000/1",
+      "pass": true,
+      "x": 323,
+      "right": 952,
+      "width": 629,
+      "viewport": 1000
+    },
+    {
+      "name": "real settings geometry 1000/1.1",
+      "pass": true,
+      "x": 322.9971618652344,
+      "right": 861.0937194824219,
+      "width": 538.0965576171875,
+      "viewport": 909
+    },
+    {
+      "name": "close remount and reload preferences without leaked listeners",
+      "pass": true
+    },
+    {
+      "name": "real IPC rejects unknown capabilities",
+      "pass": true
+    },
+    {
+      "name": "standalone settings file and original IPC remain usable without DSH navigation",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "channels": [
+    "settings",
+    "settings"
+  ],
+  "scratch": "G:\\DSH-3-Portable\\Data\\Temp\\settings-profile-alDqAH",
+  "clickTrace": [
+    {
+      "selector": "label[for=\"approvalsEnabled\"] .track",
+      "point": {
+        "x": 645,
+        "y": 244.890625
+      },
+      "offset": {
+        "x": 433.5,
+        "y": 48
+      },
+      "target": "iframe",
+      "events": [
+        {
+          "cls": "track",
+          "id": "",
+          "tag": "SPAN"
+        },
+        {
+          "cls": "",
+          "id": "approvalsEnabled",
+          "tag": "INPUT"
+        }
+      ]
+    },
+    {
+      "selector": "#appearanceNav",
+      "point": {
+        "x": 141,
+        "y": 26
+      },
+      "offset": {
+        "x": 433.5,
+        "y": 48
+      },
+      "target": "iframe",
+      "events": [
+        {
+          "cls": "track",
+          "id": "",
+          "tag": "SPAN"
+        },
+        {
+          "cls": "",
+          "id": "approvalsEnabled",
+          "tag": "INPUT"
+        },
+        {
+          "cls": "nav-item",
+          "id": "appearanceNav",
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "selector": "[data-theme-id=\"gold\"]",
+      "point": {
+        "x": 532.7734375,
+        "y": 300.890625
+      },
+      "offset": {
+        "x": 433.5,
+        "y": 48
+      },
+      "target": "iframe",
+      "events": [
+        {
+          "cls": "track",
+          "id": "",
+          "tag": "SPAN"
+        },
+        {
+          "cls": "",
+          "id": "approvalsEnabled",
+          "tag": "INPUT"
+        },
+        {
+          "cls": "nav-item",
+          "id": "appearanceNav",
+          "tag": "BUTTON"
+        },
+        {
+          "cls": "",
+          "id": "",
+          "tag": "SPAN"
+        }
+      ]
+    },
+    {
+      "selector": "#updatesNav",
+      "point": {
+        "x": 87,
+        "y": 26
+      },
+      "offset": {
+        "x": 433.5,
+        "y": 48
+      },
+      "target": "iframe",
+      "events": [
+        {
+          "cls": "track",
+          "id": "",
+          "tag": "SPAN"
+        },
+        {
+          "cls": "",
+          "id": "approvalsEnabled",
+          "tag": "INPUT"
+        },
+        {
+          "cls": "nav-item",
+          "id": "appearanceNav",
+          "tag": "BUTTON"
+        },
+        {
+          "cls": "",
+          "id": "",
+          "tag": "SPAN"
+        },
+        {
+          "cls": "nav-item",
+          "id": "updatesNav",
+          "tag": "BUTTON"
+        }
+      ]
+    },
+    {
+      "selector": "#policyButton",
+      "point": {
+        "x": 557.5,
+        "y": 166.890625
+      },
+      "offset": {
+        "x": 433.5,
+        "y": 48
+      },
+      "target": "iframe",
+      "events": [
+        {
+          "cls": "track",
+          "id": "",
+          "tag": "SPAN"
+        },
+        {
+          "cls": "",
+          "id": "approvalsEnabled",
+          "tag": "INPUT"
+        },
+        {
+          "cls": "nav-item",
+          "id": "appearanceNav",
+          "tag": "BUTTON"
+        },
+        {
+          "cls": "",
+          "id": "",
+          "tag": "SPAN"
+        },
+        {
+          "cls": "nav-item",
+          "id": "updatesNav",
+          "tag": "BUTTON"
+        },
+        {
+          "cls": "",
+          "id": "policyValue",
+          "tag": "SPAN"
+        }
+      ]
+    },
+    {
+      "selector": "#policyList [data-value=\"manual\"]",
+      "point": {
+        "x": 557.5,
+        "y": 280.890625
+      },
+      "offset": {
+        "x": 433.5,
+        "y": 48
+      },
+      "target": "iframe",
+      "events": [
+        {
+          "cls": "track",
+          "id": "",
+          "tag": "SPAN"
+        },
+        {
+          "cls": "",
+          "id": "approvalsEnabled",
+          "tag": "INPUT"
+        },
+        {
+          "cls": "nav-item",
+          "id": "appearanceNav",
+          "tag": "BUTTON"
+        },
+        {
+          "cls": "",
+          "id": "",
+          "tag": "SPAN"
+        },
+        {
+          "cls": "nav-item",
+          "id": "updatesNav",
+          "tag": "BUTTON"
+        },
+        {
+          "cls": "",
+          "id": "policyValue",
+          "tag": "SPAN"
+        },
+        {
+          "cls": "select-option",
+          "id": "",
+          "tag": "BUTTON"
+        }
+      ]
+    }
+  ]
+}

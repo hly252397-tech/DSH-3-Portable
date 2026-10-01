@@ -1,0 +1,110 @@
+[
+  {
+    "name": "hero-normal",
+    "state": "moved",
+    "hero": true,
+    "model": {
+      "x": 1160,
+      "y": 468.40625,
+      "width": 26,
+      "height": 26,
+      "top": 468.40625,
+      "right": 1186,
+      "bottom": 494.40625,
+      "left": 1160
+    },
+    "card": {
+      "x": 418,
+      "y": 509.40625,
+      "width": 768,
+      "height": 120,
+      "top": 509.40625,
+      "right": 1186,
+      "bottom": 629.40625,
+      "left": 418
+    },
+    "inDock": true,
+    "panel": {
+      "x": 1374.4000244140625,
+      "y": 0,
+      "width": 719.9998779296875,
+      "height": 856,
+      "top": 0,
+      "right": 2094.39990234375,
+      "bottom": 856,
+      "left": 1374.4000244140625
+    }
+  },
+  {
+    "name": "hero-maximized",
+    "state": "moved",
+    "hero": true,
+    "model": {
+      "x": 1760,
+      "y": 717,
+      "width": 26,
+      "height": 26,
+      "top": 717,
+      "right": 1786,
+      "bottom": 743,
+      "left": 1760
+    },
+    "card": {
+      "x": 1018,
+      "y": 758,
+      "width": 768,
+      "height": 120,
+      "top": 758,
+      "right": 1786,
+      "bottom": 878,
+      "left": 1018
+    },
+    "inDock": true,
+    "panel": {
+      "x": 2574.39990234375,
+      "y": 0,
+      "width": 720,
+      "height": 1348,
+      "top": 0,
+      "right": 3294.39990234375,
+      "bottom": 1348,
+      "left": 2574.39990234375
+    }
+  },
+  {
+    "name": "hero-narrow",
+    "state": "moved",
+    "hero": true,
+    "model": {
+      "x": 880,
+      "y": 411.703125,
+      "width": 26,
+      "height": 26,
+      "top": 411.703125,
+      "right": 906,
+      "bottom": 437.703125,
+      "left": 880
+    },
+    "card": {
+      "x": 138,
+      "y": 452.703125,
+      "width": 768,
+      "height": 120,
+      "top": 452.703125,
+      "right": 906,
+      "bottom": 572.703125,
+      "left": 138
+    },
+    "inDock": true,
+    "panel": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0,
+      "top": 0,
+      "right": 0,
+      "bottom": 0,
+      "left": 0
+    }
+  }
+]

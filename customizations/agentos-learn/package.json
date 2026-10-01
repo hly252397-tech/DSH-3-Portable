@@ -1,0 +1,28 @@
+{
+  "name": "dsh-agentos-learn",
+  "version": "0.1.0",
+  "description": "DSH 插件：AgentOS 自进化接入——任务结束自动记经验并评估晋升，任务开始注入适用经验，提供 /agentos-learn 命令族。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "dependencies": {
+    "schemastery": "^3.18.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/learnpolicy.js",
+    "cordis.patch.yml"
+  ],
+  "license": "MIT"
+}

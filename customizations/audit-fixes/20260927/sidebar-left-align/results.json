@@ -1,0 +1,316 @@
+{
+  "status": "pass",
+  "scope": "CSS fixture only",
+  "results": [
+    {
+      "before": {
+        "folder": 16,
+        "normal": 38,
+        "more": 46,
+        "empty": 38,
+        "running": 38,
+        "spinner": {
+          "left": 16,
+          "right": 32
+        },
+        "title": {
+          "left": 38,
+          "right": 168
+        },
+        "time": {
+          "left": 205.3125,
+          "right": 224
+        },
+        "recent": 16
+      }
+    },
+    {
+      "width": 180,
+      "zoom": 0.8,
+      "after": {
+        "folder": 15.98828125,
+        "normal": 15.98828125,
+        "more": 15.98828125,
+        "empty": 15.98828125,
+        "running": 37.98828125,
+        "spinner": {
+          "left": 15.9765625,
+          "right": 31.97265625
+        },
+        "title": {
+          "left": 15.9765625,
+          "right": 108.02734375
+        },
+        "time": {
+          "left": 145.33203125,
+          "right": 164.0234375
+        },
+        "recent": 15.98828125
+      }
+    },
+    {
+      "width": 180,
+      "zoom": 1,
+      "after": {
+        "folder": 16,
+        "normal": 16,
+        "more": 16,
+        "empty": 16,
+        "running": 38,
+        "spinner": {
+          "left": 16,
+          "right": 32
+        },
+        "title": {
+          "left": 16,
+          "right": 108
+        },
+        "time": {
+          "left": 145.3125,
+          "right": 164
+        },
+        "recent": 16
+      }
+    },
+    {
+      "width": 180,
+      "zoom": 1.25,
+      "after": {
+        "folder": 16,
+        "normal": 16,
+        "more": 16,
+        "empty": 16,
+        "running": 38,
+        "spinner": {
+          "left": 16,
+          "right": 32
+        },
+        "title": {
+          "left": 16,
+          "right": 108
+        },
+        "time": {
+          "left": 145.3249969482422,
+          "right": 163.99999809265137
+        },
+        "recent": 16
+      }
+    },
+    {
+      "width": 180,
+      "zoom": 1.5,
+      "after": {
+        "folder": 16,
+        "normal": 16,
+        "more": 16,
+        "empty": 16,
+        "running": 38,
+        "spinner": {
+          "left": 16,
+          "right": 32
+        },
+        "title": {
+          "left": 16,
+          "right": 108
+        },
+        "time": {
+          "left": 145.3229217529297,
+          "right": 164.0000057220459
+        },
+        "recent": 16
+      }
+    },
+    {
+      "width": 240,
+      "zoom": 0.8,
+      "after": {
+        "folder": 15.98828125,
+        "normal": 15.98828125,
+        "more": 15.98828125,
+        "empty": 15.98828125,
+        "running": 37.98828125,
+        "spinner": {
+          "left": 15.9765625,
+          "right": 31.97265625
+        },
+        "title": {
+          "left": 15.9765625,
+          "right": 168.02734375
+        },
+        "time": {
+          "left": 205.33203125,
+          "right": 224.0234375
+        },
+        "recent": 15.98828125
+      }
+    },
+    {
+      "width": 240,
+      "zoom": 1,
+      "after": {
+        "folder": 16,
+        "normal": 16,
+        "more": 16,
+        "empty": 16,
+        "running": 38,
+        "spinner": {
+          "left": 16,
+          "right": 32
+        },
+        "title": {
+          "left": 16,
+          "right": 168
+        },
+        "time": {
+          "left": 205.3125,
+          "right": 224
+        },
+        "recent": 16
+      }
+    },
+    {
+      "width": 240,
+      "zoom": 1.25,
+      "after": {
+        "folder": 16,
+        "normal": 16,
+        "more": 16,
+        "empty": 16,
+        "running": 38,
+        "spinner": {
+          "left": 16,
+          "right": 32
+        },
+        "title": {
+          "left": 16,
+          "right": 168
+        },
+        "time": {
+          "left": 205.3249969482422,
+          "right": 223.99999809265137
+        },
+        "recent": 16
+      }
+    },
+    {
+      "width": 240,
+      "zoom": 1.5,
+      "after": {
+        "folder": 16,
+        "normal": 16,
+        "more": 16,
+        "empty": 16,
+        "running": 38,
+        "spinner": {
+          "left": 16,
+          "right": 32
+        },
+        "title": {
+          "left": 16,
+          "right": 168
+        },
+        "time": {
+          "left": 205.3229217529297,
+          "right": 224.0000057220459
+        },
+        "recent": 16
+      }
+    },
+    {
+      "width": 320,
+      "zoom": 0.8,
+      "after": {
+        "folder": 15.98828125,
+        "normal": 15.98828125,
+        "more": 15.98828125,
+        "empty": 15.98828125,
+        "running": 37.98828125,
+        "spinner": {
+          "left": 15.9765625,
+          "right": 31.97265625
+        },
+        "title": {
+          "left": 15.9765625,
+          "right": 248.02734375
+        },
+        "time": {
+          "left": 285.33203125,
+          "right": 304.0234375
+        },
+        "recent": 15.98828125
+      }
+    },
+    {
+      "width": 320,
+      "zoom": 1,
+      "after": {
+        "folder": 16,
+        "normal": 16,
+        "more": 16,
+        "empty": 16,
+        "running": 38,
+        "spinner": {
+          "left": 16,
+          "right": 32
+        },
+        "title": {
+          "left": 16,
+          "right": 248
+        },
+        "time": {
+          "left": 285.3125,
+          "right": 304
+        },
+        "recent": 16
+      }
+    },
+    {
+      "width": 320,
+      "zoom": 1.25,
+      "after": {
+        "folder": 16,
+        "normal": 16,
+        "more": 16,
+        "empty": 16,
+        "running": 38,
+        "spinner": {
+          "left": 16,
+          "right": 32
+        },
+        "title": {
+          "left": 16,
+          "right": 248
+        },
+        "time": {
+          "left": 285.32501220703125,
+          "right": 304.00001335144043
+        },
+        "recent": 16
+      }
+    },
+    {
+      "width": 320,
+      "zoom": 1.5,
+      "after": {
+        "folder": 16,
+        "normal": 16,
+        "more": 16,
+        "empty": 16,
+        "running": 38,
+        "spinner": {
+          "left": 16,
+          "right": 32
+        },
+        "title": {
+          "left": 16,
+          "right": 248
+        },
+        "time": {
+          "left": 285.32293701171875,
+          "right": 304.00002098083496
+        },
+        "recent": 16
+      }
+    }
+  ]
+}

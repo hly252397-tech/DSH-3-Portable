@@ -1,0 +1,376 @@
+{
+  "status": "pass",
+  "at": "2026-09-19T15:01:25.362Z",
+  "before": {
+    "className": "VWh0dG_feeInlineError",
+    "text": "平价¥9.55",
+    "label": "33h59m 后转峰时 · 本轮 ¥0.093 · 会话 ¥9.55 · OpenCode Go 本月 0%",
+    "role": "note",
+    "height": 22,
+    "radius": "0px",
+    "background": "color(srgb 0.937255 0.266667 0.266667 / 0.12)",
+    "border": "0px",
+    "numColor": "rgb(239, 68, 68)",
+    "dot": "rgba(0, 0, 0, 0)",
+    "rect": {
+      "x": 640.421875,
+      "y": 687,
+      "width": 73.578125,
+      "height": 22,
+      "top": 687,
+      "right": 714,
+      "bottom": 709,
+      "left": 640.421875
+    },
+    "capture": {
+      "x": 271,
+      "y": 671,
+      "width": 483,
+      "height": 54
+    }
+  },
+  "after": {
+    "className": "VWh0dG_feeInlineError",
+    "text": "平价¥9.55",
+    "label": "33h59m 后转峰时 · 本轮 ¥0.093 · 会话 ¥9.55 · OpenCode Go 本月 0%",
+    "role": "note",
+    "height": 26,
+    "radius": "7px",
+    "background": "color(srgb 0.963765 0.963765 0.964235)",
+    "border": "1px",
+    "numColor": "rgb(24, 24, 27)",
+    "dot": "rgb(239, 68, 68)",
+    "rect": {
+      "x": 625.453125,
+      "y": 685,
+      "width": 88.546875,
+      "height": 26,
+      "top": 685,
+      "right": 714,
+      "bottom": 711,
+      "left": 625.453125
+    },
+    "capture": {
+      "x": 271,
+      "y": 671,
+      "width": 483,
+      "height": 54
+    }
+  },
+  "results": [
+    {
+      "name": "old visual defect reproduced",
+      "pass": true
+    },
+    {
+      "name": "new capsule geometry",
+      "pass": true
+    },
+    {
+      "name": "amount and accessible description preserved",
+      "pass": true
+    },
+    {
+      "name": "real hover detail retained",
+      "pass": true,
+      "details": [
+        "33h59m 后转峰时 · 本轮 ¥0.093 · 会话 ¥9.55 · OpenCode Go 本月 0%"
+      ]
+    },
+    {
+      "name": "isolated real stylesheet variants (not account mutations)",
+      "pass": true,
+      "cases": 24
+    }
+  ],
+  "matrix": [
+    {
+      "theme": "light",
+      "tier": "Off",
+      "state": "",
+      "amount": "¥0.048",
+      "height": 26,
+      "width": 83.21875,
+      "bg": "color(srgb 0.962353 0.962667 0.963294)",
+      "color": "rgb(15, 17, 21)",
+      "dot": "none",
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "tier": "Off",
+      "state": "",
+      "amount": "¥12345.67",
+      "height": 26,
+      "width": 102.96875,
+      "bg": "color(srgb 0.962353 0.962667 0.963294)",
+      "color": "rgb(15, 17, 21)",
+      "dot": "none",
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "tier": "Off",
+      "state": "Alert",
+      "amount": "¥0.048",
+      "height": 26,
+      "width": 95.21875,
+      "bg": "color(srgb 0.962353 0.962667 0.963294)",
+      "color": "rgb(15, 17, 21)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "tier": "Off",
+      "state": "Alert",
+      "amount": "¥12345.67",
+      "height": 26,
+      "width": 114.96875,
+      "bg": "color(srgb 0.962353 0.962667 0.963294)",
+      "color": "rgb(15, 17, 21)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "tier": "Off",
+      "state": "Error",
+      "amount": "¥0.048",
+      "height": 26,
+      "width": 95.21875,
+      "bg": "color(srgb 0.962353 0.962667 0.963294)",
+      "color": "rgb(15, 17, 21)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "tier": "Off",
+      "state": "Error",
+      "amount": "¥12345.67",
+      "height": 26,
+      "width": 114.96875,
+      "bg": "color(srgb 0.962353 0.962667 0.963294)",
+      "color": "rgb(15, 17, 21)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "tier": "Primary",
+      "state": "",
+      "amount": "¥0.048",
+      "height": 26,
+      "width": 83.21875,
+      "bg": "color(srgb 0.962353 0.962667 0.963294)",
+      "color": "rgb(15, 17, 21)",
+      "dot": "none",
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "tier": "Primary",
+      "state": "",
+      "amount": "¥12345.67",
+      "height": 26,
+      "width": 102.96875,
+      "bg": "color(srgb 0.962353 0.962667 0.963294)",
+      "color": "rgb(15, 17, 21)",
+      "dot": "none",
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "tier": "Primary",
+      "state": "Alert",
+      "amount": "¥0.048",
+      "height": 26,
+      "width": 95.21875,
+      "bg": "color(srgb 0.962353 0.962667 0.963294)",
+      "color": "rgb(15, 17, 21)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "tier": "Primary",
+      "state": "Alert",
+      "amount": "¥12345.67",
+      "height": 26,
+      "width": 114.96875,
+      "bg": "color(srgb 0.962353 0.962667 0.963294)",
+      "color": "rgb(15, 17, 21)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "tier": "Primary",
+      "state": "Error",
+      "amount": "¥0.048",
+      "height": 26,
+      "width": 95.21875,
+      "bg": "color(srgb 0.962353 0.962667 0.963294)",
+      "color": "rgb(15, 17, 21)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "tier": "Primary",
+      "state": "Error",
+      "amount": "¥12345.67",
+      "height": 26,
+      "width": 114.96875,
+      "bg": "color(srgb 0.962353 0.962667 0.963294)",
+      "color": "rgb(15, 17, 21)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "tier": "Off",
+      "state": "",
+      "amount": "¥0.048",
+      "height": 26,
+      "width": 83.21875,
+      "bg": "color(srgb 0.118118 0.118275 0.125961)",
+      "color": "rgb(249, 250, 251)",
+      "dot": "none",
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "tier": "Off",
+      "state": "",
+      "amount": "¥12345.67",
+      "height": 26,
+      "width": 102.96875,
+      "bg": "color(srgb 0.118118 0.118275 0.125961)",
+      "color": "rgb(249, 250, 251)",
+      "dot": "none",
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "tier": "Off",
+      "state": "Alert",
+      "amount": "¥0.048",
+      "height": 26,
+      "width": 95.21875,
+      "bg": "color(srgb 0.118118 0.118275 0.125961)",
+      "color": "rgb(249, 250, 251)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "tier": "Off",
+      "state": "Alert",
+      "amount": "¥12345.67",
+      "height": 26,
+      "width": 114.96875,
+      "bg": "color(srgb 0.118118 0.118275 0.125961)",
+      "color": "rgb(249, 250, 251)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "tier": "Off",
+      "state": "Error",
+      "amount": "¥0.048",
+      "height": 26,
+      "width": 95.21875,
+      "bg": "color(srgb 0.118118 0.118275 0.125961)",
+      "color": "rgb(249, 250, 251)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "tier": "Off",
+      "state": "Error",
+      "amount": "¥12345.67",
+      "height": 26,
+      "width": 114.96875,
+      "bg": "color(srgb 0.118118 0.118275 0.125961)",
+      "color": "rgb(249, 250, 251)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "tier": "Primary",
+      "state": "",
+      "amount": "¥0.048",
+      "height": 26,
+      "width": 83.21875,
+      "bg": "color(srgb 0.118118 0.118275 0.125961)",
+      "color": "rgb(249, 250, 251)",
+      "dot": "none",
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "tier": "Primary",
+      "state": "",
+      "amount": "¥12345.67",
+      "height": 26,
+      "width": 102.96875,
+      "bg": "color(srgb 0.118118 0.118275 0.125961)",
+      "color": "rgb(249, 250, 251)",
+      "dot": "none",
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "tier": "Primary",
+      "state": "Alert",
+      "amount": "¥0.048",
+      "height": 26,
+      "width": 95.21875,
+      "bg": "color(srgb 0.118118 0.118275 0.125961)",
+      "color": "rgb(249, 250, 251)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "tier": "Primary",
+      "state": "Alert",
+      "amount": "¥12345.67",
+      "height": 26,
+      "width": 114.96875,
+      "bg": "color(srgb 0.118118 0.118275 0.125961)",
+      "color": "rgb(249, 250, 251)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "tier": "Primary",
+      "state": "Error",
+      "amount": "¥0.048",
+      "height": 26,
+      "width": 95.21875,
+      "bg": "color(srgb 0.118118 0.118275 0.125961)",
+      "color": "rgb(249, 250, 251)",
+      "dot": "\"\"",
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "tier": "Primary",
+      "state": "Error",
+      "amount": "¥12345.67",
+      "height": 26,
+      "width": 114.96875,
+      "bg": "color(srgb 0.118118 0.118275 0.125961)",
+      "color": "rgb(249, 250, 251)",
+      "dot": "\"\"",
+      "pass": true
+    }
+  ]
+}

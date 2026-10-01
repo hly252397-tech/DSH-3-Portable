@@ -1,0 +1,20 @@
+{
+  "status": "pass",
+  "files": 600,
+  "pending": {
+    "relativePath": "Data/Updates/Desktop/slots/1.0.65+build.8-local-8bc1c43e961072df",
+    "version": "1.0.65+build.8",
+    "sha256": "09ea6904353615c5bdb8ddab6c8786461f7f43d971b01a5fa7b4fbd89fe7d87e",
+    "transactionId": "b42616a0-9ff3-4e9a-8f82-52648e5e5160"
+  },
+  "activeDiff": [
+    "resources/browser-workspace.css",
+    "resources/shell.html",
+    "resources/startup.html",
+    "resources/theme.css",
+    "resources/whale-particles.js"
+  ],
+  "activeAndRollbackPreserved": true,
+  "asarUnchanged": true,
+  "coldStartVerified": false
+}

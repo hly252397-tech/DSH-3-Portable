@@ -1,0 +1,35 @@
+{
+  "schema": "dsh-ui-evidence/1",
+  "recordedAt": "2026-09-30",
+  "change": "设置页左栏「桌面设置」整页入口下线；拆为「通知」「更新」（基础组导航项）与「外观」（常规页内「桌面外观」行）",
+  "decision": "用户 2026-09-30 拍板：①不要桌面设置整页入口，通知/更新/外观移到同类栏目；②外观移到常规选项内",
+  "constraint": "不得影响 DSH 内核更新与桌面壳更新（用户红线）——零 src 改动、iframe 桥方法白名单零接触、主进程更新器零接触；护栏测试锁定",
+  "mechanism": {
+    "nav_entries": "ui-tweaks 镜像加合成项（SETTINGS_NAV_DESKTOP_TABS）：点击=点官方「桌面设置」原按钮（仍注册，仅不镜像）+ 经 shim 预留通道 dsh-desktop-settings-v1 的 settingsSection 事件切页签（iframe 内 api.onSettingsSection 已订阅，src 侧无既有发射方，零冲突）",
+    "appearance_row": "官方 settings.general.item 槽只能扩展既有行不能加新行 ⇒ DOM 注入：在常规页「外观」行正下方注入「桌面外观」行，类名从相邻行运行时借用（CSS-module 哈希随构建变），点击复用同一开分区+投页签机制",
+    "settings_html": "onSettingsSection 扩展认得 appearance（原只认 updates），1 行纯增量；hash 初始化 #appearance 本就支持"
+  },
+  "results": [
+    { "name": "导航终态", "pass": true, "evidence": "基础=常规/模型/通知(tab)/更新(tab)；界面定制=自定义空间/侧边卡片/Codex UI/宠物；桌面设置不镜像（原件可见数 0）" },
+    { "name": "常规页注入行", "pass": true, "evidence": "桌面外观/桌面壳的主题预设与颜色方案/打开主题设置；紧贴官方外观行下方（间距 0）；类名借用成功" },
+    { "name": "通知入口→通知页签", "pass": true, "evidence": "iframe 挂载（title=桌面设置, srcdoc 91KB）+ 镜像激活=通知 + 截图标题带=「通知」" },
+    { "name": "更新入口→更新页签", "pass": true, "evidence": "镜像激活=更新 + 截图标题带=「更新」+「检查更新」按钮在场 +「DeepSeek Harness 运行环境」小节在场" },
+    { "name": "桌面外观行→外观页签", "pass": true, "evidence": "iframe 挂载 + 截图标题带=「外观」" },
+    { "name": "分区已开时再点更新入口不关闭", "pass": true, "evidence": "通知→更新连续点击，iframe 存活、激活态切换" },
+    { "name": "ESC 关闭", "pass": true, "evidence": "document 级 keydown Escape → 设置页卸载" },
+    { "name": "门禁", "pass": true, "evidence": "tsc 0；全量 789/0/26；ui-baseline PASS（改动文件均不在基线保护清单）" },
+    { "name": "护栏测试", "pass": true, "evidence": "test/ui-tweaks-settings-nav-tabs.test.ts：组映射/外观不在导航组/注入行在场/通道名与 src shim 跨文件契约/更新桥方法零触碰" },
+    { "name": "五副本一致", "pass": true, "evidence": "MD5 唯一（unlock→sync→relock 全程）" }
+  ],
+  "deployment": {
+    "assets": "Build-UI-Only.ps1 -Force → 候选槽 1.0.77-local-15ab7c196e59ea08 → 重启激活，state.json=completed（桌面端 1.0.77 已部署并通过启动验证）",
+    "force_justification": "-Force 绕行门禁 A/B 的证据：release 树与部署槽逐哈希一致（app.asar 同哈希、desktop-bridge 17 文件零差异）、release-bridge 与当前 dist-src 17/17 全同 ⇒ 16:38 的 asar 已含全部未提交 src 改动，无「新界面+旧主进程」混血",
+    "plugin": "ui-tweaks junction 即时生效（重启加载新 bundle）"
+  },
+  "failedAttempts": [
+    { "attempt": "固定坐标 cdp-click 点合成项", "outcome": "未生效——设置页会自动关闭+坐标漂移（09-29 已知坑，用户在用机器加剧）；改单次原子求值（开→点→采样一气呵成）后稳定复现" },
+    { "attempt": "像素差异法验证页签切换", "outcome": "首版裁剪区落在内容列右侧空白边得出 0% 假结论；教训：diff 区域必须先取 iframe 实际矩形；最终用标题带裁剪+约束式三选一问题确认三页签各自正确" },
+    { "attempt": "CDP DOM pierce 读 iframe 内部", "outcome": "DOM.getDocument(pierce) 未取到沙箱 srcdoc iframe 内容、Target.getTargets 无独立目标（同进程）；跨源 iframe 内部状态不可直接读，改像素+标题证据" },
+    { "attempt": "vision 读全尺寸截图", "outcome": "整段编造（回吐提问词）；仅约束式三选一/抄写题可靠" }
+  ]
+}

@@ -1,0 +1,385 @@
+{
+  "schema": 1,
+  "revision": 7,
+  "features": [
+    "portable.data-isolation",
+    "portable.desktop-ab-update",
+    "portable.runtime-ab-update",
+    "ui.shell-navigation",
+    "ui.desktop-settings-integrated",
+    "ui.sidebar-dual-panels",
+    "ui.browser-card",
+    "ui.composer-toolbar",
+    "ui.settings-nav-icons",
+    "ui.project-session-left-aligned",
+    "plugin.dsh-agent-boundary",
+    "plugin.dsh-agent-bridge",
+    "plugin.dsh-agent-discipline",
+    "plugin.dsh-agent-mcp",
+    "plugin.dsh-agentos-trigger",
+    "plugin.dsh-agentos-learn",
+    "plugin.dsh-runtime-identity",
+    "plugin.dsh-better-sidebar",
+    "plugin.dsh-black-hole",
+    "plugin.dsh-custom-spaces",
+    "plugin.dsh-hj-material",
+    "plugin.dsh-hj-workbench",
+    "plugin.dsh-p3-tiny-watch",
+    "plugin.dsh-restart-button",
+    "plugin.dsh-sidebar-spaces",
+    "plugin.dsh-ui-tweaks",
+    "plugin.dsh-system-awareness",
+    "plugin.dsh-manual",
+    "plugin.dsh-earthquake-alert",
+    "ui.settings-split-sections",
+    "ui.appearance-general-extension",
+    "ui.plugin-config-section-store"
+  ],
+  "requiredPlugins": [
+    "dsh-agent-boundary",
+    "dsh-agent-bridge",
+    "dsh-agent-discipline",
+    "dsh-agent-mcp",
+    "dsh-agentos-trigger",
+    "dsh-agentos-learn",
+    "dsh-runtime-identity",
+    "dsh-better-sidebar",
+    "dsh-black-hole",
+    "dsh-custom-spaces",
+    "dsh-hj-material",
+    "dsh-hj-workbench",
+    "dsh-p3-tiny-watch",
+    "dsh-restart-button",
+    "dsh-sidebar-spaces",
+    "dsh-ui-tweaks",
+    "dsh-system-awareness",
+    "dsh-manual",
+    "dsh-earthquake-alert"
+  ],
+  "sources": [
+    {
+      "pluginName": "dsh-ui-tweaks",
+      "sourceDir": "customizations/ui-tweaks",
+      "files": [
+        {
+          "path": "cordis.patch.yml",
+          "sha256": "7b4156789a3ed82b381117cc54c8f9e7adfff608ed45eba90c121f3365c17406"
+        },
+        {
+          "path": "lib/client.js",
+          "sha256": "81d6c324b0be5414ee62e24d8f755e1ab3ee22d3f8cdae1e55c9a427f90c01be"
+        },
+        {
+          "path": "lib/index.js",
+          "sha256": "b56c86cc7b7ad8371842b1387f7ff01ffa7176c3ee360cd35131ecbde78b8184"
+        },
+        {
+          "path": "package.json",
+          "sha256": "ebe70e8bd1207b467904957699088aed415a791f15e2b66b43cb5bc0405c46d9"
+        }
+      ]
+    },
+    {
+      "pluginName": "dsh-agent-mcp",
+      "sourceDir": "customizations/agent-mcp",
+      "files": [
+        {
+          "path": "cordis.patch.yml",
+          "sha256": "e78e83732372a6546527d6a45af894a91a7698a856e137fb6d99c7bdd5a35ad9"
+        },
+        {
+          "path": "lib/bridge-link.js",
+          "sha256": "369af8567e01c9836ee8c7e6a5723b1f298314ba58f91e7f5f5c42af9a7626c8"
+        },
+        {
+          "path": "lib/client.js",
+          "sha256": "ee36998d2df92b005ff7fde2ba64af19e27527e4548dbbf59d120d3de673170c"
+        },
+        {
+          "path": "lib/credentials.js",
+          "sha256": "dbaea6616fe485aed6c9f019f93729c703d2c9f6c51c36e06784e29ec341b867"
+        },
+        {
+          "path": "lib/index.js",
+          "sha256": "92741f867eb6ec1b44803e5d9a67678f3a4d421583598adafdb56805a059de69"
+        },
+        {
+          "path": "lib/settings-api.js",
+          "sha256": "f1b6afe49dc5f4508260cc980624c54bea905c4bce2fce7bc2bcf84c9510cae3"
+        },
+        {
+          "path": "package.json",
+          "sha256": "ecfd82ef6c6b1d1ed0f598ccba23616552790486cf9f01882fcd0a246cffecbf"
+        }
+      ]
+    },
+    {
+      "pluginName": "dsh-black-hole",
+      "sourceDir": "customizations/black-hole",
+      "files": [
+        {
+          "path": "assets/black-hole-banner.png",
+          "sha256": "ea387d59cdd4505b6aa66efe2e6ddb579f10e9e0769b22cc3240f217dc170d05",
+          "runtime": false
+        },
+        {
+          "path": "assets/black-hole-banner.webp",
+          "sha256": "27f00eb7ff798704512e725f4892ab3f0f6ee3d9283875e334861f3d59faaca9",
+          "runtime": false
+        },
+        {
+          "path": "cordis.patch.yml",
+          "sha256": "c4e7281ff0740165513cb000c233a081fabc0ed5ce3ea1c306d36b001c8c68d3"
+        },
+        {
+          "path": "lib/client.js",
+          "sha256": "967e11c5fad33171d2095c70dbfadd82b8e4a4a562e69354e17f485de0939ebc"
+        },
+        {
+          "path": "lib/core.js",
+          "sha256": "60274678025b0624ca3a3dab0519fe194602f235f50a3e1dfbd37e9187a9a37b"
+        },
+        {
+          "path": "lib/index.js",
+          "sha256": "0be60040a96322a136c28ba6c09221932f22c4d047976df5292ff8cacc398fe5"
+        },
+        {
+          "path": "lib/portable-store.js",
+          "sha256": "4c5b8a56daa2cea62c0f4bd713f032629850bef506af5b7eb5e19eca2d3ffd63"
+        },
+        {
+          "path": "package.json",
+          "sha256": "5164f7f5a63f59d831ce86b52e24f2be1d2a5df44c4268d3081404710ed9d4aa"
+        }
+      ]
+    },
+    {
+      "pluginName": "dsh-custom-spaces",
+      "sourceDir": "customizations/custom-spaces",
+      "files": [
+        {
+          "path": "cordis.patch.yml",
+          "sha256": "24e5b5d0cf777d2133426a6e940b042505c62703e94b2877de1e034d9c90d464"
+        },
+        {
+          "path": "lib/client.js",
+          "sha256": "45e0d73c93b07de5ed48aaed95c8e2ae6ab03db267e56cbb158635fc99929aae"
+        },
+        {
+          "path": "lib/index.js",
+          "sha256": "9d73a2edba2fbb6fbd98cd8093034a68790f787b7e725881ce0fad16ec5f42ba"
+        },
+        {
+          "path": "package.json",
+          "sha256": "2d4ae1b745d89fe645cdc89c07fa4fb426a2141735b9a369693d6ce70af3fe85"
+        }
+      ]
+    },
+    {
+      "pluginName": "dsh-system-awareness",
+      "sourceDir": "plugins/dsh-system-awareness",
+      "files": [
+        {
+          "path": "cordis.patch.yml",
+          "sha256": "904ac293c1fe265a1ad9236aa55fe477a974954baf31d3b2529a9ba0ae061fdd"
+        },
+        {
+          "path": "dsh-capabilities.json",
+          "sha256": "1c904483119c8110b965503ee91c49b5c2aef1523638078fec8101ca40900a85"
+        },
+        {
+          "path": "lib/catalog.js",
+          "sha256": "028a6c987bb6821aae676be5fd31a524d8791bbe335ae6b40cb1ca78f89de6e8"
+        },
+        {
+          "path": "lib/index.js",
+          "sha256": "176ded44721863b694e10bf27d877619e42a933702202c05a6e8b7d3f64abdcd"
+        },
+        {
+          "path": "package.json",
+          "sha256": "02d3cd8c8146f8acb8a0888d5ca5381eaa8fa933bb537d0f8ca281f5c29401df"
+        }
+      ]
+    },
+    {
+      "pluginName": "dsh-manual",
+      "sourceDir": "plugins/dsh-manual",
+      "files": [
+        {
+          "path": "cordis.patch.yml",
+          "sha256": "668f00256c3959d6c97ba2d377a89c1d8a0cc4646da1e99a7762588d7760e3b5"
+        },
+        {
+          "path": "dsh-capabilities.json",
+          "sha256": "bbbf0c7468d559a6e38ea0b94c6ddc07c7962f2611da028f78077f79544bc32f"
+        },
+        {
+          "path": "lib/api.js",
+          "sha256": "d948d9878fc5324953da2654d0a1d981b370ed3f3cce8ee6276c13ab7d9a8312"
+        },
+        {
+          "path": "lib/client.js",
+          "sha256": "5a36c4b2846ca8b27d9e9e7090e5de3665b686777337638f3d02f6a08a3ab4a6"
+        },
+        {
+          "path": "lib/index.js",
+          "sha256": "2797ad3337c2cc842d3ae1f200709f0e8134b99da400c132e0d17ee5d7658301"
+        },
+        {
+          "path": "lib/seeds.js",
+          "sha256": "6fac11daa02b7116ef4c32fbd60a2b8a7b173c9a03a578c00e57c9a2ba552fff"
+        },
+        {
+          "path": "lib/sources.js",
+          "sha256": "172af3deb54665fa4309afeeec809eec0c0d40be271fc5f809b685034b4c3bd0"
+        },
+        {
+          "path": "lib/store.js",
+          "sha256": "93e45aa0a068b256d1c03448fb5a9cc2314d343cac1c878ed4d752b5ad806093"
+        },
+        {
+          "path": "package.json",
+          "sha256": "534eca5bd88734328655f0d1e8e0148c3b2f533d327484e18e0d4e05760767aa"
+        }
+      ]
+    },
+    {
+      "pluginName": "dsh-earthquake-alert",
+      "sourceDir": "plugins/dsh-earthquake-alert",
+      "files": [
+        {
+          "path": "cordis.patch.yml",
+          "sha256": "95a207d7acb5772129e240174f1d4c2e8c44aad8853e36838f1a967e2380bd2f"
+        },
+        {
+          "path": "lib/client.js",
+          "sha256": "d277e715ee9428e157b5ce90c945716e7ba76ed3d990f75f76dcf885fd89999b"
+        },
+        {
+          "path": "lib/index.js",
+          "sha256": "ae68872819eb8ca4612b70943aa14f054ef12a35e1f24d1c8c3d1cf5fb4c76f7"
+        },
+        {
+          "path": "lib/preferences.js",
+          "sha256": "efc966ade8ddef5857e9fccb98b9a8bcb5e2b0641f51a2eb53d04cebcbded68b"
+        },
+        {
+          "path": "package.json",
+          "sha256": "ebc19332a62ffc66007db50f77d15d9ecbe9baca977971c63f74f76db222bedd"
+        }
+      ]
+    },
+    {
+      "pluginName": "codex-ui-patches",
+      "sourceDir": "customizations/codex-ui-patches",
+      "files": [
+        {
+          "path": "README.md",
+          "sha256": "ac055fad6bf99d3eb8c57a3d765f3073002e9b89b3a9c0f9b72c3dd213a526a4"
+        },
+        {
+          "path": "apply.mjs",
+          "sha256": "2dd1cfe22a74b09db61590e4b388bddf2e49e4e6c7dd93fbc1e8feb185305cc3"
+        }
+      ]
+    },
+    {
+      "pluginName": "dsh-agentos-learn",
+      "sourceDir": "customizations/agentos-learn",
+      "files": [
+        {
+          "path": "package.json",
+          "sha256": "8e53cfb3bdc9972f0e727599e63c1630e5cc7463665323dd12c55f5cc0a66360"
+        },
+        {
+          "path": "cordis.patch.yml",
+          "sha256": "c67106015eb98e2f7bbde34c8bdbe2494d1c5ca00d0aa0891e29a2442751bb8d"
+        },
+        {
+          "path": "lib/index.js",
+          "sha256": "1b3def16e25a815da3e3ad8ec1e6b87f995a58869c9cafdc2e9421d153be9880"
+        },
+        {
+          "path": "lib/learnpolicy.js",
+          "sha256": "95a78a3fc4cf5acbe7925241fb2314d2521fb2f18f1834458410f9a652114e0a"
+        },
+        {
+          "path": "lib/selfcheck.mjs",
+          "sha256": "64fd2be55e96196755747e328102f359fbf01830ab56e2d5c20e93cd85f7d7ca"
+        }
+      ]
+    },
+    {
+      "pluginName": "dsh-runtime-identity",
+      "sourceDir": "customizations/runtime-identity",
+      "files": [
+        {
+          "path": "package.json",
+          "sha256": "7127169042857bf228ca2085d496849e4a448690ae67e2f970c8cfbfc0a67520"
+        },
+        {
+          "path": "cordis.patch.yml",
+          "sha256": "c5271d887f90d42a36d4be6d7ba016df52ef32c0f1fb548a86ae1a622352615c"
+        },
+        {
+          "path": "lib/index.js",
+          "sha256": "d395fde6428fb6024fc74553ccccfc9cd12204c9eaa6f18d9a739df448c32c67"
+        },
+        {
+          "path": "lib/identity.js",
+          "sha256": "e3ffa372d35b0b96b00a64b89f29b5d2be19167b4aa4a4348273c8321c4e85ef"
+        },
+        {
+          "path": "lib/selfcheck.mjs",
+          "sha256": "5cd2c051a8e9f2ce25fc6502647d7e8ba4351f6ffec7adf1a8b544293123f487"
+        }
+      ]
+    }
+  ],
+  "changes": [
+    {
+      "revision": 4,
+      "date": "2026-10-01",
+      "pluginName": "dsh-ui-tweaks",
+      "file": "lib/client.js",
+      "reason": "用户报「更新图标有问题」。实机取证：页面上唯一可见的「更新」入口是设置镜像导航那一枚（官方 .dcu-settings-nav 20 个条目 rect 全为 0x0 不渲染）；其 mask 内容确为 lucide refresh-cw，位置尺寸颜色均正常，但按真实 16px 盒 + opacity .62 光栅化后，四条曲线互相压边糊成一团，不可辨。",
+      "change": "两条图标管线统一改用 lucide rotate-cw（单段近整圆弧 + 右上单箭头）：① 镜像导航 CSS 的 [data-dsh-nav-key=\"更新\"]::before mask；② SETTINGS_NAV_ICONS 的 desktop-updates body。路径数据替换 + 5 行原因注释，无其他改动（diff 9 行，已逐行审）。",
+      "evidence": "候选实测：把 A(现状 refresh-cw)/B(rotate-cw)/C(单弧)/E(圆内下箭头)/F(下载到托盘) 按同一 16px 条件在页内 canvas 光栅化并逐像素比对，B 字形完整可辨。定点测试 35/0 通过；ui-baseline PASS。",
+      "negativeControl": "其余 19 枚导航图标与其余 3 个 ui-tweaks 文件哈希未变；通知图标仍是铃铛，更新图标仍与其语义一致且与另一条管线一致（无「两条管线各画各的」漂移）。",
+      "deployment": "ui-tweaks 是 Profile 插件（junction），改完刷新页面即生效，无需 40 分钟全量重建。"
+    },
+    {
+      "revision": 5,
+      "date": "2026-10-01",
+      "pluginName": "codex-ui-patches",
+      "file": "apply.mjs",
+      "reason": "用户报「插件配置又出现问题了，点击后就消失了，和以前一样」。这是 2026-09-28 已定位并修复过的同一缺陷在 auto-020-rc2 家园复发，不是新 bug：codex-ui 的 registerPluginConfigSection 转发 settings.section 时漏了 main 条目随带的 store，官方 PluginManagerPage 首渲染即 props.useStore()，抛 TypeError 后走 abdicate 退位通道，SlotCore.entriesOfSlot 永久排除该条目 ⇒ 导航项点了就没、刷新才恢复。当天 r4 全界面审计已在现役家园活体复现同一 TypeError。",
+      "change": "新增 customizations/codex-ui-patches/（apply.mjs + README.md）作为该补丁的仓库归属与唯一重放入口：① 对 Data/DSH 与 Data/DSH-generations/*/home 全部家园副本做三态判定（已打/本次打/上游变形），变形时非 0 退出并打印现场，绝不静默跳过；② 写文件一律 tmp+rename，覆盖目录项而不穿透写进 pnpm store 的硬链 inode（打完后 nlink 由 2 变 1 是预期）；③ 挂三条闸门：prepare-dsh-home-generation.mjs 在写绑定开关之前应用（失败即撤绑定并隔离代际目录）、prepare-kernel-update.mjs 升级收尾复核、Build-DSH-Portable.ps1 定制源码保护门禁阶段 --verify 阻断发布。同时把缺失补丁的 4 份家园副本（其中 2 份 nlink=2）统一重放到 00cc596E…，与 09-28 验收哈希逐字节一致。",
+      "evidence": "反向对照（修复前）：apply.mjs --verify 对 4 份副本报 2 missing + 2 ok、退出码 1，其中 auto-020-rc2 与 Data/DSH 标注 [硬链]。正向（修复后）：同一命令 4 份全 ok、退出码 0，四份 sha256 均为 00cc596e48064ccd…（= 09-28 修复记录登记的补丁后哈希），nlink 全部为 1。定点测试 dist/test/codex-ui-patches.test.js 7/0 通过（含正向应用、幂等字节不变、上游变形必须抛 PATCH_SHAPE_DRIFT、锚点唯一性、run() 的 verify/apply/复跑、实机家园巡检）。实机点击验证见本轮交接单。",
+      "negativeControl": "ui-tweaks 20 枚导航图标与其余受保护源哈希未变；ui-baseline PASS；未装 codex-ui 的家园被跳过而非报错（run() 用例覆盖）。上游变形用例证明守卫不是「永远通过」——把 OFFICIAL_PLUGIN_MANAGER_NS 改名后必须抛错。",
+      "deployment": "社区包在 profile node_modules 里，改完刷新页面即生效，无需 40 分钟全量重建；三处闸门全在 .mjs/仓库脚本层，同样不需要打包即可生效。"
+    },
+    {
+      "revision": 6,
+      "date": "2026-10-02",
+      "pluginName": "dsh-agentos-learn",
+      "file": "lib/index.js",
+      "reason": "用户选择路径 A：把 AgentOS 自进化接入 DSH 任务循环（任务结束记经验、任务开始注入适用经验），并强制「更新 DSH/桌面壳防回退，不要更新后无法加载或复现旧问题」。历史事故：插件 factory 抛错曾导致 46 插件连坐 import failed；故本插件按防回退规格新建，不是改既有插件。",
+      "change": "新增 customizations/agentos-learn/ 作为唯一源码归属，并安装到活动 Profile（auto-020-rc2）local/ + node_modules Junction + package.json dependencies/bundles。宿主半侧薄适配：turn/end 提取经验候选→AgentOS memory-remember+learning-evaluate；systemPrompt.section 每轮注入适用经验（只读记忆库）；/agentos-learn* 三条命令。策略层 lib/learnpolicy.js 纯函数可单测。不写 client.js（零客户端 bundle、零 UI 面）。inject 只声明 systemPrompt+commands。",
+      "evidence": "selfcheck 39/39 PASS（含畸形 session/event 不抛、enabled:false 注入为空、patch 稳定 id、不伪造 tools）。plugin-deps-lint 变更前 5/5、变更后 5/5。全活动 Profile 本地插件 host-side 形状 19/19 通过（含新插件）。lint-ui-discipline：41 bundle 可解析、16 客户端 factory 合法（本插件无 client 不参与）；唯一 FAIL「实机面板几何 probe missing numeric geometry」为既有运行态探针问题，与本插件无关（无 UI 字节变更）。",
+      "negativeControl": "不修改任何既有插件源码；不写 assets/；不碰 Desktop 槽/运行时槽/指针/Stable Shield 保护面；systemPrompt 注入文案可从记忆库重放，未命中时静态占位而非编造经验。",
+      "deployment": "Profile 本地插件（Junction 到 local/），宿主半侧需重启 DSH 才生效。防回退开关：config.enabled=false 一键停用；摘除=从 bundles+dependencies 去掉并删 local/dsh-agentos-learn。DSH 更新/换代后：从 customizations/agentos-learn/ 按 preservation.json 的 sha256 重放到新家园 local/ 并重建 Junction——源码已在 protection 清单，构建门禁会校验。"
+    },
+    {
+      "revision": 7,
+      "date": "2026-10-02",
+      "pluginName": "dsh-runtime-identity",
+      "file": "lib/index.js",
+      "reason": "用户纠正交付方向：停止方案网页，实施 P0 运行时身份/能力发现/模型切换交接，改造 DSH。盘点确认已有 installModelSelection、systemPrompt.context、dsh_capabilities，缺富身份与五维能力。",
+      "change": "新增 customizations/runtime-identity/ + 活动 Profile local/dsh-runtime-identity。复用 DSH 已有：systemPrompt.context 每请求注入身份；system-prompt/assemble 收割 provider/model 变量与 wireTools；tools.register 注册 get_runtime_context/describe_capability。五维能力 support/exposure/permission/health/route。不写 client.js、不建平行系统。",
+      "evidence": "selfcheck 56/56；plugin-deps 5/5；host load 20/20；ui-baseline 漂移 theme.css/shell.html 非本改动。",
+      "negativeControl": "不改既有插件；不写 assets；拿不到字段一律 unknown；工具执行层再校验权限。",
+      "deployment": "Profile 本地插件 junction，宿主半侧需重启生效。enabled=false 停用；摘除=去 bundles+dependencies+删 local。换代从 customizations/runtime-identity/ 重放。"
+    }
+  ]
+}

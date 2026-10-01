@@ -1,0 +1,93 @@
+{
+  "version": "1.0.65+build.8",
+  "status": "pass",
+  "results": [
+    {
+      "name": "文件",
+      "pass": true,
+      "openAttempt": true,
+      "preview": "浏览器\nREADME.md\n源代码管理\n任务管理\n新对话\npwsh\n黑洞\n知识中心\n数据库\nInventor 2027\n预览\n编辑\npowershell\n复制\n[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\r\n$OutputEncoding = [System.Text.Encoding]::UTF8\r\npnpm install --frozen-lockfile\r\npnpm test\r\npnpm run dist\n\nLocal build artifacts are written to release\\ and are not committed. Pushing a vX.Y.Z tag starts the packaging workflow for Windows x64, macOS arm64/x64, and Linux x64/arm64 AppImage / deb artifacts.\n\nProject documentation\n\nFor current status, architecture constraints, and iteration records, start at the documentation entry point.\n\nLicense\n\nThis project is licensed under Apache License 2.0.\n\nChangelog\n\nSee CHANGELOG.md for the five most recent releases.\n\n[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\n\n# DSH Codex Desktop **Download once. Op",
+      "previewOpened": true
+    },
+    {
+      "name": "源代码管理",
+      "pass": true
+    },
+    {
+      "name": "任务管理",
+      "pass": true
+    },
+    {
+      "name": "侧边对话(beta)",
+      "pass": true,
+      "input": [
+        {
+          "name": "主对话真实输入",
+          "pass": true
+        },
+        {
+          "name": "主对话清空且未发送",
+          "pass": true,
+          "before": 11,
+          "after": {
+            "chars": 0,
+            "history": 11
+          }
+        },
+        {
+          "name": "侧边对话真实输入",
+          "pass": true
+        },
+        {
+          "name": "侧边对话清空且未发送",
+          "pass": true,
+          "before": 11,
+          "after": {
+            "chars": 0,
+            "history": 11
+          }
+        }
+      ]
+    },
+    {
+      "name": "终端",
+      "pass": true
+    },
+    {
+      "name": "浏览器",
+      "pass": true,
+      "nativeLoaded": true,
+      "url": "https://www.deepseek.com/en/"
+    },
+    {
+      "name": "黑洞",
+      "pass": true
+    },
+    {
+      "name": "知识中心",
+      "pass": true
+    },
+    {
+      "name": "数据库",
+      "pass": true,
+      "modes": [
+        {
+          "label": "图表",
+          "clicked": true
+        },
+        {
+          "label": "总览",
+          "clicked": true
+        },
+        {
+          "label": "表格",
+          "clicked": true
+        }
+      ]
+    },
+    {
+      "name": "Inventor 2027",
+      "pass": true
+    }
+  ]
+}

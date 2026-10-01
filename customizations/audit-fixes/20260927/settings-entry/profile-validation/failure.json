@@ -1,0 +1,30 @@
+{
+  "error": "Error: Notification preference did not persist",
+  "results": [
+    {
+      "name": "real Profile Loader loaded codex-ui",
+      "pass": true,
+      "origin": "http://127.0.0.1:49708"
+    },
+    {
+      "name": "real shell click to DSH settings to sandbox child using real preload and main IPC",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "scratch": "G:\\DSH-3-Portable\\Data\\Temp\\settings-profile-MTGZa8",
+  "clickTrace": [
+    {
+      "selector": "label[for=\"approvalsEnabled\"] .track",
+      "point": {
+        "x": 645,
+        "y": 244.890625
+      },
+      "offset": {
+        "x": 433.5,
+        "y": 48
+      },
+      "events": []
+    }
+  ]
+}

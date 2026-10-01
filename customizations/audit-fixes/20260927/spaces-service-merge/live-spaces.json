@@ -1,0 +1,48 @@
+{
+  "url": "http://127.0.0.1:51022",
+  "probeResponse": null,
+  "nav": [
+    "返回应用",
+    "常规",
+    "模型",
+    "宠物",
+    "内置插件",
+    "插件配置",
+    "专家",
+    "技能",
+    "连接器",
+    "自定义空间",
+    "Agent 预设",
+    "IM助理",
+    "插件市场",
+    "侧边卡片",
+    "归档会话",
+    "Codex UI"
+  ],
+  "headings": [],
+  "form": false,
+  "inputs": 0,
+  "buttons": [],
+  "viewport": {
+    "width": 1360,
+    "height": 933
+  },
+  "card": null,
+  "statusRequests": 0,
+  "settingsStyle": {
+    "position": "fixed",
+    "display": "grid",
+    "styles": [
+      {
+        "length": 15725,
+        "disabled": false,
+        "rules": 76
+      },
+      {
+        "length": 11696,
+        "disabled": false,
+        "rules": 87
+      }
+    ]
+  }
+}

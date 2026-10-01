@@ -1,0 +1,12 @@
+# DSH Agent MCP 接口（本地插件）：外部 MCP 客户端（ZCode 等）经 Bearer 令牌
+# 以中继模式驱动既有 DSH 会话。命名导出形态，模块级 inject / Config 即生效。
+# 端口 9801 与 dsh-agent-bridge（9800）分开，互不影响。
+- insert:
+  - id: agent-mcp
+    name: dsh-agent-mcp
+    config:
+      port: 9801
+      # 外部 Agent Bridge（Codex / OpenCode 托管执行）。目录留空 = 未配置，
+      # 页面只显示未接入；换盘只改这里，不写死盘符。
+      bridgeDir: ''
+      bridgePort: 8765

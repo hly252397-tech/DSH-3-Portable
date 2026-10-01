@@ -1,0 +1,70 @@
+{
+  "status": "pass",
+  "electron": "45.0.0-alpha.12",
+  "results": [
+    {
+      "name": "old stale transition reproduced; new native bounds synchronized",
+      "ok": true
+    },
+    {
+      "name": "click size=1000 zoom=0.8",
+      "ok": true
+    },
+    {
+      "name": "click size=1000 zoom=1",
+      "ok": true
+    },
+    {
+      "name": "click size=1000 zoom=1.5",
+      "ok": true
+    },
+    {
+      "name": "click size=1400 zoom=0.8",
+      "ok": true
+    },
+    {
+      "name": "click size=1400 zoom=1",
+      "ok": true
+    },
+    {
+      "name": "click size=1400 zoom=1.5",
+      "ok": true
+    },
+    {
+      "name": "click size=900 zoom=0.8",
+      "ok": true
+    },
+    {
+      "name": "click size=900 zoom=1",
+      "ok": true
+    },
+    {
+      "name": "click size=900 zoom=1.5",
+      "ok": true
+    },
+    {
+      "name": "maximize lifecycle",
+      "ok": true
+    },
+    {
+      "name": "unmaximize lifecycle",
+      "ok": true
+    },
+    {
+      "name": "minimize lifecycle",
+      "ok": true
+    },
+    {
+      "name": "restore lifecycle",
+      "ok": true
+    },
+    {
+      "name": "layout does not steal focus",
+      "ok": true
+    },
+    {
+      "name": "close cancels transition timer",
+      "ok": true
+    }
+  ]
+}

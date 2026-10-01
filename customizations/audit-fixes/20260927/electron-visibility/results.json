@@ -1,0 +1,90 @@
+{
+  "electron": "45.0.0-alpha.12",
+  "results": [
+    {
+      "name": "initial",
+      "visible": true,
+      "viewVisible": true,
+      "bounds": {
+        "x": 0,
+        "y": 42,
+        "width": 984,
+        "height": 613
+      },
+      "page": {
+        "visibility": "visible",
+        "width": 1230,
+        "height": 766,
+        "frames": 50
+      }
+    },
+    {
+      "name": "small",
+      "visible": true,
+      "viewVisible": true,
+      "bounds": {
+        "x": 0,
+        "y": 42,
+        "width": 100,
+        "height": 100
+      },
+      "page": {
+        "visibility": "visible",
+        "width": 125,
+        "height": 125,
+        "frames": 98
+      }
+    },
+    {
+      "name": "restored and zoomed",
+      "visible": true,
+      "viewVisible": true,
+      "bounds": {
+        "x": 0,
+        "y": 42,
+        "width": 984,
+        "height": 613
+      },
+      "page": {
+        "visibility": "visible",
+        "width": 1230,
+        "height": 766,
+        "frames": 147
+      }
+    },
+    {
+      "name": "child hide/show",
+      "visible": true,
+      "viewVisible": true,
+      "bounds": {
+        "x": 0,
+        "y": 42,
+        "width": 984,
+        "height": 613
+      },
+      "page": {
+        "visibility": "visible",
+        "width": 1230,
+        "height": 766,
+        "frames": 196
+      }
+    },
+    {
+      "name": "window hide/show",
+      "visible": true,
+      "viewVisible": true,
+      "bounds": {
+        "x": 0,
+        "y": 42,
+        "width": 984,
+        "height": 613
+      },
+      "page": {
+        "visibility": "visible",
+        "width": 1230,
+        "height": 766,
+        "frames": 246
+      }
+    }
+  ]
+}

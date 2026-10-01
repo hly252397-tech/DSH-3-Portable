@@ -1,0 +1,19 @@
+{
+  "name": "dsh-agent-mcp",
+  "version": "1.0.0",
+  "description": "DSH Agent MCP 接口：外部 MCP 客户端（ZCode 等）经本机 HTTP 以中继模式驱动既有 DSH 会话",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "engines": { "node": ">=20" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": { "platform": "web", "inject": ["@deepseek-ai/dsh-client-locale", "@deepseek-ai/dsh-client-ui-slots", "@deepseek-ai/dsh-client-ui-settings"] }
+  },
+  "files": ["lib", "cordis.patch.yml"],
+  "license": "MIT"
+}

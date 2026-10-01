@@ -1,0 +1,11 @@
+{
+  "status": "pass",
+  "task": "会话外链默认开进侧边栏卡片（browserInterceptHttps 默认 false→true，双家园 src+bundle 11 处）",
+  "method": "Data/Temp/link-probe.mjs 经 hj broker 8976 向运行中的 DSH 页面注入合成点击（未修饰左键 a[href] 外链），重启前后同探针对照",
+  "results": [
+    { "name": "before.httpsIntercepted", "expected": false, "actual": false, "pass": true, "note": "重启前（hostPid 60572, origin 52049）https 外链不拦 → 漏到外壳原生面板（用户报告的现象）" },
+    { "name": "after.httpsIntercepted", "expected": true, "actual": true, "pass": true, "note": "改默认值并重启后（hostPid 44520, origin 61092）https 外链被拦进 better-sidebar 浏览器卡片" },
+    { "name": "after.httpIntercepted", "expected": true, "actual": true, "pass": true, "note": "http 拦截保持（正对照）" },
+    { "name": "after.httpsCtrlBypass", "expected": true, "actual": true, "pass": true, "note": "Ctrl/Cmd+点击绕过语义保持（仍可强制走原生路径）" }
+  ]
+}

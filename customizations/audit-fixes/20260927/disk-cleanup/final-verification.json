@@ -1,0 +1,20 @@
+{
+  "at": "2026-09-27T20:46:15.0540366+08:00",
+  "freeBefore": 4385222656,
+  "freeAfter": 36635516928,
+  "netFreeIncrease": 32250294272,
+  "oldPackDirectoriesRemaining": 0,
+  "duplicateFilesRemoved": 107,
+  "retainedCopiesMissing": 0,
+  "orphanModelAbsent": true,
+  "modelManifestsUnchanged": 4,
+  "recyclePayloadCount": 0,
+  "current": "Data/Updates/Desktop/slots/1.0.76-local-9ea0cb9f0a866321",
+  "previous": "Data/Updates/Desktop/slots/1.0.76-local-8fd3c40ad480a1fd",
+  "pending": null,
+  "mainAlive": true,
+  "backendAlive": true,
+  "recentRecoveryArchivePresent": true,
+  "fullDriveInventoryComplete": false,
+  "fullDriveInventoryNote": "Bounded operational cleanup completed; full directory inventory stopped without asserting total allocation breakdown."
+}

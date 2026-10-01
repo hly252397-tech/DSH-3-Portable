@@ -1,0 +1,68 @@
+{
+  "status": "pass",
+  "scope": "packaged-bytes-and-pointers-only; activation pending",
+  "current": "Data/Updates/Desktop/slots/1.0.76-local-9ea0cb9f0a866321",
+  "candidate": "G:\\DSH-3-Portable\\Data\\Updates\\Desktop\\slots\\1.0.76-local-8f8c59c0586c99c0",
+  "results": [
+    {
+      "name": "candidate asset matches verified source: shell.html",
+      "pass": true
+    },
+    {
+      "name": "candidate asset matches verified source: settings.html",
+      "pass": true
+    },
+    {
+      "name": "candidate asset matches verified source: theme.css",
+      "pass": true
+    },
+    {
+      "name": "candidate asset matches verified source: theme.js",
+      "pass": true
+    },
+    {
+      "name": "candidate asset matches verified source: shell-icons/chevron-down.svg",
+      "pass": true
+    },
+    {
+      "name": "candidate ASAR matches compiled source: main.js",
+      "pass": true
+    },
+    {
+      "name": "candidate ASAR matches compiled source: embedded-desktop-settings.js",
+      "pass": true
+    },
+    {
+      "name": "candidate ASAR matches compiled source: desktop-bridge-client-source.js",
+      "pass": true
+    },
+    {
+      "name": "candidate ASAR matches compiled source: dsh-view-preload.cjs",
+      "pass": true
+    },
+    {
+      "name": "candidate ASAR matches compiled source: shell-preload.cjs",
+      "pass": true
+    },
+    {
+      "name": "candidate ASAR matches compiled source: shell-contract.js",
+      "pass": true
+    },
+    {
+      "name": "candidate ASAR matches compiled source: bundled-plugins.js",
+      "pass": true
+    },
+    {
+      "name": "candidate bridge seed matches compiled source: desktop-bridge-client-source.js",
+      "pass": true
+    },
+    {
+      "name": "candidate bridge seed matches compiled source: bundled-plugins.js",
+      "pass": true
+    },
+    {
+      "name": "package and candidate pointer versions match",
+      "pass": true
+    }
+  ]
+}

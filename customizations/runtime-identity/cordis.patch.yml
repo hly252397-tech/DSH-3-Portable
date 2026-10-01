@@ -1,0 +1,10 @@
+# P0 运行时身份与能力发现（本地插件）。
+# 条目显式带稳定 id：loader 按 id 做增量更新。
+# 只写 id + name —— 命名导出形态，模块级 inject 即生效。
+- insert:
+  - id: runtime-identity
+    name: dsh-runtime-identity
+    # config:
+    #   enabled: true
+    #   contextOrder: 125
+    #   maxContextBytes: 4096

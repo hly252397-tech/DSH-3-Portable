@@ -1,0 +1,40 @@
+{
+  "status": "pass",
+  "scope": "reviewed-source-and-plugin-baseline-only; desktop activation remains pending",
+  "reviewedAt": "2026-09-27T15:15:41.167Z",
+  "baselineHistoryBefore": "customizations/ui/history/2026-09-27T06-35-46-065Z.json",
+  "results": [
+    {
+      "name": "assets/shell.html",
+      "pass": true,
+      "oldSha256": "504c1a2ae3588a5a8b4e26342f5cd2222272653ef5edc0066005893f0f7c7444",
+      "sha256": "a22a22f04dcc60544f6cdd96afd82971028b5c2a897bf18ad23db8d481b6a0fc",
+      "evidence": "current isolated real Profile/preload/main IPC and native renderer checks"
+    },
+    {
+      "name": "src/dsh-view-preload.cts",
+      "pass": true,
+      "oldSha256": "2f413c08c92094c324944a6ec02947415a588585e0d089b1b752b543c5bee013",
+      "sha256": "02f6ca2efd39bc950f6ad3a5497d1b8f8c4e0b2684ae2cefca5f740311757a5e",
+      "evidence": "current isolated real Profile/preload/main IPC and native renderer checks"
+    },
+    {
+      "name": "customizations/custom-spaces/lib/client.js",
+      "pass": true,
+      "oldSha256": "089f91e0c2527bf70d0641711c16af54b35921339c627770d9a0d2f403e96cf3",
+      "sha256": "45e0d73c93b07de5ed48aaed95c8e2ae6ab03db267e56cbb158635fc99929aae",
+      "evidence": "previous real active Profile service probe; exact tested source hash retained; no claim of current startup acceptance"
+    },
+    {
+      "name": "Data/DSH-generations/v4-rc2b/home/profiles/web/local/dsh-custom-spaces/lib/client.js",
+      "pass": true,
+      "oldSha256": "089f91e0c2527bf70d0641711c16af54b35921339c627770d9a0d2f403e96cf3",
+      "sha256": "45e0d73c93b07de5ed48aaed95c8e2ae6ab03db267e56cbb158635fc99929aae",
+      "evidence": "previous real active Profile service probe; exact tested source hash retained; no claim of current startup acceptance"
+    }
+  ],
+  "remaining": [
+    "active old desktop settings.html ERR_FAILED seen during recheck",
+    "packaged candidate and user-approved restart acceptance not completed"
+  ]
+}

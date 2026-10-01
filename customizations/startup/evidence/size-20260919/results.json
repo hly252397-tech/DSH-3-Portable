@@ -1,0 +1,355 @@
+{
+  "status": "pass",
+  "scope": "Actual startup resources in sandboxed isolated Electron windows, not a restarted installed application",
+  "results": [
+    {
+      "options": {
+        "width": 1000,
+        "height": 800,
+        "theme": "light"
+      },
+      "hidden": false,
+      "mark": {
+        "width": 316,
+        "height": 237
+      },
+      "image": {
+        "width": 297,
+        "height": 297,
+        "naturalWidth": 512,
+        "naturalHeight": 512,
+        "alphaBounds": {
+          "left": 5,
+          "right": 252,
+          "top": 35,
+          "bottom": 221
+        }
+      },
+      "frames": [
+        {
+          "minX": 15.952218554458561,
+          "minY": 11.408527707964183,
+          "maxX": 303.2474096107938,
+          "maxY": 225.34181087562885,
+          "width": 287.2951910563352,
+          "height": 213.93328316766468,
+          "at": 76
+        },
+        {
+          "minX": 15.98762902878499,
+          "minY": 11.458686782937367,
+          "maxX": 303.35058999770644,
+          "maxY": 225.48889413607822,
+          "width": 287.36296096892147,
+          "height": 214.03020735314084,
+          "at": 242.60000000149012
+        },
+        {
+          "minX": 16.19215123218947,
+          "minY": 11.803853778880958,
+          "maxX": 303.55583291523584,
+          "maxY": 226.22798103816308,
+          "width": 287.36368168304637,
+          "height": 214.42412725928213,
+          "at": 1507.3000000044703
+        }
+      ],
+      "environment": {
+        "scheme": "light",
+        "reduced": false,
+        "dpr": 1,
+        "painted": 10067,
+        "rendered": "true",
+        "fallbackOpacity": "0"
+      },
+      "frameCount": 44,
+      "variation": 0.0684906267111387,
+      "pass": true,
+      "fullFrameCheck": {
+        "count": 44,
+        "variance": 0.6234987290748109,
+        "fallbackWidth": 286.55859375,
+        "handoffDifference": 0.7365973063352271,
+        "pass": true
+      }
+    },
+    {
+      "options": {
+        "width": 1360,
+        "height": 856,
+        "theme": "dark"
+      },
+      "hidden": false,
+      "mark": {
+        "width": 316,
+        "height": 237
+      },
+      "image": {
+        "width": 297,
+        "height": 297,
+        "naturalWidth": 512,
+        "naturalHeight": 512,
+        "alphaBounds": {
+          "left": 5,
+          "right": 252,
+          "top": 35,
+          "bottom": 221
+        }
+      },
+      "frames": [
+        {
+          "minX": 15.952218554458561,
+          "minY": 11.408527707964183,
+          "maxX": 303.2474096107938,
+          "maxY": 225.34181087562885,
+          "width": 287.2951910563352,
+          "height": 213.93328316766468,
+          "at": 74.10000000149012
+        },
+        {
+          "minX": 15.987473093737426,
+          "minY": 11.458466663530514,
+          "maxX": 303.35018211292925,
+          "maxY": 225.48826090709528,
+          "width": 287.3627090191918,
+          "height": 214.02979424356477,
+          "at": 240.60000000149012
+        },
+        {
+          "minX": 16.19208428796225,
+          "minY": 11.803641328736699,
+          "maxX": 303.55592222894154,
+          "maxY": 226.22773397540067,
+          "width": 287.3638379409793,
+          "height": 214.42409264666398,
+          "at": 1507.6000000014901
+        }
+      ],
+      "environment": {
+        "scheme": "dark",
+        "reduced": false,
+        "dpr": 1,
+        "painted": 16296,
+        "rendered": "true",
+        "fallbackOpacity": "0"
+      },
+      "frameCount": 44,
+      "variation": 0.06864688464406754,
+      "pass": true,
+      "fullFrameCheck": {
+        "count": 44,
+        "variance": 0.6214928503380861,
+        "fallbackWidth": 286.55859375,
+        "handoffDifference": 0.7365973063352271,
+        "pass": true
+      }
+    },
+    {
+      "options": {
+        "width": 1000,
+        "height": 800,
+        "theme": "light",
+        "zoom": 1.5
+      },
+      "hidden": false,
+      "mark": {
+        "width": 316,
+        "height": 237
+      },
+      "image": {
+        "width": 297,
+        "height": 297,
+        "naturalWidth": 512,
+        "naturalHeight": 512,
+        "alphaBounds": {
+          "left": 5,
+          "right": 252,
+          "top": 35,
+          "bottom": 221
+        }
+      },
+      "frames": [
+        {
+          "minX": 15.952218554458561,
+          "minY": 11.408527707964183,
+          "maxX": 303.2474096107938,
+          "maxY": 225.34181087562885,
+          "width": 287.2951910563352,
+          "height": 213.93328316766468,
+          "at": 75.5
+        },
+        {
+          "minX": 15.983713066974607,
+          "minY": 11.453155926661081,
+          "maxX": 303.3402214156087,
+          "maxY": 225.47294674988487,
+          "width": 287.3565083486341,
+          "height": 214.0197908232238,
+          "at": 240.19999999552965
+        },
+        {
+          "minX": 16.191858023977886,
+          "minY": 11.80292418946683,
+          "maxX": 303.5562223294195,
+          "maxY": 226.2268977342508,
+          "width": 287.3643643054416,
+          "height": 214.42397354478396,
+          "at": 1506.6000000014901
+        }
+      ],
+      "environment": {
+        "scheme": "light",
+        "reduced": false,
+        "dpr": 1.5,
+        "painted": 19378,
+        "rendered": "true",
+        "fallbackOpacity": "0"
+      },
+      "frameCount": 44,
+      "variation": 0.06917324910637035,
+      "pass": true,
+      "fullFrameCheck": {
+        "count": 44,
+        "variance": 0.6144710464232048,
+        "fallbackWidth": 286.55859375,
+        "handoffDifference": 0.7365973063352271,
+        "pass": true
+      }
+    },
+    {
+      "options": {
+        "width": 1000,
+        "height": 800,
+        "theme": "dark",
+        "reduced": true
+      },
+      "hidden": false,
+      "mark": {
+        "width": 316,
+        "height": 237
+      },
+      "image": {
+        "width": 297,
+        "height": 297,
+        "naturalWidth": 512,
+        "naturalHeight": 512,
+        "alphaBounds": {
+          "left": 5,
+          "right": 252,
+          "top": 35,
+          "bottom": 221
+        }
+      },
+      "frames": [
+        {
+          "minX": 15.719098650924948,
+          "minY": 10.02397811121207,
+          "maxX": 302.4583886664311,
+          "maxY": 225.23989824455404,
+          "width": 286.7392900155062,
+          "height": 215.21592013334197,
+          "at": 27.799999997019768
+        },
+        null,
+        {
+          "minX": 15.719098650924948,
+          "minY": 10.02397811121207,
+          "maxX": 302.4583886664311,
+          "maxY": 225.23989824455404,
+          "width": 286.7392900155062,
+          "height": 215.21592013334197,
+          "at": 27.799999997019768
+        }
+      ],
+      "environment": {
+        "scheme": "dark",
+        "reduced": true,
+        "dpr": 1,
+        "painted": 15909,
+        "rendered": "true",
+        "fallbackOpacity": "0"
+      },
+      "frameCount": 1,
+      "variation": 0,
+      "pass": true,
+      "fullFrameCheck": {
+        "count": 1,
+        "variance": 0,
+        "fallbackWidth": 286.55859375,
+        "handoffDifference": 0.18069626550618523,
+        "pass": true
+      }
+    },
+    {
+      "options": {
+        "width": 480,
+        "height": 400,
+        "theme": "light"
+      },
+      "hidden": false,
+      "mark": {
+        "width": 240,
+        "height": 180
+      },
+      "image": {
+        "width": 226,
+        "height": 226,
+        "naturalWidth": 512,
+        "naturalHeight": 512,
+        "alphaBounds": {
+          "left": 5,
+          "right": 252,
+          "top": 35,
+          "bottom": 221
+        }
+      },
+      "frames": [
+        {
+          "minX": 11.870164894060467,
+          "minY": 8.45400488818145,
+          "maxX": 230.5832985464028,
+          "maxY": 171.34570797459767,
+          "width": 218.71313365234232,
+          "height": 162.89170308641621,
+          "at": 57.19999999552965
+        },
+        {
+          "minX": 11.898993309812083,
+          "minY": 8.510465980817793,
+          "maxX": 230.66698022084336,
+          "maxY": 171.4864760501683,
+          "width": 218.76798691103127,
+          "height": 162.9760100693505,
+          "at": 240.09999999403954
+        },
+        {
+          "minX": 12.122848305303963,
+          "minY": 8.888464199768435,
+          "maxX": 230.82414557037947,
+          "maxY": 172.2142918231564,
+          "width": 218.7012972650755,
+          "height": 163.32582762338797,
+          "at": 1507.1999999955297
+        }
+      ],
+      "environment": {
+        "scheme": "light",
+        "reduced": false,
+        "dpr": 1,
+        "painted": 7798,
+        "rendered": "true",
+        "fallbackOpacity": "0"
+      },
+      "frameCount": 44,
+      "variation": 0.06668964595576199,
+      "pass": true,
+      "fullFrameCheck": {
+        "count": 44,
+        "variance": 0.4854186431668097,
+        "fallbackWidth": 218.0546875,
+        "handoffDifference": 0.6584461523423215,
+        "pass": true
+      }
+    }
+  ]
+}

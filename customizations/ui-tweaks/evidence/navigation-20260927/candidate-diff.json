@@ -1,0 +1,16 @@
+{
+  "status": "pass",
+  "files": 791,
+  "changed": [
+    {
+      "path": "resources/app/dist/src/desktop-bridge-client-source.js",
+      "before": "30d555ce0401876939309ae6a1ec2142cf147e6afe914f1a651be4051916025e",
+      "after": "9c977064512b3c728245ec80968279be437381d5a047a2b86b18b90632572ff0"
+    },
+    {
+      "path": "resources/desktop-bridge/desktop-bridge-client-source.js",
+      "before": "30d555ce0401876939309ae6a1ec2142cf147e6afe914f1a651be4051916025e",
+      "after": "9c977064512b3c728245ec80968279be437381d5a047a2b86b18b90632572ff0"
+    }
+  ]
+}

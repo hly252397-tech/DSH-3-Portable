@@ -1,0 +1,43 @@
+{
+  "at": "2026-09-27T20:06:59.1930633+08:00",
+  "candidate": "8fd3c40ad480a1fd",
+  "candidateHealthPassed": true,
+  "candidateUiPassed": false,
+  "current": "Data/Updates/Desktop/slots/1.0.76-local-9ea0cb9f0a866321",
+  "previous": "Data/Updates/Desktop/slots/1.0.76-local-8fd3c40ad480a1fd",
+  "pending": null,
+  "normalPid": 82492,
+  "normalCommand": "\"G:\\DSH-3-Portable\\Data\\Updates\\Desktop\\slots\\1.0.76-local-9ea0cb9f0a866321\\DSH Codex Desktop.exe\" --user-data-dir=\"G:\\DSH-3-Portable\\Data\\Electron\\UserData\" --disk-cache-dir=\"G:\\DSH-3-Portable\\Data\\Electron\\Cache\" ",
+  "profileChecks": [
+    {
+      "file": "package.json",
+      "restored": true
+    },
+    {
+      "file": "pnpm-lock.yaml",
+      "restored": true
+    },
+    {
+      "file": "cordis.yml",
+      "restored": true
+    },
+    {
+      "file": "node_modules\\dsh-mcp-connector\\lib\\connection-scopes.js",
+      "restored": true
+    },
+    {
+      "file": "node_modules\\dsh-mcp-connector\\lib\\governance.js",
+      "restored": true
+    }
+  ],
+  "gates": "narrow: all pass; wide: UI14/14 deps5/5 geometry8/10 (decimal-width and covered-body probe parsing)",
+  "debugListenerResidual": [
+    {
+      "OwningProcess": 20380
+    }
+  ],
+  "debugOwnerAlive": false,
+  "debugHttp": "json/version timed out after 3s; do not claim socket closed",
+  "sessionsRestored": false,
+  "failedProfilePreserved": true
+}

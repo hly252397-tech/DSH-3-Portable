@@ -1,0 +1,29 @@
+{
+  "status": "reproduced",
+  "results": [
+    {
+      "action": "visit",
+      "id": "session-cdd98f5b-1951-4787-9d20-895b5c4a98dc",
+      "state": {
+        "back": false,
+        "forward": false
+      }
+    },
+    {
+      "action": "visit",
+      "id": "session-ab66fd21-6aa2-4735-8336-c49a5e83972e",
+      "state": {
+        "back": false,
+        "forward": false
+      }
+    },
+    {
+      "action": "visit",
+      "id": "session-edd8a045-6c68-4b04-8b92-a1887f0f84f4",
+      "state": {
+        "back": false,
+        "forward": false
+      }
+    }
+  ]
+}

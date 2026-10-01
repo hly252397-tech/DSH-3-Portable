@@ -1,0 +1,10 @@
+{
+  "at": "2026-09-27T20:39:41.8479141+08:00",
+  "deleted": "G:\\DSH-3-Portable\\Data\\ollama-models\\blobs\\sha256-f5f1dd8920d417aac2718b0bda3403da274301efdd6760b4f0f4b864ff2ad57d",
+  "logicalBytes": 16810714464,
+  "manifestCountUnchanged": 4,
+  "freeBefore": 18881634304,
+  "freeAfter": 35692494848,
+  "netFreedDuringRemoval": 16810860544,
+  "recoverability": "Requires re-download; not retained locally"
+}

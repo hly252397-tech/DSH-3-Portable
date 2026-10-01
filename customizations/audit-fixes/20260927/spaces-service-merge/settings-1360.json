@@ -1,0 +1,72 @@
+{
+  "url": "http://127.0.0.1:51022",
+  "probeResponse": null,
+  "nav": [
+    "返回应用",
+    "常规",
+    "模型",
+    "宠物",
+    "内置插件",
+    "插件配置",
+    "专家",
+    "技能",
+    "连接器",
+    "自定义空间",
+    "Agent 预设",
+    "IM助理",
+    "插件市场",
+    "侧边卡片",
+    "归档会话",
+    "Codex UI"
+  ],
+  "headings": [
+    "工作台服务管理"
+  ],
+  "form": true,
+  "inputs": 3,
+  "buttons": [
+    {
+      "text": "唤醒并打开",
+      "disabled": false
+    },
+    {
+      "text": "只探活",
+      "disabled": false
+    },
+    {
+      "text": "在侧边打开",
+      "disabled": false
+    }
+  ],
+  "serviceText": "工作台服务管理\n工作台是本地静态站（要读 data/*.json），必须有本机 HTTP 服务；插件已在应用启动时确保它在跑。\n工作台的名称和地址可在上方空间列表中维护；以下操作用于服务检查与恢复。\n服务状态\n 在听\n地址\nhttp://127.0.0.1:8975/index.html\n站点目录\nC:\\Users\\96551\\Documents\\Qoder\\2026-09-19\\2ecc8cb7\\web\n唤醒并打开\n只探活\n在侧边打开",
+  "viewport": {
+    "width": 1344,
+    "height": 933
+  },
+  "card": {
+    "left": 425.5,
+    "right": 985.5,
+    "top": 213,
+    "bottom": 443,
+    "width": 560,
+    "scrollWidth": 560,
+    "clientWidth": 560
+  },
+  "statusRequests": 2,
+  "settingsStyle": {
+    "position": "fixed",
+    "display": "grid",
+    "styles": [
+      {
+        "length": 15725,
+        "disabled": false,
+        "rules": 76
+      },
+      {
+        "length": 11696,
+        "disabled": false,
+        "rules": 87
+      }
+    ]
+  }
+}

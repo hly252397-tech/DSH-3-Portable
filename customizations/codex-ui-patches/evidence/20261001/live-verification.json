@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-01",
+  "pageOrigin": "http://127.0.0.1:51048",
+  "activeProfile": "Data/DSH-generations/auto-020-rc2/home/profiles/web",
+  "channel": "hj-workbench broker 127.0.0.1:8976 kind=page（只读：枚举导航 + click()，不写任何设置）",
+  "reverseControl": {
+    "artifact": "Data/DSH-generations/auto-020-rc2/.../dsh-codex-ui/lib/client.js",
+    "sha256": "04106142a30e1496500573250e47732228312634703da519a18e37270152724f",
+    "note": "临时把补丁撤回成 npm 原始字节后整页重载",
+    "navBefore": 20,
+    "navAfter": 19,
+    "itemRetained": false,
+    "fellBackTo": "常规",
+    "section": "general",
+    "panelRendered": false,
+    "console": [
+      "TypeError: props.useStore is not a function",
+      "slot entry crashed in 'settings.section': TypeError: props.useStore is not a function"
+    ]
+  },
+  "positiveControl": {
+    "sha256": "00cc596e48064ccd2d5ade671f8313a801be2262b5db54e2f348492544db3e67",
+    "appliedBy": "customizations/codex-ui-patches/apply.mjs（本次经真实闸门工具重放，非手改）",
+    "navBefore": 20,
+    "navAfter": 20,
+    "itemRetained": true,
+    "section": "plugin-config",
+    "panelRendered": true,
+    "console": []
+  },
+  "deepChain": {
+    "navigations": [
+      { "target": "插件配置", "reached": true, "section": "plugin-config" },
+      { "target": "常规", "reached": true, "section": "general" },
+      { "target": "插件配置", "reached": true, "section": "plugin-config" },
+      { "target": "内置插件", "reached": true, "section": "plugins" },
+      { "target": "插件配置", "reached": true, "section": "plugin-config" }
+    ],
+    "panel": { "rows": 41, "buttons": 81, "headings": ["插件", "官方", "已安装"], "textLength": 3911 },
+    "errors": [],
+    "uiLeftClean": true
+  },
+  "gates": {
+    "tsc": "PASS",
+    "codex-ui-patches.test.js": "7 pass / 0 fail",
+    "ui-baseline": "PASS",
+    "fullSuite": "1180 pass / 3 fail / 26 skipped —— 3 条全部属并行会话的 dsh-earthquake-alert 用例，与本改动无关",
+    "applyVerifyAllHomes": "exit 0, 4/4 ok"
+  }
+}

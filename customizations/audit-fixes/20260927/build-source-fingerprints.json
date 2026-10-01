@@ -1,0 +1,17 @@
+{
+  "sampledAt": "2026-09-27T09:25:09.075Z",
+  "files": {
+    "src/main.ts": "95508686c53cc4c9ff259518dfa5727ff72b398e2173fc655d7f97f305aecee0",
+    "src/plugin-seed.ts": "0ef3f615defb175a0124b6690d980bedb5675042d228bfcb601251dd02859e97",
+    "src/plugin-toolchain.ts": "f154d698c668ec7e3ffd50ceb6c4b8487199d047a615898720ec2da040c16b46",
+    "src/desktop-host.ts": "e4a85a8469a6c1f623bc463eeb1d8965f2f516bc1c57dcb88d62e7080fc9e225",
+    "src/mcp-scope-refresh.ts": "6809ac5f53e1ccf2087b9df9aadd868ab1a20bf060285a3967a3861e74e51672",
+    "src/shell-input.ts": "79f45053da97988e13b6767e81c7e227b0c48acf9efe967f43985efe7e293c30",
+    "src/shell-contract.ts": "8f3d26ad4ecb10901bd0873645040cbff966011f0f84e5fbcecfb4046e53b27e",
+    "src/shell-preload.cts": "adc328f40c8b215ea5fdec069ec2700f3bbe5a91ead92ea316cb89d4732f1115",
+    "scripts/prepare-runtime.ts": "f8e99570970e23c0d6513cd74b3867698351e9c1bed7baec1469a47a7e554996",
+    "package.json": "0c2ed2b9237f01386dca067cd12e1a83263c1c4cac1fc163ea53607907f9c554",
+    "pnpm-lock.yaml": "4b5b1faf2ab4f45ceeda2fc3b76bfb9b92f2a7cdaf97863b60a62150f60183a1",
+    "assets/shell.html": "504c1a2ae3588a5a8b4e26342f5cd2222272653ef5edc0066005893f0f7c7444"
+  }
+}

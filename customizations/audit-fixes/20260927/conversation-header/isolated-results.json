@@ -1,0 +1,6390 @@
+{
+  "status": "pass",
+  "scope": "CSS fixture, not actual IPC",
+  "results": [
+    {
+      "check": "old layout reproduction",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 434,
+        "top": 0,
+        "bottom": 82,
+        "width": 434,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 46.5,
+        "top": 28,
+        "bottom": 88,
+        "width": 30.5,
+        "height": 60
+      },
+      "tabs": {
+        "left": 102,
+        "right": 253,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 432,
+        "top": 82,
+        "bottom": 350,
+        "width": 432,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 46.5,
+          "top": 28,
+          "bottom": 88,
+          "width": 30.5,
+          "height": 60
+        },
+        {
+          "text": "标准模式",
+          "left": 54.5,
+          "right": 92,
+          "top": 17,
+          "bottom": 99,
+          "width": 37.5,
+          "height": 82
+        },
+        {
+          "text": "对话",
+          "left": 102,
+          "right": 148,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 148,
+          "right": 194,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 194,
+          "right": 253,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 266,
+          "right": 321,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 327,
+          "right": 356,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 3,
+      "clicked": true
+    },
+    {
+      "check": "280/0.8/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 280,
+        "top": 0,
+        "bottom": 116,
+        "width": 280,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 278,
+        "top": 116,
+        "bottom": 350,
+        "width": 278,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 102,
+          "top": 10,
+          "bottom": 38,
+          "width": 86,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 112,
+          "right": 167,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 173,
+          "right": 202,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "280/0.8/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 280,
+        "top": 0,
+        "bottom": 116,
+        "width": 280,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 278,
+        "top": 116,
+        "bottom": 350,
+        "width": 278,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 102,
+          "top": 10,
+          "bottom": 38,
+          "width": 86,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 112,
+          "right": 167,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 173,
+          "right": 202,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "360/0.8/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 360,
+        "top": 0,
+        "bottom": 116,
+        "width": 360,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 358,
+        "top": 116,
+        "bottom": 350,
+        "width": 358,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 182,
+          "top": 10,
+          "bottom": 38,
+          "width": 166,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 192,
+          "right": 247,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 253,
+          "right": 282,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "360/0.8/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 360,
+        "top": 0,
+        "bottom": 116,
+        "width": 360,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 358,
+        "top": 116,
+        "bottom": 350,
+        "width": 358,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 182,
+          "top": 10,
+          "bottom": 38,
+          "width": 166,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 192,
+          "right": 247,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 253,
+          "right": 282,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "434/0.8/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 434,
+        "top": 0,
+        "bottom": 116,
+        "width": 434,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 432,
+        "top": 116,
+        "bottom": 350,
+        "width": 432,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 266,
+          "right": 321,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 327,
+          "right": 356,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "434/0.8/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 434,
+        "top": 0,
+        "bottom": 116,
+        "width": 434,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 432,
+        "top": 116,
+        "bottom": 350,
+        "width": 432,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 266,
+          "right": 321,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 327,
+          "right": 356,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "520/0.8/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 520,
+        "top": 0,
+        "bottom": 116,
+        "width": 520,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 518,
+        "top": 116,
+        "bottom": 350,
+        "width": 518,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 352,
+          "right": 407,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 413,
+          "right": 442,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "520/0.8/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 520,
+        "top": 0,
+        "bottom": 116,
+        "width": 520,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 518,
+        "top": 116,
+        "bottom": 350,
+        "width": 518,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 352,
+          "right": 407,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 413,
+          "right": 442,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "521/0.8/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 521,
+        "top": 0,
+        "bottom": 82,
+        "width": 521,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 175.765625,
+        "right": 326.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 519,
+        "top": 82,
+        "bottom": 350,
+        "width": 519,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 175.765625,
+          "right": 221.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 221.765625,
+          "right": 267.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 267.765625,
+          "right": 326.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 353,
+          "right": 408,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 414,
+          "right": 443,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "521/0.8/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 521,
+        "top": 0,
+        "bottom": 82,
+        "width": 521,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 188.703125,
+        "right": 339.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 519,
+        "top": 82,
+        "bottom": 350,
+        "width": 519,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 188.703125,
+          "right": 234.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 234.703125,
+          "right": 280.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 280.703125,
+          "right": 339.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 353,
+          "right": 408,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 414,
+          "right": 443,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "600/0.8/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 600,
+        "top": 0,
+        "bottom": 82,
+        "width": 600,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 175.765625,
+        "right": 326.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 598,
+        "top": 82,
+        "bottom": 350,
+        "width": 598,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 175.765625,
+          "right": 221.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 221.765625,
+          "right": 267.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 267.765625,
+          "right": 326.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 432,
+          "right": 487,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 493,
+          "right": 522,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "600/0.8/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 600,
+        "top": 0,
+        "bottom": 82,
+        "width": 600,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 188.703125,
+        "right": 339.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 598,
+        "top": 82,
+        "bottom": 350,
+        "width": 598,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 188.703125,
+          "right": 234.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 234.703125,
+          "right": 280.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 280.703125,
+          "right": 339.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 432,
+          "right": 487,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 493,
+          "right": 522,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "760/0.8/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 760,
+        "top": 0,
+        "bottom": 82,
+        "width": 760,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 175.765625,
+        "right": 326.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 758,
+        "top": 82,
+        "bottom": 350,
+        "width": 758,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 175.765625,
+          "right": 221.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 221.765625,
+          "right": 267.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 267.765625,
+          "right": 326.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 592,
+          "right": 647,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 653,
+          "right": 682,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "760/0.8/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 760,
+        "top": 0,
+        "bottom": 82,
+        "width": 760,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 188.703125,
+        "right": 339.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 758,
+        "top": 82,
+        "bottom": 350,
+        "width": 758,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 188.703125,
+          "right": 234.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 234.703125,
+          "right": 280.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 280.703125,
+          "right": 339.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 592,
+          "right": 647,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 653,
+          "right": 682,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "280/1/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 280,
+        "top": 0,
+        "bottom": 116,
+        "width": 280,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 278,
+        "top": 116,
+        "bottom": 350,
+        "width": 278,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 102,
+          "top": 10,
+          "bottom": 38,
+          "width": 86,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 112,
+          "right": 167,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 173,
+          "right": 202,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "280/1/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 280,
+        "top": 0,
+        "bottom": 116,
+        "width": 280,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 278,
+        "top": 116,
+        "bottom": 350,
+        "width": 278,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 102,
+          "top": 10,
+          "bottom": 38,
+          "width": 86,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 112,
+          "right": 167,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 173,
+          "right": 202,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "360/1/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 360,
+        "top": 0,
+        "bottom": 116,
+        "width": 360,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 358,
+        "top": 116,
+        "bottom": 350,
+        "width": 358,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 182,
+          "top": 10,
+          "bottom": 38,
+          "width": 166,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 192,
+          "right": 247,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 253,
+          "right": 282,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "360/1/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 360,
+        "top": 0,
+        "bottom": 116,
+        "width": 360,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 358,
+        "top": 116,
+        "bottom": 350,
+        "width": 358,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 182,
+          "top": 10,
+          "bottom": 38,
+          "width": 166,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 192,
+          "right": 247,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 253,
+          "right": 282,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "434/1/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 434,
+        "top": 0,
+        "bottom": 116,
+        "width": 434,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 432,
+        "top": 116,
+        "bottom": 350,
+        "width": 432,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 266,
+          "right": 321,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 327,
+          "right": 356,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "434/1/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 434,
+        "top": 0,
+        "bottom": 116,
+        "width": 434,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 432,
+        "top": 116,
+        "bottom": 350,
+        "width": 432,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 266,
+          "right": 321,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 327,
+          "right": 356,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "520/1/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 520,
+        "top": 0,
+        "bottom": 116,
+        "width": 520,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 518,
+        "top": 116,
+        "bottom": 350,
+        "width": 518,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 352,
+          "right": 407,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 413,
+          "right": 442,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "520/1/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 520,
+        "top": 0,
+        "bottom": 116,
+        "width": 520,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 518,
+        "top": 116,
+        "bottom": 350,
+        "width": 518,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 352,
+          "right": 407,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 413,
+          "right": 442,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "521/1/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 521,
+        "top": 0,
+        "bottom": 82,
+        "width": 521,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 175.765625,
+        "right": 326.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 519,
+        "top": 82,
+        "bottom": 350,
+        "width": 519,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 175.765625,
+          "right": 221.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 221.765625,
+          "right": 267.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 267.765625,
+          "right": 326.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 353,
+          "right": 408,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 414,
+          "right": 443,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "521/1/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 521,
+        "top": 0,
+        "bottom": 82,
+        "width": 521,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 188.703125,
+        "right": 339.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 519,
+        "top": 82,
+        "bottom": 350,
+        "width": 519,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 188.703125,
+          "right": 234.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 234.703125,
+          "right": 280.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 280.703125,
+          "right": 339.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 353,
+          "right": 408,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 414,
+          "right": 443,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "600/1/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 600,
+        "top": 0,
+        "bottom": 82,
+        "width": 600,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 175.765625,
+        "right": 326.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 598,
+        "top": 82,
+        "bottom": 350,
+        "width": 598,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 175.765625,
+          "right": 221.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 221.765625,
+          "right": 267.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 267.765625,
+          "right": 326.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 432,
+          "right": 487,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 493,
+          "right": 522,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "600/1/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 600,
+        "top": 0,
+        "bottom": 82,
+        "width": 600,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 188.703125,
+        "right": 339.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 598,
+        "top": 82,
+        "bottom": 350,
+        "width": 598,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 188.703125,
+          "right": 234.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 234.703125,
+          "right": 280.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 280.703125,
+          "right": 339.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 432,
+          "right": 487,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 493,
+          "right": 522,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "760/1/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 760,
+        "top": 0,
+        "bottom": 82,
+        "width": 760,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 175.765625,
+        "right": 326.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 758,
+        "top": 82,
+        "bottom": 350,
+        "width": 758,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 175.765625,
+          "right": 221.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 221.765625,
+          "right": 267.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 267.765625,
+          "right": 326.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 592,
+          "right": 647,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 653,
+          "right": 682,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "760/1/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 760,
+        "top": 0,
+        "bottom": 82,
+        "width": 760,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 188.703125,
+        "right": 339.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 758,
+        "top": 82,
+        "bottom": 350,
+        "width": 758,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 188.703125,
+          "right": 234.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 234.703125,
+          "right": 280.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 280.703125,
+          "right": 339.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 592,
+          "right": 647,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 653,
+          "right": 682,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "280/1.25/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 280,
+        "top": 0,
+        "bottom": 116,
+        "width": 280,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 278,
+        "top": 116,
+        "bottom": 350,
+        "width": 278,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 102,
+          "top": 10,
+          "bottom": 38,
+          "width": 86,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 112,
+          "right": 167,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 173,
+          "right": 202,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "280/1.25/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 280,
+        "top": 0,
+        "bottom": 116,
+        "width": 280,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 278,
+        "top": 116,
+        "bottom": 350,
+        "width": 278,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 102,
+          "top": 10,
+          "bottom": 38,
+          "width": 86,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 112,
+          "right": 167,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 173,
+          "right": 202,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "360/1.25/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 360,
+        "top": 0,
+        "bottom": 116,
+        "width": 360,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 358,
+        "top": 116,
+        "bottom": 350,
+        "width": 358,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 182,
+          "top": 10,
+          "bottom": 38,
+          "width": 166,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 192,
+          "right": 247,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 253,
+          "right": 282,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "360/1.25/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 360,
+        "top": 0,
+        "bottom": 116,
+        "width": 360,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 358,
+        "top": 116,
+        "bottom": 350,
+        "width": 358,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 182,
+          "top": 10,
+          "bottom": 38,
+          "width": 166,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 192,
+          "right": 247,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 253,
+          "right": 282,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "434/1.25/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 434,
+        "top": 0,
+        "bottom": 116,
+        "width": 434,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 432,
+        "top": 116,
+        "bottom": 350,
+        "width": 432,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 266,
+          "right": 321,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 327,
+          "right": 356,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "434/1.25/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 434,
+        "top": 0,
+        "bottom": 116,
+        "width": 434,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 432,
+        "top": 116,
+        "bottom": 350,
+        "width": 432,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 266,
+          "right": 321,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 327,
+          "right": 356,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "520/1.25/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 520,
+        "top": 0,
+        "bottom": 116,
+        "width": 520,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 518,
+        "top": 116,
+        "bottom": 350,
+        "width": 518,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 352,
+          "right": 407,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 413,
+          "right": 442,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "520/1.25/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 520,
+        "top": 0,
+        "bottom": 116,
+        "width": 520,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 518,
+        "top": 116,
+        "bottom": 350,
+        "width": 518,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 352,
+          "right": 407,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 413,
+          "right": 442,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "521/1.25/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 521,
+        "top": 0,
+        "bottom": 82,
+        "width": 521,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 175.765625,
+        "right": 326.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 519,
+        "top": 82,
+        "bottom": 350,
+        "width": 519,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 175.765625,
+          "right": 221.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 221.765625,
+          "right": 267.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 267.765625,
+          "right": 326.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 353,
+          "right": 408,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 414,
+          "right": 443,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "521/1.25/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 521,
+        "top": 0,
+        "bottom": 82,
+        "width": 521,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 188.703125,
+        "right": 339.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 519,
+        "top": 82,
+        "bottom": 350,
+        "width": 519,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 188.703125,
+          "right": 234.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 234.703125,
+          "right": 280.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 280.703125,
+          "right": 339.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 353,
+          "right": 408,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 414,
+          "right": 443,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "600/1.25/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 600,
+        "top": 0,
+        "bottom": 82,
+        "width": 600,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 175.765625,
+        "right": 326.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 598,
+        "top": 82,
+        "bottom": 350,
+        "width": 598,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 175.765625,
+          "right": 221.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 221.765625,
+          "right": 267.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 267.765625,
+          "right": 326.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 432,
+          "right": 487,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 493,
+          "right": 522,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "600/1.25/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 600,
+        "top": 0,
+        "bottom": 82,
+        "width": 600,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 188.703125,
+        "right": 339.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 598,
+        "top": 82,
+        "bottom": 350,
+        "width": 598,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 188.703125,
+          "right": 234.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 234.703125,
+          "right": 280.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 280.703125,
+          "right": 339.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 432,
+          "right": 487,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 493,
+          "right": 522,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "760/1.25/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 760,
+        "top": 0,
+        "bottom": 82,
+        "width": 760,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 175.765625,
+        "right": 326.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 758,
+        "top": 82,
+        "bottom": 350,
+        "width": 758,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 175.765625,
+          "right": 221.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 221.765625,
+          "right": 267.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 267.765625,
+          "right": 326.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 592,
+          "right": 647,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 653,
+          "right": 682,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "760/1.25/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 760,
+        "top": 0,
+        "bottom": 82,
+        "width": 760,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.70000457763672,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.70000457763672,
+        "height": 28
+      },
+      "tabs": {
+        "left": 187.90000915527344,
+        "right": 336.50001525878906,
+        "top": 44,
+        "bottom": 72,
+        "width": 148.60000610351562,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 758,
+        "top": 82,
+        "bottom": 350,
+        "width": 758,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.70000457763672,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.70000457763672,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.70000457763672,
+          "right": 177.90000915527344,
+          "top": 45.79999923706055,
+          "bottom": 70.19999885559082,
+          "width": 67.20000457763672,
+          "height": 24.399999618530273
+        },
+        {
+          "text": "对话",
+          "left": 187.90000915527344,
+          "right": 233.1000099182129,
+          "top": 44,
+          "bottom": 72,
+          "width": 45.20000076293945,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 233.10000610351562,
+          "right": 278.3000068664551,
+          "top": 44,
+          "bottom": 72,
+          "width": 45.20000076293945,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 278.3000183105469,
+          "right": 336.5000190734863,
+          "top": 44,
+          "bottom": 72,
+          "width": 58.20000076293945,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 593.6000366210938,
+          "right": 647.8000373840332,
+          "top": 11.800000190734863,
+          "bottom": 36.19999980926514,
+          "width": 54.20000076293945,
+          "height": 24.399999618530273
+        },
+        {
+          "text": "⋯",
+          "left": 653.7999877929688,
+          "right": 681.9999885559082,
+          "top": 11.800000190734863,
+          "bottom": 36.19999980926514,
+          "width": 28.200000762939453,
+          "height": 24.399999618530273
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "280/1.5/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 280,
+        "top": 0,
+        "bottom": 116,
+        "width": 280,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 278,
+        "top": 116,
+        "bottom": 350,
+        "width": 278,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 102,
+          "top": 10,
+          "bottom": 38,
+          "width": 86,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 112,
+          "right": 167,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 173,
+          "right": 202,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "280/1.5/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 280,
+        "top": 0,
+        "bottom": 116,
+        "width": 280,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 278,
+        "top": 116,
+        "bottom": 350,
+        "width": 278,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 102,
+          "top": 10,
+          "bottom": 38,
+          "width": 86,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 112,
+          "right": 167,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 173,
+          "right": 202,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "360/1.5/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 360,
+        "top": 0,
+        "bottom": 116,
+        "width": 360,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 358,
+        "top": 116,
+        "bottom": 350,
+        "width": 358,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 182,
+          "top": 10,
+          "bottom": 38,
+          "width": 166,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 192,
+          "right": 247,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 253,
+          "right": 282,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "360/1.5/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 360,
+        "top": 0,
+        "bottom": 116,
+        "width": 360,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 358,
+        "top": 116,
+        "bottom": 350,
+        "width": 358,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 182,
+          "top": 10,
+          "bottom": 38,
+          "width": 166,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 192,
+          "right": 247,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 253,
+          "right": 282,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "434/1.5/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 434,
+        "top": 0,
+        "bottom": 116,
+        "width": 434,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 432,
+        "top": 116,
+        "bottom": 350,
+        "width": 432,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 266,
+          "right": 321,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 327,
+          "right": 356,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "434/1.5/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 434,
+        "top": 0,
+        "bottom": 116,
+        "width": 434,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 432,
+        "top": 116,
+        "bottom": 350,
+        "width": 432,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 266,
+          "right": 321,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 327,
+          "right": 356,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "520/1.5/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 520,
+        "top": 0,
+        "bottom": 116,
+        "width": 520,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 518,
+        "top": 116,
+        "bottom": 350,
+        "width": 518,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 352,
+          "right": 407,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 413,
+          "right": 442,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "520/1.5/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 520,
+        "top": 0,
+        "bottom": 116,
+        "width": 520,
+        "height": 116
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 16,
+        "right": 167,
+        "top": 78,
+        "bottom": 106,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 518,
+        "top": 116,
+        "bottom": 350,
+        "width": 518,
+        "height": 234
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 16,
+          "right": 62,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 62,
+          "right": 108,
+          "top": 78,
+          "bottom": 106,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 108,
+          "right": 167,
+          "top": 78,
+          "bottom": 106,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 352,
+          "right": 407,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 413,
+          "right": 442,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "521/1.5/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 521,
+        "top": 0,
+        "bottom": 82,
+        "width": 521,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 175.765625,
+        "right": 326.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 519,
+        "top": 82,
+        "bottom": 350,
+        "width": 519,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 175.765625,
+          "right": 221.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 221.765625,
+          "right": 267.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 267.765625,
+          "right": 326.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 353,
+          "right": 408,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 414,
+          "right": 443,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "521/1.5/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 521,
+        "top": 0,
+        "bottom": 82,
+        "width": 521,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 188.703125,
+        "right": 339.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 519,
+        "top": 82,
+        "bottom": 350,
+        "width": 519,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 188.703125,
+          "right": 234.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 234.703125,
+          "right": 280.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 280.703125,
+          "right": 339.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 353,
+          "right": 408,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 414,
+          "right": 443,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "600/1.5/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 600,
+        "top": 0,
+        "bottom": 82,
+        "width": 600,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 175.765625,
+        "right": 326.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 598,
+        "top": 82,
+        "bottom": 350,
+        "width": 598,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 175.765625,
+          "right": 221.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 221.765625,
+          "right": 267.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 267.765625,
+          "right": 326.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 432,
+          "right": 487,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 493,
+          "right": 522,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "600/1.5/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 600,
+        "top": 0,
+        "bottom": 82,
+        "width": 600,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.703125,
+        "height": 28
+      },
+      "tabs": {
+        "left": 188.703125,
+        "right": 339.703125,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 598,
+        "top": 82,
+        "bottom": 350,
+        "width": 598,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.703125,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.703125,
+          "right": 178.703125,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 188.703125,
+          "right": 234.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 234.703125,
+          "right": 280.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 280.703125,
+          "right": 339.703125,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 432,
+          "right": 487,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 493,
+          "right": 522,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "760/1.5/1",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 760,
+        "top": 0,
+        "bottom": 82,
+        "width": 760,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 89.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 73.765625,
+        "height": 28
+      },
+      "tabs": {
+        "left": 175.765625,
+        "right": 326.765625,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 758,
+        "top": 82,
+        "bottom": 350,
+        "width": 758,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "1 个子智能体",
+          "left": 16,
+          "right": 89.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 73.765625,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 97.765625,
+          "right": 165.765625,
+          "top": 45.5,
+          "bottom": 70.5,
+          "width": 68,
+          "height": 25
+        },
+        {
+          "text": "对话",
+          "left": 175.765625,
+          "right": 221.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 221.765625,
+          "right": 267.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 267.765625,
+          "right": 326.765625,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 592,
+          "right": 647,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 55,
+          "height": 25
+        },
+        {
+          "text": "⋯",
+          "left": 653,
+          "right": 682,
+          "top": 11.5,
+          "bottom": 36.5,
+          "width": 29,
+          "height": 25
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    },
+    {
+      "check": "760/1.5/123",
+      "pass": true,
+      "header": {
+        "left": 0,
+        "right": 760,
+        "top": 0,
+        "bottom": 82,
+        "width": 760,
+        "height": 82
+      },
+      "trigger": {
+        "left": 16,
+        "right": 102.69792175292969,
+        "top": 44,
+        "bottom": 72,
+        "width": 86.69792175292969,
+        "height": 28
+      },
+      "tabs": {
+        "left": 188.6979217529297,
+        "right": 339.6979217529297,
+        "top": 44,
+        "bottom": 72,
+        "width": 151,
+        "height": 28
+      },
+      "body": {
+        "left": 0,
+        "right": 758,
+        "top": 82,
+        "bottom": 350,
+        "width": 758,
+        "height": 268
+      },
+      "buttons": [
+        {
+          "text": "探索｜编码规则与工作区标题",
+          "left": 16,
+          "right": 214,
+          "top": 10,
+          "bottom": 38,
+          "width": 198,
+          "height": 28
+        },
+        {
+          "text": "123 个子智能体",
+          "left": 16,
+          "right": 102.69792175292969,
+          "top": 44,
+          "bottom": 72,
+          "width": 86.69792175292969,
+          "height": 28
+        },
+        {
+          "text": "标准模式",
+          "left": 110.69792175292969,
+          "right": 178.6979217529297,
+          "top": 45.333335876464844,
+          "bottom": 70.66666984558105,
+          "width": 68,
+          "height": 25.33333396911621
+        },
+        {
+          "text": "对话",
+          "left": 188.6979217529297,
+          "right": 234.6979217529297,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "轨迹",
+          "left": 234.6979217529297,
+          "right": 280.6979217529297,
+          "top": 44,
+          "bottom": 72,
+          "width": 46,
+          "height": 28
+        },
+        {
+          "text": "上下文",
+          "left": 280.69793701171875,
+          "right": 339.69793701171875,
+          "top": 44,
+          "bottom": 72,
+          "width": 59,
+          "height": 28
+        },
+        {
+          "text": "文件夹",
+          "left": 592,
+          "right": 647,
+          "top": 11.333333969116211,
+          "bottom": 36.66666793823242,
+          "width": 55,
+          "height": 25.33333396911621
+        },
+        {
+          "text": "⋯",
+          "left": 653,
+          "right": 682,
+          "top": 11.333333969116211,
+          "bottom": 36.66666793823242,
+          "width": 29,
+          "height": 25.33333396911621
+        }
+      ],
+      "lines": 1,
+      "clicked": true
+    }
+  ]
+}

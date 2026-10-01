@@ -1,0 +1,43 @@
+{
+  "id": 126,
+  "action": "desktop",
+  "ok": true,
+  "result": {
+    "origin": "http://127.0.0.1:50511",
+    "title": "DeepSeek Harness",
+    "hidden": true,
+    "viewport": {
+      "w": 2560,
+      "h": 1348,
+      "dpr": 1
+    },
+    "bridge": true,
+    "settingsBridge": true,
+    "buttonCount": 142,
+    "nav": [
+      "返回应用",
+      "常规",
+      "模型",
+      "宠物",
+      "内置插件",
+      "插件配置",
+      "专家",
+      "技能",
+      "连接器",
+      "自定义空间",
+      "Agent 预设",
+      "定时任务",
+      "IM助理",
+      "插件市场",
+      "桌面设置",
+      "侧边卡片",
+      "归档会话",
+      "Codex UI"
+    ],
+    "frame": {
+      "sandbox": "allow-scripts",
+      "width": 768,
+      "height": 1168
+    }
+  }
+}

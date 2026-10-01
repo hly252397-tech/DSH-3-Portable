@@ -1,0 +1,38 @@
+{
+  "hidden": false,
+  "mark": {
+    "width": 316,
+    "height": 237
+  },
+  "image": {
+    "width": 297,
+    "height": 297,
+    "naturalWidth": 512,
+    "naturalHeight": 512,
+    "alphaBounds": {
+      "left": 5,
+      "right": 252,
+      "top": 35,
+      "bottom": 221
+    }
+  },
+  "frames": [
+    {
+      "minX": 15.719098650924948,
+      "minY": 10.02397811121207,
+      "maxX": 302.4583886664311,
+      "maxY": 225.23989824455404,
+      "width": 286.7392900155062,
+      "height": 215.21592013334197,
+      "at": 27.799999997019768
+    }
+  ],
+  "environment": {
+    "scheme": "dark",
+    "reduced": true,
+    "dpr": 1,
+    "painted": 15909,
+    "rendered": "true",
+    "fallbackOpacity": "0"
+  }
+}

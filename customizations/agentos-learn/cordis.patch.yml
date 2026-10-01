@@ -1,0 +1,11 @@
+# AgentOS 自进化接入（本地插件）。
+# 条目显式带稳定 id：loader 按 id 做增量更新。
+# 只写 id + name —— 本插件是命名导出形态，模块级 inject 即生效。
+- insert:
+  - id: agentos-learn
+    name: dsh-agentos-learn
+    # config:            # 可选：改这些值不需要改代码
+    #   enabled: true
+    #   systemPromptOrder: 45
+    #   maxInjectedExperiences: 5
+    #   captureFailuresOnly: false

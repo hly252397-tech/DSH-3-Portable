@@ -1,0 +1,46 @@
+[
+  {
+    "spaces": 1,
+    "label": "宏建云物料录入工作台",
+    "footerVisible": true,
+    "width": 2560
+  },
+  {
+    "spaces": 1,
+    "label": "宏建云物料录入工作台",
+    "footerVisible": true,
+    "width": 2560
+  },
+  {
+    "action": "zoom-out",
+    "label": "宏建云物料录入工作台",
+    "width": 2844,
+    "visible": true,
+    "inside": true,
+    "devicePixelRatio": 0.8999999761581421
+  },
+  {
+    "action": "zoom-reset",
+    "label": "宏建云物料录入工作台",
+    "width": 2560,
+    "visible": true,
+    "inside": true,
+    "devicePixelRatio": 1
+  },
+  {
+    "action": "zoom-in",
+    "label": "宏建云物料录入工作台",
+    "width": 2327,
+    "visible": true,
+    "inside": true,
+    "devicePixelRatio": 1.100000023841858
+  },
+  {
+    "action": "zoom-reset",
+    "label": "宏建云物料录入工作台",
+    "width": 2560,
+    "visible": true,
+    "inside": true,
+    "devicePixelRatio": 1
+  }
+]

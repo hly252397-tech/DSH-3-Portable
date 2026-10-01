@@ -1,0 +1,155 @@
+{
+  "status": "pass",
+  "before": {
+    "width": 1360,
+    "controls": [
+      {
+        "id": "command-center",
+        "visible": true,
+        "display": "flex"
+      },
+      {
+        "id": "compact",
+        "visible": true,
+        "display": "grid"
+      }
+    ],
+    "visible": 2
+  },
+  "results": [
+    {
+      "width": 960,
+      "controls": [
+        {
+          "id": "command-center",
+          "visible": false,
+          "display": "none"
+        },
+        {
+          "id": "compact",
+          "visible": true,
+          "display": "grid"
+        }
+      ],
+      "visible": 1,
+      "pass": true
+    },
+    {
+      "width": 1000,
+      "controls": [
+        {
+          "id": "command-center",
+          "visible": false,
+          "display": "none"
+        },
+        {
+          "id": "compact",
+          "visible": true,
+          "display": "grid"
+        }
+      ],
+      "visible": 1,
+      "pass": true
+    },
+    {
+      "width": 1001,
+      "controls": [
+        {
+          "id": "command-center",
+          "visible": true,
+          "display": "flex"
+        },
+        {
+          "id": "compact",
+          "visible": false,
+          "display": "none"
+        }
+      ],
+      "visible": 1,
+      "pass": true
+    },
+    {
+      "width": 1360,
+      "controls": [
+        {
+          "id": "command-center",
+          "visible": true,
+          "display": "flex"
+        },
+        {
+          "id": "compact",
+          "visible": false,
+          "display": "none"
+        }
+      ],
+      "visible": 1,
+      "pass": true
+    },
+    {
+      "width": 1900,
+      "controls": [
+        {
+          "id": "command-center",
+          "visible": true,
+          "display": "flex"
+        },
+        {
+          "id": "compact",
+          "visible": false,
+          "display": "none"
+        }
+      ],
+      "visible": 1,
+      "pass": true
+    }
+  ],
+  "pre": {
+    "dialogs": []
+  },
+  "pid": 28976,
+  "previewOnly": true,
+  "clicks": [
+    {
+      "width": 1360,
+      "opened": {
+        "dialogs": [
+          {
+            "inputs": [
+              {
+                "placeholder": "搜索会话、设置和操作",
+                "valueLength": 0
+              }
+            ]
+          }
+        ],
+        "focused": "搜索会话、设置和操作"
+      },
+      "closed": {
+        "dialogs": [],
+        "focused": null
+      },
+      "pass": true
+    },
+    {
+      "width": 1000,
+      "opened": {
+        "dialogs": [
+          {
+            "inputs": [
+              {
+                "placeholder": "搜索会话、设置和操作",
+                "valueLength": 0
+              }
+            ]
+          }
+        ],
+        "focused": "搜索会话、设置和操作"
+      },
+      "closed": {
+        "dialogs": [],
+        "focused": null
+      },
+      "pass": true
+    }
+  ]
+}

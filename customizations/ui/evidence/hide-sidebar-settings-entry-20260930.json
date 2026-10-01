@@ -1,0 +1,41 @@
+{
+  "schema": "dsh-ui-evidence/1",
+  "recordedAt": "2026-09-30",
+  "change": "隐藏左下角侧栏设置入口（.dcu-settings-seat → display:none），只保留外壳顶栏齿轮",
+  "decision": "用户 2026-09-30 拍板：『左下角的设置不要，只要顶栏的设置』（此前智能体误判保留双入口，本轮纠正）",
+  "mechanism": "纯 CSS 藏座位不删节点：顶栏齿轮代点链路 querySelector('.dcu-settings-trigger')→.click() 与侧栏搜索跳设置 openSettingsSection（querySelector+dispatchEvent，不量几何）对 display:none 元素照常工作；设置页本体 portal 到 body 不受牵连；用量卡（sidebar.footer.action 槽）是座位兄弟节点不受牵连",
+  "sourceProven": {
+    "codex-ui-openSettingsSection": "Data/DSH-generations/auto-020-rc2/home/profiles/web/node_modules/@michengai/dsh-codex-ui/lib/client.js — 只 querySelector+dispatchEvent，无几何测量",
+    "codex-ui-esc-handler": "同文件 @464007 — ESC 挂 document.addEventListener('keydown',onKeyDown,true)，不在座位/按钮上，display:none 不影响",
+    "quota-widget-parent": "实机 DOM 链 [class*=triggerMain] → div[slot=sidebar.footer.action] → .dcu-footer-actions → footer.dcu-foot，与 .dcu-settings-seat 为兄弟"
+  },
+  "results": [
+    { "name": "座位已藏", "pass": true, "evidence": "重启后实测 seatDisplay=none, seatRect=[0,0,0,0]" },
+    { "name": "代点链路存活", "pass": true, "evidence": "triggerInDom=true, triggerClickable=true(HTMLButtonElement)" },
+    { "name": "顶栏齿轮真实点击→开", "pass": true, "evidence": "cdp-click(trusted Input.dispatchMouseEvent) shell(2399,22) → open:true, pageOpacity:1, 2560x1348" },
+    { "name": "顶栏齿轮真实点击→关", "pass": true, "evidence": "再次点击 → open:false, pageInDom:false" },
+    { "name": "受信 ESC→关", "pass": true, "evidence": "cdp-key(trusted Input.dispatchKeyEvent) Escape→DSH视图 → open:false（OS 级 ESC 落外壳层是焦点路由伪象，非回归，见交接单 §13）" },
+    { "name": "用量卡不受牵连", "pass": true, "evidence": "quotaInDom=true, display:flex, visible, text=今日消耗金额¥0.39" },
+    { "name": "像素证据", "pass": true, "evidence": "Data/Temp/evidence-seat-hidden-20260930.png(2560x1348) + 裁剪 evidence-seat-hidden-crop.png：左下角无「设置」钮，用量卡在" },
+    { "name": "回归护栏", "pass": true, "evidence": "test/ui-tweaks-settings-seat.test.ts 扩为 4 用例：藏座位规则在场/不误伤设置页本体/不误伤用量卡/禁 JS 删节点" },
+    { "name": "tsc", "pass": true, "evidence": "gate-node-run tsc 零错误" },
+    { "name": "全量测试", "pass": true, "evidence": "run-tests.mjs 786 pass / 0 fail / 26 skip（含新增 2 用例）" },
+    { "name": "ui-baseline", "pass": true, "evidence": "PASS（基线护外壳 UI 资产 24 文件，不含插件 client.js，无漂移）" },
+    { "name": "五处副本一致", "pass": true, "evidence": "MD5 bf89f3f6eff85a3c8e1337912bbfdc18 = 源文件 + Data/DSH/profiles/web + v4-rc2b + v5-020rc1 + auto-020-rc2" }
+  ],
+  "copies": {
+    "md5": "bf89f3f6eff85a3c8e1337912bbfdc18",
+    "paths": [
+      "customizations/ui-tweaks/lib/client.js",
+      "Data/DSH/profiles/web/local/dsh-ui-tweaks/lib/client.js",
+      "Data/DSH-generations/v4-rc2b/home/profiles/web/local/dsh-ui-tweaks/lib/client.js",
+      "Data/DSH-generations/v5-020rc1/home/profiles/web/local/dsh-ui-tweaks/lib/client.js",
+      "Data/DSH-generations/auto-020-rc2/home/profiles/web/local/dsh-ui-tweaks/lib/client.js"
+    ],
+    "backup": "各目录旁置 .bak-20260930-hideseat"
+  },
+  "failedAttempts": [
+    { "attempt": "OS 级 ESC（keybd_event）验证", "outcome": "未关闭——按键落在外壳层前台窗口，CDP 点击不转移焦点；经源码核实 ESC 处理器在 document 级，改用受信 CDP ESC 直发 DSH 视图后 PASS，判定为测试装置焦点伪象非产品回归" },
+    { "attempt": "scripts/capture-app-window.ps1 抓窗口像素证据", "outcome": "0x0 空图（新实例句柄解析 InvokeMethodOnNull），改用 CDP Page.captureScreenshot 取证" }
+  ]
+}

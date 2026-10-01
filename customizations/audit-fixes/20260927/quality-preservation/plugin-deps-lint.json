@@ -1,0 +1,52 @@
+{
+  "status": "pass",
+  "checkedAt": "2026-09-27T08:47:19.690Z",
+  "runtime": "G:\\DSH-3-Portable\\Data\\Runtime\\Harness\\slots\\0.1.7-rc.2-4d29c691bfdf224c",
+  "profile": "G:\\DSH-3-Portable\\Data\\DSH-generations\\v4-rc2b\\home\\profiles\\web",
+  "plugins": [
+    "dsh-agent-boundary",
+    "dsh-agent-bridge",
+    "dsh-agent-discipline",
+    "dsh-agentos-trigger",
+    "dsh-better-sidebar",
+    "dsh-black-hole",
+    "dsh-custom-spaces",
+    "dsh-hj-material",
+    "dsh-hj-workbench",
+    "dsh-p3-tiny-watch",
+    "dsh-restart-button",
+    "dsh-sidebar-spaces",
+    "dsh-ui-tweaks"
+  ],
+  "links": [],
+  "entries": [],
+  "dependencies": [],
+  "peers": [],
+  "results": [
+    {
+      "name": "活动运行时与本地插件可定位",
+      "ok": true,
+      "measured": "G:\\DSH-3-Portable\\Data\\DSH-generations\\v4-rc2b\\home\\profiles\\web"
+    },
+    {
+      "name": "本地插件已启用且链接实际目标正确",
+      "ok": true,
+      "measured": "无异常"
+    },
+    {
+      "name": "服务与客户端入口存在",
+      "ok": true,
+      "measured": "无异常"
+    },
+    {
+      "name": "无 DSH 内部包重复依赖",
+      "ok": true,
+      "measured": "无异常"
+    },
+    {
+      "name": "实际安装版本满足核心 peer（含预发布规则）",
+      "ok": true,
+      "measured": "无异常"
+    }
+  ]
+}

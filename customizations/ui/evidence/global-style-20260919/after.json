@@ -1,0 +1,361 @@
+[
+  {
+    "id": 3,
+    "url": "file:///G:/DSH-3-Portable/Data/Updates/Desktop/slots/1.0.65+build.8-local-c5f27cae0ed7e8dd/resources/browser-panel.html",
+    "results": [
+      {
+        "selector": "html",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "16px",
+        "line": "normal",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "0px",
+        "height": 807,
+        "tag": "HTML"
+      },
+      {
+        "selector": "body",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "16px",
+        "line": "normal",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "0px",
+        "height": 807,
+        "tag": "BODY"
+      },
+      {
+        "selector": ".browser",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "18px",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "0px",
+        "height": 807,
+        "tag": "SECTION"
+      },
+      {
+        "selector": ".browser-nav",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "18px",
+        "weight": "400",
+        "border": "rgb(24, 24, 27) rgb(24, 24, 27) rgb(228, 228, 231)",
+        "radius": "0px",
+        "height": 42,
+        "tag": "DIV"
+      },
+      {
+        "selector": "#browser-address",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "normal",
+        "weight": "400",
+        "border": "rgb(212, 212, 216)",
+        "radius": "6px",
+        "height": 30,
+        "tag": "INPUT"
+      },
+      {
+        "selector": "#browser-more",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "18px",
+        "weight": "400",
+        "border": "rgb(82, 82, 91)",
+        "radius": "6px",
+        "height": 26,
+        "tag": "BUTTON"
+      },
+      {
+        "selector": "#browser-bookmark",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "18px",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "6px",
+        "height": 26,
+        "tag": "BUTTON"
+      },
+      {
+        "selector": ".browser-overflow button",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "13px",
+        "line": "20px",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "6px",
+        "height": 0,
+        "tag": "BUTTON"
+      },
+      {
+        "selector": ".browser-field",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "11px",
+        "line": "15.4px",
+        "weight": "400",
+        "border": "rgb(228, 228, 231)",
+        "radius": "6px",
+        "height": 0,
+        "tag": "TEXTAREA"
+      },
+      {
+        "selector": "input",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "normal",
+        "weight": "400",
+        "border": "rgb(212, 212, 216)",
+        "radius": "6px",
+        "height": 30,
+        "tag": "INPUT"
+      },
+      {
+        "selector": "button",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "18px",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "5px",
+        "height": 0,
+        "tag": "BUTTON"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "url": "http://127.0.0.1:51557/",
+    "results": [
+      {
+        "selector": "html",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "16px",
+        "line": "normal",
+        "weight": "400",
+        "border": "rgb(0, 0, 0)",
+        "radius": "0px",
+        "height": 856,
+        "tag": "HTML"
+      },
+      {
+        "selector": "body",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "16px",
+        "line": "normal",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "0px",
+        "height": 856,
+        "tag": "BODY"
+      },
+      {
+        "selector": ".dcu-root",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "14px",
+        "line": "20px",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "0px",
+        "height": 842,
+        "tag": "ASIDE"
+      },
+      {
+        "selector": ".dcu-menu button",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "14px",
+        "line": "20px",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "8px",
+        "height": 0,
+        "tag": "BUTTON"
+      },
+      {
+        "selector": "[data-composer-card]",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "22px",
+        "weight": "400",
+        "border": "rgb(217, 221, 227)",
+        "radius": "12px",
+        "height": 94,
+        "tag": "DIV"
+      },
+      {
+        "selector": ".nArs4W_tab",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "18px",
+        "weight": "400",
+        "border": "rgb(24, 24, 27) rgb(228, 228, 231) rgb(24, 24, 27) rgb(24, 24, 27)",
+        "radius": "0px",
+        "height": 34,
+        "tag": "DIV"
+      },
+      {
+        "selector": "input",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "13.3333px",
+        "line": "normal",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "0px",
+        "height": 0,
+        "tag": "INPUT"
+      },
+      {
+        "selector": "button",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "13.3333px",
+        "line": "normal",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "0px",
+        "height": 0,
+        "tag": "BUTTON"
+      },
+      {
+        "selector": "code",
+        "font": "\"SF Mono\", \"JetBrains Mono\", \"Fira Code\", Consolas, \"Liberation Mono\", Menlo, Courier, \"PingFang SC\", \"Microsoft YaHei\"",
+        "size": "10.5px",
+        "line": "19px",
+        "weight": "400",
+        "border": "rgb(228, 228, 231)",
+        "radius": "6px",
+        "height": 59,
+        "tag": "CODE"
+      }
+    ]
+  },
+  {
+    "id": 1,
+    "url": "file:///G:/DSH-3-Portable/Data/Updates/Desktop/slots/1.0.65+build.8-local-c5f27cae0ed7e8dd/resources/shell.html",
+    "results": [
+      {
+        "selector": "html",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "16px",
+        "line": "normal",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "0px",
+        "height": 900,
+        "tag": "HTML"
+      },
+      {
+        "selector": "body",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "16px",
+        "line": "normal",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "0px",
+        "height": 900,
+        "tag": "BODY"
+      },
+      {
+        "selector": ".browser",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "18px",
+        "weight": "400",
+        "border": "rgb(24, 24, 27) rgb(24, 24, 27) rgb(24, 24, 27) rgb(228, 228, 231)",
+        "radius": "0px",
+        "height": 0,
+        "tag": "SECTION"
+      },
+      {
+        "selector": ".browser-nav",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "18px",
+        "weight": "400",
+        "border": "rgb(228, 228, 231) rgb(24, 24, 27) rgb(24, 24, 27)",
+        "radius": "0px",
+        "height": 0,
+        "tag": "DIV"
+      },
+      {
+        "selector": "#browser-address",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "normal",
+        "weight": "400",
+        "border": "rgb(212, 212, 216)",
+        "radius": "6px",
+        "height": 0,
+        "tag": "INPUT"
+      },
+      {
+        "selector": "#browser-more",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "18px",
+        "weight": "400",
+        "border": "rgb(82, 82, 91)",
+        "radius": "6px",
+        "height": 0,
+        "tag": "BUTTON"
+      },
+      {
+        "selector": "#browser-bookmark",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "18px",
+        "weight": "400",
+        "border": "rgb(82, 82, 91)",
+        "radius": "6px",
+        "height": 0,
+        "tag": "BUTTON"
+      },
+      {
+        "selector": ".browser-overflow button",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "13px",
+        "line": "20px",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "6px",
+        "height": 0,
+        "tag": "BUTTON"
+      },
+      {
+        "selector": ".browser-field",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "11px",
+        "line": "15.4px",
+        "weight": "400",
+        "border": "rgb(228, 228, 231)",
+        "radius": "6px",
+        "height": 0,
+        "tag": "TEXTAREA"
+      },
+      {
+        "selector": "input",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "12px",
+        "line": "normal",
+        "weight": "400",
+        "border": "rgb(212, 212, 216)",
+        "radius": "6px",
+        "height": 0,
+        "tag": "INPUT"
+      },
+      {
+        "selector": "button",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "16px",
+        "line": "normal",
+        "weight": "400",
+        "border": "rgb(24, 24, 27)",
+        "radius": "6px",
+        "height": 30,
+        "tag": "BUTTON"
+      }
+    ]
+  }
+]

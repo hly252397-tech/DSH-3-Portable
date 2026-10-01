@@ -1,0 +1,21 @@
+{
+  "sampledAt": "2026-09-28T00:59:52.642Z",
+  "id": 128,
+  "ok": true,
+  "result": {
+    "origin": "http://127.0.0.1:51014",
+    "entryCount": 1,
+    "online": true,
+    "tokenMasked": true,
+    "selfTest": "自检通过：MCP 握手和 6 个工具正常；未投递任务。",
+    "layout": {
+      "x": 428.5,
+      "right": 1148.5,
+      "width": 720,
+      "viewport": 1360,
+      "overflow": false
+    },
+    "toolCount": 6,
+    "hidden": false
+  }
+}

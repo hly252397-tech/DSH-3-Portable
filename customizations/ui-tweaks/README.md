@@ -1,5 +1,19 @@
 # customizations/ui-tweaks —— 界面微调插件（本地可变路径的入库归档）
 
+## 2026-10-01 设置归组与旧宿主兼容（源码候选，尚未部署）
+
+本目录是持久源码，不先改活动 Profile。当前设置拆分以 [本轮实施记录](../../docs/01-当前工作/20261001-设置拆分与更新防回退.md) 为准，以下旧代际、双写、合成入口与安装说明只作历史；部署必须先核对活动家园与配套桌面制品。
+
+- 更新归“基础”，通知归“自动化与消息”，均镜像真实 `settings.section` 按钮，不恢复旧页跳转或合成按钮。
+- 分组表不再列“桌面设置”。通过公开 `ctx.slots.entriesOfSlot('settings.section')` 确认 `desktop-notifications`、`desktop-updates` 均注册，且旧按钮能唯一对应 `desktop-settings` 时，才排除退役旧入口。客户端显式声明 `inject: ['slots']`。旧宿主只有单块入口、注册信息不可用、只有一个新分区或存在同名未知插件时，保留真实入口于“其他”，避免配套构建之前通知/主题/更新失联。
+- 搜索过滤不是卸载：注册信息与 DOM 可见性分开判断，搜索不让已确认退役入口复活。搜索清空、晚加载、实际卸载及 React 重建时只重建本插件镜像；点击现场回查原生按钮，同名入口按当前序号区分，原 React 节点及事件均不移动/删除。
+- 本轮仅导航安装的生命周期收口到 `ctx.effect`：退出设置释放自己的镜像引用，重开重建；插件卸载停止它自己的 800ms 轮询、移除镜像、恢复自己新增的原导航 class，并按实例身份清全局标记。重挂使用新的 slots 上下文；旧镜像句柄卸载后不再派发。React 在同一 nav 中移除镜像时也先恢复原归属记录再重建。其它旧轮询/动效/热重载生命周期不在本轮扩大范围内。
+- 窗口主题使用桥注册的独立 `desktop-appearance`，与官方 `appearance` 保持相邻；CSS 只去掉这两行之间的分割线和重复顶留白，不覆盖官方外观控件、不建立新保存通道。
+
+隔离执行矩阵在 `test/ui-tweaks-settings-nav-groups.test.ts`：旧/新/混合宿主、搜索隐藏/清空、原按钮重建/整页重挂/晚注册、同名未知入口、服务缺失/失败和分区卸载，以及关闭重开、插件卸载→新上下文重挂、同 nav 镜像被移除后的归属恢复。`test/ui-tweaks-settings-nav-tabs.test.ts` 保留桥注册、iframe 分区与两路更新处理器契约。这里的 DOM 夹具不替代真实 Profile/Loader、鼠标、主题、宽窄/缩放、保存失败和更新动作验收；类型/全测由主代理串行执行。当前未同步生产 Data、未登记保护哈希、未构建或重启。
+
+改前精确源码备份：`lib/client.js.bak-20261001-settingsnav`；只临时解除这一源码的 ReadOnly，落盘后恢复，不调整生产属性。
+
 ## 2026-09-27 活动代际与模型右上角
 
 当前可维护源为本目录 `lib/client.js`，活动部署为 `Data/DSH-generations/v4-rc2b/home/profiles/web/local/dsh-ui-tweaks/lib/client.js`；以下旧 `Data/DSH` 双写说明仅作历史，本轮不向冻结家园同步。修改前备份并核对部署文件哈希，客户端令牌可在无草稿时热刷新。
@@ -307,7 +321,7 @@ motion-guard 标记 16→20 项；四副本同步并重新上 `attrib +R`，SHA2
 **起因**：用户看设置页导航后指出「图标有一样的而且颜色深浅还不一样」。19 项入口，两处根因：
 
 1. **图标撞车**——官方 `sectionIcon(id)`（`@michengai/dsh-codex-ui`）是十几条正则分支加一个 `Box` 兜底。
-   `/plugin/` 同时命中「内置插件」和「插件配置」，`/connector|mcp/` 同时命中「连接器」和「外部智能体接入」，
+   `/plugin/` 同时命中「内置插件」和「插件配置」，`/connector|mcp/` 同时命中「连接器」和「多智能体交互管理」，
    `/expert|agency/` 与「Agent 预设」共用 `User`；没被任何正则命中的（自定义空间 / DSH 手册 / Codex UI /
    宠物 …）全部掉进同一个 `Box`。
 2. **颜色深浅不一**——better-sidebar 自己那行用 `::before` + `currentColor` 画图标，其余行用的是克隆来的
@@ -319,7 +333,7 @@ motion-guard 标记 16→20 项；四副本同步并重新上 `attrib +R`，SHA2
 图标不跟着变深。19 枚分配：常规=齿轮 / 模型=CPU / 桌面设置=显示器 / 插件市场=store / 内置插件=拼图 /
 插件配置=推子 / 技能=星芒 / 连接器=链环 / 专家=圆头人 / Agent 预设=机器人 / DSH 手册=翻开的书 /
 自定义空间=左侧面板 / 侧边卡片=右侧面板 / Codex UI=模板 / 宠物=爪印 / 定时任务=时钟 / IM 助理=对话气泡 /
-外部智能体接入=插头 / 归档会话=归档盒。路径数据由 `Data/Temp/gen-nav-icons.cjs` 从磁盘上的
+多智能体交互管理=插头 / 归档会话=归档盒。路径数据由 `Data/Temp/gen-nav-icons.cjs` 从磁盘上的
 lucide-react 提取生成，不手抄。
 
 **实测里最贵的一个坑**：`data-dsh-nav-key` 是 `navKey(textContent)` 的结果，而 `navKey` 会

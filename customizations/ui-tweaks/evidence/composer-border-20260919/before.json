@@ -1,0 +1,36 @@
+[
+  {
+    "trigger": false,
+    "border": "1px solid rgb(217, 221, 227)",
+    "borderRadius": "10px",
+    "after": {
+      "content": "none",
+      "radius": "0px",
+      "inset": "auto",
+      "mask": "none"
+    },
+    "rect": {
+      "x": 281,
+      "y": 520,
+      "width": 471,
+      "height": 158
+    }
+  },
+  {
+    "trigger": true,
+    "border": "1px solid rgb(217, 221, 227)",
+    "borderRadius": "10px",
+    "after": {
+      "content": "\"\"",
+      "radius": "22px",
+      "inset": "-1px",
+      "mask": "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100%25' height='100%25' fill='none' rx='22' ry='22' stroke='black' stroke-width='2' stroke-dasharray='4 4'/%3E%3C/svg%3E\")"
+    },
+    "rect": {
+      "x": 281,
+      "y": 520,
+      "width": 471,
+      "height": 158
+    }
+  }
+]

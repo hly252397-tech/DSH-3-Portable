@@ -1,0 +1,19 @@
+{
+  "version": "1.0.65+build.8",
+  "status": "pass",
+  "results": [
+    {
+      "name": "历史会话官方文件卡片打开原生右栏预览",
+      "pass": true,
+      "found": true,
+      "title": "G:\\DSH-3-Portable\\AgentOS\\CHECKPOINT.md",
+      "cards": 8,
+      "legacyChips": 0,
+      "opened": true
+    },
+    {
+      "name": "不重复注册旧版自定义文件卡片",
+      "pass": true
+    }
+  ]
+}

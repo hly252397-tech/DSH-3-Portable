@@ -1,0 +1,16 @@
+{
+  "width": 1360,
+  "controls": [
+    {
+      "id": "command-center",
+      "visible": true,
+      "display": "flex"
+    },
+    {
+      "id": "compact",
+      "visible": true,
+      "display": "grid"
+    }
+  ],
+  "visible": 2
+}

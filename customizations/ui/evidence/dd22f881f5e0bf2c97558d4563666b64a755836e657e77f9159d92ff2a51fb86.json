@@ -1,0 +1,41 @@
+{
+  "status": "pass",
+  "note": "内置浏览器历史 chrome 退役 + P0 门禁只约束卡片内嵌 + 文件预览与原生浏览器互斥（2026-09-22/23）",
+  "results": [
+    {
+      "name": "shell.html renderBrowser 永不显示 #browser",
+      "pass": true,
+      "detail": "host.hidden=true；无 host.hidden=false；无 fullBrowser.render"
+    },
+    {
+      "name": "文件预览与原生浏览器互斥真机验证",
+      "pass": true,
+      "detail": "打开 output/段值达意号总表-00000080.html → 文件预览 iframe 完整可见（沙箱条 + 表格内容），原生 WebContentsView 未覆盖；证据 file-preview-no-native-overlay.png"
+    },
+    {
+      "name": "openSidebarFile / EditorHost 挂载时 hide",
+      "pass": true,
+      "detail": "bundle 两处 browserPanel.hide()"
+    },
+    {
+      "name": "BrowserView 不可见时 hide",
+      "pass": true,
+      "detail": "visible=false 分支调 bridge.hide(lease)"
+    },
+    {
+      "name": "hide(undefined) 允许强制收",
+      "pass": true,
+      "detail": "main.ts：owner 为空时不再因 owner 不匹配而拒绝"
+    },
+    {
+      "name": "定向回归 browser-panel-layout",
+      "pass": true,
+      "detail": "16/16 pass（含互斥防复发用例）"
+    },
+    {
+      "name": "tsc",
+      "pass": true,
+      "detail": "0 errors"
+    }
+  ]
+}

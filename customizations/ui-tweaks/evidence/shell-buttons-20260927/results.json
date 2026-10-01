@@ -1,0 +1,44 @@
+[
+  {
+    "label": "broken",
+    "errors": [
+      "Unexpected identifier 'Restarting鈥'"
+    ],
+    "navigation": [],
+    "first": {
+      "pressed": "false",
+      "calls": [],
+      "status": ""
+    },
+    "cancel": "false",
+    "final": {
+      "calls": [],
+      "menus": 0
+    }
+  },
+  {
+    "label": "fixed",
+    "errors": [],
+    "navigation": [
+      "back",
+      "forward"
+    ],
+    "first": {
+      "pressed": "true",
+      "calls": [
+        "back",
+        "forward"
+      ],
+      "status": "再次点击重启·Esc 取消"
+    },
+    "cancel": "false",
+    "final": {
+      "calls": [
+        "back",
+        "forward",
+        "app-restart"
+      ],
+      "menus": 4
+    }
+  }
+]

@@ -1,0 +1,46 @@
+{
+  "version": "1.0.65+build.8",
+  "status": "pass",
+  "results": [
+    {
+      "name": "缩窗后拖20px立即响应",
+      "pass": true,
+      "stored": 900,
+      "shrunk": 720,
+      "moved": 700
+    },
+    {
+      "name": "右栏关闭时拖底栏不留白",
+      "pass": true,
+      "samples": [
+        {
+          "reserve": 0,
+          "height": 130
+        },
+        {
+          "reserve": 0,
+          "height": 140
+        },
+        {
+          "reserve": 0,
+          "height": 160
+        },
+        {
+          "reserve": 0,
+          "height": 140
+        },
+        {
+          "reserve": 0,
+          "height": 120
+        }
+      ]
+    },
+    {
+      "name": "200%宽窗主区400CSS下限一致",
+      "pass": true,
+      "width": 800,
+      "reserve": 800,
+      "gap": 6
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "topic": "后台任务徽标竖排（官方 @deepseek-ai/dsh-client-ui-jobs）",
+  "date": "2026-09-21",
+  "userReport": "「为什么每个会话还不一样，能统一吗？」——头部/左栏出现竖排文字，且只在部分会话出现",
+  "rootCause": "官方 .QsffPG_count 是 flex 项且未设 min-width:0 ⇒ min-width:auto = min-content；头部操作区(headerActions)宽度随会话与布局在 60~224px 之间变化，放不下那句「N 个后台任务运行中」时不截断、改逐字折行（最窄时 8 行），按钮被撑到 150px 高并越出容器（实测 y=-17，跑到视口外）",
+  "officialRenderCondition": "client.js 的 JobListAction 读 state.jobsBySession[sessionId]，为空则整块返回 null ⇒ 只有「本会话有后台任务」的会话才渲染这块，所以看上去每个会话都不一样",
+  "liveElementBefore": { "spanRect": [125, -14, 23, 144], "spanLines": 8, "buttonRect": [105, -17, 56, 150], "note": "修复前页面实测（原故障态）" },
+  "liveElementAfter": { "spanRect": [661, 15, 106, 18], "spanLines": 1, "whiteSpace": "nowrap", "maxWidth": "none", "buttonRect": [641, 10, 150, 28], "containerRect": [565, 10, 226, 28], "checkVisibility": true, "text": "2 个后台任务运行中 全字显示未截断" },
+  "abSweepLive": {
+    "method": "真实页面内：把官方结构复刻进真实 headerActions，同一同步帧内先量现行 CSS，再用同特异性后置样式把「旧行为」还原；容器宽分别 60/76/120/224px。取证零画面副作用（同步完成，不落帧）。",
+    "rows": [
+      { "containerPx": 60,  "legacyOld": "60x96 5行 y=-24 越界", "fixedNow": "60x28 1行 显3字 不越界" },
+      { "containerPx": 76,  "legacyOld": "76x60 3行 y=-6 越界",  "fixedNow": "76x28 1行 显4字 不越界" },
+      { "containerPx": 120, "legacyOld": "120x42 2行 y=+3",      "fixedNow": "120x28 1行 显7字 不越界" },
+      { "containerPx": 224, "legacyOld": "144x28 1行 显9字",     "fixedNow": "144x28 1行 显9字 不越界" }
+    ],
+    "variants": {
+      "v1": "现行（最终）= v4",
+      "v2": "旧行为（还原换行）：四档中出现 5/3/2 行与 y<0 越界，复现原故障",
+      "v3": "仅去掉 max-width 上限：按钮 min-width:auto 以 min-content 为地板 ⇒ 60/76/120px 档横向越界 84/68/24px",
+      "v4": "最终采用：按钮 min-width:0 + max-width:100%，文字 nowrap + 溢出省略",
+      "v5": "去掉 max-width:100%（其余同 v4）：本轮四档与 v4 同值，保留 v4 作为显式护栏"
+    }
+  },
+  "change": {
+    "file": "Data/DSH/profiles/web/local/dsh-ui-tweaks/lib/client.js",
+    "selectors": "语义属性 aria-label（后台任务 / background task），不用哈希类名，运行时升级后仍生效",
+    "css": [
+      "body button[aria-label*=\"后台任务\"],body button[aria-label*=\"background task\" i]{white-space:nowrap!important;min-width:0!important;max-width:100%!important;max-height:32px!important}",
+      "body button[aria-label*=\"后台任务\"]>span,body button[aria-label*=\"background task\" i]>span{white-space:nowrap!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:none!important}"
+    ],
+    "rejectedFirstAttempt": "先用的 span{max-width:4.5ch} 能止住折行，但宽容器里只显示 2 字、白截断 157px（实测 224px 档），故改为「按钮可收缩 + 文字自适应」"
+  },
+  "evidence": {
+    "abLegacyVsFixed": "evidence/badge-wrap-20260921/ab-legacy-vs-fixed-20260921.png",
+    "fixedInHeader": "evidence/badge-wrap-20260921/fixed-in-header-20260921.png",
+    "sweepV4Live": "evidence/badge-wrap-20260921/sweep-v4-live.json",
+    "realBadgeWithRefs": "evidence/badge-wrap-20260921/real-badge-with-refs.json",
+    "realBadgeVisibilityChain": "evidence/badge-wrap-20260921/real-badge-visibility-chain.json"
+  },
+  "toolingCorrection": {
+    "problem": "本轮用 CopyFromScreen 抓「应用窗口矩形」，而 DSH 窗口被别的窗口压住时，抓到的是压在上面的那个窗口（实测抓到用户的 Chrome / 宏建云 ERP 页面），并因此一度误判「徽标根本没画出来」",
+    "fix": "新增 scripts/capture-app-window.ps1：PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT=2) 直接渲染窗口自身内容，与遮挡无关、不抢焦点；仓库既有 scripts/look-ui.ps1 走「临时置顶再抓」也能用，但会改变窗口层级并抢焦点",
+    "privacy": "只渲染目标窗口自身内容，不抓屏幕物理像素 ⇒ 不会拍到用户其它应用"
+  },
+  "openItems": [
+    "官方徽标只在「页面活着时收到 job 事件」才挂载（页面重载不重取 jobs 快照），定点实拍未取到；已用同结构复刻 + 真实容器 + 真实级联 A/B 代替。用户下次跑后台任务时可见实物。",
+    "customizations/ui-tweaks/lib/client.js 归档副本比实体旧（791 行 vs 957 行；实体独有 176 行含本轮修法与采样仪器，归档独有 10 行含 :where 中缝规则）⇒ 本轮只增量补证据与 README，未整体覆盖归档"
+  ],
+  "gates": {
+    "tsc": "exit 0",
+    "tests": "559 total / 538 pass / 0 fail / 21 skipped",
+    "uiBaseline": "PASS（dsh-ui-tweaks 不在 protectedPaths，无基线漂移）",
+    "guardTest": "test/no-self-scheduled-restart.test.ts 通过（客户端 bundle 无重启/退出动作）"
+  }
+}

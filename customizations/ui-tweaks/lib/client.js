@@ -56,6 +56,13 @@ window.__ModuleLoader__.load({
       '--dcu-sidebar-navigation:#18181b;--dcu-sidebar-icon:#52525b;}',
       'body[data-color-scheme="light"]:not([data-ds-dark-theme]) .dcu-settings-nav{--sp-active:#e4e4e7;}',
       // End I023/53 settings palette.
+      // —— 左下角侧栏设置入口整个隐藏（2026-09-30 用户拍板：只要顶栏齿轮，不要侧栏这颗）——
+      // 藏的是座位不是功能：display:none 只影响渲染与命中测试，元素仍在 DOM，
+      // 顶栏齿轮的代点链路（querySelector('.dcu-settings-trigger') → .click()）与
+      // 侧栏搜索跳设置（openSettingsSection：querySelector + dispatchEvent，均不量几何）
+      // 对 display:none 元素照常工作；设置页本体是 portal 到 body 的直接子元素，不受牵连。
+      // 同页脚的用量卡（sidebar.footer.action 槽）是座位的兄弟节点，不会被连带隐藏。
+      'body .dcu-settings-seat{display:none!important}',
       // —— 输入框工具行：不允许挤压，允许尾部容器收缩（防止芯片互相压住）——
       '.uV2eYG_row>button,.uV2eYG_row>div:not(.uV2eYG_trailing){flex:0 0 auto!important}',
       '.uV2eYG_trailing{flex:0 1 auto!important;min-width:0!important}',
@@ -359,6 +366,10 @@ window.__ModuleLoader__.load({
       //   + div.dcu-settings-groups > section.dcu-settings-group > h2 + button.dcu-settings-link
       '.dcu-settings-nav.dsh-grouped>.dcu-settings-groups{display:none!important}',
       '.dcu-settings-nav.dsh-grouped>.dcu-settings-group{display:none!important}',
+      // 官方界面外观 + 桌面窗口主题各保留独立 slot 行，只去掉两行之间的分割与重复留白。
+      // 不搬 React 节点；其它 general.item 的边框、间距和控件保持不变。
+      '.dcu-settings-row[data-dcu-settings-item="appearance"]+.dcu-settings-row[data-dcu-settings-item="desktop-appearance"]{border-top:0!important}',
+      '.dcu-settings-row[data-dcu-settings-item="appearance"]+.dcu-settings-row[data-dcu-settings-item="desktop-appearance"]>[data-slot]>*{padding-top:0!important}',
       '.dsh-settings-groups{display:flex;flex-direction:column;gap:2px;padding:2px 0 12px}',
       // 分组标题：2026-09-29 对照 emilkowalski/apple-design 第 15 条（WWDC 2020 字排）修正——
       // 原写法 text-transform:uppercase + letter-spacing:.04em 是典型网页风，Apple 侧栏分组标题
@@ -378,7 +389,7 @@ window.__ModuleLoader__.load({
             // —— 设置导航图标：19 项各一枚、互不相同的 mask 图标（2026-09-29 用户实证「图标有一样的
       // 而且颜色深浅还不一样」）—— 官方 sectionIcon() 是 12 条显式分支 + 一个 Box 兜底，
       // 入口一多必然撞车：/plugin/ 同时命中「内置插件」和「插件配置」、/connector|mcp/ 同时命中
-      // 「连接器」和「外部智能体接入」、/expert|agency/ 与「Agent 预设」共用 User，其余没被正则
+      // 「连接器」和「多智能体交互管理」、/expert|agency/ 与「Agent 预设」共用 User，其余没被正则
       // 命中的（自定义空间 / DSH 手册 / Codex UI / 宠物 …）一律掉进 Box 兜底。
       // 颜色不一是另一个成因：better-sidebar 那一行用 ::before + currentColor 自己画图标，
       // 其余行用的是克隆来的官方内联 <svg>，颜色各随各的 CSS 走。
@@ -394,6 +405,11 @@ window.__ModuleLoader__.load({
       '.dsh-settings-groups .dsh-sg-item::before{content:"";position:absolute;left:10px;top:50%;width:16px;height:16px;margin-top:-8px;background:currentColor;opacity:.62;mask-repeat:no-repeat;mask-position:center;mask-size:contain}',
       '.dsh-settings-groups .dsh-sg-item[data-dsh-nav-key="常规"]::before{mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915%27/%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%273%27/%3E%3C/svg%3E") center/contain no-repeat}',
       '.dsh-settings-groups .dsh-sg-item[data-dsh-nav-key="模型"]::before{mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M12 20v2%27/%3E%3Cpath d=%27M12 2v2%27/%3E%3Cpath d=%27M17 20v2%27/%3E%3Cpath d=%27M17 2v2%27/%3E%3Cpath d=%27M2 12h2%27/%3E%3Cpath d=%27M2 17h2%27/%3E%3Cpath d=%27M2 7h2%27/%3E%3Cpath d=%27M20 12h2%27/%3E%3Cpath d=%27M20 17h2%27/%3E%3Cpath d=%27M20 7h2%27/%3E%3Cpath d=%27M7 20v2%27/%3E%3Cpath d=%27M7 2v2%27/%3E%3Crect x=%274%27 y=%274%27 width=%2716%27 height=%2716%27 rx=%272%27/%3E%3Crect x=%278%27 y=%278%27 width=%278%27 height=%278%27 rx=%271%27/%3E%3C/svg%3E") center/contain no-repeat}',
+      '.dsh-settings-groups .dsh-sg-item[data-dsh-nav-key="通知"]::before{mask:url("data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9%27/%3E%3Cpath d=%27M13.7 21a2 2 0 0 1-3.4 0%27/%3E%3C/svg%3E") center/contain no-repeat}',
+      // 「更新」曾用 refresh-cw（两段反向弧 + 双箭头）。实测在 16px 盒子里四条曲线互相压边，
+      // 光栅化后糊成一团看不出是刷新；改成 rotate-cw（单段近整圆弧 + 右上单箭头），
+      // 同条件实测字形完整可辨。路径取自 lucide rotate-cw（ISC）。
+      '.dsh-settings-groups .dsh-sg-item[data-dsh-nav-key="更新"]::before{mask:url("data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8%27/%3E%3Cpath d=%27M21 3v5h-5%27/%3E%3C/svg%3E") center/contain no-repeat}',
       '.dsh-settings-groups .dsh-sg-item[data-dsh-nav-key="桌面设置"]::before{mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Crect x=%272%27 y=%273%27 width=%2720%27 height=%2714%27 rx=%272%27/%3E%3Cline x1=%278%27 y1=%2721%27 x2=%2716%27 y2=%2721%27/%3E%3Cline x1=%2712%27 y1=%2717%27 x2=%2712%27 y2=%2721%27/%3E%3C/svg%3E") center/contain no-repeat}',
       '.dsh-settings-groups .dsh-sg-item[data-dsh-nav-key="插件市场"]::before{mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5%27/%3E%3Cpath d=%27M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244%27/%3E%3Cpath d=%27M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05%27/%3E%3C/svg%3E") center/contain no-repeat}',
       '.dsh-settings-groups .dsh-sg-item[data-dsh-nav-key="内置插件"]::before{mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z%27/%3E%3C/svg%3E") center/contain no-repeat}',
@@ -409,7 +425,7 @@ window.__ModuleLoader__.load({
       '.dsh-settings-groups .dsh-sg-item[data-dsh-nav-key="宠物"]::before{mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Ccircle cx=%2711%27 cy=%274%27 r=%272%27/%3E%3Ccircle cx=%2718%27 cy=%278%27 r=%272%27/%3E%3Ccircle cx=%2720%27 cy=%2716%27 r=%272%27/%3E%3Cpath d=%27M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z%27/%3E%3C/svg%3E") center/contain no-repeat}',
       '.dsh-settings-groups .dsh-sg-item[data-dsh-nav-key="定时任务"]::before{mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%2710%27/%3E%3Cpath d=%27M12 6v6l4 2%27/%3E%3C/svg%3E") center/contain no-repeat}',
       '.dsh-settings-groups .dsh-sg-item[data-dsh-nav-key="IM助理"]::before{mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z%27/%3E%3C/svg%3E") center/contain no-repeat}',
-      '.dsh-settings-groups .dsh-sg-item[data-dsh-nav-key="外部智能体接入"]::before{mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M12 22v-5%27/%3E%3Cpath d=%27M15 8V2%27/%3E%3Cpath d=%27M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z%27/%3E%3Cpath d=%27M9 8V2%27/%3E%3C/svg%3E") center/contain no-repeat}',
+      '.dsh-settings-groups .dsh-sg-item[data-dsh-nav-key="多智能体交互管理"]::before{mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M12 22v-5%27/%3E%3Cpath d=%27M15 8V2%27/%3E%3Cpath d=%27M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z%27/%3E%3Cpath d=%27M9 8V2%27/%3E%3C/svg%3E") center/contain no-repeat}',
       '.dsh-settings-groups .dsh-sg-item[data-dsh-nav-key="归档会话"]::before{mask:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Crect x=%272%27 y=%273%27 width=%2720%27 height=%275%27 rx=%271%27/%3E%3Cpath d=%27M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8%27/%3E%3Cpath d=%27M10 12h4%27/%3E%3C/svg%3E") center/contain no-repeat}',
       '.dsh-settings-groups .dsh-sg-item[hidden],.dsh-settings-groups .dsh-sg-group[hidden]{display:none}'
     ].join('');
@@ -774,12 +790,27 @@ window.__ModuleLoader__.load({
 
     /** 隐藏连接状态指示器（2026-09-18 用户「取消这个」）。
      *  ConnectionIndicator 来自 @deepseek-ai/dsh-client-ui-primitives，CSS module 类名不含 "indicator" 字面量，
-     *  无法用纯 CSS 可靠命中。这里用 JS 按 DOM 结构定位：.dcu-settings-seat 内、非按钮/非样式标签的直接子元素。 */
+     *  无法用纯 CSS 可靠命中。这里用 JS 按 DOM 结构定位：.dcu-settings-seat 内、非按钮/非样式标签的直接子元素。
+     *
+     *  2026-09-30 修复：原实现漏了 slot 宿主这一类，把整个设置入口连带设置页一起藏了 ——
+     *  实机症状是顶栏「DSH 设置」点击无反应（按钮拿得到焦点但设置页不开）。真因链：
+     *  本函数给 seat 的每个直接子元素写内联 `display:none !important`；而 codex-ui 1.1.18
+     *  把 `.dcu-settings-trigger`（打开设置的按钮）和 `.dcu-settings-page`（设置页本体）
+     *  **都挂在同一个 `<div data-slot="sidebar.settings">` 宿主里**，那个宿主是 seat 的直接子元素、
+     *  标签是 DIV，既不是 STYLE/BUTTON 也不带下面两个 portal 标记，于是被一并隐藏。
+     *  而壳的 `TOGGLE_DSH_SETTINGS_PAGE_SCRIPT`（src/main.ts）正是按 `.dcu-settings-trigger`
+     *  选择器去点 —— 元素在 DOM 里、样式全正常，只是父容器 display:none，点了等于点空气。
+     *  连带效应：ESC 关闭设置页也失效（关闭靠点 `.dcu-settings-back`，同样在这个宿主里）。
+     *
+     *  判据从「按标签/标记逐个排除」收紧为「slot 宿主与两个 portal 容器一律跳过」：
+     *  这三者都承载真实功能。剩下的非按钮非样式直接子元素才是连接指示器本身。 */
     function hideConnectionIndicator() {
       const seat = document.querySelector('.dcu-settings-seat');
       if (!seat) return;
       for (const child of seat.children) {
         if (child.tagName === 'STYLE' || child.tagName === 'BUTTON') continue;
+        // 跳过 slot 宿主（data-slot）：里面装着设置触发按钮与设置页本体，藏它等于删掉整个设置功能。
+        if (child.hasAttribute('data-slot')) continue;
         // 跳过 portal 容器（data-dcu-settings-page / data-dsh-pet-overlay）
         if (child.hasAttribute('data-dcu-settings-page')) continue;
         if (child.hasAttribute('data-dsh-pet-overlay')) continue;
@@ -792,8 +823,12 @@ window.__ModuleLoader__.load({
       { id: 'builtins', labels: ['内置插件', 'Built-in plugins'], body: '<path d="M9 3H4v6a3 3 0 1 1 0 6v6h6a3 3 0 1 1 6 0h5v-6a3 3 0 1 0 0-6V3h-6a3 3 0 1 1-6 0Z"/>' },
       { id: 'spaces', labels: ['自定义空间', 'Custom Spaces', 'Custom spaces'], body: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>' },
       { id: 'agent-presets', labels: ['Agent 预设', 'Agent presets', 'Agent Presets'], body: '<path d="M9 4H5v17h14V4h-4"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="m8 13 3 3 5-6"/>' },
-      { id: 'desktop', labels: ['桌面设置', 'Desktop settings', 'Desktop Settings'], body: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/>' },
-      { id: 'external-agent', labels: ['外部智能体接入', 'External agents', 'External Agents'], body: '<rect x="2" y="8" width="6" height="8" rx="1.5"/><circle cx="19" cy="4" r="2"/><circle cx="19" cy="20" r="2"/><path d="M8 12h5m-2-2 2 2-2 2m2-2V4h4m-4 8v8h4"/>' },
+      // 2026-09-30 桌面设置拆分区后的两个新真分区（外壳 src/desktop-bridge-client-source.ts 注册）
+      { id: 'desktop-notifications', labels: ['通知', 'Notifications'], body: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>' },
+      // 与镜像导航 CSS 里的「更新」保持同一枚图标（rotate-cw），两条管线不能各画各的；
+      // refresh-cw 在 16px 下糊成一团，详见上方 CSS 处的注释。
+      { id: 'desktop-updates', labels: ['更新', 'Updates'], body: '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>' },
+      { id: 'external-agent', labels: ['多智能体交互管理', 'Multi-agent interaction', 'Multi-Agent Interaction'], body: '<rect x="2" y="8" width="6" height="8" rx="1.5"/><circle cx="19" cy="4" r="2"/><circle cx="19" cy="20" r="2"/><path d="M8 12h5m-2-2 2 2-2 2m2-2V4h4m-4 8v8h4"/>' },
     ];
     function installSettingsNavIcons(ctx) {
       ctx.effect(() => {
@@ -849,7 +884,7 @@ window.__ModuleLoader__.load({
       installRailTooltips();
       hideConnectionIndicator();
       installIosMotion();
-      installSettingsNavGroups();
+      installSettingsNavGroups(ctx);
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', applyAll, { once: true });
       } else {
@@ -868,50 +903,95 @@ window.__ModuleLoader__.load({
     // 原导航节点一律不移动（React 安全）：只打标记类隐藏，镜像按钮点击转发给原按钮；
     // 800ms 轮询同步激活态与搜索过滤可见性；未识别条目进「其他」组，绝不丢入口。
     const SETTINGS_NAV_GROUPS = [
-      ['基础', ['常规', '模型', '桌面设置']],
+      ['基础', ['常规', '模型', '更新']],
       ['插件与扩展', ['插件市场', '内置插件', '插件配置', '技能', '连接器']],
       ['智能体', ['专家', 'Agent 预设', 'DSH 手册']],
       ['界面定制', ['自定义空间', '侧边卡片', 'Codex UI', '宠物']],
-      ['自动化与消息', ['定时任务', 'IM 助理', '外部智能体接入']],
+      ['自动化与消息', ['通知', '定时任务', 'IM 助理', '多智能体交互管理']],
       ['会话记录', ['归档会话']],
     ];
     const navKey = (s) => String(s || '').replace(/\s+/g, '');
-    function installSettingsNavGroups() {
-      if (window.__dshTweaksSettingsGroups === true) return;
-      window.__dshTweaksSettingsGroups = true;
+    function installSettingsNavGroups(ctx) {
+      ctx.effect(() => {
+      if (window.__dshTweaksSettingsGroups) return () => {};
+      const owner = {};
+      window.__dshTweaksSettingsGroups = owner;
+      let disposed = false;
+      let owned = null;
+      const restoreOwn = () => {
+        if (owned === null) return;
+        owned.box.remove();
+        if (!owned.hadGrouped) owned.nav.classList.remove('dsh-grouped');
+        if (owned.back && !owned.hadBackKeep) owned.back.classList.remove('dsh-nav-keep');
+        owned = null;
+      };
       const findNav = () => document.querySelector('.dcu-settings-nav, nav[aria-label="设置"]');
       // 2026-09-29 实测纠错：设置项按钮不是 nav 的直接子节点，而是包在
       // div.dcu-settings-groups > section.dcu-settings-group 里（官方只分「个人/集成」两组，
       // 十几项全堆在「集成」）。取 descendant 并排除返回应用，才拿得到全部入口。
       const sectionButtons = (nav) => [...nav.querySelectorAll('.dcu-settings-groups button, button.dcu-settings-link')]
         .filter((b) => b.tagName === 'BUTTON' && navKey(b.textContent) !== '返回应用');
-      const findOriginalByKey = (nav, key) =>
-        sectionButtons(nav).find((b) => navKey(b.textContent) === key) || null;
+      const findOriginalByKey = (nav, key, ordinal = 0) =>
+        sectionButtons(nav).filter((b) => navKey(b.textContent) === key)[ordinal] || null;
       const isActive = (b) => b.matches('[aria-current], [data-active], .active, [data-state="active"]');
+      const sections = () => {
+        try {
+          // 公开 winning 投影与 Codex UI 同源；搜索只过滤 DOM，不改变真实注册清单。
+          if (typeof ctx?.slots?.entriesOfSlot !== 'function') return [];
+          return ctx.slots.entriesOfSlot('settings.section').map(({ options }) => ({
+            id: options.id,
+            key: navKey(typeof options.label === 'function' ? options.label() : options.label),
+          }));
+        } catch { return [] }
+      };
+      const visibleState = (nav) => {
+        const buttons = sectionButtons(nav);
+        const entries = sections();
+        const splitReady = entries.some((entry) => entry.id === 'desktop-notifications') &&
+          entries.some((entry) => entry.id === 'desktop-updates');
+        const ordinals = new Map();
+        const rows = buttons.map((button) => {
+          const key = navKey(button.textContent);
+          const ordinal = ordinals.get(key) || 0;
+          ordinals.set(key, ordinal + 1);
+          const matching = entries.filter((entry) => entry.key === key);
+          // 必须明确归属旧 ID；同名未知插件或重复 label 不可被文字猜测误删。
+          const retired = splitReady && matching.length === 1 && matching[0].id === 'desktop-settings' &&
+            buttons.filter((candidate) => navKey(candidate.textContent) === key).length === 1;
+          return { button, key, ordinal, retired };
+        });
+        return { rows, signature: JSON.stringify(rows.map(({ key, ordinal, retired }) => [key, ordinal, retired])) };
+      };
+      let renderedSignature = '';
       const build = () => {
         try {
+          if (disposed) return;
           const nav = findNav();
+          if (owned !== null && (owned.nav !== nav || owned.box.parentElement !== owned.nav)) restoreOwn();
           if (nav === null || nav.querySelector('#dsh-settings-groups') !== null) return;
-          const buttons = sectionButtons(nav);
-          if (buttons.length === 0) return;
-          nav.classList.add('dsh-grouped');
+          const state = visibleState(nav);
+          const rows = state.rows.filter((row) => !row.retired);
+          if (state.rows.length === 0) return;
           const back = [...nav.children].find((c) => c.tagName === 'BUTTON' && navKey(c.textContent) === '返回应用');
-          if (back) back.classList.add('dsh-nav-keep');
           const box = document.createElement('div');
           box.className = 'dsh-settings-groups';
           box.id = 'dsh-settings-groups';
           const used = new Set();
           // 点击不闭包持有原节点：React 可能整块重建分组容器，旧引用会变成死按钮。
           // 改为按 key 在点击瞬间回查当前 DOM 里的原件。
-          const addItem = (original, groupEl) => {
+          const addItem = (row, groupEl) => {
             const item = document.createElement('button');
             item.className = 'dsh-sg-item';
             item.type = 'button';
-            item.dataset.dshNavKey = navKey(original.textContent);
-            item.innerHTML = original.innerHTML;
+            item.dataset.dshNavKey = row.key;
+            item.dataset.dshNavOrdinal = String(row.ordinal);
+            item.innerHTML = row.button.innerHTML;
             item.addEventListener('click', () => {
+              if (disposed) return;
               const live = findNav();
-              const target = live === null ? null : findOriginalByKey(live, item.dataset.dshNavKey);
+              const current = live === null ? null : visibleState(live).rows.find((candidate) =>
+                candidate.key === item.dataset.dshNavKey && candidate.ordinal === Number(item.dataset.dshNavOrdinal));
+              const target = current && !current.retired ? current.button : null;
               if (target) target.click();
               sync();
             });
@@ -925,12 +1005,13 @@ window.__ModuleLoader__.load({
             heading.textContent = title;
             groupEl.appendChild(heading);
             for (const member of members) {
-              const hit = buttons.find((b) => navKey(b.textContent) === navKey(member));
+              const hit = rows.find((row) => row.key === navKey(member) && !used.has(row));
               if (hit) { addItem(hit, groupEl); used.add(hit) }
             }
             if (groupEl.children.length > 1) box.appendChild(groupEl);
           }
-          const rest = buttons.filter((b) => !used.has(b));
+          // 旧宿主/缺少配套分区时保留其唯一旧入口；未知插件始终进入「其他」。
+          const rest = rows.filter((row) => !used.has(row));
           if (rest.length > 0) {
             const groupEl = document.createElement('div');
             groupEl.className = 'dsh-sg-group';
@@ -945,21 +1026,37 @@ window.__ModuleLoader__.load({
           // 用 afterend 会把分组盒塞进 label 内部，必须先抬到 label 这一层。
           const input = nav.querySelector('input, [role="searchbox"]');
           const anchor = input === null ? null : (input.closest('label') || input.parentElement || input);
+          owned = { nav, box, back, hadGrouped: nav.classList.contains('dsh-grouped'),
+            hadBackKeep: back ? back.classList.contains('dsh-nav-keep') : false };
           if (anchor !== null && anchor.parentElement === nav) anchor.insertAdjacentElement('afterend', box);
           else nav.appendChild(box);
-        } catch { /* 沙箱防御：找不到结构就整段放弃，原导航原样显示 */ }
+          renderedSignature = state.signature;
+          // 仅在自有镜像完成插入后隐藏原导航；异常时不能留下完全空的设置页。
+          nav.classList.add('dsh-grouped');
+          if (back) back.classList.add('dsh-nav-keep');
+        } catch { restoreOwn(); /* 沙箱防御：异常恢复原导航，只清自有镜像 */ }
       };
       const sync = () => {
         try {
-          const box = document.querySelector('#dsh-settings-groups');
+          if (disposed) return;
+          const nav = findNav();
+          if (nav === null) { restoreOwn(); return }
+          if (owned !== null && (owned.nav !== nav || owned.box.parentElement !== owned.nav)) restoreOwn();
+          let box = nav.querySelector('#dsh-settings-groups');
           if (box === null) { build(); return }
           let anyVisible = false;
-          const nav = findNav();
+          if (visibleState(nav).signature !== renderedSignature) {
+            // 搜索清空、晚加载、卸载与重建可能新增/移除入口。仅重建本插件镜像。
+            restoreOwn();
+            build();
+            box = nav.querySelector('#dsh-settings-groups');
+            if (box === null) return;
+          }
           // 可见性判据 = 原件是否还在 DOM 里。官方搜索过滤是「不渲染」（entries.length>0 才
           // 建 section，见 codex-ui lib/client.js 设置导航渲染），所以查不到即被过滤掉。
           // 绝不能用 offsetParent：原件容器正被我们的 CSS 隐藏，那会让全部项恒判不可见。
           for (const item of box.querySelectorAll('.dsh-sg-item')) {
-            const original = nav === null ? null : findOriginalByKey(nav, navKey(item.textContent));
+            const original = findOriginalByKey(nav, item.dataset.dshNavKey, Number(item.dataset.dshNavOrdinal));
             if (original === null) { item.hidden = true; continue }
             item.hidden = false;
             anyVisible = true;
@@ -973,7 +1070,15 @@ window.__ModuleLoader__.load({
         } catch { /* 同步失败保持现状 */ }
       };
       build();
-      setInterval(() => { if (findNav() !== null) sync() }, 800);
+      const timer = setInterval(sync, 800);
+      return () => {
+        if (disposed) return;
+        disposed = true;
+        clearInterval(timer);
+        restoreOwn();
+        if (window.__dshTweaksSettingsGroups === owner) delete window.__dshTweaksSettingsGroups;
+      };
+      }, 'dsh-ui-tweaks: settings navigation');
     }
 
     // 原则：只加 class 触发 CSS，不改布局、不拦事件、不动 React 状态；
@@ -1229,7 +1334,7 @@ window.__ModuleLoader__.load({
     }
 
     module.exports.apply = apply;
-    module.exports.inject = [];
+    module.exports.inject = ['slots'];
     return module.exports;
   }
 });

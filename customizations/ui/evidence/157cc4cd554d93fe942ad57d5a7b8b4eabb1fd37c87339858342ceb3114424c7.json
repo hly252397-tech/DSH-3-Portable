@@ -1,0 +1,45 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "compact": false,
+      "spacesBottom": 781,
+      "billingTop": 781,
+      "domBefore": true,
+      "button": {
+        "width": 214,
+        "height": 42
+      },
+      "background": "rgb(244, 244, 245)",
+      "pass": true,
+      "rect": {
+        "x": 7,
+        "y": 694,
+        "width": 238,
+        "height": 155
+      }
+    },
+    {
+      "compact": true,
+      "spacesBottom": 793,
+      "billingTop": 793,
+      "domBefore": true,
+      "button": {
+        "width": 36,
+        "height": 36
+      },
+      "background": "rgb(244, 244, 245)",
+      "pass": true,
+      "rect": {
+        "x": 15,
+        "y": 740,
+        "width": 36,
+        "height": 101
+      }
+    },
+    {
+      "name": "billing-opens-usage-statistics",
+      "pass": true
+    }
+  ]
+}

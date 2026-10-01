@@ -33,7 +33,7 @@
 .browser-find-count{min-width:44px;text-align:center;color:var(--browser-muted);font-size:11px}
 .browser-overflow{position:absolute;z-index:10;right:8px;top:76px;width:270px;padding:7px;border:1px solid var(--browser-border);border-radius:var(--chrome-radius);background:var(--browser-surface);box-shadow:var(--chrome-shadow-pop);display:grid;gap:3px}
 .browser-overflow[hidden]{display:none}
-.browser-overflow button{height:31px;padding:0 10px;border-radius:var(--chrome-radius-sm);text-align:left;color:var(--browser-text);font-size:var(--dsh-font-size-menu,13px);line-height:20px}
+.browser-overflow button{height:31px;padding:0 10px;border-radius:calc(var(--chrome-radius) - 7px);text-align:left;color:var(--browser-text);font-size:var(--dsh-font-size-menu,13px);line-height:20px}
 .browser :is(button,input,textarea):focus-visible{outline:2px solid var(--browser-accent);outline-offset:-2px}
 .browser-overflow button:hover{background:var(--browser-surface-raised)}
 .browser-overflow hr{width:100%;height:1px;border:0;background:var(--browser-border);margin:4px 0}

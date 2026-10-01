@@ -1,0 +1,44 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "name": "real menu opens, UI family and 13px menu / 12px toolbar",
+      "pass": true,
+      "details": {
+        "visible": true,
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "size": "13px",
+        "line": "20px",
+        "overflow": false,
+        "toolbar": "12px"
+      }
+    },
+    {
+      "name": "find opens",
+      "pass": true
+    },
+    {
+      "name": "find closes",
+      "pass": true
+    },
+    {
+      "name": "library opens",
+      "pass": true
+    },
+    {
+      "name": "library closes",
+      "pass": true
+    },
+    {
+      "name": "conversation size / code preserved, sidebar family unified",
+      "pass": true,
+      "details": {
+        "composerSize": "12px",
+        "codeFont": "\"SF Mono\", \"JetBrains Mono\", \"Fira Code\", Consolas, \"Liberation Mono\", Menlo, Courier, \"PingFang SC\", \"Microsoft YaHei\"",
+        "codeSize": "10.5px",
+        "sidebarFont": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "bodyFont": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif"
+      }
+    }
+  ]
+}

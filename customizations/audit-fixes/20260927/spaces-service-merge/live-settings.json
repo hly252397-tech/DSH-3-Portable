@@ -1,0 +1,16 @@
+{
+  "url": "http://127.0.0.1:51022",
+  "probeResponse": null,
+  "nav": [],
+  "headings": [],
+  "form": false,
+  "inputs": 0,
+  "buttons": [],
+  "viewport": {
+    "width": 1360,
+    "height": 933
+  },
+  "card": null,
+  "statusRequests": 0,
+  "settingsStyle": null
+}

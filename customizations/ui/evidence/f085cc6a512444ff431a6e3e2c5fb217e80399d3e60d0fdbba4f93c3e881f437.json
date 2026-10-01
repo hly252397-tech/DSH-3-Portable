@@ -1,0 +1,46 @@
+{
+  "status": "pass",
+  "note": "内置浏览器历史 chrome 退役 + P0 门禁只约束卡片内嵌（2026-09-22）",
+  "results": [
+    {
+      "name": "shell.html renderBrowser 永不显示 #browser",
+      "pass": true,
+      "detail": "host.hidden=true；无 host.hidden=false；无 fullBrowser.render"
+    },
+    {
+      "name": "shell.html DshBrowserWorkspace.getState 恒报浏览器不可见",
+      "pass": true,
+      "detail": "getState:()=>({browser:{visible:false}}) — 不抢 Ctrl+F/L"
+    },
+    {
+      "name": "browser-panel.html 保留最大化入口",
+      "pass": true,
+      "detail": "toggleMaximize + browser-maximize 图标"
+    },
+    {
+      "name": "P0 生命周期门禁只约束卡片内嵌",
+      "pass": true,
+      "detail": "cardEmbedded = browserPanelOwner !== undefined；panelLifecycleOk = !cardEmbedded || …"
+    },
+    {
+      "name": "撤销只在曾有 owner 时关掉工作区可见性",
+      "pass": true,
+      "detail": "if (hadOwner && browserVisible) browserVisible = false"
+    },
+    {
+      "name": "卡片缺席 / renderer 生命周期 / 切会话 仅卡片内嵌才撤销",
+      "pass": true,
+      "detail": "三处 revokeBrowserPanel 调用均要求 browserPanelOwner !== undefined"
+    },
+    {
+      "name": "定向回归 browser-panel-layout + main-safety",
+      "pass": true,
+      "detail": "35/35 pass（含上述 2 条新增防复发）"
+    },
+    {
+      "name": "tsc",
+      "pass": true,
+      "detail": "0 errors"
+    }
+  ]
+}

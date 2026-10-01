@@ -1,0 +1,131 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "name": "old Windows settings do not follow owner movement",
+      "pass": true,
+      "details": {
+        "oldParent": {
+          "x": 1137,
+          "y": 65,
+          "width": 1360,
+          "height": 900
+        },
+        "oldChild": {
+          "x": 900,
+          "y": 386,
+          "width": 760,
+          "height": 620
+        },
+        "movedParent": {
+          "x": 1073,
+          "y": 89,
+          "width": 1360,
+          "height": 900
+        },
+        "movedChild": {
+          "x": 900,
+          "y": 386,
+          "width": 760,
+          "height": 620
+        }
+      }
+    },
+    {
+      "name": "live centered within owner visible area",
+      "pass": true,
+      "details": {
+        "owner": {
+          "x": 1073,
+          "y": 89,
+          "width": 1360,
+          "height": 900
+        },
+        "actual": {
+          "x": 1373,
+          "y": 229,
+          "width": 760,
+          "height": 620
+        },
+        "expected": {
+          "x": 1373,
+          "y": 229,
+          "width": 760,
+          "height": 620
+        }
+      }
+    },
+    {
+      "name": "live parent resize",
+      "pass": true,
+      "details": {
+        "owner": {
+          "x": 1137,
+          "y": 65,
+          "width": 1240,
+          "height": 800
+        },
+        "actual": {
+          "x": 1377,
+          "y": 155,
+          "width": 760,
+          "height": 620
+        },
+        "expected": {
+          "x": 1377,
+          "y": 155,
+          "width": 760,
+          "height": 620
+        }
+      }
+    },
+    {
+      "name": "live reopen",
+      "pass": true,
+      "details": {
+        "owner": {
+          "x": 1137,
+          "y": 65,
+          "width": 1240,
+          "height": 800
+        },
+        "actual": {
+          "x": 1377,
+          "y": 155,
+          "width": 760,
+          "height": 620
+        },
+        "expected": {
+          "x": 1377,
+          "y": 155,
+          "width": 760,
+          "height": 620
+        }
+      }
+    },
+    {
+      "name": "owner restored and settings follows",
+      "pass": true,
+      "details": {
+        "owner": {
+          "x": 1137,
+          "y": 65,
+          "width": 1360,
+          "height": 900
+        },
+        "actual": {
+          "x": 1437,
+          "y": 205,
+          "width": 760,
+          "height": 620
+        },
+        "expected": {
+          "x": 1437,
+          "y": 205,
+          "width": 760,
+          "height": 620
+        }
+      }
+    }
+  ]
+}

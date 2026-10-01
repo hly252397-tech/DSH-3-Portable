@@ -1,0 +1,11 @@
+{
+  "status": "pass",
+  "task": "会话文件卡片开进侧边栏 v2（fileMention 短名 chip 支持：filePathOf title 优先解析）",
+  "method": "hj broker 真实 .click() + OS 级鼠标事件（SetCursorPos+mouse_event，trusted）+ 事件传播追踪 + desktop-control 窗口对比",
+  "results": [
+    { "name": "synthetic.allShapes", "expected": true, "actual": true, "pass": true, "note": "3/3 fileLink 按钮被拦（含 2 个短名 fileMention chip），md tab 开卡成功" },
+    { "name": "realOsClick.shortNameChip", "expected": true, "actual": true, "pass": true, "note": "OS 真实鼠标点击短名 chip（trusted:true）：capture 阶段 prevented=true（拦截器接管，bubble 阻断）；activeTab=该文档编辑器卡" },
+    { "name": "realOsClick.noOsWindow", "expected": true, "actual": true, "pass": true, "note": "点击前后顶层窗口清单一致，无系统文档程序弹出" },
+    { "name": "methodology", "expected": "n/a", "actual": "n/a", "pass": true, "note": "v1 失败复盘：测试坐标被 ZCode 窗口遮挡+DSH 窗口移动；修复=每次点击前实时取 rect+遮挡检查。fileMention 短名按钮的完整路径在 title 属性（正斜杠），textContent 只有短名" }
+  ]
+}

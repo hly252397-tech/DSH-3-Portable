@@ -1,0 +1,22 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "compact": true,
+      "rootClass": "dcu-root dcu-compact",
+      "width": 36,
+      "height": 36,
+      "color": "rgb(82, 82, 91)",
+      "nativeColor": "rgb(82, 82, 91)",
+      "background": "rgba(0, 0, 0, 0)",
+      "iconBackground": "rgba(0, 0, 0, 0)",
+      "sourceLoaded": true,
+      "rect": {
+        "x": 16,
+        "y": 740,
+        "width": 36,
+        "height": 101
+      }
+    }
+  ]
+}

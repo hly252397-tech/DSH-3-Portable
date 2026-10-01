@@ -1,0 +1,33 @@
+{
+  "status": "pass",
+  "fileCount": 600,
+  "mismatches": [],
+  "extra": [],
+  "pointer": {
+    "schema": 1,
+    "current": {
+      "relativePath": "Data/Updates/Desktop/slots/1.0.65+build.8-local-c5f27cae0ed7e8dd",
+      "version": "1.0.65+build.8",
+      "sha256": "cb719406eeab7669c3bd76c881ce16e79e5c1db13cff0856119a76ed47bee755",
+      "transactionId": "1980b1ca-49e3-4320-abf4-679cce800ba2"
+    },
+    "previous": {
+      "relativePath": "Data/Updates/Desktop/slots/1.0.65+build.7-local-2c59f7719330b2af",
+      "version": "1.0.65+build.7",
+      "sha256": "3f75b842603769cf25cc512c868bbf8d023283e837046b72cd41d314ede0391f",
+      "transactionId": "ae5539f2-5130-4795-810b-0ced4e161fbf"
+    },
+    "pending": {
+      "relativePath": "Data/Updates/Desktop/slots/1.0.65+build.8-local-7ce6c7ff63e5d7c0",
+      "version": "1.0.65+build.8",
+      "sha256": "98f87c3b36423da0a73fec1f2bf32505e58a1ada844ac461ad054fbb131a6772",
+      "transactionId": "6e648932-c24e-498e-a298-86309d13afd4"
+    },
+    "updatedAt": "2026-09-19T15:16:00.376Z"
+  },
+  "asar": "58f799ea5c678b18a585d4f95014a002525fe86f70b17af3ceac2f36527ad247",
+  "sourceChanges": [
+    "assets/startup.html",
+    "assets/whale-particles.js"
+  ]
+}

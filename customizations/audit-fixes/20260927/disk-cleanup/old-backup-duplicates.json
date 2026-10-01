@@ -1,0 +1,644 @@
+[
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-pnpm-json-fix-20260831-232910\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\dsh-runtime.tgz",
+    "bytes": 50519754,
+    "sha256": "27E9DBBDB8C615D8595EA58068B90CB0C4E2B8CE4A118C8672C532EA7DF9204D"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-203214\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\dsh-runtime.tgz",
+    "bytes": 50519754,
+    "sha256": "27E9DBBDB8C615D8595EA58068B90CB0C4E2B8CE4A118C8672C532EA7DF9204D"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-003147\\DSH Codex Desktop.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-004942\\DSH Codex Desktop.exe",
+    "bytes": 244440576,
+    "sha256": "480063719A9A11D34258D09CE29C46140D75BAAA1D03F688A974A360096E00D2"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-001316\\DSH Codex Desktop.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-004942\\DSH Codex Desktop.exe",
+    "bytes": 244440576,
+    "sha256": "480063719A9A11D34258D09CE29C46140D75BAAA1D03F688A974A360096E00D2"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-151651\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-pnpm-json-fix-20260831-232910\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\failed-incomplete-browser-port-20260901-085755\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-102448\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-100241\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-090352\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-011606\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-005431\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-004942\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-003402\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-003147\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-001316\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-000028\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-234842\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-232856\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-224848\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-211508\\dxcompiler.dll",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\dxcompiler.dll",
+    "bytes": 25744896,
+    "sha256": "494A0CA088D1B9DD8FF673D590AADDD6BDCFF09C938BEFEF8C88C2016C49EE9A"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-pnpm-json-fix-20260831-232910\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-102448\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-100241\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-091106\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-011606\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-005431\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-004942\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-003402\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-003147\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-001316\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-000028\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-234842\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-232856\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-224848\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-224149\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-211508\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-203214\\resources\\node\\node.exe",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\node\\node.exe",
+    "bytes": 93381448,
+    "sha256": "5C976096E04E5C2C1F091938926234CC9FBEBFE9787DDD149351B3B0ECC707B5"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-102448\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\dsh-runtime.tgz",
+    "bytes": 51012928,
+    "sha256": "93DD6E340E832CC64EA32E198CB48A1875B8B8806A248B0023F7235AB164FD74"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-100241\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\dsh-runtime.tgz",
+    "bytes": 51012928,
+    "sha256": "93DD6E340E832CC64EA32E198CB48A1875B8B8806A248B0023F7235AB164FD74"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-091106\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\dsh-runtime.tgz",
+    "bytes": 51012928,
+    "sha256": "93DD6E340E832CC64EA32E198CB48A1875B8B8806A248B0023F7235AB164FD74"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-011606\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\dsh-runtime.tgz",
+    "bytes": 51012928,
+    "sha256": "93DD6E340E832CC64EA32E198CB48A1875B8B8806A248B0023F7235AB164FD74"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-005431\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\dsh-runtime.tgz",
+    "bytes": 51012928,
+    "sha256": "93DD6E340E832CC64EA32E198CB48A1875B8B8806A248B0023F7235AB164FD74"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-004942\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\dsh-runtime.tgz",
+    "bytes": 51012928,
+    "sha256": "93DD6E340E832CC64EA32E198CB48A1875B8B8806A248B0023F7235AB164FD74"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-003402\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\dsh-runtime.tgz",
+    "bytes": 51012928,
+    "sha256": "93DD6E340E832CC64EA32E198CB48A1875B8B8806A248B0023F7235AB164FD74"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-003147\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\dsh-runtime.tgz",
+    "bytes": 51012928,
+    "sha256": "93DD6E340E832CC64EA32E198CB48A1875B8B8806A248B0023F7235AB164FD74"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-001316\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\dsh-runtime.tgz",
+    "bytes": 51012928,
+    "sha256": "93DD6E340E832CC64EA32E198CB48A1875B8B8806A248B0023F7235AB164FD74"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-000028\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\dsh-runtime.tgz",
+    "bytes": 51012928,
+    "sha256": "93DD6E340E832CC64EA32E198CB48A1875B8B8806A248B0023F7235AB164FD74"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-234842\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\dsh-runtime.tgz",
+    "bytes": 51012928,
+    "sha256": "93DD6E340E832CC64EA32E198CB48A1875B8B8806A248B0023F7235AB164FD74"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-232856\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\dsh-runtime.tgz",
+    "bytes": 51012928,
+    "sha256": "93DD6E340E832CC64EA32E198CB48A1875B8B8806A248B0023F7235AB164FD74"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-224848\\resources\\dsh-runtime.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\dsh-runtime.tgz",
+    "bytes": 51012928,
+    "sha256": "93DD6E340E832CC64EA32E198CB48A1875B8B8806A248B0023F7235AB164FD74"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-151651\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-pnpm-json-fix-20260831-232910\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\failed-incomplete-browser-port-20260901-085755\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-102448\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-100241\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-090352\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-011606\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-005431\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-004942\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-003402\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-003147\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-001316\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-000028\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-234842\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-232856\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-224848\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-211508\\icudtl.dat",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\icudtl.dat",
+    "bytes": 10876560,
+    "sha256": "9F48C7F9C7C94D516A14870707E910AB94D75AE640FF6842C4AF53276CD26EBE"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-151651\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-pnpm-json-fix-20260831-232910\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\failed-incomplete-browser-port-20260901-085755\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-102448\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-100241\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-090352\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-011606\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-005431\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-004942\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-003402\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-003147\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-001316\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-000028\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-234842\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-232856\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-224848\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-211508\\resources.pak",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\source-build-20260901-222950\\resources.pak",
+    "bytes": 12435136,
+    "sha256": "C981108783CB7F15DCB4A8E94536D27791DF70040344750684615C5BEB954098"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-pnpm-json-fix-20260831-232910\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\plugins-store.tgz",
+    "bytes": 104514634,
+    "sha256": "DF7240C3DF2F72EB037907E67BF7C647C3D230D5A6C4BB37FB981D779448452F"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-203214\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\pre-relocation-fix-20260831-231416\\resources\\plugins-store.tgz",
+    "bytes": 104514634,
+    "sha256": "DF7240C3DF2F72EB037907E67BF7C647C3D230D5A6C4BB37FB981D779448452F"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-102448\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\plugins-store.tgz",
+    "bytes": 104342432,
+    "sha256": "FD39BA95673FC2182D8AC7FB798832088ED7E376060B2BA4D3B312F5C148181C"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-100241\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\plugins-store.tgz",
+    "bytes": 104342432,
+    "sha256": "FD39BA95673FC2182D8AC7FB798832088ED7E376060B2BA4D3B312F5C148181C"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-091106\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\plugins-store.tgz",
+    "bytes": 104342432,
+    "sha256": "FD39BA95673FC2182D8AC7FB798832088ED7E376060B2BA4D3B312F5C148181C"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-011606\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\plugins-store.tgz",
+    "bytes": 104342432,
+    "sha256": "FD39BA95673FC2182D8AC7FB798832088ED7E376060B2BA4D3B312F5C148181C"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-005431\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\plugins-store.tgz",
+    "bytes": 104342432,
+    "sha256": "FD39BA95673FC2182D8AC7FB798832088ED7E376060B2BA4D3B312F5C148181C"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-004942\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\plugins-store.tgz",
+    "bytes": 104342432,
+    "sha256": "FD39BA95673FC2182D8AC7FB798832088ED7E376060B2BA4D3B312F5C148181C"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-003402\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\plugins-store.tgz",
+    "bytes": 104342432,
+    "sha256": "FD39BA95673FC2182D8AC7FB798832088ED7E376060B2BA4D3B312F5C148181C"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-003147\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\plugins-store.tgz",
+    "bytes": 104342432,
+    "sha256": "FD39BA95673FC2182D8AC7FB798832088ED7E376060B2BA4D3B312F5C148181C"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-001316\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\plugins-store.tgz",
+    "bytes": 104342432,
+    "sha256": "FD39BA95673FC2182D8AC7FB798832088ED7E376060B2BA4D3B312F5C148181C"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-000028\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\plugins-store.tgz",
+    "bytes": 104342432,
+    "sha256": "FD39BA95673FC2182D8AC7FB798832088ED7E376060B2BA4D3B312F5C148181C"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-234842\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\plugins-store.tgz",
+    "bytes": 104342432,
+    "sha256": "FD39BA95673FC2182D8AC7FB798832088ED7E376060B2BA4D3B312F5C148181C"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-232856\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\plugins-store.tgz",
+    "bytes": 104342432,
+    "sha256": "FD39BA95673FC2182D8AC7FB798832088ED7E376060B2BA4D3B312F5C148181C"
+  },
+  {
+    "delete": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260901-224848\\resources\\plugins-store.tgz",
+    "keep": "G:\\DSH-3-Portable\\Data\\Updates\\Backups\\browser-port-20260902-103108\\resources\\plugins-store.tgz",
+    "bytes": 104342432,
+    "sha256": "FD39BA95673FC2182D8AC7FB798832088ED7E376060B2BA4D3B312F5C148181C"
+  }
+]

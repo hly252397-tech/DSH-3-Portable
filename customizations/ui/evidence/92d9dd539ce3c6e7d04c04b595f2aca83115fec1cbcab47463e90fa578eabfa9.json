@@ -1,0 +1,171 @@
+{
+  "version": "1.0.65+build.8",
+  "status": "pass",
+  "results": [
+    {
+      "session": "⚡ 优化｜对话列内联代码芯片换行边界验证\n1天",
+      "selected": true,
+      "mode": "对话",
+      "pass": true,
+      "errors": [],
+      "historyRows": 11,
+      "visibleNodes": 15,
+      "overflow": [],
+      "textChars": 1134
+    },
+    {
+      "session": "⚡ 优化｜对话列内联代码芯片换行边界验证\n1天",
+      "selected": true,
+      "mode": "轨迹",
+      "pass": true,
+      "errors": [],
+      "historyRows": 0,
+      "visibleNodes": 5,
+      "overflow": [],
+      "textChars": 3466
+    },
+    {
+      "session": "⚡ 优化｜对话列内联代码芯片换行边界验证\n1天",
+      "selected": true,
+      "mode": "上下文",
+      "pass": true,
+      "errors": [],
+      "historyRows": 0,
+      "visibleNodes": 0,
+      "overflow": [],
+      "textChars": 3089
+    },
+    {
+      "session": "✨ 功能｜配置 Harness 本地 MCP 服务与百炼基础设施接入\n2天",
+      "selected": true,
+      "mode": "对话",
+      "pass": true,
+      "errors": [],
+      "historyRows": 98,
+      "visibleNodes": 116,
+      "overflow": [],
+      "textChars": 19861
+    },
+    {
+      "session": "✨ 功能｜配置 Harness 本地 MCP 服务与百炼基础设施接入\n2天",
+      "selected": true,
+      "mode": "轨迹",
+      "pass": true,
+      "errors": [],
+      "historyRows": 0,
+      "visibleNodes": 5,
+      "overflow": [],
+      "textChars": 12650
+    },
+    {
+      "session": "✨ 功能｜配置 Harness 本地 MCP 服务与百炼基础设施接入\n2天",
+      "selected": true,
+      "mode": "上下文",
+      "pass": true,
+      "errors": [],
+      "historyRows": 0,
+      "visibleNodes": 0,
+      "overflow": [],
+      "textChars": 18411
+    },
+    {
+      "session": "========================================\n2天",
+      "selected": true,
+      "mode": "对话",
+      "pass": true,
+      "errors": [],
+      "historyRows": 107,
+      "visibleNodes": 116,
+      "overflow": [],
+      "textChars": 18546
+    },
+    {
+      "session": "========================================\n2天",
+      "selected": true,
+      "mode": "轨迹",
+      "pass": true,
+      "errors": [],
+      "historyRows": 0,
+      "visibleNodes": 5,
+      "overflow": [],
+      "textChars": 12815
+    },
+    {
+      "session": "========================================\n2天",
+      "selected": true,
+      "mode": "上下文",
+      "pass": true,
+      "errors": [],
+      "historyRows": 0,
+      "visibleNodes": 0,
+      "overflow": [],
+      "textChars": 36341
+    },
+    {
+      "session": "🐛 修复｜界面缩略图竖条消失问题排查\n2天",
+      "selected": true,
+      "mode": "对话",
+      "pass": true,
+      "errors": [],
+      "historyRows": 91,
+      "visibleNodes": 99,
+      "overflow": [],
+      "textChars": 14426
+    },
+    {
+      "session": "🐛 修复｜界面缩略图竖条消失问题排查\n2天",
+      "selected": true,
+      "mode": "轨迹",
+      "pass": true,
+      "errors": [],
+      "historyRows": 0,
+      "visibleNodes": 5,
+      "overflow": [],
+      "textChars": 10243
+    },
+    {
+      "session": "🐛 修复｜界面缩略图竖条消失问题排查\n2天",
+      "selected": true,
+      "mode": "上下文",
+      "pass": true,
+      "errors": [],
+      "historyRows": 0,
+      "visibleNodes": 0,
+      "overflow": [],
+      "textChars": 24264
+    },
+    {
+      "session": "🔍 探索｜中间这条线的作用\n2天",
+      "selected": true,
+      "mode": "对话",
+      "pass": true,
+      "errors": [],
+      "historyRows": 101,
+      "visibleNodes": 110,
+      "overflow": [],
+      "textChars": 13037
+    },
+    {
+      "session": "🔍 探索｜中间这条线的作用\n2天",
+      "selected": true,
+      "mode": "轨迹",
+      "pass": true,
+      "errors": [],
+      "historyRows": 0,
+      "visibleNodes": 5,
+      "overflow": [],
+      "textChars": 15513
+    },
+    {
+      "session": "🔍 探索｜中间这条线的作用\n2天",
+      "selected": true,
+      "mode": "上下文",
+      "pass": true,
+      "errors": [],
+      "historyRows": 0,
+      "visibleNodes": 0,
+      "overflow": [],
+      "textChars": 12113
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "approvedBy": "Explicit user reply: delete the file not referenced by model manifests",
+  "target": "G:\\DSH-3-Portable\\Data\\ollama-models\\blobs\\sha256-f5f1dd8920d417aac2718b0bda3403da274301efdd6760b4f0f4b864ff2ad57d",
+  "bytes": 16810714464,
+  "manifests": [
+    {
+      "path": "G:\\DSH-3-Portable\\Data\\ollama-models\\manifests\\registry.ollama.ai\\library\\llava\\latest",
+      "sha256": "8DD30F6B0CB19F555F2C7A7EBDA861449EA2CC76BF1F44E262931F45FC81D081"
+    },
+    {
+      "path": "G:\\DSH-3-Portable\\Data\\ollama-models\\manifests\\registry.ollama.ai\\library\\qwen3\\8b",
+      "sha256": "500A1F067A9F782620B40BEE6F7B0C89E17AE61F686B92C24933E4CA4B2B8B41"
+    },
+    {
+      "path": "G:\\DSH-3-Portable\\Data\\ollama-models\\manifests\\registry.ollama.ai\\library\\qwen3-codex\\latest",
+      "sha256": "C118489A201440E0B9B0EDA2C55F6BA86DF6554A9C9C7AEC7DE745B33FB53B21"
+    },
+    {
+      "path": "G:\\DSH-3-Portable\\Data\\ollama-models\\manifests\\registry.ollama.ai\\library\\qwen3.8-27b\\latest",
+      "sha256": "422327EE2AC8FDDB82D3A17CF17B35DC97F3121F485361FE5DECD07B197F1B8A"
+    }
+  ]
+}

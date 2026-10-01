@@ -1,0 +1,76 @@
+[
+  {
+    "compact": false,
+    "group": {
+      "x": 15,
+      "y": 766,
+      "width": 222,
+      "height": 67
+    },
+    "name": {
+      "x": 57,
+      "y": 805,
+      "width": 166,
+      "height": 18
+    },
+    "nameClient": 166,
+    "nameScroll": 166,
+    "button": {
+      "x": 19,
+      "y": 797,
+      "width": 214,
+      "height": 34
+    },
+    "title": {
+      "x": 19,
+      "y": 773,
+      "width": 214,
+      "height": 22
+    },
+    "label": "宏建云 ERP",
+    "tooltip": "宏建云 ERP\nhttps://login.hongjian.com/login/login.jsp",
+    "foot": {
+      "x": 7,
+      "y": 721,
+      "width": 238,
+      "height": 128
+    }
+  },
+  {
+    "compact": true,
+    "group": {
+      "x": 16,
+      "y": 784,
+      "width": 36,
+      "height": 45
+    },
+    "name": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "nameClient": 0,
+    "nameScroll": 0,
+    "button": {
+      "x": 16,
+      "y": 793,
+      "width": 36,
+      "height": 36
+    },
+    "title": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "label": "宏建云 ERP",
+    "tooltip": "宏建云 ERP\nhttps://login.hongjian.com/login/login.jsp",
+    "foot": {
+      "x": 16,
+      "y": 740,
+      "width": 36,
+      "height": 101
+    }
+  }
+]

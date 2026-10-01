@@ -1,0 +1,26 @@
+{
+  "errors": [],
+  "console": [],
+  "failed": [
+    {
+      "url": "http://127.0.0.1:50987/ui-tweaks/probe",
+      "failure": {
+        "errorText": "net::ERR_ABORTED"
+      }
+    },
+    {
+      "url": "http://127.0.0.1:50987/ui-tweaks/probe",
+      "failure": {
+        "errorText": "net::ERR_ABORTED"
+      }
+    }
+  ],
+  "responses": [],
+  "dom": {
+    "title": "DeepSeek Harness",
+    "rows": 0,
+    "dialogs": [],
+    "modules": [],
+    "buttons": []
+  }
+}

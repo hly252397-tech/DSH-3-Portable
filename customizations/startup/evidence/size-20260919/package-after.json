@@ -1,0 +1,28 @@
+{
+  "status": "pass",
+  "pending": "Data/Updates/Desktop/slots/1.0.65+build.8-local-cfdbcc046e7a3b52",
+  "transactionId": "09d836dd-1955-48d1-89d7-c65a91c9776f",
+  "currentUnchanged": true,
+  "previousUnchanged": true,
+  "asar": "58f799ea5c678b18a585d4f95014a002525fe86f70b17af3ceac2f36527ad247",
+  "checks": [
+    {
+      "name": "startup.html",
+      "source": "93d22dacc9f6c09a5a82b70814967c2119d069231212bdb61aae96d4551e645a",
+      "candidate": "93d22dacc9f6c09a5a82b70814967c2119d069231212bdb61aae96d4551e645a"
+    },
+    {
+      "name": "whale-particles.js",
+      "source": "66731d630c53d77447d14c62ceebed211343caece59b79d22a67a3b53169a2f4",
+      "candidate": "66731d630c53d77447d14c62ceebed211343caece59b79d22a67a3b53169a2f4"
+    },
+    {
+      "name": "shell.html",
+      "source": "342416c65ec9d5b582babe41485eed25cc8a0110487aeae1fbbb93e904cfd1fe",
+      "candidate": "342416c65ec9d5b582babe41485eed25cc8a0110487aeae1fbbb93e904cfd1fe"
+    }
+  ],
+  "oldPendingRemoved": true,
+  "activeSlotUntouched": true,
+  "restarted": false
+}

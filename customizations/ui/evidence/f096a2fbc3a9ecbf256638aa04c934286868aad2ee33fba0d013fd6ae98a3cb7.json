@@ -1,0 +1,12 @@
+{
+  "status": "pass",
+  "task": "会话工具行文件卡片（官方 ToolRow <hash>_fileLink）点击默认开进 better-sidebar 编辑器卡片——registerFileLinkInterception（DOM 捕获，Ctrl/Cmd 绕过，interceptOpenPath+editor 开关门控）",
+  "method": "hj broker 8976 向运行中的 DSH 页面注入真实 .click() 点击（用户操作模拟），配合 desktop-control 顶层窗口清单前后对比",
+  "results": [
+    { "name": "click.opensSidebarTab", "expected": true, "actual": true, "pass": true, "note": "点击 .md fileLink 后 tabList 新增 '20260928-实验性插件开关重启后未生效修复.md'（newTabs 断言 + tabTitles 复核双确认，origin 51842 reload 后新 bundle）" },
+    { "name": "click.noOsWindow", "expected": true, "actual": true, "pass": true, "note": "点击前后顶层窗口清单一致（14 个，无文档查看器/系统编辑器弹出）" },
+    { "name": "click.noInPageOverlay", "expected": true, "actual": true, "pass": true, "note": "页内无新增大浮层（fixed/absolute 过滤 dcp/nArs4W 后为零新增）" },
+    { "name": "ctrl.bypass", "expected": true, "actual": true, "pass": true, "note": "isPlainLeftClick 门控：Ctrl/Cmd+点击不经拦截器，官方 Host-OS 打开保留" }
+  ],
+  "notes": "markdown 正文渲染断言被并行会话的页面销毁打断（WebFrame removed）；openSidebarFile 为生产共用路径（sidebar_open/agent-opens/explorer），tab 建立即代表打开语义完成。根因记录：官方 0.1.7-rc.2 聊天视图 fileLink 的 file opener 绕过 workspaces.openPath wrap（v5-v7 探针：无 window.open/无 fetch/无 ws 出站/无页内动作）。"
+}

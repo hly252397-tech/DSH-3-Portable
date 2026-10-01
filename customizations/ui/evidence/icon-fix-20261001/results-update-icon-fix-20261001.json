@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-01",
+  "feature": "设置左导航「更新」条目图标可辨性修复",
+  "plugin": "dsh-ui-tweaks",
+  "file": "customizations/ui-tweaks/lib/client.js",
+  "sha256": "81d6c324b0be5414ee62e24d8f755e1ab3ee22d3f8cdae1e55c9a427f90c01be",
+  "md5": "4363752549de5534f12de622a4a8f427",
+  "diagnosis": {
+    "symptom": "用户报「更新图标有问题」",
+    "rootCause": "「更新」条目用的是 lucide refresh-cw：两段反向弧 + 双箭头共 4 条子路径。塞进 16x16 的 mask 盒（viewBox 24 等比 contain、stroke-width 2）后四条曲线互相压边，光栅化糊成一团，看不出是刷新。",
+    "ruledOut": [
+      "mask 未加载 —— 实测 20 条 mask 全部解码成功（natural 150x150）",
+      "位置/尺寸/颜色错 —— left:10px、top:50%、margin-top:-8px、16x16、currentColor、opacity .62 全部核对正确",
+      "管线断裂 —— 镜像导航 CSS 与 SETTINGS_NAV_ICONS 两条管线都在跑",
+      "内联 svg 兜底是 lucide-box —— 该 svg 被 display:none，从不参与绘制（曾被 vision-bridge 误报为真因，已按像素证据推翻）"
+    ],
+    "fix": "改为 lucide rotate-cw：单段近整圆弧 + 右上单箭头，同条件下字形完整可辨。"
+  },
+  "twoPipelines": [
+    {
+      "where": "镜像导航 CSS（client.js 第 409 行）",
+      "selector": ".dsh-sg-item[data-dsh-nav-key=\"更新\"]::before",
+      "dataUrlEncoding": "裸 <svg（与 408 行通知同风格）"
+    },
+    {
+      "where": "官方导航装饰（client.js 第 825 行 SETTINGS_NAV_ICONS）",
+      "id": "desktop-updates",
+      "dataUrlEncoding": "encodeURIComponent"
+    }
+  ],
+  "sync": {
+    "copies": [
+      "customizations/ui-tweaks/lib/client.js",
+      "Data/DSH/profiles/web/local/dsh-ui-tweaks/lib/client.js (活动, junction 目标)",
+      "Data/DSH-generations/v4-rc2b/home/profiles/web/local/dsh-ui-tweaks/lib/client.js",
+      "Data/DSH-generations/v5-020rc1/home/profiles/web/local/dsh-ui-tweaks/lib/client.js",
+      "Data/DSH-generations/auto-020-rc2/home/profiles/web/local/dsh-ui-tweaks/lib/client.js"
+    ],
+    "md5": "4363752549de5534f12de622a4a8f427（五份全同）",
+    "readOnly": "444 全部恢复"
+  },
+  "liveVerification": {
+    "method": "CDP 9471 → 页面内 canvas 光栅化（Data/Temp/icon5.mjs），按真实 computed style 取 mask / opacity / color，与浏览器 mask 同条件渲染 16x16",
+    "whyNotScreenshot": "Page.captureScreenshot 在本机会话内阻塞（多次 100s 超时），改用确定性 canvas 光栅化；vision-bridge 在本机有整段编造 UI 的前科，全程不采信",
+    "navItemCount": 20,
+    "allMasksLoaded": true,
+    "updateIcon": "rotateCw=true refreshCw=false",
+    "spotCheck": [
+      "更新",
+      "通知",
+      "常规",
+      "模型",
+      "归档会话"
+    ],
+    "regression": "无 —— 5 枚抽样图标字形均完整可辨，20 条 mask 全部 OK"
+  },
+  "negativeControl": "负向对照  A=旧 refresh-cw (150,150)   B=新 rotate-cw (150,150)   条件完全相同：viewBox 24 / stroke-width 2 / mask-size contain / 16x16\n\n   A 旧 refresh-cw          B  新 rotate-cw\n  @@@@@@@@@@@@@@@@      @@@@@@@@@@@@@@@@\n  @@@@@@@@@@@@@@@@      @@@@@#+--+#@@**@\n  @@@@@@@@@@@@@==@      @@@@=  ..  -%--@\n  @@@@@@@@@@@@@--@      @@@: =%@@%+..:-@\n  @@@@@@*--+#@@--@      @@= %@@@@@%*: :@\n  @@@@*..-=- =#--@      @@ *@@@@@@.   :@\n  @@@* +@@@=    .@      @* @@@@@@@@@@@@@\n  @@@.+@@@@%##*+#@      @=:@@@@@@@@@@**@\n  @#-.##%@@@@@@@@@      @=:@@@@@@@@@@:=@\n  @.    +@@@@@+*@@      @* @@@@@@@@@@ *@\n  @- -@@@@@@@# +@@      @# *@@@@@@@@+ #@\n  @-: +@@@@@@::@@@      @@- %@@@@@@% -@@\n  @--= -#@@#: #@@@      @@@..*@@@@*..@@@\n  @==@*.    -#@@@@      @@@@= .::. =@@@@\n  @@@@@@#++%@@@@@@      @@@@@#+--+#@@@@@\n  @@@@@@@@@@@@@@@@      @@@@@@@@@@@@@@@@\n\n描边像素数  A=86  B=83  （A 的笔画挤在 16px 里互相压边，B 是一段完整弧+单箭头）",
+  "pixelEvidence": "=== 更新 === natural 150,150 stroke-width=2 opacity=0.62  rotateCw=true refreshCw=false\n@@@@@@@@@@@@@@@@\n@@@@@#+--+#@@**@\n@@@@=  ..  -%--@\n@@@: =%@@%+..:-@\n@@= %@@@@@%*: :@\n@@ *@@@@@@.   :@\n@* @@@@@@@@@@@@@\n@=:@@@@@@@@@@**@\n@=:@@@@@@@@@@:=@\n@* @@@@@@@@@@ *@\n@# *@@@@@@@@+ #@\n@@- %@@@@@@% -@@\n@@@..*@@@@*..@@@\n@@@@= .::. =@@@@\n@@@@@#+--+#@@@@@\n@@@@@@@@@@@@@@@@\n\n=== 通知 === natural 150,150 stroke-width=2 opacity=0.62  rotateCw=false refreshCw=false\n@@@@@@@##@@@@@@@\n@@@@@=    =@@@@@\n@@@@-:*%%*:-@@@@\n@@@# %@@@@% #@@@\n@@@=:@@@@@@:=@@@\n@@@--@@@@@@--@@@\n@@@:=@@@@@@=:@@@\n@@@.=@@@@@@=:@@@\n@@% *@@@@@@* @@@\n@@+ %@@@@@@% +@@\n@#.-########-.#@\n@=            +@\n@@@@@@@@@@@@@@@@\n@@@@@@+##+@@@@@@\n@@@@@@+  +@@@@@@\n@@@@@@@%%@@@@@@@\n\n=== 常规 === natural 150,150 stroke-width=2 opacity=0.62  rotateCw=false refreshCw=false\n@@@@@@@%%@@@@@@@\n@@@@@@=  =@@@@@@\n@@@@@% ** %@@@@@\n@@+-=-.@@.-=-+@@\n@* -:-%@@%-:- *@\n@=:@@@#--#@@@:=@\n@# *@# :: #@* #@\n@@=.@-:@@:-@.=@@\n@@=.@-:@@:-@.=@@\n@* *@# :: #@* *@\n@=:@@@#--#@@@:=@\n@* -:=%@@%-:- *@\n@@-:=-:@@.-=:-@@\n@@@@@% ** %@@@@@\n@@@@@@=  =@@@@@@\n@@@@@@@%%@@@@@@@\n\n=== 模型 === natural 150,150 stroke-width=2 opacity=0.62  rotateCw=false refreshCw=false\n@@@@*@@##@@*@@@@\n@@@@ *@--@* @@@@\n@@*.        .*@@\n@@.==**++**==.@@\n*  =@#****#@=  *\n@* *#      #* *@\n@@ ** @@@@ ** @@\n#- +* @@@@ *+ -#\n#- +* @@@@ *+ -#\n@@ ** @@@@ ** @@\n@* *#      #* *@\n*  =@#****#@=  *\n@@.==**++**==.@@\n@@*.        .*@@\n@@@@ *@--@* @@@@\n@@@@*@@##@@*@@@@\n\n=== 归档会话 === natural 150,150 stroke-width=2 opacity=0.62  rotateCw=false refreshCw=false\n@@@@@@@@@@@@@@@@\n@=------------=@\n* ------------ *\n* @@@@@@@@@@@@ *\n* %@@@@@@@@@@% *\n%.            .%\n@@ *@@@@@@@@* @@\n@@ *@@----@@* @@\n@@ *@@----@@* @@\n@@ *@@@@@@@@* @@\n@@ *@@@@@@@@* @@\n@@ *@@@@@@@@* @@\n@@ *@@@@@@@@* @@\n@@:.::::::::.:@@\n@@#=::::::::=%@@\n@@@@@@@@@@@@@@@@",
+  "screenshots": [
+    "row-updates-selected.png (更新行, 6x, 选中态)",
+    "row-notifications.png (通知行, 6x)",
+    "row-general.png (常规行, 6x)"
+  ],
+  "gates": {
+    "targeted tests": "35 pass / 0 fail (7 suites)",
+    "scripts/ui-baseline.mjs": "PASS",
+    "check-customization-preservation --source-only": "PASS (revision 3 -> 4, 已登记变更记录，非直接改哈希)"
+  },
+  "deployment": "ui-tweaks 是 Profile 插件（junction 链接），刷新页面即生效，无需 40 分钟全量构建"
+}

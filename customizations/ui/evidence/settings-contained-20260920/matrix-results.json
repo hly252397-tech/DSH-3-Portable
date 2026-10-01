@@ -1,0 +1,489 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "name": "bounds 1360,900 1",
+      "pass": true,
+      "details": {
+        "owner": {
+          "x": 100,
+          "y": 100,
+          "width": 1360,
+          "height": 900
+        },
+        "actual": {
+          "x": 400,
+          "y": 240,
+          "width": 760,
+          "height": 620
+        },
+        "expected": {
+          "x": 400,
+          "y": 240,
+          "width": 760,
+          "height": 620
+        }
+      }
+    },
+    {
+      "name": "layout 1360,900 1 notifications",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "notificationsPage"
+        ],
+        "height": 620,
+        "scrollHeight": 620
+      }
+    },
+    {
+      "name": "layout 1360,900 1 updates",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "updatesPage"
+        ],
+        "height": 620,
+        "scrollHeight": 944
+      }
+    },
+    {
+      "name": "layout 1360,900 1 appearance",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "appearancePage"
+        ],
+        "height": 620,
+        "scrollHeight": 620
+      }
+    },
+    {
+      "name": "bounds 1360,900 1.25",
+      "pass": true,
+      "details": {
+        "owner": {
+          "x": 100,
+          "y": 100,
+          "width": 1360,
+          "height": 900
+        },
+        "actual": {
+          "x": 400,
+          "y": 240,
+          "width": 760,
+          "height": 620
+        },
+        "expected": {
+          "x": 400,
+          "y": 240,
+          "width": 760,
+          "height": 620
+        }
+      }
+    },
+    {
+      "name": "layout 1360,900 1.25 notifications",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "notificationsPage"
+        ],
+        "height": 496,
+        "scrollHeight": 496
+      }
+    },
+    {
+      "name": "layout 1360,900 1.25 updates",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "updatesPage"
+        ],
+        "height": 496,
+        "scrollHeight": 934
+      }
+    },
+    {
+      "name": "layout 1360,900 1.25 appearance",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "appearancePage"
+        ],
+        "height": 496,
+        "scrollHeight": 496
+      }
+    },
+    {
+      "name": "bounds 900,650 1",
+      "pass": true,
+      "details": {
+        "owner": {
+          "x": 100,
+          "y": 100,
+          "width": 900,
+          "height": 650
+        },
+        "actual": {
+          "x": 170,
+          "y": 116,
+          "width": 760,
+          "height": 618
+        },
+        "expected": {
+          "x": 170,
+          "y": 116,
+          "width": 760,
+          "height": 618
+        }
+      }
+    },
+    {
+      "name": "layout 900,650 1 notifications",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "notificationsPage"
+        ],
+        "height": 618,
+        "scrollHeight": 618
+      }
+    },
+    {
+      "name": "layout 900,650 1 updates",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "updatesPage"
+        ],
+        "height": 618,
+        "scrollHeight": 944
+      }
+    },
+    {
+      "name": "layout 900,650 1 appearance",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "appearancePage"
+        ],
+        "height": 618,
+        "scrollHeight": 618
+      }
+    },
+    {
+      "name": "bounds 900,650 1.25",
+      "pass": true,
+      "details": {
+        "owner": {
+          "x": 100,
+          "y": 100,
+          "width": 900,
+          "height": 650
+        },
+        "actual": {
+          "x": 170,
+          "y": 116,
+          "width": 760,
+          "height": 618
+        },
+        "expected": {
+          "x": 170,
+          "y": 116,
+          "width": 760,
+          "height": 618
+        }
+      }
+    },
+    {
+      "name": "layout 900,650 1.25 notifications",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "notificationsPage"
+        ],
+        "height": 494,
+        "scrollHeight": 494
+      }
+    },
+    {
+      "name": "layout 900,650 1.25 updates",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "updatesPage"
+        ],
+        "height": 494,
+        "scrollHeight": 934
+      }
+    },
+    {
+      "name": "layout 900,650 1.25 appearance",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "appearancePage"
+        ],
+        "height": 494,
+        "scrollHeight": 494
+      }
+    },
+    {
+      "name": "bounds 640,480 1",
+      "pass": true,
+      "details": {
+        "owner": {
+          "x": 100,
+          "y": 100,
+          "width": 640,
+          "height": 480
+        },
+        "actual": {
+          "x": 116,
+          "y": 116,
+          "width": 608,
+          "height": 448
+        },
+        "expected": {
+          "x": 116,
+          "y": 116,
+          "width": 608,
+          "height": 448
+        }
+      }
+    },
+    {
+      "name": "layout 640,480 1 notifications",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "notificationsPage"
+        ],
+        "height": 448,
+        "scrollHeight": 448
+      }
+    },
+    {
+      "name": "layout 640,480 1 updates",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "updatesPage"
+        ],
+        "height": 448,
+        "scrollHeight": 939
+      }
+    },
+    {
+      "name": "layout 640,480 1 appearance",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "appearancePage"
+        ],
+        "height": 448,
+        "scrollHeight": 448
+      }
+    },
+    {
+      "name": "bounds 640,480 1.25",
+      "pass": true,
+      "details": {
+        "owner": {
+          "x": 100,
+          "y": 100,
+          "width": 640,
+          "height": 480
+        },
+        "actual": {
+          "x": 116,
+          "y": 116,
+          "width": 608,
+          "height": 448
+        },
+        "expected": {
+          "x": 116,
+          "y": 116,
+          "width": 608,
+          "height": 448
+        }
+      }
+    },
+    {
+      "name": "layout 640,480 1.25 notifications",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "notificationsPage"
+        ],
+        "height": 306,
+        "scrollHeight": 470
+      }
+    },
+    {
+      "name": "layout 640,480 1.25 updates",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "updatesPage"
+        ],
+        "height": 306,
+        "scrollHeight": 1042
+      }
+    },
+    {
+      "name": "layout 640,480 1.25 appearance",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "appearancePage"
+        ],
+        "height": 306,
+        "scrollHeight": 387
+      }
+    },
+    {
+      "name": "bounds 450,450 1",
+      "pass": true,
+      "details": {
+        "owner": {
+          "x": 100,
+          "y": 100,
+          "width": 450,
+          "height": 450
+        },
+        "actual": {
+          "x": 116,
+          "y": 116,
+          "width": 418,
+          "height": 418
+        },
+        "expected": {
+          "x": 116,
+          "y": 116,
+          "width": 418,
+          "height": 418
+        }
+      }
+    },
+    {
+      "name": "layout 450,450 1 notifications",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "notificationsPage"
+        ],
+        "height": 365,
+        "scrollHeight": 473
+      }
+    },
+    {
+      "name": "layout 450,450 1 updates",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "updatesPage"
+        ],
+        "height": 365,
+        "scrollHeight": 1047
+      }
+    },
+    {
+      "name": "layout 450,450 1 appearance",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "appearancePage"
+        ],
+        "height": 365,
+        "scrollHeight": 388
+      }
+    },
+    {
+      "name": "bounds 450,450 1.25",
+      "pass": true,
+      "details": {
+        "owner": {
+          "x": 100,
+          "y": 100,
+          "width": 450,
+          "height": 450
+        },
+        "actual": {
+          "x": 116,
+          "y": 116,
+          "width": 418,
+          "height": 418
+        },
+        "expected": {
+          "x": 116,
+          "y": 116,
+          "width": 418,
+          "height": 418
+        }
+      }
+    },
+    {
+      "name": "layout 450,450 1.25 notifications",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "notificationsPage"
+        ],
+        "height": 282,
+        "scrollHeight": 470
+      }
+    },
+    {
+      "name": "layout 450,450 1.25 updates",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "updatesPage"
+        ],
+        "height": 282,
+        "scrollHeight": 1098
+      }
+    },
+    {
+      "name": "layout 450,450 1.25 appearance",
+      "pass": true,
+      "details": {
+        "overflow": false,
+        "visiblePage": [
+          "appearancePage"
+        ],
+        "height": 282,
+        "scrollHeight": 532
+      }
+    },
+    {
+      "name": "native listener cleanup",
+      "pass": true
+    }
+  ]
+}

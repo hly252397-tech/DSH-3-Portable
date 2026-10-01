@@ -1,0 +1,10 @@
+{
+  "status": "fail",
+  "results": [
+    {
+      "name": "old stale transition reproduced; new native bounds synchronized",
+      "ok": true
+    }
+  ],
+  "error": "Error: No foreground frame: click size=1000 zoom=0.8 {\"visible\":true,\"focused\":true,\"minimized\":false,\"opacity\":1,\"bounds\":{\"x\":0,\"y\":42,\"width\":984,\"height\":613},\"page\":{\"visibility\":\"hidden\",\"width\":125,\"height\":125}}\n    at G:\\DSH-3-Portable\\scripts\\verify-shell-surface.cjs:74:46\n    at async run (G:\\DSH-3-Portable\\scripts\\verify-shell-surface.cjs:72:7)"
+}

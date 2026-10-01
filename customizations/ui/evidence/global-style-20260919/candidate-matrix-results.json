@@ -1,0 +1,593 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "name": "shell light 1",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "shell light 1.25",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "shell dark 1",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "shell dark 1.25",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "browser-panel light 1",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "browser-panel light 1.25",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "browser-panel dark 1",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "browser-panel dark 1.25",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "settings light 1",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "settings light 1.25",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "settings dark 1",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgb(9, 9, 11)"
+      }
+    },
+    {
+      "name": "settings dark 1.25",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgb(9, 9, 11)"
+      }
+    },
+    {
+      "name": "about light 1",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "about light 1.25",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "about dark 1",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgb(24, 24, 27)"
+      }
+    },
+    {
+      "name": "about dark 1.25",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgb(24, 24, 27)"
+      }
+    },
+    {
+      "name": "shortcuts light 1",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "shortcuts light 1.25",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "shortcuts dark 1",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "shortcuts dark 1.25",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "feature-panels light 1",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "feature-panels light 1.25",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "feature-panels dark 1",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "feature-panels dark 1.25",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "startup light 1",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "startup light 1.25",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "startup dark 1",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgb(9, 9, 11)"
+      }
+    },
+    {
+      "name": "startup dark 1.25",
+      "pass": true,
+      "details": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "controls": true,
+        "background": "rgb(9, 9, 11)"
+      }
+    },
+    {
+      "name": "browser old 360 light 1",
+      "pass": true,
+      "details": {
+        "size": "16px",
+        "font": "Inter, \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif",
+        "line": "normal",
+        "nav": "16px",
+        "left": 82,
+        "right": 352,
+        "viewport": 360,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser old 360 light 1.25",
+      "pass": true,
+      "details": {
+        "size": "16px",
+        "font": "Inter, \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif",
+        "line": "normal",
+        "nav": "16px",
+        "left": 10,
+        "right": 280,
+        "viewport": 288,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser old 360 dark 1",
+      "pass": true,
+      "details": {
+        "size": "16px",
+        "font": "Inter, \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif",
+        "line": "normal",
+        "nav": "16px",
+        "left": 82,
+        "right": 352,
+        "viewport": 360,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser old 360 dark 1.25",
+      "pass": true,
+      "details": {
+        "size": "16px",
+        "font": "Inter, \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif",
+        "line": "normal",
+        "nav": "16px",
+        "left": 10,
+        "right": 280,
+        "viewport": 288,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser old 712 light 1",
+      "pass": true,
+      "details": {
+        "size": "16px",
+        "font": "Inter, \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif",
+        "line": "normal",
+        "nav": "16px",
+        "left": 434,
+        "right": 704,
+        "viewport": 712,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser old 712 light 1.25",
+      "pass": true,
+      "details": {
+        "size": "16px",
+        "font": "Inter, \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif",
+        "line": "normal",
+        "nav": "16px",
+        "left": 291.6000061035156,
+        "right": 561.6000061035156,
+        "viewport": 570,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser old 712 dark 1",
+      "pass": true,
+      "details": {
+        "size": "16px",
+        "font": "Inter, \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif",
+        "line": "normal",
+        "nav": "16px",
+        "left": 434,
+        "right": 704,
+        "viewport": 712,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser old 712 dark 1.25",
+      "pass": true,
+      "details": {
+        "size": "16px",
+        "font": "Inter, \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif",
+        "line": "normal",
+        "nav": "16px",
+        "left": 291.6000061035156,
+        "right": 561.6000061035156,
+        "viewport": 570,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser old 1360 light 1",
+      "pass": true,
+      "details": {
+        "size": "16px",
+        "font": "Inter, \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif",
+        "line": "normal",
+        "nav": "16px",
+        "left": 1082,
+        "right": 1352,
+        "viewport": 1360,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser old 1360 light 1.25",
+      "pass": true,
+      "details": {
+        "size": "16px",
+        "font": "Inter, \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif",
+        "line": "normal",
+        "nav": "16px",
+        "left": 810,
+        "right": 1080,
+        "viewport": 1088,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser old 1360 dark 1",
+      "pass": true,
+      "details": {
+        "size": "16px",
+        "font": "Inter, \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif",
+        "line": "normal",
+        "nav": "16px",
+        "left": 1082,
+        "right": 1352,
+        "viewport": 1360,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser old 1360 dark 1.25",
+      "pass": true,
+      "details": {
+        "size": "16px",
+        "font": "Inter, \"Segoe UI\", \"Microsoft YaHei UI\", sans-serif",
+        "line": "normal",
+        "nav": "16px",
+        "left": 810,
+        "right": 1080,
+        "viewport": 1088,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser new 360 light 1",
+      "pass": true,
+      "details": {
+        "size": "13px",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "line": "20px",
+        "nav": "12px",
+        "left": 82,
+        "right": 352,
+        "viewport": 360,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser new 360 light 1.25",
+      "pass": true,
+      "details": {
+        "size": "13px",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "line": "20px",
+        "nav": "12px",
+        "left": 10,
+        "right": 280,
+        "viewport": 288,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser new 360 dark 1",
+      "pass": true,
+      "details": {
+        "size": "13px",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "line": "20px",
+        "nav": "12px",
+        "left": 82,
+        "right": 352,
+        "viewport": 360,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser new 360 dark 1.25",
+      "pass": true,
+      "details": {
+        "size": "13px",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "line": "20px",
+        "nav": "12px",
+        "left": 10,
+        "right": 280,
+        "viewport": 288,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser new 712 light 1",
+      "pass": true,
+      "details": {
+        "size": "13px",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "line": "20px",
+        "nav": "12px",
+        "left": 434,
+        "right": 704,
+        "viewport": 712,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser new 712 light 1.25",
+      "pass": true,
+      "details": {
+        "size": "13px",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "line": "20px",
+        "nav": "12px",
+        "left": 291.6000061035156,
+        "right": 561.6000061035156,
+        "viewport": 570,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser new 712 dark 1",
+      "pass": true,
+      "details": {
+        "size": "13px",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "line": "20px",
+        "nav": "12px",
+        "left": 434,
+        "right": 704,
+        "viewport": 712,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser new 712 dark 1.25",
+      "pass": true,
+      "details": {
+        "size": "13px",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "line": "20px",
+        "nav": "12px",
+        "left": 291.6000061035156,
+        "right": 561.6000061035156,
+        "viewport": 570,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser new 1360 light 1",
+      "pass": true,
+      "details": {
+        "size": "13px",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "line": "20px",
+        "nav": "12px",
+        "left": 1082,
+        "right": 1352,
+        "viewport": 1360,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser new 1360 light 1.25",
+      "pass": true,
+      "details": {
+        "size": "13px",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "line": "20px",
+        "nav": "12px",
+        "left": 810,
+        "right": 1080,
+        "viewport": 1088,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser new 1360 dark 1",
+      "pass": true,
+      "details": {
+        "size": "13px",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "line": "20px",
+        "nav": "12px",
+        "left": 1082,
+        "right": 1352,
+        "viewport": 1360,
+        "overflow": false
+      }
+    },
+    {
+      "name": "browser new 1360 dark 1.25",
+      "pass": true,
+      "details": {
+        "size": "13px",
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+        "line": "20px",
+        "nav": "12px",
+        "left": 810,
+        "right": 1080,
+        "viewport": 1088,
+        "overflow": false
+      }
+    }
+  ]
+}

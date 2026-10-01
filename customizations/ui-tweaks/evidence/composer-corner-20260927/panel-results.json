@@ -1,0 +1,38 @@
+[
+  {
+    "name": "panel-open",
+    "state": "moved",
+    "hero": false,
+    "model": {
+      "x": 573,
+      "y": 686.5,
+      "width": 26,
+      "height": 26,
+      "top": 686.5,
+      "right": 599,
+      "bottom": 712.5,
+      "left": 573
+    },
+    "card": {
+      "x": 93,
+      "y": 726.5,
+      "width": 506,
+      "height": 94,
+      "top": 726.5,
+      "right": 599,
+      "bottom": 820.5,
+      "left": 93
+    },
+    "inDock": true,
+    "panel": {
+      "x": 640,
+      "y": 0,
+      "width": 720,
+      "height": 856,
+      "top": 0,
+      "right": 1360,
+      "bottom": 856,
+      "left": 640
+    }
+  }
+]

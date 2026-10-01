@@ -1,0 +1,10 @@
+{
+  "status": "pass",
+  "results": [
+    { "name": "normal process", "pid": 69956, "slot": "1.0.76-local-9ea0cb9f0a866321", "remoteDebuggingArgument": false },
+    { "name": "physical back", "before": "normal-physical-before-back.png", "after": "normal-physical-after-back.png", "observed": "opencode history to welcome" },
+    { "name": "physical forward", "after": "normal-physical-after-forward.png", "observed": "welcome to same opencode history" },
+    { "name": "startup error unchanged", "lastWriteTimeLocal": "2026-09-26 18:56:28", "bytes": 20 }
+  ],
+  "limitations": ["Initial normal window was hidden; formal launcher second-instance activation revealed the same process.", "User visual confirmation remains pending."]
+}

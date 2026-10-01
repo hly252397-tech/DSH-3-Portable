@@ -1,0 +1,41 @@
+{
+  "status": "pass",
+  "results": [
+    "official cookie authentication rejects anonymous callers",
+    "real Profile Loader discovers one native settings entry; default state contains no credentials",
+    "usage guide renders 6 sections with non-empty command blocks, setup expanded by default: 一、首次配置（只做一次） | 二、通道一：让 Codex / OpenCode 替你干活 | 三、必须知道的三件事 | 四、通道二：DSH HTTP 指令通道 | 五、通道三：外部客户端接 DSH（ZCode / Qoder 等） | 六、遇到问题",
+    "mouse click -> authenticated settings API -> real MCP initialize/tools/list/delete -> success",
+    "explicit reveal and hide work without frontend storage",
+    "clipboard rejection produces no false success and can clear manual fallback",
+    "copy connection information passes actual fixture data to clipboard API; OS clipboard not changed",
+    "layout and refresh mouse click 1360/0.9 with the usage guide fully expanded",
+    "layout and refresh mouse click 1360/1 with the usage guide fully expanded",
+    "layout and refresh mouse click 1360/1.1 with the usage guide fully expanded",
+    "layout and refresh mouse click 900/0.9 with the usage guide fully expanded",
+    "layout and refresh mouse click 900/1 with the usage guide fully expanded",
+    "layout and refresh mouse click 900/1.1 with the usage guide fully expanded",
+    "independent page reload preserves entry and clears displayed credentials",
+    "only empty welcome-session metadata exists; no tasks, model calls or tools were executed"
+  ],
+  "apiCalls": [
+    "status",
+    "bridge.status",
+    "bridge.status",
+    "check",
+    "credentials",
+    "credentials",
+    "credentials",
+    "status",
+    "status",
+    "status",
+    "status",
+    "status",
+    "status",
+    "status",
+    "bridge.status",
+    "bridge.status",
+    "check"
+  ],
+  "errors": [],
+  "scratch": "G:\\DSH-3-Portable\\Data\\Temp\\agent-mcp-profile-lNSndW"
+}

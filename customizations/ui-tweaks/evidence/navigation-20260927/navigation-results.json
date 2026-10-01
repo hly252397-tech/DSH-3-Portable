@@ -1,0 +1,54 @@
+{
+  "status": "pass",
+  "results": [
+    {
+      "action": "visit",
+      "id": "session-cdd98f5b-1951-4787-9d20-895b5c4a98dc",
+      "title": "🚀 发布｜拉取并更新 dsh-codex-desktop v1.0.66 版本 — DeepSeek Harness",
+      "state": {
+        "back": true,
+        "forward": false
+      }
+    },
+    {
+      "action": "visit",
+      "id": "session-ab66fd21-6aa2-4735-8336-c49a5e83972e",
+      "title": "✨ 功能｜接入opencode免费模型 — DeepSeek Harness",
+      "state": {
+        "back": true,
+        "forward": false
+      }
+    },
+    {
+      "action": "visit",
+      "id": "session-edd8a045-6c68-4b04-8b92-a1887f0f84f4",
+      "title": "🔍 探索｜编码规则 — DeepSeek Harness",
+      "state": {
+        "back": true,
+        "forward": false
+      }
+    },
+    {
+      "action": "back",
+      "id": "session-ab66fd21-6aa2-4735-8336-c49a5e83972e",
+      "title": "✨ 功能｜接入opencode免费模型 — DeepSeek Harness",
+      "pass": true
+    },
+    {
+      "action": "back",
+      "id": "session-cdd98f5b-1951-4787-9d20-895b5c4a98dc",
+      "title": "🚀 发布｜拉取并更新 dsh-codex-desktop v1.0.66 版本 — DeepSeek Harness",
+      "pass": true
+    },
+    {
+      "action": "forward",
+      "id": "session-ab66fd21-6aa2-4735-8336-c49a5e83972e",
+      "title": "✨ 功能｜接入opencode免费模型 — DeepSeek Harness",
+      "pass": true
+    },
+    {
+      "action": "branch-clears-forward",
+      "pass": true
+    }
+  ]
+}

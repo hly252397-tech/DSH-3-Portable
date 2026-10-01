@@ -1,0 +1,56 @@
+{
+  "status": "pass",
+  "scope": "Live DSH desktop sidebar presentation across existing sessions; page-only reload, not runtime recycle",
+  "date": "2026-09-24",
+  "desktopPid": 43376,
+  "results": [
+    {
+      "check": "first page reload",
+      "result": "pass",
+      "observation": "The loaded sidebar returned with the right card visible and browser content rendered.",
+      "screenshot": "Data/Temp/global-ui-after-reload1.png",
+      "sha256": "D0A8B31262664B24EFA973AE6D44FEC415A70B11C634C3BFBF0E0DDC9D4C4A4D"
+    },
+    {
+      "check": "A to B to C session switch",
+      "result": "pass",
+      "observation": "All three existing sessions retained the same right-card open state and approximately 565px width while showing their own conversation contents.",
+      "screenshots": ["Data/Temp/global-ui-session-a.png", "Data/Temp/global-ui-session-b.png", "Data/Temp/global-ui-session-c.png"]
+    },
+    {
+      "check": "reverse panel preference across sessions",
+      "result": "pass",
+      "observation": "Closing the right card in A and opening the bottom panel carried both visibility choices into B and C; switching alone did not create a terminal in A or B.",
+      "screenshot": "Data/Temp/global-ui-b-closed-bottom-open.png",
+      "sha256": "64AF5BA0FC0230A4392B36B584F0F139D57811468D36FC81F507A1871CAD2F72"
+    },
+    {
+      "check": "test-created terminal cleanup",
+      "result": "pass",
+      "observation": "Only the terminal created when the bottom panel was manually opened in C was closed; its panel returned to the empty card chooser.",
+      "screenshot": "Data/Temp/global-ui-c-terminal-closed.png",
+      "sha256": "E43C1FBEF5646F2AF5CD43F62C0C21D5E15CD58AADA4BB5C7C15557E78631B45"
+    },
+    {
+      "check": "right-card plus repeated eight clicks",
+      "result": "pass",
+      "observation": "The plus control alternated the single card menu without duplicating tabs or panels; browser was then opened from that menu.",
+      "screenshot": "Data/Temp/global-ui-plus-1.png",
+      "sha256": "64D6EBF5915142143AC057D6FF4F86A46362F3F1247E0BDB0E9A262B10E07D01"
+    },
+    {
+      "check": "browser after second page reload and idle",
+      "result": "pass",
+      "observation": "The full browser toolbar and DeepSeek page rendered after the second page-only reload and were still visible after ten idle seconds.",
+      "screenshots": ["Data/Temp/global-ui-c-browser-open.png", "Data/Temp/global-ui-browser-reload2.png", "Data/Temp/global-ui-browser-idle10.png"],
+      "idleScreenshotSha256": "48C1C6BF062A0F30B4F9D230C8F9B7B94CE2F1A71E3B89DF6AB1ED11F4B02357"
+    },
+    {
+      "check": "restore pre-test presentation",
+      "result": "pass",
+      "observation": "The temporary browser tab in C was removed; the window was returned to the new-task welcome view with the right browser card visible and bottom panel closed.",
+      "screenshot": "Data/Temp/global-ui-new-task-restored.png",
+      "sha256": "BC409A8E1B8006C021126EBC685B88BE71FEF0B19EE0D35066A17ABBFDB8CDDE"
+    }
+  ]
+}

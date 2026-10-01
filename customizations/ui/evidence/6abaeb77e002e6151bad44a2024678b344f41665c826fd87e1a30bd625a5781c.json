@@ -1,0 +1,40 @@
+{
+  "status": "pass",
+  "recordedAt": "2026-09-24T13:26:57Z",
+  "scope": "Active DSH desktop slot 1.0.66-local-5d3a0221e067453f; two independent DSH client reloads, not an Electron cold start",
+  "results": [
+    {
+      "check": "唯一完整浏览器界面",
+      "method": "检查现役主进程、shell 测试和浏览器卡片实际页面",
+      "expected": "旧 shell 浏览器 chrome 不存在；卡片使用 browser-panel.html 与 WebContentsView 而非 iframe",
+      "actual": "完整工具栏与 DeepSeek 网页同在右侧卡片；测试阻止 shell chrome 与 iframe 回退",
+      "status": "pass",
+      "screenshots": ["Data/Temp/browser-reload2-first-open.png", "Data/Temp/browser-final-reload2-first-open.png"]
+    },
+    {
+      "check": "反复点击加号与静置",
+      "method": "两次独立重载后各物理点击右侧卡片加号 20 次并静置 8 秒",
+      "expected": "菜单可开关，网页不变白，浏览器标签不重复",
+      "actual": "两次均显示完整网页；第一轮桥接探针仍只有 1 个标签且 owner 非空、visible true",
+      "status": "pass",
+      "screenshots": ["Data/Temp/browser-reload2-plus20-idle8.png", "Data/Temp/browser-final-reload2-plus20-idle8.png", "Data/Temp/browser-reload2-final-state3.png"]
+    },
+    {
+      "check": "Files 与浏览器切换",
+      "method": "第一轮 5 次、第二轮 3 次真实标签点击，每次切回后等待 2 秒截图",
+      "expected": "原网页恢复，不停留白屏",
+      "actual": "8 次切回均显示 DeepSeek 网页",
+      "status": "pass",
+      "screenshots": ["Data/Temp/browser-reload2-switch-1.png", "Data/Temp/browser-reload2-switch-5.png", "Data/Temp/browser-final-reload2-switch-1.png", "Data/Temp/browser-final-reload2-switch-3.png"]
+    },
+    {
+      "check": "owner 丢失自愈",
+      "method": "卡片可见时主动调用 browserPanel.hide()，3 秒后查看页面和 tabs()",
+      "expected": "同一网页自动恢复，owner 非空且不新建重复标签",
+      "actual": "网页恢复；1 个标签、owner 非空、visible true、cardState visible",
+      "status": "pass",
+      "screenshots": ["Data/Temp/browser-force-hide-recovered.png", "Data/Temp/browser-force-hide-state.png"]
+    }
+  ],
+  "notCovered": ["Electron 完整冷启动", "后续第三方插件更新覆盖"]
+}

@@ -1,0 +1,79 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: verification never creates a business session\n\ntrue !== false\n",
+  "results": [
+    "official cookie authentication rejects anonymous callers",
+    "real Profile Loader discovers one native settings entry; default state contains no credentials",
+    "mouse click -> authenticated settings API -> real MCP initialize/tools/list/delete -> success",
+    "explicit reveal and hide work without frontend storage",
+    "clipboard rejection produces no false success and can clear manual fallback",
+    "copy connection information passes actual fixture data to clipboard API; OS clipboard not changed",
+    "layout and refresh mouse click 1360/0.9",
+    "layout and refresh mouse click 1360/1",
+    "layout and refresh mouse click 1360/1.1",
+    "layout and refresh mouse click 900/0.9",
+    "layout and refresh mouse click 900/1",
+    "layout and refresh mouse click 900/1.1",
+    "independent page reload preserves entry and clears displayed credentials"
+  ],
+  "errors": [],
+  "apiCalls": [
+    "status",
+    "check",
+    "credentials",
+    "credentials",
+    "credentials",
+    "status",
+    "status",
+    "status",
+    "status",
+    "status",
+    "status",
+    "status",
+    "check"
+  ],
+  "scratch": "G:\\DSH-3-Portable\\Data\\Temp\\agent-mcp-profile-n02SFs",
+  "page": {
+    "hasSettings": true,
+    "hasMcp": true,
+    "state": "online",
+    "nav": [
+      {
+        "text": "返回应用",
+        "selected": null
+      },
+      {
+        "text": "常规",
+        "selected": null
+      },
+      {
+        "text": "模型",
+        "selected": null
+      },
+      {
+        "text": "内置插件",
+        "selected": null
+      },
+      {
+        "text": "插件配置",
+        "selected": null
+      },
+      {
+        "text": "连接器",
+        "selected": null
+      },
+      {
+        "text": "外部智能体接入",
+        "selected": null
+      },
+      {
+        "text": "Agent 预设",
+        "selected": null
+      },
+      {
+        "text": "Codex UI",
+        "selected": null
+      }
+    ],
+    "notice": "自检通过：MCP 握手和 6 个工具正常；未投递任务。"
+  }
+}

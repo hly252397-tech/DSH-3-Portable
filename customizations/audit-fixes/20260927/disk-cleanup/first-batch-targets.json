@@ -1,0 +1,32 @@
+[
+  {
+    "path": "G:\\DSH-3-Portable\\Data\\Temp\\desktop-fix-pack",
+    "bytes": 818266210.0,
+    "files": 601,
+    "reason": "Obsolete 2026-09-19 packaged temp output; no active process references; no reparse points"
+  },
+  {
+    "path": "G:\\DSH-3-Portable\\Data\\Temp\\desktop-fix-pack2",
+    "bytes": 818266070.0,
+    "files": 601,
+    "reason": "Obsolete 2026-09-19 packaged temp output; no active process references; no reparse points"
+  },
+  {
+    "path": "G:\\DSH-3-Portable\\Data\\Temp\\desktop-fix-pack3",
+    "bytes": 818267404.0,
+    "files": 601,
+    "reason": "Obsolete 2026-09-19 packaged temp output; no active process references; no reparse points"
+  },
+  {
+    "path": "G:\\DSH-3-Portable\\Data\\Temp\\desktop-fix-pack4",
+    "bytes": 818268242.0,
+    "files": 601,
+    "reason": "Obsolete 2026-09-19 packaged temp output; no active process references; no reparse points"
+  },
+  {
+    "path": "G:\\DSH-3-Portable\\Data\\Temp\\desktop-fix-pack5",
+    "bytes": 818267987.0,
+    "files": 601,
+    "reason": "Obsolete 2026-09-19 packaged temp output; no active process references; no reparse points"
+  }
+]

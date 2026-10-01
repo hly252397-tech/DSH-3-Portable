@@ -1,0 +1,127 @@
+{
+  "status": "pass",
+  "scope": "shell rollback capsule geometry + render states; theme font-stack and radius ladder; settings entry merge; update indicator spinner",
+  "capturedAt": "2026-10-01T09:14:51.189Z",
+  "method": "static parse of assets/shell.html DOM+CSS, renderRollbackCapsule executed against a minimal DOM stand-in; no live instance probed",
+  "fingerprints": {
+    "assets/shell.html": "0ea0b87e945ec5f2a616584de245ccb641237b7d4319639535dc275b841a2e3f",
+    "assets/theme.css": "2bbdb08d01cc8ccd5e16d8a95e7fbdd401b6a2a45abf0959429f5b03246f8834"
+  },
+  "results": [
+    {
+      "name": "胶囊与重启按钮同处 .bar-right 顶栏右侧",
+      "pass": true,
+      "detail": "bar-right 内 capsule@97 restart@233"
+    },
+    {
+      "name": "胶囊排在重启按钮左侧",
+      "pass": true,
+      "detail": "DOM 序 97 < 233"
+    },
+    {
+      "name": "胶囊两端为半圆（圆角 = 高度一半）",
+      "pass": true,
+      "detail": "border-radius:11px height:22px"
+    },
+    {
+      "name": "胶囊底色为警示黄 #fadb14",
+      "pass": true,
+      "detail": "background:#fadb14"
+    },
+    {
+      "name": "胶囊文字为深色 #3d2b00（对比度）",
+      "pass": true,
+      "detail": "color:#3d2b00"
+    },
+    {
+      "name": "胶囊默认隐藏，仅 data-visible 驱动",
+      "pass": true,
+      "detail": "display:none + [data-visible=\"true\"] 规则存在"
+    },
+    {
+      "name": "状态 idle 不显示胶囊",
+      "pass": true,
+      "detail": "visible=false text=\"\""
+    },
+    {
+      "name": "状态 none 不显示胶囊",
+      "pass": true,
+      "detail": "visible=false text=\"\""
+    },
+    {
+      "name": "状态 available 不显示胶囊",
+      "pass": true,
+      "detail": "visible=false text=\"\""
+    },
+    {
+      "name": "状态 checking 不显示胶囊",
+      "pass": true,
+      "detail": "visible=false text=\"\""
+    },
+    {
+      "name": "状态 downloading 不显示胶囊",
+      "pass": true,
+      "detail": "visible=false text=\"\""
+    },
+    {
+      "name": "状态 validating 不显示胶囊",
+      "pass": true,
+      "detail": "visible=false text=\"\""
+    },
+    {
+      "name": "状态 completed 不显示胶囊",
+      "pass": true,
+      "detail": "visible=false text=\"\""
+    },
+    {
+      "name": "状态 error 不显示胶囊",
+      "pass": true,
+      "detail": "visible=false text=\"\""
+    },
+    {
+      "name": "状态 rolled-back 显示胶囊",
+      "pass": true,
+      "detail": "visible=true"
+    },
+    {
+      "name": "胶囊文案含被撤回版本与当前版本",
+      "pass": true,
+      "detail": "⚠ 已回退：1.0.78+build.1 → 1.0.77"
+    },
+    {
+      "name": "完整降级原因挂 title/aria-label",
+      "pass": true,
+      "detail": "title=\"已回退到 1.0.77：当前槽未通过完整性校验\""
+    },
+    {
+      "name": "theme.css 定义统一字体栈 --chrome-font-ui",
+      "pass": true,
+      "detail": "--chrome-font-ui: Inter, \"SF Pro Text\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei UI\", \"Noto Sans SC\", sans-serif"
+    },
+    {
+      "name": "7 个 chrome 页面统一引用字体栈",
+      "pass": true,
+      "detail": "shell.html, settings.html, about.html, shortcuts.html, feature-panels.html, browser-panel.html, startup.html"
+    },
+    {
+      "name": "圆角阶梯 10/8/5",
+      "pass": true,
+      "detail": "--chrome-radius: 10px | --chrome-radius-sm: 8px | --chrome-radius-inner: 5px"
+    },
+    {
+      "name": "设置入口已合并为 #settings-btn（左下角入口移除）",
+      "pass": true,
+      "detail": "settings-btn 存在、update-btn 已消失"
+    },
+    {
+      "name": "更新指示器用独立 spinner + mask 环",
+      "pass": true,
+      "detail": "data-indicator=spinner 动画规则存在"
+    },
+    {
+      "name": "spinner 尊重 prefers-reduced-motion",
+      "pass": true,
+      "detail": "reduced-motion 下 spinner 动画被关闭"
+    }
+  ]
+}

@@ -1,0 +1,967 @@
+{
+  "status": "pass",
+  "stage": "after-desktop-deployment",
+  "version": "1.0.65+build.8",
+  "results": [
+    {
+      "name": "文件",
+      "mode": "对话",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 107,
+      "panelText": "Files\n文件\n从右侧文件树或上方路径输入框选择文件开始预览\n宏建云系统\n_diag\n_dsh-nightly\n_legacy\n_probe2\n.tmp\n.tmp_probe\n.workbuddy\n知识库\nbrowsers\ndata\noutput\npython\ntools\n29-全品类编码维度分配方案.md\n30-物料录入速查卡.html\n31-宏建云操作手册.html\n31-宏建云操作手册.md\n螺丝物料录入手册.md\n适用：四川西联智控科技有限公司\n应急预案-便携版3打不开怎么修.md\n账号：\nAGENTS.md\n版本"
+    },
+    {
+      "name": "文件",
+      "mode": "轨迹",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n从右侧文件树或上方路径输入框选择文件开始预览\n宏建云系统\n_diag\n_dsh-nightly\n_legacy\n_probe2\n.tmp\n.tmp_probe\n.workbuddy\n知识库\nbrowsers\ndata\noutput\npython\ntools\n29-全品类编码维度分配方案.md\n30-物料录入速查卡.html\n31-宏建云操作手册.html\n31-宏建云操作手册.md\n螺丝物料录入手册.md\n适用：四川西联智控科技有限公司\n应急预案-便携版3打不开怎么修.md\n账号：\nAGENTS.md\n版本"
+    },
+    {
+      "name": "文件",
+      "mode": "上下文",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n从右侧文件树或上方路径输入框选择文件开始预览\n宏建云系统\n_diag\n_dsh-nightly\n_legacy\n_probe2\n.tmp\n.tmp_probe\n.workbuddy\n知识库\nbrowsers\ndata\noutput\npython\ntools\n29-全品类编码维度分配方案.md\n30-物料录入速查卡.html\n31-宏建云操作手册.html\n31-宏建云操作手册.md\n螺丝物料录入手册.md\n适用：四川西联智控科技有限公司\n应急预案-便携版3打不开怎么修.md\n账号：\nAGENTS.md\n版本"
+    },
+    {
+      "name": "源代码管理",
+      "mode": "对话",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 107,
+      "panelText": "Files\n文件\n源代码管理\nfeature/p3-tiny-watch\nmain\nsync/upstream-1.0.60\nsync/upstream-1.0.62\n加载中…\n变更过多，仅显示前 2000 条\n已暂存 (0)\n没有变更\n未暂存 (2000)\n全部暂存\nM\n.gitignore\nM\nAGENTS.md\nM\nCHANGELOG.md\nM\nCHANGELOG.zh-CN.md\nM\nassets/shell.html\nM\nassets/theme.css\nM\ncustomizations/ui-tweaks/lib/client.js\nM\ncustomizations/ui/baseline.json\nM\ndocs/00-"
+    },
+    {
+      "name": "源代码管理",
+      "mode": "轨迹",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\nfeature/p3-tiny-watch\nmain\nsync/upstream-1.0.60\nsync/upstream-1.0.62\n变更过多，仅显示前 2000 条\n已暂存 (0)\n没有变更\n未暂存 (2000)\n全部暂存\nM\n.gitignore\nM\nAGENTS.md\nM\nCHANGELOG.md\nM\nCHANGELOG.zh-CN.md\nM\nassets/shell.html\nM\nassets/theme.css\nM\ncustomizations/ui-tweaks/lib/client.js\nM\ncustomizations/ui/baseline.json\nM\ndocs/00-交接入口/"
+    },
+    {
+      "name": "源代码管理",
+      "mode": "上下文",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\nfeature/p3-tiny-watch\nmain\nsync/upstream-1.0.60\nsync/upstream-1.0.62\n变更过多，仅显示前 2000 条\n已暂存 (0)\n没有变更\n未暂存 (2000)\n全部暂存\nM\n.gitignore\nM\nAGENTS.md\nM\nCHANGELOG.md\nM\nCHANGELOG.zh-CN.md\nM\nassets/shell.html\nM\nassets/theme.css\nM\ncustomizations/ui-tweaks/lib/client.js\nM\ncustomizations/ui/baseline.json\nM\ndocs/00-交接入口/"
+    },
+    {
+      "name": "任务管理",
+      "mode": "对话",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 107,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n任务管理 · ========================================\n========================================\n主代理 · 空闲"
+    },
+    {
+      "name": "任务管理",
+      "mode": "轨迹",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n任务管理 · ========================================\n========================================\n主代理 · 空闲"
+    },
+    {
+      "name": "任务管理",
+      "mode": "上下文",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n任务管理 · ========================================\n========================================\n主代理 · 空闲"
+    },
+    {
+      "name": "侧边对话(beta)",
+      "mode": "对话",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 107,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\nstandard · deepseek-flash\nstandard · deepseek-flash"
+    },
+    {
+      "name": "侧边对话(beta)",
+      "mode": "轨迹",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\nstandard · deepseek-flash\nstandard · deepseek-flash"
+    },
+    {
+      "name": "侧边对话(beta)",
+      "mode": "上下文",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\nstandard · deepseek-flash\nstandard · deepseek-flash"
+    },
+    {
+      "name": "终端",
+      "mode": "对话",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 107,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\nPowerShell 7.6.5\n   A new PowerShell stable release is available: v7.6.6\n   Upgrade now, or check out the release page at:\n     https://aka.ms/PowerShell-Release?tag=v7.6.6\nPS G:\\DSH-3-Portable\\宏建云系统>  "
+    },
+    {
+      "name": "终端",
+      "mode": "轨迹",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\nPowerShell 7.6.5\n   A new PowerShell stable release is available: v7.6.6\n   Upgrade now, or check out the release page at:\n     https://aka.ms/PowerShell-Release?tag=v7.6.6\nPS G:\\DSH-3-Portable\\宏建云系统>  "
+    },
+    {
+      "name": "终端",
+      "mode": "上下文",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\nPowerShell 7.6.5\n   A new PowerShell stable release is available: v7.6.6\n   Upgrade now, or check out the release page at:\n     https://aka.ms/PowerShell-Release?tag=v7.6.6\nPS G:\\DSH-3-Portable\\宏建云系统>  "
+    },
+    {
+      "name": "浏览器",
+      "mode": "对话",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 107,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器"
+    },
+    {
+      "name": "浏览器",
+      "mode": "轨迹",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器"
+    },
+    {
+      "name": "浏览器",
+      "mode": "上下文",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器"
+    },
+    {
+      "name": "黑洞",
+      "mode": "对话",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 107,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器\n黑洞\n黑洞空间\n创建黑洞\n智力配置\n开发手册\nDSH / 黑洞档案\n黑洞空间\n\n吸收并沉淀与当前任务有关的有价值内容。\n\n静默待机\n吸收资料\nL0\n初生 · 成长值 4.2\n知识成长 · 非模型智商\n本地知识整理\n0%\n0 / 3 已确认比例\n已收纳3\n已确认0\n待确认3\n已复用0\n知识密度\n0%\n0 / 3 已确认比例\n最近吸收\n外壳顶栏整条失效：一个缺失的 DOM id 让整段脚本中断（含\"看起来没修好\"的交付教训）\nDSH 便携版3 会话（2026-09-13 ~ 09-14）\n复用潜力\n外壳顶栏整条失效：一个缺失的 DOM id 让整段脚本中断（含\"看起来没修"
+    },
+    {
+      "name": "黑洞",
+      "mode": "轨迹",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器\n黑洞\n黑洞空间\n创建黑洞\n智力配置\n开发手册\nDSH / 黑洞档案\n黑洞空间\n\n吸收并沉淀与当前任务有关的有价值内容。\n\n静默待机\n吸收资料\nL0\n初生 · 成长值 4.2\n知识成长 · 非模型智商\n本地知识整理\n0%\n0 / 3 已确认比例\n已收纳3\n已确认0\n待确认3\n已复用0\n知识密度\n0%\n0 / 3 已确认比例\n最近吸收\n外壳顶栏整条失效：一个缺失的 DOM id 让整段脚本中断（含\"看起来没修好\"的交付教训）\nDSH 便携版3 会话（2026-09-13 ~ 09-14）\n复用潜力\n外壳顶栏整条失效：一个缺失的 DOM id 让整段脚本中断（含\"看起来没修"
+    },
+    {
+      "name": "黑洞",
+      "mode": "上下文",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器\n黑洞\n黑洞空间\n创建黑洞\n智力配置\n开发手册\nDSH / 黑洞档案\n黑洞空间\n\n吸收并沉淀与当前任务有关的有价值内容。\n\n静默待机\n吸收资料\nL0\n初生 · 成长值 4.2\n知识成长 · 非模型智商\n本地知识整理\n0%\n0 / 3 已确认比例\n已收纳3\n已确认0\n待确认3\n已复用0\n知识密度\n0%\n0 / 3 已确认比例\n最近吸收\n外壳顶栏整条失效：一个缺失的 DOM id 让整段脚本中断（含\"看起来没修好\"的交付教训）\nDSH 便携版3 会话（2026-09-13 ~ 09-14）\n复用潜力\n外壳顶栏整条失效：一个缺失的 DOM id 让整段脚本中断（含\"看起来没修"
+    },
+    {
+      "name": "知识中心",
+      "mode": "对话",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 107,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器\n黑洞\n知识中心\n知识中心\n\n内容已保存在便携盘\n\n我的知识库\n\n分类管理知识条目，支持跨库搜索与备份\n\n2\n知识库\n2\n知识条目\n全部工作区\n宏建云系统\n创建知识库\n按主题归集资料与经验\n工程手册\n1 知识条目\n所有工作区可见\n打开知识库 ↗\n设计规范\n1 知识条目\n所有工作区可见\n打开知识库 ↗"
+    },
+    {
+      "name": "知识中心",
+      "mode": "轨迹",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器\n黑洞\n知识中心\n知识中心\n\n内容已保存在便携盘\n\n我的知识库\n\n分类管理知识条目，支持跨库搜索与备份\n\n2\n知识库\n2\n知识条目\n全部工作区\n宏建云系统\n创建知识库\n按主题归集资料与经验\n工程手册\n1 知识条目\n所有工作区可见\n打开知识库 ↗\n设计规范\n1 知识条目\n所有工作区可见\n打开知识库 ↗"
+    },
+    {
+      "name": "知识中心",
+      "mode": "上下文",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器\n黑洞\n知识中心\n知识中心\n\n内容已保存在便携盘\n\n我的知识库\n\n分类管理知识条目，支持跨库搜索与备份\n\n2\n知识库\n2\n知识条目\n全部工作区\n宏建云系统\n创建知识库\n按主题归集资料与经验\n工程手册\n1 知识条目\n所有工作区可见\n打开知识库 ↗\n设计规范\n1 知识条目\n所有工作区可见\n打开知识库 ↗"
+    },
+    {
+      "name": "数据库",
+      "mode": "对话",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 107,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器\n黑洞\n知识中心\n数据库\n数据库\n\n已提交数据保存在便携盘；表格输入移开焦点后保存。\n\n表格\n图表\n总览\n字段\n导出\n导入\n新增记录\n名称\t状态\t日期\t\n\t\n—\n待处理\n进行中\n完成\n\t\t"
+    },
+    {
+      "name": "数据库",
+      "mode": "轨迹",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器\n黑洞\n知识中心\n数据库\n数据库\n\n已提交数据保存在便携盘；表格输入移开焦点后保存。\n\n表格\n图表\n总览\n字段\n导出\n导入\n新增记录\n名称\t状态\t日期\t\n\t\n—\n待处理\n进行中\n完成\n\t\t"
+    },
+    {
+      "name": "数据库",
+      "mode": "上下文",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器\n黑洞\n知识中心\n数据库\n数据库\n\n已提交数据保存在便携盘；表格输入移开焦点后保存。\n\n表格\n图表\n总览\n字段\n导出\n导入\n新增记录\n名称\t状态\t日期\t\n\t\n—\n待处理\n进行中\n完成\n\t\t"
+    },
+    {
+      "name": "Inventor 2027",
+      "mode": "对话",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 107,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器\n黑洞\n知识中心\n数据库\nInventor 2027\nInventor 2027\nInventor 2027\n\nDSH DESKTOP CONNECTOR\n\n已检测到 Autodesk Inventor 2027\nC:\\Program Files\\Autodesk\\Inventor 2027\\Bin\\Inventor.exe\n重新检测\n连接并打开\n\n当前连接用于检测并启动桌面版；CAD 模型自动化需要后续启用 COM / Add-In 操作层。"
+    },
+    {
+      "name": "Inventor 2027",
+      "mode": "轨迹",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 278,
+        "y": 734,
+        "w": 368,
+        "h": 44,
+        "right": 646,
+        "bottom": 778
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器\n黑洞\n知识中心\n数据库\nInventor 2027\nInventor 2027\nInventor 2027\n\nDSH DESKTOP CONNECTOR\n\n已检测到 Autodesk Inventor 2027\nC:\\Program Files\\Autodesk\\Inventor 2027\\Bin\\Inventor.exe\n重新检测\n连接并打开\n\n当前连接用于检测并启动桌面版；CAD 模型自动化需要后续启用 COM / Add-In 操作层。"
+    },
+    {
+      "name": "Inventor 2027",
+      "mode": "上下文",
+      "clicked": true,
+      "pass": true,
+      "errors": [],
+      "viewport": [
+        1360,
+        854
+      ],
+      "reserve": 672,
+      "panelWidth": 672,
+      "gap": 6,
+      "center": {
+        "x": 252,
+        "y": 6,
+        "w": 430,
+        "h": 842,
+        "right": 682,
+        "bottom": 848
+      },
+      "composer": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "historyRows": 0,
+      "panelText": "Files\n文件\n源代码管理\n任务管理\n新对话\npwsh\n浏览器\n黑洞\n知识中心\n数据库\nInventor 2027\nInventor 2027\nInventor 2027\n\nDSH DESKTOP CONNECTOR\n\n已检测到 Autodesk Inventor 2027\nC:\\Program Files\\Autodesk\\Inventor 2027\\Bin\\Inventor.exe\n重新检测\n连接并打开\n\n当前连接用于检测并启动桌面版；CAD 模型自动化需要后续启用 COM / Add-In 操作层。"
+    }
+  ]
+}

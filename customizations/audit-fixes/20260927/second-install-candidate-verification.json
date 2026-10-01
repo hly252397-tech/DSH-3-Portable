@@ -1,0 +1,73 @@
+{
+  "checkedAt": "2026-09-27T11:32:39.585Z",
+  "current": {
+    "relativePath": "Data/Updates/Desktop/slots/1.0.76-local-9ea0cb9f0a866321",
+    "version": "1.0.76",
+    "sha256": "2be338a58675ff3caab74d742831f99166ad263c157f31328e45e0ab4538525a",
+    "transactionId": "e188f833-95bc-4a8e-9f75-70fe021169dd"
+  },
+  "pending": {
+    "relativePath": "Data/Updates/Desktop/slots/1.0.76-local-8fd3c40ad480a1fd",
+    "version": "1.0.76",
+    "sha256": "e2ef868108d8acb1f283abfff1ddbc2a1ffeaa83b5c2b5ab1be56e794305d461",
+    "transactionId": "3b690129-73a3-426c-9c4d-49a81ee76163"
+  },
+  "modules": [
+    {
+      "file": "dist\\src\\main.js",
+      "matches": true
+    },
+    {
+      "file": "dist\\src\\shell-input.js",
+      "matches": true
+    },
+    {
+      "file": "dist\\src\\shell-preload.cjs",
+      "matches": true
+    },
+    {
+      "file": "dist\\src\\shell-contract.js",
+      "matches": true
+    },
+    {
+      "file": "dist\\src\\mcp-scope-refresh.js",
+      "matches": true
+    },
+    {
+      "file": "dist\\src\\plugin-toolchain.js",
+      "matches": true
+    },
+    {
+      "file": "dist\\src\\plugin-seed.js",
+      "matches": true
+    },
+    {
+      "file": "dist\\src\\desktop-host.js",
+      "matches": true
+    }
+  ],
+  "artifacts": [
+    {
+      "file": "app.asar",
+      "sha256": "c5a8e3a7b4bbd814005dacfe7ce31ef65ff3db45d12ad55136075927fbe9838f"
+    },
+    {
+      "file": "node/node.exe",
+      "sha256": "cea6ac365f9bb9586dafd2084d996e092e7d3e7d07ab52d1f76bf53d1fca9bc4"
+    },
+    {
+      "file": "plugins-store.tgz",
+      "sha256": "3d4cb3dc89d72462b3c3639d1938d314dbad9154fe3e481b80c704813af2cda3"
+    },
+    {
+      "file": "dsh-runtime.tgz",
+      "sha256": "b7ea603ee4a6222408be1fa29c3266f4e04dc24990d082572b3d155584c8f2a4"
+    }
+  ],
+  "recyclerEmptyScans": [
+    "2026-09-27T11:32:33.541Z",
+    "2026-09-27T11:32:36.572Z",
+    "2026-09-27T11:32:39.584Z"
+  ],
+  "restarted": false
+}

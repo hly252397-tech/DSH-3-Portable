@@ -1,0 +1,6 @@
+{
+  "result": {
+    "type": "string",
+    "value": "{\"model\":[{\"expanded\":\"true\",\"rect\":[538,685.5,96,28]}],\"menus\":[{\"role\":\"menu\",\"rect\":[322.59375,42]}],\"editable\":[{\"tag\":\"DIV\",\"rect\":[94,735.5,504,44]}]}"
+  }
+}

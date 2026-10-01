@@ -1,0 +1,41 @@
+{
+  "status": "pass",
+  "recordedAt": "2026-09-25T03:04:51+08:00",
+  "scope": "DSH desktop 1.0.66, active A/B slot 1.0.66-local-5fa4723161883c8a, real 2576x1408 Windows window",
+  "results": [
+    {
+      "check": "浏览器专用原生叠加层退出",
+      "method": "检查打包后的主进程、卡片生成物，并正常重启执行",
+      "expected": "不创建 browserPanelView 或 NativeBrowserView，ERP 在右卡片内显示",
+      "actual": "主进程只有 DSH 主文档一处 WebContentsView；卡片由两个兄弟 webview 实现，ERP 在右卡片中可见",
+      "status": "pass",
+      "screenshots": ["Data/artifacts/embedded-browser-20260925/final-slot-erp-ten.png"]
+    },
+    {
+      "check": "两个旧会话的网页独立恢复",
+      "method": "完整重启后切换 A=ERP、B=DeepSeek，再 A/B 往返",
+      "expected": "各会话保存的地址和页面都显示，不串会话、不白屏",
+      "actual": "ERP 和 DeepSeek 均按各自会话地址真实绘制；没有改动 ERP 业务数据",
+      "status": "pass",
+      "screenshots": ["Data/artifacts/embedded-browser-20260925/embedded-first-after-park-fix.-crop.png", "Data/artifacts/embedded-browser-20260925/embedded-second-again-after-park-fix.-crop.png"]
+    },
+    {
+      "check": "反复点击加号及文件/浏览器切换",
+      "method": "当前槽 A 与 B 各物理点击 10 轮“+→浏览器→文件→浏览器”",
+      "expected": "工具栏与网页始终恢复，不卡在空白卡片",
+      "actual": "两会话各 10 轮后分别仍显示 ERP 和 DeepSeek 网页",
+      "status": "pass",
+      "screenshots": ["Data/artifacts/embedded-browser-20260925/final-slot-erp-ten.png", "Data/artifacts/embedded-browser-20260925/final-slot-deepseek-ten.png"]
+    },
+    {
+      "check": "网页截图内容",
+      "method": "从“更多”选择截取页面，目视检查保存的 PNG",
+      "expected": "截图为 ERP 网页而不是空文件、菜单或遮挡层",
+      "actual": "最终 PNG 呈现 ERP 标题、卡片与表格，文件大小 140784 字节",
+      "status": "pass",
+      "screenshots": ["Data/artifacts/embedded-browser-20260925/saved-erp-page-final.png"]
+    }
+  ],
+  "knownIssue": "快速切回会话后立刻打开“更多”，菜单下方的可选网页快照偶尔为白底；菜单可用且关闭后网页正常。embedded-fast-menu-white-known.-crop.png 是此问题的反证，不属于上述通过项。",
+  "notCovered": ["所有外部站点和窗口尺寸", "后续第三方插件更新后覆盖", "快切菜单背景快照全状态"]
+}

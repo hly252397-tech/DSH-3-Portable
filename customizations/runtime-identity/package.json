@@ -1,0 +1,21 @@
+{
+  "name": "dsh-runtime-identity",
+  "version": "0.1.0",
+  "description": "DSH 插件：P0 运行时身份、能力发现与模型切换交接——每次请求自动注入真实身份/环境/能力摘要，提供 get_runtime_context 与 describe_capability。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "engines": { "node": ">=24.20.0" },
+  "peerDependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@deepseek-ai/dsh-tools": "0.1.7-rc.2 || 0.2.0-rc.1 || 0.2.0-rc.2"
+  },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" }
+  },
+  "files": ["lib/index.js", "lib/identity.js", "cordis.patch.yml"],
+  "license": "MIT"
+}
