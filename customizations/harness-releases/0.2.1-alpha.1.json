@@ -1,0 +1,23 @@
+{
+  "profileCompatibility": {
+    "@kenz1117/dsh-ui-usage-billing@1.4.5": ["0.2.1-alpha.1"],
+    "@michengai/dsh-agency-agents@1.0.7": ["0.2.1-alpha.1"],
+    "@michengai/dsh-archive-manager@1.0.5": ["0.2.1-alpha.1"],
+    "@michengai/dsh-automation@0.1.51": ["0.2.1-alpha.1"],
+    "@michengai/dsh-btw@0.1.13": ["0.2.1-alpha.1"],
+    "@michengai/dsh-code-review@0.1.7": ["0.2.1-alpha.1"],
+    "@michengai/dsh-codex-pet@0.1.10": ["0.2.1-alpha.1"],
+    "@michengai/dsh-codex-ui@1.1.18": ["0.2.1-alpha.1"],
+    "@michengai/dsh-im-connect@0.1.63": ["0.2.1-alpha.1"],
+    "@michengai/dsh-pua@0.3.18": ["0.2.1-alpha.1"],
+    "@michengai/dsh-simplify@0.1.10": ["0.2.1-alpha.1"],
+    "@michengai/dsh-skills-manager@1.1.4": ["0.2.1-alpha.1"],
+    "dsh-better-sidebar@0.18.0-alpha.0": ["0.2.1-alpha.1"],
+    "dsh-context@0.54.2": ["0.2.1-alpha.1"],
+    "dsh-custom-spaces@0.2.0": ["0.2.1-alpha.1"],
+    "dsh-mcp-connector@0.2.59": ["0.2.1-alpha.1"],
+    "dsh-runtime-identity@0.1.0": ["0.2.1-alpha.1"],
+    "dsh-system-awareness@0.1.0": ["0.2.1-alpha.1"],
+    "dshmarket@1.66.2": ["0.2.1-alpha.1"]
+  }
+}
